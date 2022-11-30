@@ -15,8 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
         public Task<Identity> CreateIdentityAsync(string apiVersion, IdentitySpec identity) =>
             Task.FromResult(this.identities.GetOrAdd(identity.ModuleId, n => new Identity { ModuleId = n, ManagedBy = identity.ManagedBy, GenerationId = Guid.NewGuid().ToString() }));
 
-        public Task<Identity> UpdateIdentityAsync(string apiVersion, string name, UpdateIdentity updateinfo)
+        public async Task<Identity> UpdateIdentityAsync(string apiVersion, string name, UpdateIdentity updateinfo)
         {
+            if (name.Equals("slowtestidentity"))
+            {
+                await Task.Delay(60000);
+            }
+
             if (this.identities.ContainsKey(name) == false)
             {
                 throw new InvalidOperationException("Module not found");
@@ -34,11 +39,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
                 GenerationId = updateinfo.GenerationId
             };
 
-            return Task.FromResult(
-                this.identities.AddOrUpdate(
+            return this.identities.AddOrUpdate(
                     name,
                     newIdentity,
-                    (n, v) => newIdentity));
+                    (n, v) => newIdentity);
         }
 
         public Task<ModuleDetails> CreateModuleAsync(string apiVersion, ModuleSpec module)
