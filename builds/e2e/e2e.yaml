@@ -206,6 +206,7 @@ jobs:
       artifactName: iotedged-ubuntu22.04-amd64
       identityServiceArtifactName: packages_ubuntu-22.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      verbose: true
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -226,6 +227,7 @@ jobs:
       artifactName: iotedged-ubuntu22.04-aarch64
       identityServiceArtifactName: packages_ubuntu-22.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+      verbose: true
 
     steps:
     - template: templates/e2e-setup.yaml
