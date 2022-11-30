@@ -230,7 +230,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         case "$PACKAGE_OS" in
             ubuntu18.04|ubuntu20.04)
                 transitional_packages='dh-systemd'
-                linker='aarch64-linux-gnu-gnu'
+                linker='aarch64-linux-gnu-gcc'
                 ;;
             *)
                 transitional_packages=''
