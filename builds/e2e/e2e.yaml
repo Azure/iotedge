@@ -191,6 +191,47 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
+  - job: ubuntu_2204
+################################################################################
+    displayName: Ubuntu 22.04 on amd64
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu22.04-amd64
+      identityServiceArtifactName: packages_ubuntu-22.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: ubuntu_2204_arm64v8
+################################################################################
+    displayName: Ubuntu 22.04 on arm64v8
+    pool:
+      name: $(pool.linux.arm.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-22.04-arm64-msmoby
+
+    variables:
+      os: linux
+      arch: arm64v8
+      artifactName: iotedged-ubuntu22.04-aarch64
+      identityServiceArtifactName: packages_ubuntu-22.04_aarch64
+      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
   - job: centos7_amd64
 ################################################################################
     displayName: CentOs7 amd64
