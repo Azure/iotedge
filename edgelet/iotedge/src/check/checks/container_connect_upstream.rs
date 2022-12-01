@@ -143,15 +143,15 @@ impl ContainerConnectUpstream {
         let port = self.upstream_port.as_port().to_string();
 
         if self.use_container_runtime_network {
-            args.extend(&["--network", network_name]);
+            args.extend(["--network", network_name]);
         }
 
         if check.parent_hostname.is_some() {
-            args.extend(&["-v", &map_volume]);
+            args.extend(["-v", &map_volume]);
         }
 
         self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
-        args.extend(&[
+        args.extend([
             &diagnostics_image_name,
             "dotnet",
             "IotedgeDiagnosticsDotnet.dll",
@@ -163,14 +163,14 @@ impl ContainerConnectUpstream {
         ]);
 
         if check.parent_hostname.is_some() {
-            args.extend(&["--isNested", "true"]);
-            args.extend(&["--workload_uri", &workload_uri]);
+            args.extend(["--isNested", "true"]);
+            args.extend(["--workload_uri", &workload_uri]);
         }
 
         if &port == "443" {
             self.proxy = check.proxy_uri.clone();
             if let Some(proxy) = &check.proxy_uri {
-                args.extend(&["--proxy", proxy.as_str()]);
+                args.extend(["--proxy", proxy.as_str()]);
             }
         }
 
