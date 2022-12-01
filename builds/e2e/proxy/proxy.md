@@ -41,6 +41,11 @@ az account set -s "$subscription_name"
 # If the resource group doesn't already exist, create it
 az group create -l "$location" -n "$resource_group_name"
 
+# If the 'Microsoft.ContainerInstance' resource provider isn't already registered for your subscription, register it
+az provider register -n Microsoft.ContainerInstance --subscription "$subscription_name"
+# Before continuing to the next step, issue the following command to see if registration has completed
+az provider show -n Microsoft.ContainerInstance -o tsv --query registrationState
+
 # Deploy the VMs
 az deployment group create --resource-group "$resource_group_name" --name 'e2e-proxy' --template-file ./proxy-deployment-template.json --parameters "$(
     jq -n \
