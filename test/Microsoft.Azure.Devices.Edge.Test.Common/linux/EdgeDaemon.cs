@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Retry.Do(
                 async () =>
                 {
-                    await Process.RunAsync("journalctl", "-u aziot-edged -n 100", token);
+                    await Process.RunAsync("iotedge", "system logs -- -n 100 --no-pager", token);
 
                     string[] output = await Process.RunAsync("iotedge", "list", token);
                     return output;
