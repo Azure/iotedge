@@ -37,20 +37,20 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     dependsOn:
       - PublishManifests
       - BuildPackages
     condition: or(succeeded('PublishManifests'),succeeded('BuildPackages'))
     jobs:
-      - job: ubuntu_2004_msmoby
-        displayName: Ubuntu 20.04 with iotedge-moby
+      - job: ubuntu_2204_msmoby
+        displayName: Ubuntu 22.04 with iotedge-moby
         variables:
           verbose: false
           os: linux
           arch: amd64
-          artifactName: iotedged-ubuntu20.04-amd64
-          identityServiceArtifactName: packages_ubuntu-20.04_amd64
+          artifactName: iotedged-ubuntu22.04-amd64
+          identityServiceArtifactName: packages_ubuntu-22.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           builtImages: $[ stageDependencies.PublishManifests.PublishManifest.result ]
           builtPackages: $[ stageDependencies.BuildPackages.linux.result ]
