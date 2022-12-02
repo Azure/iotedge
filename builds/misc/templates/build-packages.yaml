@@ -114,6 +114,10 @@ stages:
               arch: amd64
               os: ubuntu22.04
               target.iotedged: edgelet/target/release
+            Ubuntu2204-arm32v7:
+              arch: arm32v7
+              os: ubuntu22.04
+              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
             Ubuntu2204-aarch64:
               arch: aarch64
               os: ubuntu22.04
