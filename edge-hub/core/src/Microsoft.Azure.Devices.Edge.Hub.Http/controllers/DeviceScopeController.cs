@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             bool isModule = false;
             string targetId = request.TargetDeviceId;
-            if (!request.TargetModuleId.IsNullOrWhiteSpace())
+            if (!string.IsNullOrWhiteSpace(request.TargetModuleId))
             {
                 isModule = true;
                 targetId += "/" + request.TargetModuleId;
