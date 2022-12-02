@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
+    using Serilog;
 
     [EndToEnd]
     public class Provisioning : DeviceProvisioningFixture
@@ -46,6 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
 
             CancellationToken token = this.TestToken;
+
+            Log.Verbose("### In Provisioning.DpsX509");
 
             (TestCertificates testCerts, _) = await TestCertificates.GenerateCertsAsync(registrationId, token);
 
@@ -97,6 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 rootCa,
                 caCertScriptPath,
                 token);
+
+            Log.Verbose("### In Provisioning.DpsX509");
 
             IdCertificates idCert = await ca.GenerateIdentityCertificatesAsync(registrationId, token);
             (TestCertificates testCerts, _) = await TestCertificates.GenerateCertsAsync(registrationId, token);
