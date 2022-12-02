@@ -144,27 +144,27 @@ jobs:
 #     - template: templates/e2e-setup.yaml
 #     - template: templates/e2e-run.yaml
 
-# ################################################################################
-#   - job: ubuntu_2004_docker
-# ################################################################################
-#     displayName: Ubuntu 20.04 with Docker (minimal)
+################################################################################
+  - job: ubuntu_2004_docker
+################################################################################
+    displayName: Ubuntu 20.04 with Docker (minimal)
 
-#     pool:
-#       name: $(pool.linux.name)
-#       demands:
-#       - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
 
-#     variables:
-#       os: linux
-#       arch: amd64
-#       artifactName: iotedged-ubuntu20.04-amd64
-#       identityServiceArtifactName: packages_ubuntu-20.04_amd64
-#       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-#       minimal: true
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu20.04-amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      minimal: true
 
-#     steps:
-#     - template: templates/e2e-setup.yaml
-#     - template: templates/e2e-run.yaml
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
 
 # ################################################################################
 #   - job: ubuntu_2004_arm64v8
