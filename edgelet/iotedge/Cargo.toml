@@ -4,7 +4,7 @@ edition = "2021"
 name = "iotedge"
 version = "0.1.0"
 description = "The iotedge tool is used to manage the IoT Edge runtime."
-homepage = "https://github.com/azure/iotedge"
+homepage = "https://aka.ms/iotedge"
 license = "MIT"
 
 [dependencies]
