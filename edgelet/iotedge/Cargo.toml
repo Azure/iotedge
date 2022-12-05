@@ -1,8 +1,5 @@
 [package]
 authors = ["Azure IoT Edge Devs"]
-description = """
-The iotedge tool is used to manage the IoT Edge runtime.
-"""
 edition = "2021"
 name = "iotedge"
 version = "0.1.0"
