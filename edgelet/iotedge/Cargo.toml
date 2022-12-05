@@ -6,6 +6,9 @@ The iotedge tool is used to manage the IoT Edge runtime.
 edition = "2021"
 name = "iotedge"
 version = "0.1.0"
+description = "The iotedge is the CLI for IoT Edge"
+homepage = "https://github.com/azure/iotedge"
+license = "MIT"
 
 [dependencies]
 anyhow = "1"
