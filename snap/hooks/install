@@ -1,0 +1,9 @@
+#!/bin/bash
+
+mkdir -p $SNAP_COMMON
+exec >> $SNAP_COMMON/install-hook.log 2>&1
+
+mkdir -p $SNAP_DATA/var/{lib/{aziot/edged,iotedge},log}
+mkdir -p $SNAP_DATA/identity-service
+
+chown -R snap_aziotedge:snap_aziotedge $SNAP_DATA
