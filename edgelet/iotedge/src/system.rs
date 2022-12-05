@@ -83,8 +83,11 @@ impl System {
     }
 
     pub async fn reprovision() -> Result<(), Error> {
-        let uri = url::Url::parse("unix:///run/aziot/identityd.sock")
-            .expect("hard-coded URI should parse");
+        let uri = url::Url::parse(&format!(
+            "unix://{}/identityd.sock",
+            option_env!("SOCKET_DIR").unwrap_or("/run/aziot")
+        ))
+        .expect("hard-coded URI should parse");
         let client = IdentityClient::new(
             ApiVersion::V2020_09_01,
             http_common::Connector::new(&uri).map_err(|err| {
