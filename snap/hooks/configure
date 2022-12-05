@@ -1,0 +1,48 @@
+#!/bin/sh
+
+mkdir -p $SNAP_COMMON
+exec >> $SNAP_COMMON/configure-hook.log 2>&1
+
+toml_kvp() {
+	printf "%s = \"%s\"\n" "$1" "$2"
+}
+
+toml_new_section() {
+	printf "\n\n"
+	printf "[%s]\n" "$1"
+}
+
+# make sure we are plugged in to the identity service
+if ! snapctl is-connected identity-service; then
+	exit 0
+fi
+
+# and that we have something worth writing
+if test -z "$(snapctl get raw-config)" ; then
+	exit 0
+fi
+
+mkdir -p /etc/aziot/edged/config.d
+
+{
+	toml_kvp "hostname" "$(cat /etc/hostname)"
+	toml_kvp "homedir" "$SNAP_COMMON/var/lib/aziot/edged"
+
+	snapctl get raw-config
+
+	toml_new_section "connect"
+	toml_kvp "workload_uri" "unix:///var/run/iotedge/workload.sock"
+	toml_kvp "management_uri" "unix:///var/run/iotedge/mgmt.sock"
+
+	toml_new_section "listen"
+	toml_kvp "workload_uri" "unix:///var/run/iotedge/workload.sock"
+	toml_kvp "management_uri" "unix:///var/run/iotedge/mgmt.sock"
+
+	toml_new_section "moby_runtime"
+	toml_kvp "uri" "unix:///var/run/docker.sock"
+	toml_kvp "network" "azure-iot-edge"
+
+
+} > /etc/aziot/config.toml
+
+$SNAP/usr/bin/iotedge config apply
