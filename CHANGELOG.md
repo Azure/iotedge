@@ -1,3 +1,20 @@
+# 1.1.19 (2022-12-13-2022)
+
+## Edge Agent
+### Bug fixes
+* Update Newtonsoft.Json, Microsoft.AspNetCore.Http, and Microsoft.AspNetCore.Server.Kestrel.Core to patch security vulnerabilities [3c0b5e1](https://github.com/Azure/iotedge/commit/3c0b5e174ccc9fa0890255dec26858e6cc3b6338)
+
+## Edge Hub
+### Bug fixes
+* Update Newtonsoft.Json, Microsoft.AspNetCore.Http, and Microsoft.AspNetCore.Server.Kestrel.Core to patch security vulnerabilities [3c0b5e1](https://github.com/Azure/iotedge/commit/3c0b5e174ccc9fa0890255dec26858e6cc3b6338)
+
+## Base image updates
+The following Docker images were updated because their base images changed:
+   * azureiotedge-agent
+   * azureiotedge-hub
+   * azureiotedge-simulated-temperature-sensor
+   * azureiotedge-diagnostics
+
 # 1.1.18 (2022-11-08)
 
 ## Edge Hub
