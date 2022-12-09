@@ -44,23 +44,24 @@ get_push_url() {
 }
 
 #
-# Echoes the first tag of format n.n* reachable from $COMMIT. If the $COMMIT
-# variable is not set, it will default to 'HEAD'. Returns exit status 1 if no
-# tag can be found.
+# Echoes the first tag of format $PREFIXn.n* reachable from $COMMIT. If the $TAG_PREFIX variable is
+# not set, it will default to none (''). If the $COMMIT variable is not set, it will default to
+# 'HEAD'. Returns exit status 1 if no tag can be found.
 #
 get_nearest_version() {
   local commit=${COMMIT:-HEAD}
-  local version=$(git describe --tags --abbrev=0 --match '[0-9].[0-9]*' $commit)
+  local tag_prefix=${TAG_PREFIX:-}
+  local version=$(git describe --tags --abbrev=0 --match "${tag_prefix}[0-9].[0-9]*" $commit)
   if [ -z "$version" ]; then
-    echo "Error: No release tag matching 'n.n*' reachable from $commit"
+    echo "Error: No release tag matching '${tag_prefix}n.n*' reachable from $commit"
     return 1
   fi
   
-  echo "$version"
+  echo "${version/$tag_prefix/}"
 }
 
 # don't indent the body of this function
-make_changelog() {
+make_core_changelog() {
 local prod_version="$1"
 local diag_version="$2"
 local filepath="$3"
@@ -73,6 +74,20 @@ The following Docker images were updated because their base images changed:
 * azureiotedge-hub
 * azureiotedge-simulated-temperature-sensor
 * azureiotedge-diagnostics (remains at version $diag_version to match the daemon)
+
+EOF
+}
+
+# WARNING: DON'T INDENT THE BODY OF THIS FUNCTION!
+# Parameters
+#   $1    Metrics collector version
+#   $2    Path to changelog
+make_metrics_collector_changelog() {
+cat <<- EOF > "$2"
+# $1 ($(date --iso-8601=date))
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
 
 EOF
 }
@@ -120,7 +135,7 @@ make_project_release_commit_for_core_image_refresh() {
   local diag_version=$(cat edgelet/version.txt)
 
   # update changelog
-  make_changelog "$next" "$diag_version" 'CHANGELOG.new.md'
+  make_core_changelog "$next" "$diag_version" 'CHANGELOG.new.md'
   cat CHANGELOG.md >> CHANGELOG.new.md
   mv CHANGELOG.new.md CHANGELOG.md
 
@@ -142,6 +157,75 @@ make_project_release_commit_for_core_image_refresh() {
   # check out the very latest to minimize possibility of a rejected push
   git checkout "refs/remotes/$remote/$branch"
   git merge "$next" -m "Merge tag '$next' into $branch"
+  git push "$remote_url" "HEAD:$branch"
+}
+
+#
+# Creates a release commit appropriate for refreshing the metrics collector images when their base
+# images have been updated. It ensures there is *no change* to metrics collector image code by
+# creating the new release commit directly off the previously tagged release commit, even if there
+# are newer commits in the branch.
+#
+#         (E)------+
+#         /         \
+#    A---B---C---D--(F)
+#
+# If the last release was tagged at commit B, and two unreleased commits have been added since (C
+# and D), this function creates commit E from B, then merges it to create F. As a result, E becomes
+# the latest tagged release commit and the release does not include the changes in C or D. The only
+# difference between the Docker images produced from B and the Docker images produced from E are the
+# base images they're built upon. Also, because this is intended for an images-only release, this
+# function does not update the edgelet version file.
+#
+# Globals
+#   GIT_EMAIL    Optional. If not given, will assume git is already configured
+#   GITHUB_TOKEN Optional. If not given, will assume you have push rights to the repo
+#   REMOTE       Optional. If not given, defaults to 'origin'
+#   BRANCH       Optional. If not given, defaults to current branch (e.g., 'release/1.4')
+#
+# Output
+#   None
+#
+make_project_release_commit_for_metrics_collector_image_refresh() {
+  local remote=${REMOTE:-origin}
+  local branch=${BRANCH:-$(git branch --show-current)}
+  local git_tag_prefix='metrics-collector-'
+  local changelog='edge-modules/metrics-collector/CHANGELOG.md'
+  local version_info='edge-modules/metrics-collector/src/config/versionInfo.json'
+
+  # checkout code at current release version
+  local prev=$(TAG_PREFIX="$git_tag_prefix" get_nearest_version)
+  git checkout "$prev"
+
+  # determine new version
+  IFS='.' read -a parts <<< "$prev"
+  local next="${parts[0]}.${parts[1]}.$((${parts[2]} + 1))"
+  local tags="[\"${parts[0]}.${parts[1]}\"]"
+
+  # update changelog
+  make_metrics_collector_changelog "$next" 'CHANGELOG.new.md'
+  cat $changelog >> CHANGELOG.new.md
+  mv CHANGELOG.new.md $changelog
+
+  # update versionInfo.json
+  echo "$(cat $version_info | jq --arg next "$next" '.version = $next')" > $version_info
+  git add $changelog $version_info
+
+  configure_git_user
+
+  local remote_url=$(get_push_url)
+  local git_tag="${git_tag_prefix}${next}"
+
+  # commit changes, tag, and push
+  git commit -m "Prepare for Metrics Collector release $next"
+  git tag "$git_tag"
+  git push "$remote_url" "$git_tag"
+
+  # merge release commit and push
+  git fetch --prune "$remote"
+  # check out the very latest to minimize possibility of a rejected push
+  git checkout "refs/remotes/$remote/$branch"
+  git merge "$git_tag" -m "Merge tag '$git_tag' into $branch"
   git push "$remote_url" "HEAD:$branch"
 }
 
@@ -198,6 +282,56 @@ get_project_release_info() {
       previous_version: $prev,
       diagnostics_version: $diag_version,
       tags: $tags
+    }')
+}
+
+#
+# Assuming a release commit for metrics collector image refresh has been created and tagged, this
+# function gathers information about the release.
+#
+# Output
+#   OUTPUTS      A variable containing a JSON document:
+#                {
+#                  "changelog": "The text appended to edge-modules/metrics-collector/CHANGELOG.md
+#                for the latest version, with hex-escaped newlines\\x0A. You can easily deserialize
+#                it in bash with 'printf -v var $changelog'.\\x0A.",
+#                  "version": "1.1.1",
+#                  "previous_version": "1.1.0",
+#                  "tags": ["1.1"]
+#                }
+#
+get_metrics_collector_release_info() {
+  # get the new version and the previous version
+  local next=$(TAG_PREFIX='metrics-collector-' get_nearest_version)
+  local prev=$(TAG_PREFIX='metrics-collector-' COMMIT="$next~" get_nearest_version)
+
+  # determine docker tags
+  IFS='.' read -a parts <<< "$next"
+  local docker_tags="[\"${parts[0]}.${parts[1]}\"]"
+
+  # get the changelog for the new release
+  local tmpfile=$(mktemp)
+  echo "$(sed -n "/# $next/,/# $prev/p" edge-modules/metrics-collector/CHANGELOG.md)" > "$tmpfile"
+  sed -i "$ d" "$tmpfile" # remove last line
+
+  # Azure Pipelines doesn't seem to handle multi-line task variables, so encode to one line
+  # See https://developercommunity.visualstudio.com/t/multiple-lines-variable-in-build-and-release/365667
+  readarray -t lines < <(cat "$tmpfile")
+  local changelog=$(printf '\\x0A%s' "${lines[@]}")
+  local changelog=${changelog:4} # Remove leading newline
+
+  rm "$tmpfile"
+
+  OUTPUTS=$(jq -nc \
+    --arg changelog "$changelog" \
+    --arg next "$next" \
+    --arg prev "$prev" \
+    --argjson tags "$docker_tags" '
+    {
+      changelog: $changelog,
+      version: $next,
+      previous_version: $prev,
+      tags: $docker_tags
     }')
 }
 
@@ -283,7 +417,7 @@ create_github_release_page_in_product_repo() {
 # Output
 #   None
 #
-create_github_release_page_in_project_repo() {
+create_github_release_page_for_core_images_in_project_repo() {
   if [[ -z "$CORE_VERSION" || -z "$GITHUB_TOKEN" || -z "$RELEASE_URL" || -z "$REPO_NAME" ]]; then
     echo 'Error: One or more required arguments are empty'
     return 1
@@ -298,6 +432,59 @@ create_github_release_page_in_project_repo() {
     {
       tag_name: $version,
       name: $version,
+      target_commitish: $branch,
+      body: $body
+    }
+  ')
+
+  local response=$(curl \
+    -sS \
+    -X POST \
+    -w "%{http_code}" \
+    -H 'Accept:application/vnd.github.v3+json' \
+    -H "Authorization:token $GITHUB_TOKEN" \
+    -d "$data" \
+    "https://api.github.com/repos/$REPO_NAME/releases")
+
+  local code=$(echo "$response" | tail -n 1)
+  echo "Response from GitHub:"
+  echo "$response" | head -n -1
+
+  if [ $code -ge 300 ]; then
+    echo "Error: GitHub responded with status code: $code"
+    exit 1
+  fi
+}
+
+#
+# Uses the GitHub API to create a GitHub Release page in the *project* repo for a release that only
+# refreshes our Metrics Collector Docker images when their base images have been updated (i.e., no
+# code changes in our project repo). Returns an error status code if the required environment
+# variables are empty, or if GitHub returns an error.
+#
+# Globals
+#   BRANCH       Optional. If not given, defaults to current branch (e.g., 'release/1.4')
+#   VERSION      Required. Version of Metrics Collector module for this release
+#   GITHUB_TOKEN Required. The Authorization token passed to GitHub
+#   REPO_NAME    Required. The GitHub project repository, as 'org/repo'
+#
+# Output
+#   None
+#
+create_github_release_page_for_metrics_collector_in_project_repo() {
+  if [[ -z "$VERSION" || -z "$GITHUB_TOKEN" || -z "$REPO_NAME" ]]; then
+    echo 'Error: One or more required arguments are empty'
+    return 1
+  fi
+
+  local branch=${BRANCH:-$(git branch --show-current)}
+
+  local body="$CHANGELOG"
+
+  local data=$(jq -nc --arg version "$VERSION" --arg branch "$branch" --arg body "$body" '
+    {
+      tag_name: $version,
+      name: @text "Metrics Collector \($version)",
       target_commitish: $branch,
       body: $body
     }
