@@ -1,6 +1,6 @@
 # 1.1.19 (2022-12-13-2022)
 
-This is the final patch release of 1.1. With this release, [IoT Edge 1.1 LTS support has ended](https://docs.microsoft.com/lifecycle/products/azure-iot-edge). We recommend updating to [1.4 LTS](https://azure.microsoft.com/updates/generally-available-iot-edge-14-lts/) as soon as possible.
+This is the final patch release of 1.1. With this release, [IoT Edge 1.1 LTS has ended](https://docs.microsoft.com/lifecycle/products/azure-iot-edge). We recommend updating to [1.4 LTS](https://azure.microsoft.com/updates/generally-available-iot-edge-14-lts/) as soon as possible.
 
 ## Edge Agent
 ### Bug fixes
