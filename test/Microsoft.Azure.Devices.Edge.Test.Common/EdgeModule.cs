@@ -180,6 +180,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // Remove "net.azure-devices.edge.*" labels because they can be deeply nested
                 // stringized JSON, making them difficult to compare. Besides, they're created by
                 // edge agent and iotedged for internal use; they're not related to the deployment.
+                // Remove "org.opencontainers.image.*" labels because we're not expecting them but
+                // also we don't care about them.
                 foreach (var key in agentKeys)
                 {
                     JObject createOptions = JObject.Parse((string)result[key].Value);
@@ -187,7 +189,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         string[] remove = labels
                             .Children<JProperty>()
-                            .Where(label => label.Name.StartsWith("net.azure-devices.edge."))
+                            .Where(label => label.Name.StartsWith("net.azure-devices.edge.")
+                                || label.Name.StartsWith("org.opencontainers.image."))
                             .Select(label => label.Name)
                             .ToArray();
                         foreach (var name in remove)
