@@ -1,5 +1,7 @@
 # 1.1.19 (2022-12-13-2022)
 
+This is the final patch release of 1.1. With this release, [IoT Edge 1.1 LTS support has ended](https://docs.microsoft.com/lifecycle/products/azure-iot-edge). We recommend updating to [1.4 LTS](https://azure.microsoft.com/updates/generally-available-iot-edge-14-lts/) as soon as possible.
+
 ## Edge Agent
 ### Bug fixes
 * Update Newtonsoft.Json, Microsoft.AspNetCore.Http, and Microsoft.AspNetCore.Server.Kestrel.Core to patch security vulnerabilities [3c0b5e1](https://github.com/Azure/iotedge/commit/3c0b5e174ccc9fa0890255dec26858e6cc3b6338)
