@@ -29,8 +29,6 @@ stages:
     jobs:
     - job: linux
       displayName: Linux
-      pool:
-        vmImage: 'ubuntu-18.04'
       strategy:
         matrix:
           Centos75-amd64:
