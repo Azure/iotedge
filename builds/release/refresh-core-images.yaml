@@ -62,9 +62,10 @@ stages:
         cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
 
         . scripts/linux/release-tools.sh
-        previous_version=$(get_nearest_version)
+        prev_core_version=$(get_nearest_version)
+        prev_diag_version=$(cat edgelet/version.txt)
         product='aziot-edge'
-        echo "Filtering on { product: $product, version: $previous_version }..."
+        echo "Filtering on { product: $product, version: $prev_core_version }..."
 
         # The images we build from this pipeline all target .NET Alpine base images, but some are
         # 'dotnet/aspnet' and some are 'dotnet/runtime'. If this pipeline happens to run, e.g.,
@@ -73,13 +74,16 @@ stages:
         # images/architectures we build in this pipeline are flagged for update.
         continue=$(jq \
           --arg p "$product" \
-          --arg v "$previous_version" \
-          --argjson an '["agent","hub","simulated-temperature-sensor","diagnostics"]' \
-          --argjson aa '["amd64","arm32v7","arm64v8"]' '
+          --arg cv "$prev_core_version" \
+          --arg dv "$prev_diag_version" \
+          --argjson cn '["agent","hub","simulated-temperature-sensor"]' \
+          --argjson dn '["diagnostics"]' \
+          --argjson an '["amd64","arm32v7","arm64v8"]' '
             def filter: [
-              $an[] | . as $n | $aa[] | "mcr.microsoft.com/azureiotedge-\($n):\($v)-linux-\(.)"
+              ($cn[] | "\(.):\($cv)"), ($dn[] | "\(.):\($dv)") | . as $n | $an[]
+                | "mcr.microsoft.com/azureiotedge-\($n)-linux-\(.)"
             ];
-            [ .[] | select(.product == $p and .version == $v) | .images[] ] | contains(filter)
+            [ .[] | select(.product == $p and .version == $cv) | .images[] ] | contains(filter)
           ' $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
         )
 
