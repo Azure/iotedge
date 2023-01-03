@@ -29,10 +29,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
-            this.LastStartTimeUtc = lastStartTimeUtc;
-            this.LastExitTimeUtc = lastExitTimeUtc;
+            this.LastStartTimeUtc = lastStartTimeUtc.ToUniversalTime();
+            this.LastExitTimeUtc = lastExitTimeUtc.ToUniversalTime();
             this.RestartCount = restartCount;
-            this.LastRestartTimeUtc = lastRestartTimeUtc;
+            this.LastRestartTimeUtc = lastRestartTimeUtc.ToUniversalTime();
             this.RuntimeStatus = runtimeStatus;
         }
 
