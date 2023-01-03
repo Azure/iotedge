@@ -30,10 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
-            this.LastExitTimeUtc = lastExitTime;
-            this.LastStartTimeUtc = lastStartTime;
+            this.LastExitTimeUtc = lastExitTime.ToUniversalTime();
+            this.LastStartTimeUtc = lastStartTime.ToUniversalTime();
             this.RestartCount = Preconditions.CheckRange(restartCount, 0, nameof(restartCount));
-            this.LastRestartTimeUtc = lastRestartTime;
+            this.LastRestartTimeUtc = lastRestartTime.ToUniversalTime();
             this.RuntimeStatus = Preconditions.CheckIsDefined(runtimeStatus);
         }
 
