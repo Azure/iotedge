@@ -80,8 +80,7 @@ stages:
           --argjson dn '["diagnostics"]' \
           --argjson an '["amd64","arm32v7","arm64v8"]' '
             def filter: [
-              ($cn[] | "\(.):\($cv)"), ($dn[] | "\(.):\($dv)") | . as $n | $an[]
-                | "mcr.microsoft.com/azureiotedge-\($n)-linux-\(.)"
+              "mcr.microsoft.com/azureiotedge-\("\($cn[]):\($cv)", "\($dn[]):\($dv)")-linux-\($an[])"
             ];
             [ .[] | select(.product == $p and .version == $cv) | .images[] ] | contains(filter)
           ' $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
