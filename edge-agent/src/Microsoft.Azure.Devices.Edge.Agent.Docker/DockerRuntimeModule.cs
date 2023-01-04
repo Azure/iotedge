@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             IDictionary<string, EnvVal> env)
             : base(name, version, desiredStatus, restartPolicy, config, imagePullPolicy, startupOrder, configuration, env)
         {
+            // IoT Hub requires UTC timestamps; all timestamps in this struct must have timezone UTC.
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
             this.LastExitTimeUtc = lastExitTime.ToUniversalTime();
