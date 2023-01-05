@@ -1,5 +1,4 @@
 #!/bin/bash
-set -euo pipefail
 
 #
 # Configures user.email and user.name in git config.
