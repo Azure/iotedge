@@ -44,9 +44,9 @@ get_push_url() {
 }
 
 #
-# Echoes the first tag of format $PREFIXn.n* reachable from $COMMIT. If the $TAG_PREFIX variable is
-# not set, it will default to none (''). If the $COMMIT variable is not set, it will default to
-# 'HEAD'. Returns exit status 1 if no tag can be found.
+# Echoes the first tag of format ${TAG_PREFIX}n.n* reachable from $COMMIT. If the $TAG_PREFIX
+# variable is not set, it will default to no prefix (''). If the $COMMIT variable is not set, it
+# will default to 'HEAD'. Returns exit status 1 if no tag can be found.
 #
 get_nearest_version() {
   local commit=${COMMIT:-HEAD}
