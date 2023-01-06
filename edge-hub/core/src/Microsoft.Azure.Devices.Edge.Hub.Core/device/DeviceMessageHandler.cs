@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         readonly TimeSpan messageAckTimeout;
         readonly AsyncLock serializeMessagesLock = new AsyncLock();
         readonly Option<string> modelId;
+        readonly TaskCompletionSource<bool> handlerClosed = new TaskCompletionSource<bool>();
         IDeviceProxy underlyingProxy;
 
         public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, TimeSpan messageAckTimeout, Option<string> modelId)
