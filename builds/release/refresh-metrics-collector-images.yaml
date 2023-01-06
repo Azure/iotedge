@@ -5,10 +5,13 @@ resources:
   pipelines:
   - pipeline: detect-image-updates
     source: 'Detect Image Updates'
-    trigger:
-      branches:
-        include:
-        - release/1.4
+    trigger: true
+    # TODO: replace above trigger with below trigger
+    # trigger:
+    #   branches:
+    #     include:
+    #     - main
+    #     - release/1.4
   repositories:
   - repository: product
     type: github
