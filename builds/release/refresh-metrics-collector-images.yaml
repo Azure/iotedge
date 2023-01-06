@@ -75,10 +75,9 @@ stages:
         continue=$(jq \
           --arg p "$product" \
           --arg v "$previous_version" \
-          --argjson an '["metrics-collector"]' \
-          --argjson aa '["amd64","arm32v7","arm64v8"]' '
+          --argjson an '["amd64","arm32v7","arm64v8"]' '
             def filter: [
-              $an[] | . as $n | $aa[] | "mcr.microsoft.com/azureiotedge-\($n):\($v)-linux-\(.)"
+              "mcr.microsoft.com/azureiotedge-metrics-collector:\($v)-linux-\($an[])"
             ];
             [ .[] | select(.product == $p and .version == $v) | .images[] ] | contains(filter)
           ' $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
