@@ -487,7 +487,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     Metrics.MessageProcessingLatency(this.Identity, message);
                     await this.underlyingProxy.SendMessageAsync(message, input);
 
-                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(this.messageAckTimeout, handlerClosed.Token));
+                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(this.messageAckTimeout, this.handlerClosed.Token));
                     if (completedTask != taskCompletionSource.Task)
                     {
                         Events.MessageFeedbackTimedout(this.Identity, lockToken);
@@ -513,7 +513,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             await this.underlyingProxy.InvokeMethodAsync(request);
             Events.MethodCallSentToClient(this.Identity, request.Id, request.CorrelationId);
 
-            Task completedTask = await Task.WhenAny(taskCompletion.Task, Task.Delay(request.ResponseTimeout, handlerClosed.Token));
+            Task completedTask = await Task.WhenAny(taskCompletion.Task, Task.Delay(request.ResponseTimeout, this.handlerClosed.Token));
             if (completedTask != taskCompletion.Task)
             {
                 Events.MethodResponseTimedout(this.Identity, request.Id, request.CorrelationId);
@@ -530,7 +530,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task CloseAsync(Exception ex)
         {
-            handlerClosed.Cancel();
+            this.handlerClosed.Cancel();
             return this.underlyingProxy.CloseAsync(ex);
         }
 
