@@ -5,8 +5,10 @@ resources:
   pipelines:
   - pipeline: detect-image-updates
     source: 'Detect Image Updates'
-    trigger: true
-    # TODO: replace above trigger with below trigger
+    trigger:
+      branches:
+        include:
+        - auto-refresh-mc
     # trigger:
     #   branches:
     #     include:
