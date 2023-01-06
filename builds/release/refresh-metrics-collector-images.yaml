@@ -4,7 +4,7 @@ trigger: none
 resources:
   pipelines:
   - pipeline: detect-image-updates
-    source: 'Detect Image Updates'
+    source: 'damonbarry.Detect Image Updates'
     trigger:
       branches:
         include:
