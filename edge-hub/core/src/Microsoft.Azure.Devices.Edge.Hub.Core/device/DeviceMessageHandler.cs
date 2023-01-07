@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Net;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         readonly IConnectionManager connectionManager;
         readonly TimeSpan messageAckTimeout;
         readonly AsyncLock serializeMessagesLock = new AsyncLock();
+        readonly CancellationTokenSource handlerClosed = new CancellationTokenSource();
         readonly Option<string> modelId;
         IDeviceProxy underlyingProxy;
 
@@ -485,7 +487,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     Metrics.MessageProcessingLatency(this.Identity, message);
                     await this.underlyingProxy.SendMessageAsync(message, input);
 
-                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(this.messageAckTimeout));
+                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(this.messageAckTimeout, this.handlerClosed.Token));
                     if (completedTask != taskCompletionSource.Task)
                     {
                         Events.MessageFeedbackTimedout(this.Identity, lockToken);
@@ -511,7 +513,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             await this.underlyingProxy.InvokeMethodAsync(request);
             Events.MethodCallSentToClient(this.Identity, request.Id, request.CorrelationId);
 
-            Task completedTask = await Task.WhenAny(taskCompletion.Task, Task.Delay(request.ResponseTimeout));
+            Task completedTask = await Task.WhenAny(taskCompletion.Task, Task.Delay(request.ResponseTimeout, this.handlerClosed.Token));
             if (completedTask != taskCompletion.Task)
             {
                 Events.MethodResponseTimedout(this.Identity, request.Id, request.CorrelationId);
@@ -526,7 +528,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task SendTwinUpdate(IMessage twin) => this.underlyingProxy.SendTwinUpdate(twin);
 
-        public Task CloseAsync(Exception ex) => this.underlyingProxy.CloseAsync(ex);
+        public Task CloseAsync(Exception ex)
+        {
+            this.handlerClosed.Cancel();
+            return this.underlyingProxy.CloseAsync(ex);
+        }
 
         public void SetInactive() => this.underlyingProxy.SetInactive();
 
