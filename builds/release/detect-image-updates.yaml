@@ -35,7 +35,9 @@ steps:
     #!/bin/bash
     set -euo pipefail
 
-    branch="${BUILD_SOURCEBRANCH#refs/heads/}"
+    # TODO: replace hard-coded branch assignment with commented-out assignment (below)
+    branch='main'
+    # branch="${BUILD_SOURCEBRANCH#refs/heads/}"
 
     # transform product-versions.json into a list of images for each product in this branch
     images_json=$(cat product-versions.json | jq --arg registry "$REGISTRY" --arg branch "$branch" '
