@@ -90,7 +90,7 @@ stages:
 
         echo "Continue with release? $continue"
         echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
-      displayName: Filter image list for core images
+      displayName: Filter image list for Metrics Collector images
       name: filter
 
     - task: AzureKeyVault@1
@@ -490,7 +490,7 @@ stages:
           echo $"\n$from --> $to"
           scripts/linux/moveImage.sh --from "$from" --to "$to"
         done
-      displayName: Publish core images
+      displayName: Publish Metrics Collector images
       workingDirectory: iotedge
 
     - script: |
@@ -549,7 +549,7 @@ stages:
         origin_url="${origin_url/#https:\/\//https:\/\/$GITHUB_TOKEN@}" # add token to URL
 
         # commit changes and push
-        git commit -m 'Bump metrics collector in product-versions.json'
+        git commit -m 'Bump Metrics Collector in product-versions.json'
         git push "$origin_url" "HEAD:$PRODUCT_REPO_BRANCH"
       displayName: Update product-versions.json in product repo
       env:
