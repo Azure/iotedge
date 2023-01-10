@@ -217,7 +217,7 @@ stages:
       fetchDepth: 0
 
     - script: |
-        git checkout $(version)
+        git checkout metrics-collector-$(version)
       displayName: Check out the new release commit
 
     - script: |
