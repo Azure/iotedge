@@ -92,5 +92,5 @@ steps:
         -t 'edge-agent/docker/manifest.yaml.template' \
         -v '$(version)' \
         --tags '$(tags)'
-    displayName: Build Edge Agent Manifest
+    displayName: Build Image Manifest - ${{ parameters.name }}
     condition: and(ne('${{ parameters.manifestTemplate }}', ''), succeeded())
