@@ -301,9 +301,11 @@ get_project_release_info() {
 #                }
 #
 get_metrics_collector_release_info() {
+  local git_tag_prefix='metrics-collector-'
+
   # get the new version and the previous version
-  local next=$(TAG_PREFIX='metrics-collector-' get_nearest_version)
-  local prev=$(TAG_PREFIX='metrics-collector-' COMMIT="$next~" get_nearest_version)
+  local next=$(TAG_PREFIX="$git_tag_prefix" get_nearest_version)
+  local prev=$(TAG_PREFIX="$git_tag_prefix" COMMIT="${git_tag_prefix}${next}~" get_nearest_version)
 
   # determine docker tags
   IFS='.' read -a parts <<< "$next"
@@ -331,7 +333,7 @@ get_metrics_collector_release_info() {
       changelog: $changelog,
       version: $next,
       previous_version: $prev,
-      tags: $docker_tags
+      tags: $tags
     }')
 }
 
