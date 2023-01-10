@@ -195,7 +195,7 @@ make_project_release_commit_for_metrics_collector_image_refresh() {
 
   # checkout code at current release version
   local prev=$(TAG_PREFIX="$git_tag_prefix" get_nearest_version)
-  git checkout "$prev"
+  git checkout "${git_tag_prefix}${prev}"
 
   # determine new version
   IFS='.' read -a parts <<< "$prev"
