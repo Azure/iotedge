@@ -17,8 +17,9 @@ resources:
   repositories:
   - repository: product
     type: github
-    endpoint: Azure/azure-iotedge
-    name: Azure/azure-iotedge
+    # TODO: Change back to Azure/azure-iotedge before merging
+    endpoint: damonbarry/azure-iotedge
+    name: damonbarry/azure-iotedge
 
 variables:
   DisableDockerDetector: true
