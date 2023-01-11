@@ -485,8 +485,8 @@ create_github_release_page_for_metrics_collector_in_project_repo() {
 
   local data=$(jq -nc --arg version "$VERSION" --arg commitish "$commitish" --arg body "$body" '
     {
-      tag_name: metrics-collector-$version,
-      name: @text "Metrics Collector \($version)",
+      tag_name: "metrics-collector-\($version)",
+      name: "Metrics Collector \($version)",
       target_commitish: $commitish,
       body: $body,
       make_latest: false
