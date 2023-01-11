@@ -466,6 +466,7 @@ create_github_release_page_for_core_images_in_project_repo() {
 #
 # Globals
 #   COMMITISH    Optional. If not given, defaults to current branch (e.g., 'release/1.4')
+#   CHANGELOG    Required. Changelog text to add to the Release page.
 #   VERSION      Required. Version of Metrics Collector module for this release
 #   GITHUB_TOKEN Required. The Authorization token passed to GitHub
 #   REPO_NAME    Required. The GitHub project repository, as 'org/repo'
@@ -474,7 +475,7 @@ create_github_release_page_for_core_images_in_project_repo() {
 #   None
 #
 create_github_release_page_for_metrics_collector_in_project_repo() {
-  if [[ -z "$VERSION" || -z "$GITHUB_TOKEN" || -z "$REPO_NAME" ]]; then
+  if [[ -z "$CHANGELOG" || -z "$VERSION" || -z "$GITHUB_TOKEN" || -z "$REPO_NAME" ]]; then
     echo 'Error: One or more required arguments are empty'
     return 1
   fi

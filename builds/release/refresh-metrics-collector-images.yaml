@@ -519,6 +519,11 @@ stages:
         COMMITISH="${BUILD_SOURCEBRANCH#refs/heads/}"
         COMMITISH="${BUILD_SOURCEBRANCH#refs/tags/}"
 
+        # deserialize the changelog
+        printf -v CHANGELOG '$(changelog)'
+        # Remove 1st line (header) because GitHub Release page has its own header
+        CHANGELOG="$(echo "$CHANGELOG" | tail -n +2 -)"
+
         . scripts/linux/release-tools.sh
         create_github_release_page_for_metrics_collector_in_project_repo
       displayName: Create GitHub release page in project repo
