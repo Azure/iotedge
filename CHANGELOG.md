@@ -1,3 +1,21 @@
+# 1.4.7 (2023-01-10)
+
+## Edge Agent
+### Bug fixes
+* Update to Newtonsoft.Json 13.0.2 ( [f2b95bf](https://github.com/Azure/iotedge/commit/f2b95bf4a069af7e30ad6c5ff2eac25f450d2f3a) )
+
+## Edge Hub
+### Bug fixes
+* Update to Newtonsoft.Json 13.0.2 ( [f2b95bf](https://github.com/Azure/iotedge/commit/f2b95bf4a069af7e30ad6c5ff2eac25f450d2f3a) )
+
+## Base image updates
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.3 to match the daemon)
+
 # 1.4.6 (2022-12-30)
 
 The following Docker images were updated because their base images changed:
