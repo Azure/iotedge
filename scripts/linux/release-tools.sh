@@ -465,7 +465,7 @@ create_github_release_page_for_core_images_in_project_repo() {
 # variables are empty, or if GitHub returns an error.
 #
 # Globals
-#   BRANCH       Optional. If not given, defaults to current branch (e.g., 'release/1.4')
+#   COMMITISH    Optional. If not given, defaults to current branch (e.g., 'release/1.4')
 #   VERSION      Required. Version of Metrics Collector module for this release
 #   GITHUB_TOKEN Required. The Authorization token passed to GitHub
 #   REPO_NAME    Required. The GitHub project repository, as 'org/repo'
@@ -479,15 +479,15 @@ create_github_release_page_for_metrics_collector_in_project_repo() {
     return 1
   fi
 
-  local branch=${BRANCH:-$(git branch --show-current)}
+  local commitish=${COMMITISH:-$(git branch --show-current)}
 
   local body="$CHANGELOG"
 
-  local data=$(jq -nc --arg version "$VERSION" --arg branch "$branch" --arg body "$body" '
+  local data=$(jq -nc --arg version "$VERSION" --arg commitish "$commitish" --arg body "$body" '
     {
       tag_name: $version,
       name: @text "Metrics Collector \($version)",
-      target_commitish: $branch,
+      target_commitish: $commitish,
       body: $body
     }
   ')

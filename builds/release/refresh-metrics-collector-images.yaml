@@ -516,7 +516,8 @@ stages:
         #!/bin/bash
         set -euo pipefail
 
-        BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}"
+        COMMITISH="${BUILD_SOURCEBRANCH#refs/heads/}"
+        COMMITISH="${BUILD_SOURCEBRANCH#refs/tags/}"
 
         . scripts/linux/release-tools.sh
         create_github_release_page_for_metrics_collector_in_project_repo
