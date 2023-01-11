@@ -277,6 +277,7 @@ stages:
 
     variables:
       os: linux
+      verbose: false
 
     strategy:
       matrix:
