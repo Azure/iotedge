@@ -481,12 +481,11 @@ create_github_release_page_for_metrics_collector_in_project_repo() {
   fi
 
   local commitish=${COMMITISH:-$(git branch --show-current)}
-
   local body="$CHANGELOG"
 
   local data=$(jq -nc --arg version "$VERSION" --arg commitish "$commitish" --arg body "$body" '
     {
-      tag_name: $version,
+      tag_name: metrics-collector-$version,
       name: @text "Metrics Collector \($version)",
       target_commitish: $commitish,
       body: $body
