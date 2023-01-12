@@ -489,7 +489,7 @@ create_github_release_page_for_metrics_collector_in_project_repo() {
       name: "Metrics Collector \($version)",
       target_commitish: $commitish,
       body: $body,
-      make_latest: false
+      make_latest: "false"
     }
   ')
 
