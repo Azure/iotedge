@@ -35,9 +35,7 @@ steps:
     #!/bin/bash
     set -euo pipefail
 
-    # TODO: replace hard-coded branch assignment with commented-out assignment (below)
-    branch='main'
-    # branch="${BUILD_SOURCEBRANCH#refs/heads/}"
+    branch="${BUILD_SOURCEBRANCH#refs/heads/}"
 
     # transform product-versions.json into a list of images for each product in this branch
     images_json=$(cat product-versions.json | jq --arg registry "$REGISTRY" --arg branch "$branch" '
@@ -54,9 +52,6 @@ steps:
         }
       ] | unique
     ')
-
-    echo "Images for branch '$branch':"
-    echo "$images_json" | jq '.'
 
     # use build metadata present in each published image to determine if it is out of date
     remove=( )

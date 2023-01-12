@@ -4,22 +4,16 @@ trigger: none
 resources:
   pipelines:
   - pipeline: detect-image-updates
-    source: 'damonbarry.Detect Image Updates'
+    source: 'Detect Image Updates'
     trigger:
       branches:
         include:
-        - auto-refresh-mc
-    # trigger:
-    #   branches:
-    #     include:
-    #     - main
-    #     - release/1.4
+        - main
   repositories:
   - repository: product
     type: github
-    # TODO: Change back to Azure/azure-iotedge before merging
-    endpoint: github.com_damonbarry
-    name: damonbarry/azure-iotedge
+    endpoint: Azure/azure-iotedge
+    name: Azure/azure-iotedge
 
 variables:
   DisableDockerDetector: true
@@ -73,11 +67,8 @@ stages:
         product='metrics-collector'
         echo "Filtering on { product: $product, version: $previous_version }..."
 
-        # The images we build from this pipeline all target .NET Alpine base images, but some are
-        # 'dotnet/aspnet' and some are 'dotnet/runtime'. If this pipeline happens to run, e.g.,
-        # after dotnet/runtime gets updated but before dotnet/aspnet gets updated, then we'll end up
-        # releasing twice in quick succession. To mitigate this problem, we'll wait until *all* the
-        # images/architectures we build in this pipeline are flagged for update.
+        # We won't proceed with the release until *all* the images/architectures we build in this
+        # pipeline are flagged for update, to avoid doing multiple releases in quick succession.
         continue=$(jq \
           --arg p "$product" \
           --arg v "$previous_version" \
