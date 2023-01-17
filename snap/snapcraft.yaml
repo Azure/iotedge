@@ -140,3 +140,5 @@ layout:
     symlink: $SNAP_DATA/shared/secrets/aziot
   /etc/aziot:
     symlink: $SNAP_DATA/shared/config/aziot
+  /usr/libexec/aziot/aziot-edged:
+    symlink: $SNAP/usr/libexec/aziot/aziot-edged
