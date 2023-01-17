@@ -39,7 +39,7 @@ mkdir -p /etc/aziot/edged/config.d
 	toml_kvp "management_uri" "unix:///var/run/iotedge/mgmt.sock"
 
 	toml_new_section "moby_runtime"
-	toml_kvp "uri" "unix:///var/run/docker.sock"
+	toml_kvp "uri" "unix://$SNAP_COMMON/docker-proxy.sock"
 	toml_kvp "network" "azure-iot-edge"
 
 
