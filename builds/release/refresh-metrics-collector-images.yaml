@@ -108,6 +108,7 @@ stages:
         next=$(echo "$OUTPUTS" | jq -rc '.version')
         prev=$(echo "$OUTPUTS" | jq -rc '.previous_version')
         tags=$(echo "$OUTPUTS" | jq -rc '.tags')
+        tags=$(echo "$tags" | jq -c '. + ["latest"] | unique')
 
         echo "##vso[task.setvariable variable=changelog;isOutput=true]$changelog"
         echo "##vso[task.setvariable variable=version;isOutput=true]$next"
@@ -145,6 +146,7 @@ stages:
         next=$(echo "$OUTPUTS" | jq -rc '.version')
         prev=$(echo "$OUTPUTS" | jq -rc '.previous_version')
         tags=$(echo "$OUTPUTS" | jq -rc '.tags')
+        tags=$(echo "$tags" | jq -c '. + ["latest"] | unique')
 
         echo "##vso[task.setvariable variable=changelog;isOutput=true]$changelog"
         echo "##vso[task.setvariable variable=version;isOutput=true]$next"
