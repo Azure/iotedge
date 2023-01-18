@@ -141,7 +141,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     routeFactory,
                     twinCollectionMessageConverter,
                     versionInfo,
-                    new NullDeviceScopeIdentitiesCache());
+                    new NullDeviceScopeIdentitiesCache(),
+                    true);
                 await Task.Delay(TimeSpan.FromMinutes(1));
 
                 TwinConfigSource configSource = new TwinConfigSource(
@@ -152,7 +153,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     twinMessageConverter,
                     twinCollectionMessageConverter,
                     configParser,
-                    Option.None<X509Certificate2>());
+                    Option.None<X509Certificate2>(),
+                    true);
 
                 // Get and Validate EdgeHubConfig
                 Option<EdgeHubConfig> edgeHubConfigOption = await configSource.GetConfig();
@@ -309,7 +311,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     routeFactory,
                     twinCollectionMessageConverter,
                     versionInfo,
-                    new NullDeviceScopeIdentitiesCache());
+                    new NullDeviceScopeIdentitiesCache(),
+                    true);
                 await Task.Delay(TimeSpan.FromMinutes(1));
                 reportedProperties = await this.GetReportedProperties(registryManager, edgeDeviceId);
                 Assert.Null(reportedProperties.Clients);

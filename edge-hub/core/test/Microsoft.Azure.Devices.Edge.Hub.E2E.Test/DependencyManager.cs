@@ -204,6 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     false,
                     Option.None<TimeSpan>(),
                     Option.None<TimeSpan>(),
+                    true,
                     false,
                     10,
                     10,

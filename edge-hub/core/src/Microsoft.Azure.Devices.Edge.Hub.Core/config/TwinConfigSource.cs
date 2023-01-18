@@ -32,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         readonly Core.IMessageConverter<Twin> twinMessageConverter;
         readonly VersionInfo versionInfo;
         readonly EdgeHubConnection edgeHubConnection;
+        readonly bool clientMapInReportedProperties;
         Option<TwinCollection> lastDesiredProperties;
         Option<X509Certificate2> manifestTrustBundle;
 
@@ -43,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Core.IMessageConverter<Twin> messageConverter,
             Core.IMessageConverter<TwinCollection> twinCollectionMessageConverter,
             EdgeHubConfigParser configParser,
-            Option<X509Certificate2> manifestTrustBundle)
+            Option<X509Certificate2> manifestTrustBundle,
+            bool clientMapInReportedProperties)
         {
             this.edgeHubConnection = Preconditions.CheckNotNull(edgeHubConnection, nameof(edgeHubConnection));
             this.id = Preconditions.CheckNotNull(id, nameof(id));
@@ -54,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
             this.edgeHubConnection.SetDesiredPropertiesUpdateCallback((message) => this.HandleDesiredPropertiesUpdate(message));
             this.manifestTrustBundle = manifestTrustBundle;
+            this.clientMapInReportedProperties = clientMapInReportedProperties;
         }
 
         public event EventHandler<EdgeHubConfig> ConfigUpdated;
@@ -219,7 +222,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             try
             {
-                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, desiredVersion, desiredStatus);
+                // Bilal Here
+                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, desiredVersion, desiredStatus, this.clientMapInReportedProperties);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 Core.IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
                 return this.twinManager.UpdateReportedPropertiesAsync(this.id, reportedPropertiesMessage);

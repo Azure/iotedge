@@ -209,6 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .Map(s => TimeSpan.FromSeconds(s));
             Option<TimeSpan> reportedPropertiesSyncFrequency = this.GetConfigurationValueIfExists("ReportedPropertiesSyncFrequencySecs")
                 .Map(s => TimeSpan.FromSeconds(s));
+            bool clientMapInReportedProperties = this.configuration.GetValue("ClientMapInReportedProperties", true);
             bool useV1TwinManager = this.GetConfigurationValueIfExists<string>("TwinManagerVersion")
                 .Map(v => v.Equals("v1", StringComparison.OrdinalIgnoreCase))
                 .GetOrElse(false);
@@ -245,6 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     useServerHeartbeat,
                     minTwinSyncPeriod,
                     reportedPropertiesSyncFrequency,
+                    clientMapInReportedProperties,
                     useV1TwinManager,
                     maxUpstreamBatchSize,
                     upstreamFanOutFactor,

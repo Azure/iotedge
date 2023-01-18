@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly VersionInfo versionInfo;
         readonly RouteFactory routeFactory;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
+        readonly bool clientMapInReportedProperties;
         Func<IMessage, Task> configUpdateCallback;
 
         internal EdgeHubConnection(
@@ -37,7 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
             VersionInfo versionInfo,
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
+            bool clientMapInReportedProperties)
         {
             this.edgeHubIdentity = edgeHubIdentity;
             this.twinManager = twinManager;
@@ -45,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.routeFactory = routeFactory;
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
             this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
+            this.clientMapInReportedProperties = clientMapInReportedProperties;
         }
 
         public static async Task<EdgeHubConnection> Create(
@@ -55,7 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
             VersionInfo versionInfo,
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache,
+            bool clientMapInReportedProperties)
         {
             Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
@@ -70,7 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 routeFactory,
                 twinCollectionMessageConverter,
                 versionInfo ?? VersionInfo.Empty,
-                deviceScopeIdentitiesCache);
+                deviceScopeIdentitiesCache,
+                clientMapInReportedProperties);
 
             await InitEdgeHub(edgeHubConnection, connectionManager, edgeHubIdentity, edgeHub);
             connectionManager.DeviceConnected += edgeHubConnection.DeviceConnected;
@@ -192,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     [TwinManager.EncodeTwinKey(client.Id)] = GetDeviceConnectionStatus()
                 };
-                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, connectedDevices);
+                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, connectedDevices, this.clientMapInReportedProperties);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
                 return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, reportedPropertiesMessage);
@@ -208,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             try
             {
-                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, null);
+                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, null, this.clientMapInReportedProperties);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
                 return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, reportedPropertiesMessage);
@@ -234,22 +239,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             [JsonProperty(PropertyName = "description")]
             public string Description { get; set; }
         }
-
+        // Bilal Here
         internal class ReportedProperties
         {
-            const string CurrentSchemaVersion = "1.0";
+            const string CurrentSchemaVersion = "2.0";
 
             static readonly Dictionary<string, DeviceConnectionStatus> EmptyConnectionStatusesDictionary = new Dictionary<string, DeviceConnectionStatus>();
 
             // When reporting last desired version/status, send empty map of clients so that the patch doesn't touch the
             // existing values. If we send a null, it will clear out the existing clients.
-            public ReportedProperties(VersionInfo versionInfo, long lastDesiredVersion, LastDesiredStatus lastDesiredStatus)
-                : this(versionInfo, CurrentSchemaVersion, lastDesiredVersion, lastDesiredStatus, EmptyConnectionStatusesDictionary)
+            public ReportedProperties(VersionInfo versionInfo, long lastDesiredVersion, LastDesiredStatus lastDesiredStatus, bool clientMapReported)
+                : this(versionInfo, CurrentSchemaVersion, lastDesiredVersion, lastDesiredStatus, EmptyConnectionStatusesDictionary, clientMapReported)
             {
             }
 
-            public ReportedProperties(VersionInfo versionInfo, IDictionary<string, DeviceConnectionStatus> clients)
-                : this(versionInfo, CurrentSchemaVersion, null, null, clients)
+            public ReportedProperties(VersionInfo versionInfo, IDictionary<string, DeviceConnectionStatus> clients, bool clientMapReported)
+                : this(versionInfo, CurrentSchemaVersion, null, null, clients, clientMapReported)
             {
             }
 
@@ -259,12 +264,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 string schemaVersion,
                 long? lastDesiredVersion,
                 LastDesiredStatus lastDesiredStatus,
-                IDictionary<string, DeviceConnectionStatus> clients)
+                IDictionary<string, DeviceConnectionStatus> clients,
+                bool clientMapReported)
             {
                 this.SchemaVersion = schemaVersion;
                 this.LastDesiredVersion = lastDesiredVersion;
                 this.LastDesiredStatus = lastDesiredStatus;
-                this.Clients = clients;
+                this.Clients = clientMapReported ? clients : null;
                 this.VersionInfo = versionInfo ?? VersionInfo.Empty;
             }
 

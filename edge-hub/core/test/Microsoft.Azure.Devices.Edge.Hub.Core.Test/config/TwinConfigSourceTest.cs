@@ -132,7 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 twinMessageConverter,
                 twinCollectionMessageConverter,
                 configParser,
-                manifestTrustBundle);
+                manifestTrustBundle,
+                true);
         }
 
         public static async Task<EdgeHubConnection> GetEdgeHubConnection()
@@ -156,7 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             routeFactory,
             twinCollectionMessageConverter,
             versionInfo,
-            new NullDeviceScopeIdentitiesCache());
+            new NullDeviceScopeIdentitiesCache(),
+            true);
         }
 
         public static string[] GetEcdsaSignerTestCert() => new string[]

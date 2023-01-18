@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool useServerHeartbeat;
         readonly Option<TimeSpan> minTwinSyncPeriod;
         readonly Option<TimeSpan> reportedPropertiesSyncFrequency;
+        readonly bool clientMapInReportedProperties;
         readonly bool useV1TwinManager;
         readonly int maxUpstreamBatchSize;
         readonly int upstreamFanOutFactor;
@@ -88,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool useServerHeartbeat,
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
+            bool  clientMapInReportedProperties,
             bool useV1TwinManager,
             int maxUpstreamBatchSize,
             int upstreamFanOutFactor,
@@ -123,6 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.useServerHeartbeat = useServerHeartbeat;
             this.minTwinSyncPeriod = minTwinSyncPeriod;
             this.reportedPropertiesSyncFrequency = reportedPropertiesSyncFrequency;
+            this.clientMapInReportedProperties = clientMapInReportedProperties;
             this.useV1TwinManager = useV1TwinManager;
             this.maxUpstreamBatchSize = maxUpstreamBatchSize;
             this.upstreamFanOutFactor = upstreamFanOutFactor;
@@ -610,7 +613,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 routeFactory,
                                 twinCollectionMessageConverter,
                                 this.versionInfo,
-                                deviceScopeIdentitiesCache);
+                                deviceScopeIdentitiesCache,
+                                this.clientMapInReportedProperties);
 
                             return new TwinConfigSource(
                                 edgeHubConnection,
@@ -620,7 +624,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 twinMessageConverter,
                                 twinCollectionMessageConverter,
                                 configParser,
-                                this.manifestTrustBundle);
+                                this.manifestTrustBundle,
+                                this.clientMapInReportedProperties);
                         }
                         else
                         {
