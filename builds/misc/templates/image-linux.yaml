@@ -88,9 +88,9 @@ steps:
   - script: |
       scripts/linux/buildManifest.sh \
         -r '$(registry.address)' \
-        -n microsoft \
-        -t 'edge-agent/docker/manifest.yaml.template' \
-        -v '$(version)' \
+        -n '${{ parameters.namespace }}' \
+        -t '${{ parameters.manifestTemplate }}' \
+        -v '${{ parameters.version }}' \
         --tags '$(tags)'
-    displayName: Build Edge Agent Manifest
+    displayName: Build Image Manifest - ${{ parameters.name }}
     condition: and(ne('${{ parameters.manifestTemplate }}', ''), succeeded())
