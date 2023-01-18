@@ -185,13 +185,13 @@ where
         format!("Getting system logs for {}", name).as_str(),
         verbose,
     );
-    let since_time: DateTime<Utc> = DateTime::from_utc(
-        NaiveDateTime::from_timestamp(log_options.since().into(), 0),
-        Utc,
-    );
+    let timestamp = NaiveDateTime::from_timestamp_opt(log_options.since().into(), 0)
+        .ok_or(Error::SupportBundle)?;
+    let since_time: DateTime<Utc> = DateTime::from_utc(timestamp, Utc);
     let until_time: Option<DateTime<Utc>> = log_options
         .until()
-        .map(|until| DateTime::from_utc(NaiveDateTime::from_timestamp(until.into(), 0), Utc));
+        .and_then(|until| NaiveDateTime::from_timestamp_opt(until.into(), 0))
+        .map(|until| DateTime::from_utc(until, Utc));
 
     let command = {
         let mut command = Command::new("journalctl");

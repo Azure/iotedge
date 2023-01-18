@@ -1,3 +1,64 @@
+# 1.4.7 (2023-01-10)
+
+## Edge Agent
+### Bug fixes
+* Update to Newtonsoft.Json 13.0.2 ( [f2b95bf](https://github.com/Azure/iotedge/commit/f2b95bf4a069af7e30ad6c5ff2eac25f450d2f3a) )
+
+## Edge Hub
+### Bug fixes
+* Update to Newtonsoft.Json 13.0.2 ( [f2b95bf](https://github.com/Azure/iotedge/commit/f2b95bf4a069af7e30ad6c5ff2eac25f450d2f3a) )
+
+## Base image updates
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.3 to match the daemon)
+
+# 1.4.6 (2022-12-30)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.3 to match the daemon)
+
+# 1.4.5 (2022-12-16)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.3 to match the daemon)
+
+# 1.4.4 (2022-12-01)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.3 to match the daemon)
+
+# 1.4.3 (2022-11-22)
+
+## Edge Agent
+* Fix bug causing Edge Agent to delay sending reported properties to IoT Hub by 1 hour ( [e43cdc9](https://github.com/Azure/iotedge/commit/e43cdc91a7969d8029c679d2b169f0682bf65e18) )
+* Fix edgeagentuser's login shell ( [6274476](https://github.com/Azure/iotedge/commit/62744766ec321012365e746310a300853ced3c08) )
+* Make client timeout configurable for management API ( [7a379d3](https://github.com/Azure/iotedge/commit/7a379d3177f6af68364684db338e358d0a099150), [8afaa3a](https://github.com/Azure/iotedge/commit/8afaa3a0d5c72ebe7b35dff21742ed5ed9843033) )
+
+## Edge Hub
+* Call IoT Device SDK CloseAsync before Dispose ( [8787301](https://github.com/Azure/iotedge/commit/8787301b82e487e8f83bb4f616395e4cb62b9844) )
+* Upgrade DotNetty and set a timeout for shutdown calls to mitigate hangs ( [15e72bb](https://github.com/Azure/iotedge/commit/15e72bb852a62f09f1bbb7d2b060fbea86765bc0) )
+* Fix edgehubuser's login shell ( [6274476](https://github.com/Azure/iotedge/commit/62744766ec321012365e746310a300853ced3c08) )
+
+## aziot-edge
+* Make iotedge check respect journald as valid log rotation setting ( [3a39460](https://github.com/Azure/iotedge/commit/3a394606d79af99b82acf9708d0ad404bec8c9f8) )
+
+## Other fixes
+* Upgrade Azure Functions sample's base image ( [c38c61d](https://github.com/Azure/iotedge/commit/c38c61d08b0a23e1c0c9e8b4ddbdbc9c57bd3adb) )
+* Upgrade Newtonsoft.Json in samples and Azure Functions binding ( [a5ae82b](https://github.com/Azure/iotedge/commit/a5ae82ba64fb6e43b0e6df172a293381c9adb3d4) )
+
 # 1.4.2 (2022-10-04)
 
 ## Edge Hub
@@ -21,6 +82,22 @@ The following Docker images were updated because their base images changed:
 * Bump iot-identity-service to fix regression in TPM authentication key index ( [fd90024](https://github.com/Azure/iotedge/commit/fd9002452871fc0601798e74499c5f3acbd09574) )
 
 # 1.4.0 (2022-08-26)
+
+## What's new in 1.4?
+
+The 1.4 version is the latest long-term support (LTS) version of IoT Edge. It will be serviced with fixes for regressions and critical security issues through November 12, 2024 ([product lifecycle](https://docs.microsoft.com/lifecycle/products/azure-iot-edge)). In addition to long-term servicing, it includes the following improvements.
+* Automatic cleanup of unused Docker images ([doc](https://docs.microsoft.com/azure/iot-edge/production-checklist?view=iotedge-1.4#configure-image-garbage-collection))
+* Ability to pass a custom json payload to DPS on provisioning ([doc](https://docs.microsoft.com/azure/iot-dps/how-to-send-additional-data#iot-edge-support))
+* Option to download all modules in a deployment before (re)starting any ([doc](https://docs.microsoft.com/azure/iot-edge/production-checklist?view=iotedge-1.4#configure-how-updates-to-modules-are-applied))
+* Use of the TCG TPM2 Software Stack which enables TPM hierarchy authorization values, specifying the TPM index at which to persist the DPS authentication key, and accommodating more TPM configurations ([doc](https://github.com/Azure/iotedge/blob/897aed8c5573e8cad4b602e5a1298bdc64cd28b4/edgelet/contrib/config/linux/template.toml#L262-L288))
+
+**With this release, the 1.3.x release is no longer serviced with bug fixes and security patches.**
+
+## Upgrade notes
+
+When upgrading to 1.4 you should be aware of the following changes:
+* Automatic cleanup of unused Docker images is on by default
+* If upgrading from 1.0 or 1.1 then refer to the notes on [updating IoT Edge to the latest release](https://docs.microsoft.com/azure/iot-edge/how-to-update-iot-edge#special-case-update-from-10-or-11-to-latest-release)
 
 ## Edge Agent
 * Fix bug where Edge Agent is updated without backing image  ( [72e5d648c](https://github.com/Azure/iotedge/commit/72e5d648cc25c05d64dfd52010b7178af772445f) )
