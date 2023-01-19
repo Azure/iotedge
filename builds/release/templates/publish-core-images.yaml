@@ -168,7 +168,7 @@ jobs:
       BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}"
 
       . scripts/linux/release-tools.sh
-      create_github_release_page_in_project_repo
+      create_github_release_page_for_core_images_in_project_repo
     displayName: Create GitHub release page in project repo
     env:
       CORE_VERSION: ${{ parameters['version.core'] }} 
