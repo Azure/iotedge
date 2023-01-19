@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool useServerHeartbeat,
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
-            bool  clientMapInReportedProperties,
+            bool clientMapInReportedProperties,
             bool useV1TwinManager,
             int maxUpstreamBatchSize,
             int upstreamFanOutFactor,
