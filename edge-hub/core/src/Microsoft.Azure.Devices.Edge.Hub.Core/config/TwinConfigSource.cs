@@ -222,7 +222,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             try
             {
-                // Bilal Here
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, desiredVersion, desiredStatus, this.clientMapInReportedProperties);
                 var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 Core.IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);

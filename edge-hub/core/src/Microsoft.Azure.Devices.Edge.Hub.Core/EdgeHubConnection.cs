@@ -239,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             [JsonProperty(PropertyName = "description")]
             public string Description { get; set; }
         }
-        // Bilal Here
+
         internal class ReportedProperties
         {
             const string CurrentSchemaVersion = "2.0";
