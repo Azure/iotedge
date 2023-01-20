@@ -107,6 +107,30 @@ steps:
       ROOT_CERT: $(TestRootCaCertificate)
       ROOT_KEY: $(TestRootCaKey)
   
+  - script:
+      base_url='https://azuresdkpartnerdrops.blob.core.windows.net/drops/azure-iot-sdk/net/pkgs_2023-01-12-11-50-19.3'
+      mkdir -p ../nuget_local
+      curl -Lo \
+        ../nuget_local/Microsoft.Azure.Devices.Client.1.36.7.nupkg \
+        $base_url/Microsoft.Azure.Devices.Client.1.36.7.nupkg
+      curl -Lo \
+        ../nuget_local/Microsoft.Azure.Devices.Shared.1.27.2.nupkg \
+        $base_url/Microsoft.Azure.Devices.Shared.1.27.2.nupkg
+      ls ../nuget_local
+
+      cat <<- EOF > nuget.config
+      <?xml version="1.0" encoding="utf-8"?>
+      <configuration>
+        <packageSources>
+          <clear/>
+          <add key="local" value="../nuget_local" />
+          <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+        </packageSources>
+      </configuration>
+      EOF
+      cat nuget.config
+    displayName: Download SDK package
+
   - pwsh: |
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       dotnet build $testDir
