@@ -121,7 +121,7 @@ steps:
         $base_url/Microsoft.Azure.Devices.1.31.4.nupkg
       ls -al ../nuget_local
 
-      cat << EOF > nuget.config
+      cat > nuget.config <<EOF
       <?xml version="1.0" encoding="utf-8"?>
       <configuration>
         <packageSources>
