@@ -116,9 +116,12 @@ steps:
       curl -Lo \
         ../nuget_local/Microsoft.Azure.Devices.Shared.1.27.2.nupkg \
         $base_url/Microsoft.Azure.Devices.Shared.1.27.2.nupkg
-      ls ../nuget_local
+      curl -Lo \
+        ../nuget_local/Microsoft.Azure.Devices.1.31.4.nupkg \
+        $base_url/Microsoft.Azure.Devices.1.31.4.nupkg
+      ls -al ../nuget_local
 
-      cat <<- EOF > nuget.config
+      cat << EOF > nuget.config
       <?xml version="1.0" encoding="utf-8"?>
       <configuration>
         <packageSources>
