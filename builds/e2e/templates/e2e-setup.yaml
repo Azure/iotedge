@@ -109,7 +109,7 @@ steps:
   
   - script: |
       #!/bin/bash
-      set -ex
+      set -e
       base_url='https://azuresdkpartnerdrops.blob.core.windows.net/drops/azure-iot-sdk/net/pkgs_2023-01-12-11-50-19.3'
       mkdir -p ../nuget_local
       curl -Lo \
