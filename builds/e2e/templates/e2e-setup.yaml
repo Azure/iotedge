@@ -134,6 +134,9 @@ steps:
       </configuration>
       EOF
       cat nuget.config
+    env:
+      http_proxy: $(Agent.ProxyUrl)
+      https_proxy: $(Agent.ProxyUrl)
     displayName: Download SDK package
 
   - pwsh: |
