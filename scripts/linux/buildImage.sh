@@ -215,6 +215,7 @@ docker_build_and_tag_and_push() {
     docker buildx build \
         --no-cache \
         --platform $platform \
+        --provenance false \
         --build-arg 'EXE_DIR=.' \
         --file $dockerfile \
         --output=$attrs,name=$image,buildinfo-attrs=true \
