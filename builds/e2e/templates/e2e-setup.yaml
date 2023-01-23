@@ -128,7 +128,7 @@ steps:
       <configuration>
         <packageSources>
           <clear/>
-          <add key="local" value="../nuget_local" />
+          <add key="local" value="$(realpath -e ../nuget_local)" />
           <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
         </packageSources>
       </configuration>
