@@ -212,9 +212,18 @@ docker_build_and_tag_and_push() {
         build_context=$(gnarly --mod-config $SOURCE_MAP $dockerfile)
     fi
 
+    # When Docker introduced provenance attestation in buildx 0.10.0 it broke
+    # our multi-arch image builds. By default, `buildx build` now defaults to
+    # `--provenance true` which causes even single-architecture images to be
+    # built as a manifest list (aka multi-arch image). When we use our older
+    # manifest-tool to create a manifest from three single-arch images (amd64,
+    # arm32v7, and arm64v8), the tool fails because it can't create a manifest
+    # list that points to other manifest lists. To mitigate, we'll disable
+    # provenance attestation for now.
     docker buildx build \
         --no-cache \
         --platform $platform \
+        --provenance false \
         --build-arg 'EXE_DIR=.' \
         --file $dockerfile \
         --output=$attrs,name=$image,buildinfo-attrs=true \
