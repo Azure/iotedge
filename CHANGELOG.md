@@ -1,3 +1,18 @@
+# 1.4.8 (2023-01-26)
+
+## Edge Agent
+### Bug fixes
+* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1] (https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
+
+## Edge Hub
+### Bug fixes
+* Eliminate 30 sec delay when M2M ack is interrupted by disconnect ( [e32cfce](https://github.com/Azure/iotedge/commit/e32cfce85fe58acdd327a63582741ea4e8914d01) )
+
+## aziot-edge
+### Bug fixes
+* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1] (https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
+* Bump iot-identity-service to 1.4.2
+
 # 1.4.7 (2023-01-10)
 
 ## Edge Agent
