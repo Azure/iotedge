@@ -192,35 +192,41 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         "
         ;;
 
-    ubuntu18.04.arm32v7|ubuntu20.04.arm32v7)
-        SETUP_COMMAND=$'
+    ubuntu18.04.arm32v7|ubuntu20.04.arm32v7|ubuntu22.04.arm32v7)
+        packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
+            gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libcurl4-openssl-dev:armhf \
+            libssl-dev:armhf uuid-dev:armhf'
+        case "$PACKAGE_OS" in
+            ubuntu18.04|ubuntu20.04)
+                transitional_packages='dh-systemd'
+                ;;
+            *)
+                transitional_packages=''
+                ;;
+        esac
+        SETUP_COMMAND=$"
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
-            sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
+            sources=\"\$(cat /etc/apt/sources.list | grep -E '^[^#]')\" &&
             # Update existing repos to be specifically for amd64
-            echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list &&
+            echo \"\$sources\" | sed -e 's/^deb /deb [arch=amd64] /g' > /etc/apt/sources.list &&
             # Add armhf repos
-            echo "$sources" |
-                sed -e \'s/^deb /deb [arch=armhf] /g\' \
-                    -e \'s| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
-                    -e \'s| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g\' \
+            echo \"\$sources\" |
+                sed -e 's/^deb /deb [arch=armhf] /g' \
+                    -e 's| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
+                    -e 's| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
                     >> /etc/apt/sources.list &&
 
             dpkg --add-architecture armhf &&
             apt-get update &&
             apt-get upgrade -y &&
-            apt-get install -y --no-install-recommends \
-                binutils build-essential ca-certificates curl debhelper dh-systemd file git make \
-                gcc g++ \
-                gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
-                libcurl4-openssl-dev:armhf libssl-dev:armhf uuid-dev:armhf &&
-
+            apt-get install -y --no-install-recommends $packages $transitional_packages &&
             mkdir -p ~/.cargo &&
-            echo \'[target.armv7-unknown-linux-gnueabihf]\' > ~/.cargo/config &&
-            echo \'linker = "arm-linux-gnueabihf-gcc"\' >> ~/.cargo/config &&
+            echo '[target.armv7-unknown-linux-gnueabihf]' > ~/.cargo/config &&
+            echo 'linker = \"arm-linux-gnueabihf-gcc\"' >> ~/.cargo/config &&
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_LIB_DIR=/usr/lib/arm-linux-gnueabihf &&
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include &&
-        '
+        "
         ;;
 
     ubuntu18.04.aarch64|ubuntu20.04.aarch64|ubuntu22.04.aarch64)
