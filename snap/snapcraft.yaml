@@ -95,7 +95,7 @@ apps:
       - network-bind
       - system-observe
       - workload-sockets
-  iot-edge:
+  iotedge:
     command: usr/bin/iotedge
     plugs:
       - log-observe
