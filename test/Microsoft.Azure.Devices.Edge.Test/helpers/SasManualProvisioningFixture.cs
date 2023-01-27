@@ -46,7 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 // This is a temporary solution see ticket: 9288683
                 if (!Context.Current.ISA95Tag)
                 {
-                    Log.Verbose("### In SasManualProvisioningFixture.SasProvisionEdgeAsync");
                     TestCertificates testCerts;
                     (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(this.device.Id, token);
 

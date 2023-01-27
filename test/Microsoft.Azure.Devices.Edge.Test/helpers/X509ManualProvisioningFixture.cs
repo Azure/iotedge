@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using NUnit.Framework;
-    using Serilog;
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
@@ -49,8 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.Registries,
                             Context.Current.OptimizeForPerformance,
                             this.IotHub);
-
-                        Log.Verbose("### In X509ManualProvisioningFixture.X509ProvisionEdgeAsync");
 
                         TestCertificates testCerts;
                         (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(device.Id, token);
