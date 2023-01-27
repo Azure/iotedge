@@ -22,6 +22,7 @@ DEFAULT_DOCKER_NAMESPACE="microsoft"
 DOCKER_NAMESPACE=${DEFAULT_DOCKER_NAMESPACE}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 SKIP_PUSH=0
+SOURCE_MAP=
 
 ###############################################################################
 # Function to obtain the underlying architecture and check if supported
