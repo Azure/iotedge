@@ -68,6 +68,13 @@ function process_args() {
         fi
     done
 
+    if [ ! -d "$OUTPUT_DIR" ]; then
+        echo "Value '$OUTPUT_DIR' specified by --output-dir is not a valid directory"
+        print_help_and_exit
+    fi
+
+    OUTPUT_DIR=$(realpath $OUTPUT_DIR)
+
     if [[ -n "$SOURCE_MAP" ]] && [[ ! -f "$SOURCE_MAP" ]]; then
         echo "File specified by --source-map does not exist"
         print_help_and_exit
@@ -105,5 +112,5 @@ docker buildx build \
     $([ -z "$build_context" ] || echo $build_context) \
     .
 
-docker run --rm -v $OUTPUT_DIR/librocksdb:/artifacts $build_image sh -c \
-    "mkdir -p /artifacts/$ARCH && cp /publish/$ARCH/librocksdb.so /artifacts/$ARCH/"
+docker run --rm -v $OUTPUT_DIR/librocksdb/$ARCH:/artifacts/$ARCH $build_image \
+    cp /publish/$ARCH/librocksdb.so /artifacts/$ARCH/
