@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1.4
 
-FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
+FROM mcr.microsoft.com/dotnet/runtime:6.0-alpine
 
 ARG EXE_DIR=.
+ARG TARGETARCH
 
 # RocksDB requires snappy
 RUN apk update && \
@@ -15,7 +16,7 @@ WORKDIR /app
 COPY $EXE_DIR/ ./
 
 # Install RocksDB
-COPY $EXE_DIR/librocksdb/librocksdb.so.armhf /usr/local/lib/librocksdb.so
+COPY $EXE_DIR/librocksdb/$TARGETARCH/librocksdb.so /usr/local/lib/librocksdb.so
 
 # Add an unprivileged user account for running the module
 RUN adduser -Ds /bin/sh moduleuser 

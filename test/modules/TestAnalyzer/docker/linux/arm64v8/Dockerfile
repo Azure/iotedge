@@ -3,6 +3,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
 
 ARG EXE_DIR=.
+ARG TARGETARCH
 
 # RocksDB requires snappy
 RUN apk update && \
@@ -19,7 +20,7 @@ RUN adduser -Ds /bin/sh moduleuser
 USER moduleuser
 
 # Install RocksDB
-COPY $EXE_DIR/librocksdb/librocksdb.so.arm64 /usr/local/lib/librocksdb.so
+COPY $EXE_DIR/librocksdb/$TARGETARCH/librocksdb.so /usr/local/lib/librocksdb.so
 
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Module" && \
     exec /usr/bin/dotnet TestAnalyzer.dll
