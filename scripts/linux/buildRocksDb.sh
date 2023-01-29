@@ -105,5 +105,5 @@ docker buildx build \
     $([ -z "$build_context" ] || echo $build_context) \
     .
 
-docker run --rm -v $OUTPUT_DIR/librocksdb:/artifacts $build_image \
-    mkdir -p /artifacts/$ARCH && cp /publish/$ARCH/librocksdb.so /artifacts/$ARCH/
+docker run --rm -v $OUTPUT_DIR/librocksdb:/artifacts $build_image sh -c \
+    "mkdir -p /artifacts/$ARCH && cp /publish/$ARCH/librocksdb.so /artifacts/$ARCH/"
