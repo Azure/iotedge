@@ -3,7 +3,7 @@
 FROM alpine:3.14
 
 ARG num_procs=4
-ARG TARGETARCH
+ARG TARGETPLATFORM
 
 # Build RocksDB for alpine
 RUN apk update && \
@@ -15,5 +15,5 @@ RUN git clone -b v5.17.2 --depth 1 https://github.com/facebook/rocksdb.git && \
         PORTABLE=1 \
         make -j ${num_procs} shared_lib && \
     strip librocksdb.so && \
-    mkdir -p ../publish/$TARGETARCH && \
-    cp -vL ./librocksdb.so ../publish/$TARGETARCH/
+    mkdir -p ../publish/$TARGETPLATFORM && \
+    cp -vL ./librocksdb.so ../publish/$TARGETPLATFORM/
