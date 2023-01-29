@@ -224,7 +224,7 @@ docker_build_and_tag_and_push() {
         --no-cache \
         --platform $platform \
         --provenance false \
-        --build-arg 'EXE_DIR=.' \
+        $([ -z "$build_args" ] || echo $build_args) \
         --file $dockerfile \
         --output=$attrs,name=$image,buildinfo-attrs=true \
         $([ -z "$build_context" ] || echo $build_context) \
