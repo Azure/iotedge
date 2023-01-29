@@ -112,5 +112,9 @@ docker buildx build \
     $([ -z "$build_context" ] || echo $build_context) \
     .
 
-docker run --rm -v $OUTPUT_DIR/librocksdb/$ARCH:/artifacts/$ARCH $build_image \
+docker run \
+    --rm \
+    --target linux/$ARCH \
+    -v $OUTPUT_DIR/librocksdb/$ARCH:/artifacts/$ARCH \
+    $build_image \
     cp /publish/$ARCH/librocksdb.so /artifacts/$ARCH/
