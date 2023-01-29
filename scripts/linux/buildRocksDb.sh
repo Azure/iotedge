@@ -82,15 +82,13 @@ function process_args() {
 process_args "$@"
 
 case "$ARCH" in
-'amd64') ARCH_ALT='amd64' ;;
-'arm64') ARCH_ALT='arm64v8' ;;
-'arm/v7') ARCH_ALT='arm32v7' ;;
-*) echo "Unrecognized architecture '$ARCH'" && exit 1
+    'amd64'|'arm64'|'arm/v7') ;;
+    *) echo "Unrecognized architecture '$ARCH'" && exit 1
 esac
 
-build_image=rocksdb-build:main-$ARCH_ALT-$BUILD_NUMBER
+build_image=rocksdb-build:main-${ARCH/\//}-$BUILD_NUMBER
 mkdir -p $OUTPUT_DIR/librocksdb
-cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux/$ARCH_ALT
+cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 
 build_context=
 if [[ -n "$SOURCE_MAP" ]]; then
