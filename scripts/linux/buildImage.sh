@@ -182,6 +182,7 @@ docker_build_and_tag_and_push() {
     context_path="$4"
     build_args="$5"
     build_context=''
+    variant=''
 
     if [[ -z "$imagename" ]] || [[ -z "$arch" ]] || [[ -z "$dockerfile" ]] || [[ -z "$context_path" ]]; then
         echo "Error: Arguments are invalid [$imagename] [$arch] [$dockerfile] [$context_path]"
@@ -223,7 +224,7 @@ docker_build_and_tag_and_push() {
         IFS='/' read -a arch <<< "$arch"
         variant="${arch[1]}"
         digest=$(docker buildx imagetools inspect $image --format '{{json .}}' | 
-            jq -r --arg arch $arch --arg variant $variant '.manifest.manifests[] | \
+            jq -r --arg arch "$arch" --arg variant "$variant" '.manifest.manifests[] | \
                 select(has("platform") and .platform.architecture == $arch) | \
                 select(($variant | length) == 0 or (.platform | has("variant") and .variant == $variant)) | \
                 .digest')
