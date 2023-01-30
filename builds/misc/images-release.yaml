@@ -376,7 +376,6 @@ stages:
           name: "Edge Hub"
           project: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
           use_rocksdb: true
     - job: BuildImageEdgeAgent
       steps:
@@ -386,7 +385,6 @@ stages:
           name: "Edge Agent"
           project: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
           use_rocksdb: true
     - job: BuildImageTemperatureSensor
       steps:
@@ -396,7 +394,6 @@ stages:
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
           version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageDiagnostics
       steps:
       - template: templates/image-linux.yaml
@@ -405,7 +402,6 @@ stages:
           name: "Diagnostics Module"
           project: IotedgeDiagnosticsDotnet
           version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
 
 ################################################################################
   - stage: PublishManifests
