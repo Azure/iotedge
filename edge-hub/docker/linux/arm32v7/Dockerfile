@@ -26,8 +26,5 @@ EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp
 
-ENV OptimizeForPerformance false
-ENV MqttEventsProcessorThreadCount 1
-
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
     exec /app/hubStart.sh
