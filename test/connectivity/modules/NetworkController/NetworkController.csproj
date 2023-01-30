@@ -10,9 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="docker\linux\amd64\Dockerfile" />
-    <None Remove="docker\linux\arm32v7\Dockerfile" />
-    <None Remove="docker\linux\arm64v8\Dockerfile" />
+    <None Remove="docker\linux\Dockerfile" />
   </ItemGroup>
 
   <ItemGroup>
