@@ -38,6 +38,22 @@ check_arch() {
 }
 
 ###############################################################################
+# Convert from the format of the --arch argument (amd64, arm64, and arm/v7,
+# as defined by Docker, see Docker's TARGETARCH automatic variable[1]) to the
+# format we use in our image tags: amd64, arm64v8, and arm32v7.
+# [1] https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
+###############################################################################
+convert_arch() {
+    arch="$1"
+    case "$arch" in
+        'amd64') echo 'amd64' ;;
+        'arm64') echo 'arm64v8' ;;
+        'arm/v7') echo 'arm32v7' ;;
+        *) echo "Unsupported architecture '$arch'" && exit 1 ;;
+    esac
+}
+
+###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
 usage() {
@@ -227,6 +243,7 @@ docker_build_and_tag_and_push() {
                 if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
                 .digest')
 
+        arch=$(convert_arch $arch)
         docker buildx imagetools create --tag "$image-linux-$arch" "$image@$digest"
     done
 }
