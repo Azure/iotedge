@@ -93,8 +93,9 @@ case "$ARCH" in
     *) echo "Unrecognized architecture '$ARCH'" && exit 1
 esac
 
+TARGETPLATFORM="linux/$ARCH"
+
 build_image=rocksdb-build:main-${ARCH/\//}-$BUILD_NUMBER
-mkdir -p $OUTPUT_DIR/librocksdb
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 
 build_context=
@@ -107,14 +108,14 @@ trap "docker buildx rm" EXIT
 
 docker buildx build \
     --load \
-    --platform "linux/$ARCH" \
+    --platform $TARGETPLATFORM \
     --tag $build_image \
     $([ -z "$build_context" ] || echo $build_context) \
     .
 
 docker run \
     --rm \
-    --target linux/$ARCH \
-    -v $OUTPUT_DIR/librocksdb/$ARCH:/artifacts/$ARCH \
+    --target $TARGETPLATFORM \
+    -v $OUTPUT_DIR/librocksdb/$TARGETPLATFORM:/artifacts/$TARGETPLATFORM \
     $build_image \
-    cp /publish/$ARCH/librocksdb.so /artifacts/$ARCH/
+    cp /publish/$TARGETPLATFORM/librocksdb.so /artifacts/$TARGETPLATFORM/
