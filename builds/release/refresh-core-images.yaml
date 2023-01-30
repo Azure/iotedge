@@ -502,7 +502,7 @@ stages:
         imageName: azureiotedge-relayer
         project: Relayer
 
-  # Functions Sample - Not supported on linux arm64
+  # Functions Sample - Only supported on amd64
   - job: FunctionsSample
     displayName: Functions sample
     steps:
@@ -511,6 +511,7 @@ stages:
         name: Functions Sample
         imageName: azureiotedge-functions-filter
         project: EdgeHubTriggerCSharp
+        architectures: 'amd64'
 
 ################################################################################
 - stage: TestImages

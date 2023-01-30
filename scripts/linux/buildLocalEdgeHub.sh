@@ -57,4 +57,4 @@ process_args "$@"
 
 scripts/linux/buildBranch.sh --no-rocksdb-bin
 scripts/linux/buildRocksDb.sh --output-dir "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service" --build-number debug --arch amd64
-scripts/linux/buildImage.sh -r "$REGISTRY_ADDRESS" -i azureiotedge-hub -n microsoft -P Microsoft.Azure.Devices.Edge.Hub.Service -v "$VERSION" --bin-dir target
+scripts/linux/buildImage.sh -r "$REGISTRY_ADDRESS" -i azureiotedge-hub -n microsoft -P Microsoft.Azure.Devices.Edge.Hub.Service -v "$VERSION" -a amd64 --bin-dir target

@@ -12,7 +12,7 @@ set -euo pipefail
 ###############################################################################
 # Define Environment Variables
 ###############################################################################
-ARCH=$(uname -m)
+ARCH='amd64,arm64,arm/v7'
 SCRIPT_NAME=$(basename "$0")
 PUBLISH_DIR=
 PROJECT=
@@ -24,19 +24,17 @@ BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 SKIP_PUSH=0
 
 ###############################################################################
-# Function to obtain the underlying architecture and check if supported
+# Check format and content of --arch argument
 ###############################################################################
 check_arch() {
-    if [[ "$ARCH" == "x86_64" ]]; then
-        ARCH="amd64"
-    elif [[ "$ARCH" == "armv7l" ]]; then
-        ARCH="arm32v7"
-    elif [[ "$ARCH" == "aarch64" ]]; then
-        ARCH="arm64v8"
-    else
-        echo "Unsupported architecture"
-        exit 1
-    fi
+    IFS=',' read -a architectures <<< "$ARCH"
+    for arch in ${architectures[@]}
+    do
+        case "$arch" in
+            'amd64'|'arm64'|'arm/v7') ;;
+            *) echo "Unsupported architecture '$arch'" && exit 1 ;;
+        esac
+    done
 }
 
 ###############################################################################
@@ -52,7 +50,7 @@ usage() {
     echo " -r, --registry       Docker registry required to build, tag and run the module"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
-    echo " -t, --target-arch    Target architecture (default: uname -m)"
+    echo " -a, --arch           Comma-separated list of target architectures to build (default: 'amd64,arm64,arm/v7')"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo "--skip-push           Build images, but don't push them"
@@ -102,7 +100,7 @@ process_args() {
             "-v" | "--image-version") save_next_arg=2 ;;
             "--bin-dir") save_next_arg=3 ;;
             "--source-map") save_next_arg=4 ;;
-            "-t" | "--target-arch") save_next_arg=5 ;;
+            "-a" | "--arch") save_next_arg=5 ;;
             "-P" | "--project") save_next_arg=6 ;;
             "-i" | "--image-name") save_next_arg=7 ;;
             "-n" | "--namespace") save_next_arg=8 ;;
@@ -160,7 +158,7 @@ process_args() {
         print_help_and_exit
     fi
 
-    DOCKERFILE="$EXE_DOCKER_DIR/linux/$ARCH/Dockerfile"
+    DOCKERFILE="$EXE_DOCKER_DIR/linux/Dockerfile"
     if [[ ! -f ${DOCKERFILE} ]]; then
         echo "No Dockerfile at $DOCKERFILE"
         print_help_and_exit
@@ -171,7 +169,7 @@ process_args() {
 # Build docker image and push it to private repo
 #
 #   @param[1] - imagename; Name of the docker edge image to publish; Required;
-#   @param[2] - arch; Arch of base image; Required;
+#   @param[2] - arch; Architectures to build; Required;
 #   @param[3] - dockerfile; Path to the dockerfile; Required;
 #   @param[4] - context_path; docker context path; Required;
 #   @param[5] - build_args; docker context path; Optional;
@@ -189,22 +187,17 @@ docker_build_and_tag_and_push() {
         exit 1
     fi
 
-    image="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$arch"
-
-    case "$arch" in
-    'amd64') platform='linux/amd64' ;;
-    'arm32v7') platform='linux/arm/v7' ;;
-    'arm64v8') platform='linux/arm64' ;;
-    esac
-
     docker buildx create --use --bootstrap
     trap "docker buildx rm" EXIT
 
+    image="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION"
+    platform="linux/${arch//,/,linux/}"
+
     if [[ ${SKIP_PUSH} -eq 0 ]]; then
-        attrs='type=image,push=true'
+        output_type='registry'
         echo "Building and pushing image '$image'"
     else
-        attrs='type=docker'
+        output_type='docker'
         echo "Building image '$image', skipping push"
     fi
 
@@ -212,36 +205,31 @@ docker_build_and_tag_and_push() {
         build_context=$(gnarly --mod-config $SOURCE_MAP $dockerfile)
     fi
 
-    # When Docker introduced provenance attestation in buildx 0.10.0 it broke
-    # our multi-arch image builds. By default, `buildx build` now defaults to
-    # `--provenance true` which causes even single-architecture images to be
-    # built as a manifest list (aka multi-arch image). When we use our older
-    # manifest-tool to create a manifest from three single-arch images (amd64,
-    # arm32v7, and arm64v8), the tool fails because it can't create a manifest
-    # list that points to other manifest lists. To mitigate, we'll disable
-    # provenance attestation for now.
+    # first, build the complete multi-arch image
     docker buildx build \
         --no-cache \
         --platform $platform \
-        --provenance false \
         $([ -z "$build_args" ] || echo $build_args) \
         --file $dockerfile \
-        --output=$attrs,name=$image,buildinfo-attrs=true \
+        --output=type=$output_type,name=$image,buildinfo-attrs=true \
         $([ -z "$build_context" ] || echo $build_context) \
         $context_path
 
-    if [[ $? -ne 0 ]]; then
-        echo "Docker build failed with exit code $?"
-        exit 1
-    fi
-
-    return $?
+    # second, tag each platform-specific image
+    IFS=',' read -a architectures <<< "$ARCH"
+    for arch in ${architectures[@]}
+    do
+        digest=$(docker buildx imagetools inspect $image --format '{{json .}}' | 
+            jq -r --arg arch $arch '.manifest.manifests[] | \
+                select(has("platform") and .platform.architecture == $arch) | \
+                .digest')
+        docker buildx imagetools create --tag "$image-linux-$arch" "$image@$digest"
+    done
 }
 
 ###############################################################################
 # Main Script Execution
 ###############################################################################
-check_arch
 process_args "$@"
 
 build_args=("EXE_DIR=.")

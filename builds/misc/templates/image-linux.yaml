@@ -4,10 +4,10 @@ parameters:
   namespace: 'microsoft'
   project: ''
   version: ''
+  architectures: 'amd64,arm64,arm/v7'
   bin_dir: '$(Build.BinariesDirectory)'
   use_rocksdb: false
   download_artifacts: true
-  manifestTemplate: ''
 
 steps:
   - task: DownloadBuildArtifacts@0
@@ -55,42 +55,7 @@ steps:
         -n "${{ parameters.namespace }}" \
         -P "${{ parameters.project }}" \
         -v "${{ parameters.version }}" \
+        -a "${{ parameters.architectures }}"
         --bin-dir "${{ parameters.bin_dir }}" \
         --source-map /etc/iotedge-source-map.json
-    displayName: Build Image - ${{ parameters.name }} - amd64
-
-  - script: |
-      scripts/linux/buildImage.sh \
-        -r "$(registry.address)" \
-        -i "${{ parameters.imageName }}" \
-        -n "${{ parameters.namespace }}" \
-        -P "${{ parameters.project }}" \
-        -v "${{ parameters.version }}" \
-        --target-arch armv7l \
-        --bin-dir "${{ parameters.bin_dir }}" \
-        --source-map /etc/iotedge-source-map.json
-    displayName: Build Image - ${{ parameters.name }} - arm32
-    condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
-
-  - script: |
-      scripts/linux/buildImage.sh \
-        -r "$(registry.address)" \
-        -i "${{ parameters.imageName }}" \
-        -n "${{ parameters.namespace }}" \
-        -P "${{ parameters.project }}" \
-        -v "${{ parameters.version }}" \
-        --target-arch aarch64 \
-        --bin-dir "${{ parameters.bin_dir }}" \
-        --source-map /etc/iotedge-source-map.json
-    displayName: Build Image - ${{ parameters.name }} - arm64 
-    condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
-
-  - script: |
-      scripts/linux/buildManifest.sh \
-        -r '$(registry.address)' \
-        -n '${{ parameters.namespace }}' \
-        -t '${{ parameters.manifestTemplate }}' \
-        -v '${{ parameters.version }}' \
-        --tags '$(tags)'
-    displayName: Build Image Manifest - ${{ parameters.name }}
-    condition: and(ne('${{ parameters.manifestTemplate }}', ''), succeeded())
+    displayName: Build Image - ${{ parameters.name }}
