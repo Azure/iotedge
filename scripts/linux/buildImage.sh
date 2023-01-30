@@ -220,17 +220,11 @@ docker_build_and_tag_and_push() {
     IFS=',' read -a architectures <<< "$ARCH"
     for arch in ${architectures[@]}
     do
-        IFS='/' read -a arch <<< "$arch"
-        if [ ${#arch[@]} -eq 0 ]; then
-            variant=''
-        else
-            variant="${arch[1]}"
-        fi
-
-        digest=$(docker buildx imagetools inspect $image --format '{{json .}}' | 
-            jq -r --arg arch "$arch" --arg variant "$variant" '.manifest.manifests[] | \
-                select(has("platform") and .platform.architecture == $arch) | \
-                select(($variant | length) == 0 or (.platform | has("variant") and .variant == $variant)) | \
+        digest=$(docker buildx imagetools inspect $image --format '{{json .}}' |
+            jq -r --arg arch "$arch" '($arch | split("/")) as $parts |
+                .manifest.manifests[] |
+                select(has("platform") and .platform.architecture == $parts[0]) |
+                if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
                 .digest')
 
         docker buildx imagetools create --tag "$image-linux-$arch" "$image@$digest"
