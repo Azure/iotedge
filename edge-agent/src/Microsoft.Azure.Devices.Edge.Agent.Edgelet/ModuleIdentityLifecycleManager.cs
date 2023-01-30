@@ -28,6 +28,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
+            IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
+
+            // Need to remove any identities that are managed by EA but don't have a tracked module for in the ModuleSet.
+            IEnumerable<string> removeCurrentIdentities = identities.Where(
+                i => Constants.ModuleIdentityEdgeManagedByValue.Equals(i.Value.ManagedBy, StringComparison.OrdinalIgnoreCase) &&
+                     !current.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key))
+                .Select(i => i.Key);
+
+            // First any identities that don't have running modules currently.
+            await Task.WhenAll(removeCurrentIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
+
             Diff diff = desired.Diff(current);
             if (diff.IsEmpty && !this.ShouldAlwaysReturnIdentities)
             {
@@ -36,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             try
             {
-                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff, identities);
                 return moduleIdentities;
             }
             catch (Exception ex)
@@ -46,12 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
         }
 
-        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
+        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff, IImmutableDictionary<string, Identity> identities)
         {
             IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
             List<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName).ToList();
-
-            IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
             // Create identities for all modules that are in the deployment but aren't in iotedged.
             IEnumerable<string> createIdentities = addedOrUpdatedModuleNames.Where(m => !identities.ContainsKey(m));
