@@ -181,6 +181,7 @@ docker_build_and_tag_and_push() {
     dockerfile="$3"
     context_path="$4"
     build_args="$5"
+    build_context=''
 
     if [[ -z "$imagename" ]] || [[ -z "$arch" ]] || [[ -z "$dockerfile" ]] || [[ -z "$context_path" ]]; then
         echo "Error: Arguments are invalid [$imagename] [$arch] [$dockerfile] [$context_path]"
