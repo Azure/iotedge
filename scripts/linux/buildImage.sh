@@ -255,7 +255,11 @@ docker_build_and_tag_and_push() {
         # if we built a single architecture, add the image to a multi-arch manifest list
         manifest=$(docker buildx imagetools inspect $image --format '{{json .Manifest}}')
         platform_digest=$(echo "$manifest" |
-            jq --arg arch "$arch" -r '.manifests[] | select(.platform.architecture == $arch).digest')
+            jq --arg arch "$arch" -r '($arch | split("/")) as $parts |
+                .manifests[] |
+                select(.platform.architecture == $parts[0]) |
+                if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
+                .digest'
         list_image=${image%-linux-$(convert_arch $arch)}
 
         docker buildx imagetools create \
@@ -270,7 +274,7 @@ docker_build_and_tag_and_push() {
             digest=$(docker buildx imagetools inspect $image --format '{{json .}}' |
                 jq -r --arg arch "$arch" '($arch | split("/")) as $parts |
                     .manifest.manifests[] |
-                    select(has("platform") and .platform.architecture == $parts[0]) |
+                    select(.platform.architecture == $parts[0]) |
                     if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
                     .digest')
 
