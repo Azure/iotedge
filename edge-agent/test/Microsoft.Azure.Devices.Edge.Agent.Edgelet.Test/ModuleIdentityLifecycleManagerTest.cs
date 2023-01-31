@@ -267,7 +267,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                     m.GetIdentities() == Task.FromResult(new List<Identity>() { identity1, identity2, identity3, identity4, identity5, edgeAgentIdentity, edgeHubIdentity }.AsEnumerable()) &&
                     m.DeleteIdentityAsync(Module3) == Task.FromResult(identity3));
 
-            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri,true);
+            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri, true);
             var envVar = new Dictionary<string, EnvVal>();
             var currentModule1 = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
             var currentModule2 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
@@ -282,7 +282,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.NotNull(moduleIdentities);
             Assert.Empty(moduleIdentities);
 
-
             Mock.Get(identityManager).Verify(im => im.GetIdentities());
 
             // Not tracked identity in current or desired
@@ -290,7 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             // Not in desired
             Mock.Get(identityManager).Verify(im => im.DeleteIdentityAsync(Module2));
             // New in desired
-            Mock.Get(identityManager).Verify(im => im.UpdateIdentityAsync(Module5, identity5.GenerationId, identity5.ManagedBy)); 
+            Mock.Get(identityManager).Verify(im => im.UpdateIdentityAsync(Module5, identity5.GenerationId, identity5.ManagedBy));
 
             Mock.Get(identityManager).VerifyNoOtherCalls();
         }
