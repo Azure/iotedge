@@ -36,15 +36,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
 
-            IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
-
-            if (this.enableExistingIdentityCleanup)
-            {
-                await this.RemoveStaleIdentities(desired, current, identities);
-            }
-
             try
             {
+                IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
+
+                if (this.enableExistingIdentityCleanup)
+                {
+                    await this.RemoveStaleIdentities(desired, current, identities);
+                }
+
                 IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff, identities);
                 return moduleIdentities;
             }
