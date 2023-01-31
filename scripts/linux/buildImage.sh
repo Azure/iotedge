@@ -256,19 +256,12 @@ docker_build_and_tag_and_push() {
         manifest=$(docker buildx imagetools inspect $image --format '{{json .Manifest}}')
         platform_digest=$(echo "$manifest" |
             jq --arg arch "$arch" -r '.manifests[] | select(.platform.architecture == $arch).digest')
-        attestation_digest=$(echo "$manifest" |
-            jq --arg digest "$platform_digest" -r '.manifests[] | select(
-                has("annotations") and
-                .annotations."vnd.docker.reference.type" == "attestation-manifest" and
-                .annotations."vnd.docker.reference.digest" == $digest
-            ).digest')
         list_image=${image%-$(convert_arch $arch)}
 
         docker buildx imagetools create \
             $([ "$APPEND" -eq 0 ] || echo '--append') \
             --tag "$list_image" \
-            "${image}@${platform_digest}" \
-            "${image}@${attestation_digest}"
+            "${image}@${platform_digest}"
     else
         # if we built multiple architectures, tag each platform-specific image
         IFS=',' read -a architectures <<< "$arch"
