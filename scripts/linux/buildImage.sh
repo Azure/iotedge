@@ -23,6 +23,7 @@ DEFAULT_DOCKER_NAMESPACE="microsoft"
 DOCKER_NAMESPACE=${DEFAULT_DOCKER_NAMESPACE}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 SKIP_PUSH=0
+APPEND=0
 
 ###############################################################################
 # Check format and content of --arch argument
@@ -73,6 +74,7 @@ usage() {
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo "--skip-push           Build images, but don't push them"
+    echo "--append              Append the built images to the existing manifest at namespace/image-name:image-version"
     exit 1
 }
 
@@ -112,6 +114,9 @@ process_args() {
         elif [[ ${save_next_arg} -eq 8 ]]; then
             DOCKER_NAMESPACE="$arg"
             save_next_arg=0
+        elif [[ ${save_next_arg} -eq 9 ]]; then
+            APPEND=1
+            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
@@ -123,6 +128,7 @@ process_args() {
             "-P" | "--project") save_next_arg=6 ;;
             "-i" | "--image-name") save_next_arg=7 ;;
             "-n" | "--namespace") save_next_arg=8 ;;
+            "--append") save_next_arg=9 ;;
             "--skip-push") SKIP_PUSH=1 ;;
             *) usage ;;
             esac
@@ -222,6 +228,10 @@ docker_build_and_tag_and_push() {
     image="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION"
     platform="linux/${arch//,/,linux/}"
 
+    if [[ $NUM_ARCH -eq 1 ]]; then
+        image="$image-$(convert_arch $arch)"
+    fi
+
     if [[ ${SKIP_PUSH} -eq 0 ]]; then
         output_type='registry'
         echo "Building and pushing image '$image'"
@@ -244,20 +254,40 @@ docker_build_and_tag_and_push() {
         $([ -z "$build_context" ] || echo $build_context) \
         $context_path
 
-    # second, tag each platform-specific image
-    IFS=',' read -a architectures <<< "$ARCH"
-    for arch in ${architectures[@]}
-    do
-        digest=$(docker buildx imagetools inspect $image --format '{{json .}}' |
-            jq -r --arg arch "$arch" '($arch | split("/")) as $parts |
-                .manifest.manifests[] |
-                select(has("platform") and .platform.architecture == $parts[0]) |
-                if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
-                .digest')
+    if [[ $NUM_ARCH -eq 1 ]]; then
+        # if we built a single architecture, add the image to a multi-arch manifest list
+        manifest=$(docker buildx imagetools inspect $image --format '{{json .Manifest}}')
+        platform_digest=$(echo "$manifest" |
+            jq --arg arch "$arch" -r '.manifests[] | select(.platform.architecture == $arch).digest')
+        attestation_digest=$(echo "$manifest" |
+            jq --arg digest "$platform_digest" -r '.manifests[] | select(
+                has("annotations") and
+                .annotations."vnd.docker.reference.type" == "attestation-manifest" and
+                .annotations."vnd.docker.reference.digest" == $digest
+            ).digest')
+        list_image=${image%-$(convert_arch $arch)}
 
-        arch=$(convert_arch $arch)
-        docker buildx imagetools create --tag "$image-linux-$arch" "$image@$digest"
-    done
+        docker buildx imagetools create \
+            $([ "$APPEND" -eq 0 ] || echo '--append')
+            --tag "$list_image" \
+            "${image}:${platform_digest}" \
+            "${image}:${attestation_digest}"
+    else
+        # if we built multiple architectures, tag each platform-specific image
+        IFS=',' read -a architectures <<< "$arch"
+        for arch in ${architectures[@]}
+        do
+            digest=$(docker buildx imagetools inspect $image --format '{{json .}}' |
+                jq -r --arg arch "$arch" '($arch | split("/")) as $parts |
+                    .manifest.manifests[] |
+                    select(has("platform") and .platform.architecture == $parts[0]) |
+                    if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
+                    .digest')
+
+            suffix=$(convert_arch $arch)
+            docker buildx imagetools create --tag "$image-linux-$suffix" "$image@$digest"
+        done
+    fi
 }
 
 ###############################################################################
