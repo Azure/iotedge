@@ -28,16 +28,12 @@ BUILD_CONFIG_OPTION=
 ###############################################################################
 check_arch()
 {
-    if [[ "$ARCH" == "x86_64" ]]; then
-        ARCH="amd64"
-    elif [[ "$ARCH" == "armv7l" ]]; then
-        ARCH="arm32v7"
-    elif [[ "$ARCH" == "aarch64" ]]; then
-        ARCH="arm64v8"
-    else
-        echo "Unsupported architecture $ARCH"
-        exit 1
-    fi
+    case "$ARCH" in
+        'amd64'|'x86_64')  ARCH='amd64' ;;
+        'arm32v7'|'armv7l') ARCH='arm32v7' ;;
+        'arm64v8'|'aarch64') ARCH='arm64v8' ;;
+        *) echo "Unsupported architecture '$ARCH'" && exit 1 ;;
+    esac
 }
 
 ###############################################################################
