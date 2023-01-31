@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 i => !(Constants.EdgeAgentModuleIdentityName.Equals(i.Key, StringComparison.Ordinal) || Constants.EdgeHubModuleIdentityName.Equals(i.Key, StringComparison.Ordinal)) &&
                      Constants.ModuleIdentityEdgeManagedByValue.Equals(i.Value.ManagedBy, StringComparison.OrdinalIgnoreCase) &&
                      !current.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key) &&
-                     !desired.Modules.Any(m=>ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key))
+                     !desired.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key))
                 .Select(i => i.Key);
 
             // First any identities that don't have running modules currently.
