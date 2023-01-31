@@ -13,6 +13,7 @@ set -euo pipefail
 # Define Environment Variables
 ###############################################################################
 ARCH='amd64,arm64,arm/v7'
+NUM_ARCH=
 SCRIPT_NAME=$(basename "$0")
 PUBLISH_DIR=
 PROJECT=
@@ -35,6 +36,8 @@ check_arch() {
             *) echo "Unsupported architecture '$arch'" && exit 1 ;;
         esac
     done
+
+    NUM_ARCH=${#architectures[@]}
 }
 
 ###############################################################################
@@ -176,8 +179,16 @@ process_args() {
 
     DOCKERFILE="$EXE_DOCKER_DIR/linux/Dockerfile"
     if [[ ! -f ${DOCKERFILE} ]]; then
-        echo "No Dockerfile at $DOCKERFILE"
-        print_help_and_exit
+        if [[ $NUM_ARCH -eq 1 ]]; then
+            DOCKERFILE="$EXE_DOCKER_DIR/linux/$ARCH/Dockerfile"
+            if [[ ! -f ${DOCKERFILE} ]]; then
+                echo "No Dockerfile at $DOCKERFILE"
+                print_help_and_exit
+            fi
+        else
+            echo "No Dockerfile at $DOCKERFILE"
+            print_help_and_exit
+        fi
     fi
 }
 
