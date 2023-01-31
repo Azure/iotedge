@@ -226,7 +226,7 @@ docker_build_and_tag_and_push() {
     platform="linux/${arch//,/,linux/}"
 
     if [[ $NUM_ARCH -eq 1 ]]; then
-        image="$image-$(convert_arch $arch)"
+        image="$image-linux-$(convert_arch $arch)"
     fi
 
     if [[ ${SKIP_PUSH} -eq 0 ]]; then
