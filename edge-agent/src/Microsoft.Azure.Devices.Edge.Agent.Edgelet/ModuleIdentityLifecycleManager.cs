@@ -16,29 +16,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly IIdentityManager identityManager;
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
         readonly Uri workloadUri;
+        readonly bool enableExistingIdentityCleanup;
 
         protected virtual bool ShouldAlwaysReturnIdentities => false;
 
-        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
+        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri, bool enableExistingIdentityCleanup)
         {
             this.identityManager = Preconditions.CheckNotNull(identityManager, nameof(identityManager));
             this.identityProviderServiceBuilder = Preconditions.CheckNotNull(identityProviderServiceBuilder, nameof(identityProviderServiceBuilder));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
+            this.enableExistingIdentityCleanup = enableExistingIdentityCleanup;
         }
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
             IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
-            // Need to remove any identities (except EA/EH) that are managed by EA but don't have a tracked module for in the ModuleSet.
-            IEnumerable<string> removeCurrentIdentities = identities.Where(
-                i => !(Constants.EdgeAgentModuleIdentityName.Equals(i.Key, StringComparison.Ordinal) || Constants.EdgeHubModuleIdentityName.Equals(i.Key, StringComparison.Ordinal))).Where(
-                i => Constants.ModuleIdentityEdgeManagedByValue.Equals(i.Value.ManagedBy, StringComparison.OrdinalIgnoreCase) &&
-                     !current.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key))
-                .Select(i => i.Key);
-
-            // First any identities that don't have running modules currently.
-            await Task.WhenAll(removeCurrentIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
+            if (this.enableExistingIdentityCleanup)
+            {
+                await this.RemoveStaleIdentities(desired, current, identities);
+            }
 
             Diff diff = desired.Diff(current);
             if (diff.IsEmpty && !this.ShouldAlwaysReturnIdentities)
@@ -101,6 +98,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         IModuleIdentity GetModuleIdentity(Identity identity) =>
             this.identityProviderServiceBuilder.Create(identity.ModuleId, identity.GenerationId, this.workloadUri.ToString());
+
+        async Task RemoveStaleIdentities(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, Identity> identities)
+        {
+            // Need to remove any identities (except EA/EH and those in desired) that are managed by EA but don't have a tracked module for in the ModuleSet.
+            IEnumerable<string> removeCurrentIdentities = identities.Where(
+                i => !(Constants.EdgeAgentModuleIdentityName.Equals(i.Key, StringComparison.Ordinal) || Constants.EdgeHubModuleIdentityName.Equals(i.Key, StringComparison.Ordinal)) &&
+                     Constants.ModuleIdentityEdgeManagedByValue.Equals(i.Value.ManagedBy, StringComparison.OrdinalIgnoreCase) &&
+                     !current.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key) &&
+                     !desired.Modules.Any(m=>ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key))
+                .Select(i => i.Key);
+
+            // First any identities that don't have running modules currently.
+            await Task.WhenAll(removeCurrentIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
+        }
 
         static class Events
         {
