@@ -180,7 +180,8 @@ process_args() {
     DOCKERFILE="$EXE_DOCKER_DIR/linux/Dockerfile"
     if [[ ! -f ${DOCKERFILE} ]]; then
         if [[ $NUM_ARCH -eq 1 ]]; then
-            DOCKERFILE="$EXE_DOCKER_DIR/linux/$ARCH/Dockerfile"
+            arch=$(convert_arch $ARCH)
+            DOCKERFILE="$EXE_DOCKER_DIR/linux/$arch/Dockerfile"
             if [[ ! -f ${DOCKERFILE} ]]; then
                 echo "No Dockerfile at $DOCKERFILE"
                 print_help_and_exit
