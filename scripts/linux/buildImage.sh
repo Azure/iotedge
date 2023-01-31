@@ -268,7 +268,7 @@ docker_build_and_tag_and_push() {
         list_image=${image%-$(convert_arch $arch)}
 
         docker buildx imagetools create \
-            $([ "$APPEND" -eq 0 ] || echo '--append')
+            $([ "$APPEND" -eq 0 ] || echo '--append') \
             --tag "$list_image" \
             "${image}:${platform_digest}" \
             "${image}:${attestation_digest}"
