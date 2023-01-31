@@ -256,7 +256,7 @@ docker_build_and_tag_and_push() {
         manifest=$(docker buildx imagetools inspect $image --format '{{json .Manifest}}')
         platform_digest=$(echo "$manifest" |
             jq --arg arch "$arch" -r '.manifests[] | select(.platform.architecture == $arch).digest')
-        list_image=${image%-$(convert_arch $arch)}
+        list_image=${image%-linux-$(convert_arch $arch)}
 
         docker buildx imagetools create \
             $([ "$APPEND" -eq 0 ] || echo '--append') \
