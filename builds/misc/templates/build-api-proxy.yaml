@@ -1,9 +1,7 @@
 parameters:
   name: 'API proxy'
-  imageName: 'api-proxy-module'
   project: 'api-proxy-module'
   configuration: 'release'
-  filePath: 'scripts/linux/buildAPIProxy.sh'
   binDir: '$(Build.BinariesDirectory)'
 
 jobs:
@@ -19,18 +17,21 @@ jobs:
         arm64:
           arch: "aarch64"
     steps:
-    - bash: |
+    - script: |
         sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
         docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
         docker buildx rm  mbuilder || true  && \
         docker buildx create --name mbuilder  || true  && \
         docker buildx use mbuilder
         docker -v
-    - task: Bash@3
+      displayName: Prepare docker to build api-proxy
+    - script: |
+        scripts/linux/buildAPIProxy.sh \
+          -P ${{ parameters.project }} \
+          -c ${{ parameters.configuration }} \
+          --target-arch $(arch) \
+          --bin-dir ${{ parameters.binDir }}
       displayName: Build API-Proxy - $(arch)
-      inputs:
-        filePath: ${{ parameters.filePath }}
-        arguments: -i ${{ parameters.imageName }} -P ${{ parameters.project }} -c ${{ parameters.configuration }} --target-arch $(arch) --bin-dir ${{ parameters.binDir }}
     - task: PublishBuildArtifacts@1
       inputs:
         pathtoPublish: '${{ parameters.binDir }}/publish'
