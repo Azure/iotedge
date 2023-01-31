@@ -255,9 +255,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             const string Module4 = "module4";
             var identity4 = new Identity(Module4, Guid.NewGuid().ToString(), "Me");
 
+            var edgeAgentIdentity = new Identity(Constants.EdgeAgentModuleIdentityName, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
+
+            var edgeHubIdentity = new Identity(Constants.EdgeHubModuleIdentityName, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
+
             var identityManager = Mock.Of<IIdentityManager>(
                 m =>
-                    m.GetIdentities() == Task.FromResult(new List<Identity>() { identity1, identity2, identity3, identity4 }.AsEnumerable()) &&
+                    m.GetIdentities() == Task.FromResult(new List<Identity>() { identity1, identity2, identity3, identity4, edgeAgentIdentity, edgeHubIdentity }.AsEnumerable()) &&
                     m.DeleteIdentityAsync(Module3) == Task.FromResult(identity3));
 
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);

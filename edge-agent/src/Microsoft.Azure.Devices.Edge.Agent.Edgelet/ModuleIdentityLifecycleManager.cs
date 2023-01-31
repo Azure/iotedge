@@ -30,8 +30,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         {
             IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
-            // Need to remove any identities that are managed by EA but don't have a tracked module for in the ModuleSet.
+            // Need to remove any identities (except EA/EH) that are managed by EA but don't have a tracked module for in the ModuleSet.
             IEnumerable<string> removeCurrentIdentities = identities.Where(
+                i => !(Constants.EdgeAgentModuleIdentityName.Equals(i.Key, StringComparison.Ordinal) || Constants.EdgeHubModuleIdentityName.Equals(i.Key, StringComparison.Ordinal))).Where(
                 i => Constants.ModuleIdentityEdgeManagedByValue.Equals(i.Value.ManagedBy, StringComparison.OrdinalIgnoreCase) &&
                      !current.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key))
                 .Select(i => i.Key);
