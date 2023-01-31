@@ -259,7 +259,7 @@ docker_build_and_tag_and_push() {
                 .manifests[] |
                 select(.platform.architecture == $parts[0]) |
                 if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
-                .digest'
+                .digest')
         list_image=${image%-linux-$(convert_arch $arch)}
 
         docker buildx imagetools create \
