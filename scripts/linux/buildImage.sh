@@ -114,9 +114,6 @@ process_args() {
         elif [[ ${save_next_arg} -eq 8 ]]; then
             DOCKER_NAMESPACE="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 9 ]]; then
-            APPEND=1
-            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
@@ -128,7 +125,7 @@ process_args() {
             "-P" | "--project") save_next_arg=6 ;;
             "-i" | "--image-name") save_next_arg=7 ;;
             "-n" | "--namespace") save_next_arg=8 ;;
-            "--append") save_next_arg=9 ;;
+            "--append") APPEND=1 ;;
             "--skip-push") SKIP_PUSH=1 ;;
             *) usage ;;
             esac
