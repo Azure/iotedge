@@ -270,8 +270,8 @@ docker_build_and_tag_and_push() {
         docker buildx imagetools create \
             $([ "$APPEND" -eq 0 ] || echo '--append') \
             --tag "$list_image" \
-            "${image}:${platform_digest}" \
-            "${image}:${attestation_digest}"
+            "${image}@${platform_digest}" \
+            "${image}@${attestation_digest}"
     else
         # if we built multiple architectures, tag each platform-specific image
         IFS=',' read -a architectures <<< "$arch"
