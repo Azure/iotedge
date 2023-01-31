@@ -338,9 +338,6 @@ stages:
 
     - job: BuildImageApiProxy
       steps:
-      - bash: |
-          sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
-          docker -v
       - template: image-linux.yaml
         parameters:
           name: API Proxy
