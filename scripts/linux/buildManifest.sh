@@ -134,6 +134,10 @@ process_args()
         echo 'The --image-version parameter is required'
         print_help_and_exit
     fi
+
+    if [[ $(echo "$DOCKER_TAGS" | jq -r '. | type') != 'array' ]]; then
+        echo 'The value of --tags must be a JSON array'
+    fi
 }
 
 ###############################################################################
@@ -156,6 +160,11 @@ do
             .digest') )
 done
 
+# combine the primary tag (e.g., '1.4.0') and any caller-supplied tags into an array
+tags=( $(echo "$DOCKER_TAGS" |
+    jq -r --arg primary_tag "$DOCKER_IMAGEVERSION" '. + [ $primary_tag ] | unique | join("\n")') )
+
+# build the multi-arch image with all given tags, using all given arch-specific images as sources
 docker buildx imagetools create \
-    --tag "$image_name:$DOCKER_IMAGEVERSION" \
+    "${tags[@]/#/ --tags $image_name:}" \
     "${arch_digests[@]/#/$image_name@}"
