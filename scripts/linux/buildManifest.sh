@@ -141,7 +141,6 @@ process_args()
 ###############################################################################
 process_args $@
 
-check_arch
 image_name="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGE_NAME"
 arch_digests=()
 
