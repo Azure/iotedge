@@ -122,7 +122,7 @@ process_args() {
             "-n" | "--namespace") save_next_arg=8 ;;
             "--skip-push") SKIP_PUSH=1 ;;
             "__end_args__") ;;
-            *) usage ;;
+            *) echo "Unknown argument '$arg'"; usage ;;
             esac
         fi
     done
