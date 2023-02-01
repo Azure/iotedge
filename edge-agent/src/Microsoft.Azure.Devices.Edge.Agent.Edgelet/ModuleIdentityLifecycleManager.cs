@@ -30,12 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
-            Diff diff = desired.Diff(current);
-            if (diff.IsEmpty && !this.ShouldAlwaysReturnIdentities)
-            {
-                return ImmutableDictionary<string, IModuleIdentity>.Empty;
-            }
-
             try
             {
                 IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
@@ -43,6 +37,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 if (this.enableExistingIdentityCleanup)
                 {
                     await this.RemoveStaleIdentities(desired, current, identities);
+                }
+
+                Diff diff = desired.Diff(current);
+                if (diff.IsEmpty && !this.ShouldAlwaysReturnIdentities)
+                {
+                    return ImmutableDictionary<string, IModuleIdentity>.Empty;
                 }
 
                 IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff, identities);
