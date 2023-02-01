@@ -127,6 +127,7 @@ process_args() {
             "-n" | "--namespace") save_next_arg=8 ;;
             "--append") APPEND=1 ;;
             "--skip-push") SKIP_PUSH=1 ;;
+            "__end_args__") ;;
             *) usage ;;
             esac
         fi
@@ -287,7 +288,7 @@ docker_build_and_tag_and_push() {
 ###############################################################################
 # Main Script Execution
 ###############################################################################
-process_args "$@"
+process_args "$@ __end_args__"
 
 build_args=("EXE_DIR=.")
 

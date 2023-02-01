@@ -57,5 +57,38 @@ steps:
         -v "${{ parameters.version }}" \
         -a "${{ parameters.architectures }}"
         --bin-dir "${{ parameters.bin_dir }}" \
-        --source-map /etc/iotedge-source-map.json
+        --source-map '/etc/iotedge-source-map.json'
     displayName: Build Image - ${{ parameters.name }}
+    condition: and(succeeded(), ne(${{ parameters.imageName }}, 'azureiotedge-api-proxy'))
+
+  - script: |
+      IFS=',' read -a architectures <<< "${{ parameters.architectures }}"
+
+      scripts/linux/buildImage.sh \
+        -r "$(registry.address)" \
+        -i "${{ parameters.imageName }}" \
+        -n "${{ parameters.namespace }}" \
+        -P "${{ parameters.project }}" \
+        -v "${{ parameters.version }}" \
+        -a "${architectures[0]}" \
+        --bin-dir "${{ parameters.bin_dir }}" \
+        --source-map '/etc/iotedge-source-map.json'
+
+      if [ "${#architectures[@]}" -gt 1 ]
+      then
+        for arch in ${architectures[@]:1}
+        do
+          scripts/linux/buildImage.sh \
+            -r "$(registry.address)" \
+            -i "${{ parameters.imageName }}" \
+            -n "${{ parameters.namespace }}" \
+            -P "${{ parameters.project }}" \
+            -v "${{ parameters.version }}" \
+            -a "$arch" \
+            --bin-dir "${{ parameters.bin_dir }}" \
+            --source-map '/etc/iotedge-source-map.json'
+            --append
+        done
+      fi
+    displayName: Build Image - ${{ parameters.name }}
+    condition: and(succeeded(), ne(${{ parameters.imageName }}, 'azureiotedge-api-proxy'))
