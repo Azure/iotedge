@@ -12,39 +12,35 @@ set -euo pipefail
 ###############################################################################
 # Define Environment Variables
 ###############################################################################
-ARCH='amd64,arm64,arm/v7'
-NUM_ARCH=
+ARCH=$(uname -m)
 SCRIPT_NAME=$(basename "$0")
 PUBLISH_DIR=
 PROJECT=
 DOCKERFILE=
 DOCKER_IMAGENAME=
-DEFAULT_DOCKER_NAMESPACE="microsoft"
+DEFAULT_DOCKER_NAMESPACE='microsoft'
 DOCKER_NAMESPACE=${DEFAULT_DOCKER_NAMESPACE}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 SKIP_PUSH=0
-APPEND=0
 
 ###############################################################################
 # Check format and content of --arch argument
 ###############################################################################
 check_arch() {
-    IFS=',' read -a architectures <<< "$ARCH"
-    for arch in ${architectures[@]}
-    do
-        case "$arch" in
-            'amd64'|'arm64'|'arm/v7') ;;
-            *) echo "Unsupported architecture '$arch'" && exit 1 ;;
-        esac
-    done
-
-    NUM_ARCH=${#architectures[@]}
+    case "$ARCH" in
+        'x86_64') ARCH='amd64' ;;
+        'armv7l') ARCH='arm/v7' ;;
+        'aarch64') ARCH='arm64' ;;
+        'amd64'|'arm64'|'arm/v7') ;;
+        *) echo "Unsupported architecture '$ARCH'" && exit 1 ;;
+    esac
 }
 
 ###############################################################################
-# Convert from the format of the --arch argument (amd64, arm64, and arm/v7,
-# as defined by Docker, see Docker's TARGETARCH automatic variable[1]) to the
-# format we use in our image tags: amd64, arm64v8, and arm32v7.
+# Convert from the format of the --arch argument to the format we use in our
+# image tags. Docker defines the former (amd64, arm64, or arm/v7; see Docker's
+# TARGETARCH automatic variable[1]), we define the latter (amd64, arm64v8, and
+# arm32v7).
 # [1] https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 ###############################################################################
 convert_arch() {
@@ -70,11 +66,10 @@ usage() {
     echo " -r, --registry       Docker registry required to build, tag and run the module"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
-    echo " -a, --arch           Comma-separated list of target architectures to build (default: 'amd64,arm64,arm/v7')"
+    echo " -a, --arch           The target architecture to build (supported values are amd64, arm64, and arm/v7)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo "--skip-push           Build images, but don't push them"
-    echo "--append              Append the built images to the existing manifest at namespace/image-name:image-version"
     exit 1
 }
 
@@ -125,7 +120,6 @@ process_args() {
             "-P" | "--project") save_next_arg=6 ;;
             "-i" | "--image-name") save_next_arg=7 ;;
             "-n" | "--namespace") save_next_arg=8 ;;
-            "--append") APPEND=1 ;;
             "--skip-push") SKIP_PUSH=1 ;;
             "__end_args__") ;;
             *) usage ;;
@@ -133,65 +127,69 @@ process_args() {
         fi
     done
 
-    if [[ -z ${DOCKER_REGISTRY} ]]; then
-        echo "Registry parameter invalid"
+    if [[ -z "$DOCKER_REGISTRY" ]]; then
+        echo 'The --registry parameter is required'
         print_help_and_exit
     fi
 
-    if [[ -z ${DOCKER_IMAGENAME} ]]; then
-        echo "Docker image name parameter invalid"
+    if [[ -z "$DOCKER_IMAGENAME" ]]; then
+        echo 'The --image-name parameter is required'
         print_help_and_exit
     fi
 
-    if [[ -z ${DOCKER_IMAGEVERSION} ]]; then
-        if [[ -n "${BUILD_BUILDNUMBER}" ]]; then
-            DOCKER_IMAGEVERSION=${BUILD_BUILDNUMBER}
+    if [[ -z "$DOCKER_IMAGEVERSION" ]]; then
+        if [[ -n "$BUILD_BUILDNUMBER" ]]; then
+            DOCKER_IMAGEVERSION="$BUILD_BUILDNUMBER"
         else
-            echo "Docker image version not found."
+            echo 'The --image-version parameter is required if BUILD_BUILDNUMBER is not set'
             print_help_and_exit
         fi
     fi
 
-    if [[ -z ${BUILD_BINARIESDIRECTORY} ]] || [[ ! -d ${BUILD_BINARIESDIRECTORY} ]]; then
-        echo "Bin directory does not exist or is invalid"
+    if [[ -z "$BUILD_BINARIESDIRECTORY" ]]; then
+        echo 'The --bin-dir parameter is required if BUILD_BINARIESDIRECTORY is not set'
         print_help_and_exit
     fi
 
-    PUBLISH_DIR=${BUILD_BINARIESDIRECTORY}/publish
+    if [[ ! -d "$BUILD_BINARIESDIRECTORY" ]]; then
+        echo "Binaries dir '$BUILD_BINARIESDIRECTORY' not found"
+        print_help_and_exit
+    fi
 
-    if [[ ! -d ${PUBLISH_DIR} ]]; then
-        echo "Publish directory does not exist or is invalid"
+    PUBLISH_DIR="$BUILD_BINARIESDIRECTORY/publish"
+
+    if [[ ! -d "$PUBLISH_DIR" ]]; then
+        echo "$PUBLISH_DIR not found"
         print_help_and_exit
     fi
 
     EXE_DOCKER_DIR=${PUBLISH_DIR}/${PROJECT}/docker
 
-    if [[ -z ${EXE_DOCKER_DIR} ]] || [[ ! -d ${EXE_DOCKER_DIR} ]]; then
-        echo "No docker directory for $PROJECT at $EXE_DOCKER_DIR"
+    if [[ ! -d "$EXE_DOCKER_DIR" ]]; then
+        echo "$EXE_DOCKER_DIR not found"
         print_help_and_exit
     fi
 
     if [[ -n "$SOURCE_MAP" ]] && [[ ! -f "$SOURCE_MAP" ]]; then
-        echo "File specified by --source-map does not exist"
+        echo 'File specified by --source-map not found'
         print_help_and_exit
     fi
 
     if [[ -n "$SOURCE_MAP" ]] && ! command -v gnarly > /dev/null; then
-        echo "--source-map specified, but required tool 'gnarly' not found in PATH"
+        echo '--source-map specified, but required tool 'gnarly' not found in PATH'
         print_help_and_exit
     fi
 
-    DOCKERFILE="$EXE_DOCKER_DIR/linux/Dockerfile"
-    if [[ ! -f ${DOCKERFILE} ]]; then
-        if [[ $NUM_ARCH -eq 1 ]]; then
-            arch=$(convert_arch $ARCH)
-            DOCKERFILE="$EXE_DOCKER_DIR/linux/$arch/Dockerfile"
-            if [[ ! -f ${DOCKERFILE} ]]; then
-                echo "No Dockerfile at $DOCKERFILE"
-                print_help_and_exit
-            fi
+    dockerfile1="$EXE_DOCKER_DIR/linux/Dockerfile"
+    if [[ -f "$dockerfile1" ]]; then
+        DOCKERFILE="$dockerfile1"
+    else
+        arch=$(convert_arch $ARCH)
+        dockerfile2="$EXE_DOCKER_DIR/linux/$arch/Dockerfile"
+        if [[ -f "$dockerfile2" ]]; then
+            DOCKERFILE="$dockerfile2"
         else
-            echo "No Dockerfile at $DOCKERFILE"
+            echo "No Dockerfile at '$dockerfile1' or '$dockerfile2'"
             print_help_and_exit
         fi
     fi
@@ -223,12 +221,9 @@ docker_build_and_tag_and_push() {
     docker buildx create --use --bootstrap
     trap "docker buildx rm" EXIT
 
-    image="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION"
-    platform="linux/${arch//,/,linux/}"
-
-    if [[ $NUM_ARCH -eq 1 ]]; then
-        image="$image-linux-$(convert_arch $arch)"
-    fi
+    suffix=$(convert_arch $arch)
+    image="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$imagename:$DOCKER_IMAGEVERSION-linux-$suffix"
+    platform="linux/$arch"
 
     if [[ ${SKIP_PUSH} -eq 0 ]]; then
         output_type='registry'
@@ -242,7 +237,6 @@ docker_build_and_tag_and_push() {
         build_context=$(gnarly --mod-config $SOURCE_MAP $dockerfile)
     fi
 
-    # first, build the complete multi-arch image
     docker buildx build \
         --no-cache \
         --platform $platform \
@@ -251,43 +245,12 @@ docker_build_and_tag_and_push() {
         --output=type=$output_type,name=$image,buildinfo-attrs=true \
         $([ -z "$build_context" ] || echo $build_context) \
         $context_path
-
-    if [[ $NUM_ARCH -eq 1 ]]; then
-        # if we built a single architecture, add the image to a multi-arch manifest list
-        manifest=$(docker buildx imagetools inspect $image --format '{{json .Manifest}}')
-        platform_digest=$(echo "$manifest" |
-            jq --arg arch "$arch" -r '($arch | split("/")) as $parts |
-                .manifests[] |
-                select(.platform.architecture == $parts[0]) |
-                if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
-                .digest')
-        list_image=${image%-linux-$(convert_arch $arch)}
-
-        docker buildx imagetools create \
-            $([ "$APPEND" -eq 0 ] || echo '--append') \
-            --tag "$list_image" \
-            "${image}@${platform_digest}"
-    else
-        # if we built multiple architectures, tag each platform-specific image
-        IFS=',' read -a architectures <<< "$arch"
-        for arch in ${architectures[@]}
-        do
-            digest=$(docker buildx imagetools inspect $image --format '{{json .}}' |
-                jq -r --arg arch "$arch" '($arch | split("/")) as $parts |
-                    .manifest.manifests[] |
-                    select(.platform.architecture == $parts[0]) |
-                    if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
-                    .digest')
-
-            suffix=$(convert_arch $arch)
-            docker buildx imagetools create --tag "$image-linux-$suffix" "$image@$digest"
-        done
-    fi
 }
 
 ###############################################################################
 # Main Script Execution
 ###############################################################################
+check_arch
 process_args "$@ __end_args__"
 
 build_args=("EXE_DIR=.")
