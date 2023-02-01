@@ -16,16 +16,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly IIdentityManager identityManager;
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
         readonly Uri workloadUri;
-        readonly bool enableExistingIdentityCleanup;
+        readonly bool enableOrphanedIdentityCleanup;
 
         protected virtual bool ShouldAlwaysReturnIdentities => false;
 
-        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri, bool enableExistingIdentityCleanup)
+        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri, bool enableOrphanedIdentityCleanup)
         {
             this.identityManager = Preconditions.CheckNotNull(identityManager, nameof(identityManager));
             this.identityProviderServiceBuilder = Preconditions.CheckNotNull(identityProviderServiceBuilder, nameof(identityProviderServiceBuilder));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
-            this.enableExistingIdentityCleanup = enableExistingIdentityCleanup;
+            this.enableOrphanedIdentityCleanup = enableOrphanedIdentityCleanup;
         }
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
-                if (this.enableExistingIdentityCleanup)
+                if (this.enableOrphanedIdentityCleanup)
                 {
                     await this.RemoveStaleIdentities(desired, current, identities);
                 }
