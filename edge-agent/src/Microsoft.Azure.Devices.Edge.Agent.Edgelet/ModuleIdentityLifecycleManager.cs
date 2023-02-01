@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         async Task RemoveStaleIdentities(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, Identity> identities)
         {
-            // Need to remove any identities (except EA/EH and those in desired) that are managed by EA but don't have a tracked module for in the ModuleSet.
+            // Need to remove any identities (except EA/EH and those in desired) that are managed by EA but don't have a tracked module in the ModuleSet.
             IEnumerable<string> removeCurrentIdentities = identities.Where(
                 i => !(Constants.EdgeAgentModuleIdentityName.Equals(i.Key, StringComparison.Ordinal) || Constants.EdgeHubModuleIdentityName.Equals(i.Key, StringComparison.Ordinal)) &&
                      Constants.ModuleIdentityEdgeManagedByValue.Equals(i.Value.ManagedBy, StringComparison.OrdinalIgnoreCase) &&
@@ -111,6 +111,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             // First any identities that don't have running modules currently.
             await Task.WhenAll(removeCurrentIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
+
+            // Remove any identities from map that were in removeCurrentIdentities
+            identities.RemoveRange(removeCurrentIdentities);
         }
 
         static class Events
