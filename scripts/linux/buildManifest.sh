@@ -101,6 +101,7 @@ process_args()
             save_next_arg=0
         elif [ $save_next_arg -eq 5 ]; then
             ARCH="$arg"
+            check_arch
             save_next_arg=0
         elif [ $save_next_arg -eq 6 ]; then
             DOCKER_TAGS="$arg"
