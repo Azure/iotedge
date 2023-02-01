@@ -83,7 +83,7 @@ print_help_and_exit() {
 ###############################################################################
 process_args() {
     save_next_arg=0
-    for arg in "$@"; do
+    for arg in $@; do
         if [[ ${save_next_arg} -eq 1 ]]; then
             DOCKER_REGISTRY="$arg"
             save_next_arg=0
@@ -121,7 +121,6 @@ process_args() {
             "-i" | "--image-name") save_next_arg=7 ;;
             "-n" | "--namespace") save_next_arg=8 ;;
             "--skip-push") SKIP_PUSH=1 ;;
-            "__end_args__") ;;
             *) echo "Unknown argument '$arg'"; usage ;;
             esac
         fi
@@ -251,7 +250,7 @@ docker_build_and_tag_and_push() {
 # Main Script Execution
 ###############################################################################
 check_arch
-process_args "$@ __end_args__"
+process_args $@
 
 build_args=("EXE_DIR=.")
 
