@@ -210,7 +210,7 @@ jobs:
                   -i "azureiotedge-agent" \
                   -v "$(resources.pipeline.images.runName)" \
                   -n "$(to.registry.namespace)" \
-                  --tags "$(tags)"
+                  --tags '$(tags)'
               displayName: 'Publish Edge Agent Manifest'
 
             - script: |
@@ -219,7 +219,7 @@ jobs:
                   -i "azureiotedge-hub" \
                   -v "$(resources.pipeline.images.runName)" \
                   -n "$(to.registry.namespace)" \
-                  --tags "$(tags)"
+                  --tags '$(tags)'
               displayName: 'Publish Edge Hub Manifest'
 
             - script: |
@@ -228,7 +228,7 @@ jobs:
                   -i "azureiotedge-simulated-temperature-sensor" \
                   -v "$(resources.pipeline.images.runName)" \
                   -n "$(to.registry.namespace)" \
-                  --tags "$(tempSensor.tags)"
+                  --tags '$(tempSensor.tags)'
               displayName: 'Publish Temperature Sensor Manifest'
 
             - script: |
@@ -237,5 +237,5 @@ jobs:
                   -i "azureiotedge-diagnostics" \
                   -v "$(resources.pipeline.images.runName)" \
                   -n "$(to.unlisted.registry.namespace)" \
-                  --tags "$(tags)"
+                  --tags '$(tags)'
               displayName: 'Publish Diagnostic Module Manifest'

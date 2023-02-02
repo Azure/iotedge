@@ -443,5 +443,5 @@ stages:
             -i $(imageName) \
             -v $(version) \
             -n '$(namespace)' \
-            --tags "$(tags)"
+            --tags '$(tags)'
         displayName: Create manifest for '$(imageName)'

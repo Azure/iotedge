@@ -60,5 +60,5 @@ jobs:
                 -i 'azureiotedge-api-proxy' \
                 -v $(version) \
                 -n $(to.registry.namespace) \
-                --tags "$(tags)"
+                --tags '$(tags)'
             displayName: 'Publish Api Proxy Manifest'

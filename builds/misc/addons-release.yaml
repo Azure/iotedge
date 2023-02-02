@@ -136,7 +136,7 @@ stages:
           -i 'azureiotedge-api-proxy' \
           -v $(buildVersion) \
           -n 'microsoft' \
-          --tags "$(tags)"
+          --tags '$(tags)'
       displayName: 'Create Api Proxy manifest'
 
   - job: ComponentGovernance
