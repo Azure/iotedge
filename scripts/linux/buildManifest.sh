@@ -22,7 +22,7 @@ DOCKER_IMAGE_NAME=
 IGNORE_MISSING=
 
 ###############################################################################
-# Check format and content of --arch argument
+# Check format and content of --target-arch argument
 ###############################################################################
 check_arch() {
     IFS=',' read -a architectures <<< "$ARCH"
@@ -36,10 +36,10 @@ check_arch() {
 }
 
 ###############################################################################
-# Convert from the format of the --arch argument to the format we use in our
-# image tags. Docker defines the former (amd64, arm64, or arm/v7; see Docker's
-# TARGETARCH automatic variable[1]), we define the latter (amd64, arm64v8, and
-# arm32v7).
+# Convert from the format of the --target-arch argument to the format we use in
+# our image tags. Docker defines the former (amd64, arm64, or arm/v7; see
+# Docker's TARGETARCH automatic variable[1]), we define the latter (amd64,
+# arm64v8, and arm32v7).
 # [1] https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 ###############################################################################
 convert_arch() {
@@ -65,7 +65,7 @@ usage()
     echo " -n, --namespace          Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -i, --image-name         Docker image name"
     echo " -v, --image-version      Docker image version. Assumes arch-specific images have the same tag with '-linux-{arch] appended'"
-    echo " -a, --arch               Comma-separated list of architectures to combine into multi-arch image (default: $DEFAULT_ARCH)"
+    echo " -t, --target-arch        Comma-separated list of architectures to combine into multi-arch image (default: $DEFAULT_ARCH)"
     echo "     --tags               Add tags to the docker image. Specify as a JSON array of strings, e.g., --tags '[\"1.0\"]'"
     exit 1;
 }
@@ -110,7 +110,7 @@ process_args()
                 "-n" | "--namespace" ) save_next_arg=2;;
                 "-i" | "--image-name" ) save_next_arg=3;;
                 "-v" | "--image-version" ) save_next_arg=4;;
-                "-a" | "--arch" ) save_next_arg=5;;
+                "-t" | "--target-arch" ) save_next_arg=5;;
                        "--tags" ) save_next_arg=6;;
                 * ) usage;;
             esac

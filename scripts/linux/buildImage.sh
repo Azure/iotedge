@@ -25,7 +25,7 @@ SKIP_PUSH=0
 SOURCE_MAP=
 
 ###############################################################################
-# Check format and content of --arch argument
+# Check format and content of --target-arch argument
 ###############################################################################
 check_arch() {
     case "$ARCH" in
@@ -38,10 +38,10 @@ check_arch() {
 }
 
 ###############################################################################
-# Convert from the format of the --arch argument to the format we use in our
-# image tags. Docker defines the former (amd64, arm64, or arm/v7; see Docker's
-# TARGETARCH automatic variable[1]), we define the latter (amd64, arm64v8, and
-# arm32v7).
+# Convert from the format of the --target-arch argument to the format we use in
+# our image tags. Docker defines the former (amd64, arm64, or arm/v7; see
+# Docker's TARGETARCH automatic variable[1]), we define the latter (amd64,
+# arm64v8, and arm32v7).
 # [1] https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 ###############################################################################
 convert_arch() {
@@ -67,7 +67,7 @@ usage() {
     echo " -r, --registry       Docker registry required to build, tag and run the module"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
-    echo " -a, --arch           The target architecture to build (supported values are amd64, arm64, and arm/v7)"
+    echo " -t, --target-arch    Target architecture (supported values are amd64, arm64, and arm/v7, default is host's architecture)"
     echo "--bin-dir             Directory containing the output binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo "--skip-push           Build images, but don't push them"
@@ -117,7 +117,7 @@ process_args() {
             "-v" | "--image-version") save_next_arg=2 ;;
             "--bin-dir") save_next_arg=3 ;;
             "--source-map") save_next_arg=4 ;;
-            "-a" | "--arch") save_next_arg=5 ;;
+            "-t" | "--target-arch") save_next_arg=5 ;;
             "-P" | "--project") save_next_arg=6 ;;
             "-i" | "--image-name") save_next_arg=7 ;;
             "-n" | "--namespace") save_next_arg=8 ;;
