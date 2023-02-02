@@ -4,10 +4,10 @@ parameters:
   namespace: 'microsoft'
   project: ''
   version: ''
-  architectures: 'amd64,arm64,arm/v7'
   bin_dir: '$(Build.BinariesDirectory)'
   use_rocksdb: false
   download_artifacts: true
+  buildManifest: false
 
 steps:
   - task: DownloadBuildArtifacts@0
@@ -55,40 +55,43 @@ steps:
         -n "${{ parameters.namespace }}" \
         -P "${{ parameters.project }}" \
         -v "${{ parameters.version }}" \
-        -a "${{ parameters.architectures }}"
         --bin-dir "${{ parameters.bin_dir }}" \
-        --source-map '/etc/iotedge-source-map.json'
-    displayName: Build Image - ${{ parameters.name }}
-    condition: and(succeeded(), ne(${{ parameters.imageName }}, 'azureiotedge-api-proxy'))
+        --source-map '/etc/iotedge-source-map.json' \
+        -a 'amd64'
+    displayName: Build Image - ${{ parameters.name }} - amd64
 
   - script: |
-      IFS=',' read -a architectures <<< "${{ parameters.architectures }}"
-
       scripts/linux/buildImage.sh \
         -r "$(registry.address)" \
         -i "${{ parameters.imageName }}" \
         -n "${{ parameters.namespace }}" \
         -P "${{ parameters.project }}" \
         -v "${{ parameters.version }}" \
-        -a "${architectures[0]}" \
         --bin-dir "${{ parameters.bin_dir }}" \
-        --source-map '/etc/iotedge-source-map.json'
+        --source-map '/etc/iotedge-source-map.json' \
+        -a 'arm/v7'
+    displayName: Build Image - ${{ parameters.name }} - arm/v7
+    condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
 
-      if [ "${#architectures[@]}" -gt 1 ]
-      then
-        for arch in ${architectures[@]:1}
-        do
-          scripts/linux/buildImage.sh \
-            -r "$(registry.address)" \
-            -i "${{ parameters.imageName }}" \
-            -n "${{ parameters.namespace }}" \
-            -P "${{ parameters.project }}" \
-            -v "${{ parameters.version }}" \
-            -a "$arch" \
-            --bin-dir "${{ parameters.bin_dir }}" \
-            --source-map '/etc/iotedge-source-map.json'
-            --append
-        done
-      fi
-    displayName: Build Image - ${{ parameters.name }}
-    condition: and(succeeded(), ne(${{ parameters.imageName }}, 'azureiotedge-api-proxy'))
+  - script: |
+      scripts/linux/buildImage.sh \
+        -r "$(registry.address)" \
+        -i "${{ parameters.imageName }}" \
+        -n "${{ parameters.namespace }}" \
+        -P "${{ parameters.project }}" \
+        -v "${{ parameters.version }}" \
+        --bin-dir "${{ parameters.bin_dir }}" \
+        --source-map '/etc/iotedge-source-map.json' \
+        -a 'arm64'
+    displayName: Build Image - ${{ parameters.name }} - arm64
+    condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
+
+  - script: |
+      scripts/linux/buildManifest.sh \
+        -r '$(registry.address)' \
+        -i '${{ parameters.imageName }}' \
+        -n '${{ parameters.namespace }}' \
+        -v '${{ parameters.version }}' \
+        --tags '$(tags)'
+    displayName: Build Image Manifest - ${{ parameters.name }}
+    condition: and(${{ parameters.buildManifest }}, succeeded())

@@ -246,7 +246,7 @@ stages:
         project: Microsoft.Azure.Devices.Edge.Azure.Monitor
         version: $(version)
         download_artifacts: false
-        manifestTemplate: 'edge-modules/metrics-collector/docker/manifest.yaml.template'
+        buildManifest: true
 
 ################################################################################
 - stage: Test

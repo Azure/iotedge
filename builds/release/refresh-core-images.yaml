@@ -383,7 +383,7 @@ stages:
         project: Microsoft.Azure.Devices.Edge.Agent.Service
         version: $(version)
         use_rocksdb: true
-        manifestTemplate: 'edge-agent/docker/manifest.yaml.template'
+        buildManifest: true
 
   - job: EdgeHub
     displayName: Edge Hub
@@ -395,7 +395,7 @@ stages:
         project: Microsoft.Azure.Devices.Edge.Hub.Service
         version: $(version)
         use_rocksdb: true
-        manifestTemplate: 'edge-hub/docker/manifest.yaml.template'
+        buildManifest: true
 
   - job: TemperatureSensor
     displayName: Temperature sensor
@@ -406,7 +406,7 @@ stages:
         name: "Temperature Sensor"
         project: SimulatedTemperatureSensor
         version: $(version)
-        manifestTemplate: 'edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
+        buildManifest: true
 
   - job: Diagnostics
     displayName: Diagnostics
@@ -417,7 +417,7 @@ stages:
         name: "Diagnostics Module"
         project: IotedgeDiagnosticsDotnet
         version: $(diagnostics_version)
-        manifestTemplate: 'edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+        buildManifest: true
 
   # for E2E tests
   - job: MetricsCollector
@@ -511,7 +511,6 @@ stages:
         name: Functions Sample
         imageName: azureiotedge-functions-filter
         project: EdgeHubTriggerCSharp
-        architectures: 'amd64'
 
 ################################################################################
 - stage: TestImages
