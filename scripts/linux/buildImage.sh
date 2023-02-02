@@ -7,7 +7,7 @@
 # directory identified by environment variable BUILD_BINARIESDIRECTORY
 ###############################################################################
 
-set -xeuo pipefail
+set -euo pipefail
 
 ###############################################################################
 # Define Environment Variables
