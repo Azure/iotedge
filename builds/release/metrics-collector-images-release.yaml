@@ -109,7 +109,7 @@ jobs:
         -r '$(registry.address)' \
         -i 'azureiotedge-metrics-collector' \
         -v '$(version)' \
-        -n microsoft \
+        -n 'microsoft' \
         --tags '$(tags)'
     displayName: Build Manifest
   
