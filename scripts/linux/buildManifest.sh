@@ -167,5 +167,5 @@ tags=( $(echo "$DOCKER_TAGS" |
 
 # build the multi-arch image with all given tags, using all given arch-specific images as sources
 docker buildx imagetools create \
-    ${tags[@]/#/--tags $image_name:} \
+    ${tags[@]/#/--tag $image_name:} \
     "${arch_digests[@]/#/$image_name@}"
