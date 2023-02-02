@@ -115,7 +115,7 @@ docker buildx build \
 
 docker run \
     --rm \
-    --target $platform \
+    --platform $platform \
     -v $OUTPUT_DIR/librocksdb/$platform:/artifacts/$platform \
     $build_image \
     cp /publish/$platform/librocksdb.so /artifacts/$platform/
