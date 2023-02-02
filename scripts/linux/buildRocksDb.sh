@@ -27,7 +27,7 @@ function usage() {
     echo "options"
     echo "--output-dir          Path to librocksdb folder that contains resulting binaries."
     echo "--build-number        Build number for which to tag image."
-    echo "--arch                Options: amd64, arm64, arm/v7."
+    echo "--arch                Options: amd64, arm32v7, arm64v8."
     echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo " -h, --help           Print this help and exit."
     exit 1
@@ -42,7 +42,7 @@ function print_help_and_exit() {
 # Obtain and validate the options supported by this script
 ###############################################################################
 function process_args() {
-    local save_next_arg=0
+    save_next_arg=0
     for arg in "$@"; do
         if [ ${save_next_arg} -eq 1 ]; then
             OUTPUT_DIR=$arg
@@ -89,13 +89,13 @@ function process_args() {
 process_args "$@"
 
 case "$ARCH" in
-    'amd64'|'arm64'|'arm/v7') ;;
-    *) echo "Unrecognized architecture '$ARCH'" && exit 1
+    'amd64') platform='linux/amd64' ;;
+    'arm32v7') platform='linux/arm/v7' ;;
+    'arm64v8') platform='linux/arm64' ;;
+    *) echo "Unrecognized platform '$ARCH'" && exit 1
 esac
 
-TARGETPLATFORM="linux/$ARCH"
-
-build_image=rocksdb-build:main-${ARCH/\//}-$BUILD_NUMBER
+build_image=rocksdb-build:main-$ARCH-$BUILD_NUMBER
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 
 build_context=
@@ -108,14 +108,14 @@ trap "docker buildx rm" EXIT
 
 docker buildx build \
     --load \
-    --platform $TARGETPLATFORM \
+    --platform $platform \
     --tag $build_image \
     $([ -z "$build_context" ] || echo $build_context) \
     .
 
 docker run \
     --rm \
-    --target $TARGETPLATFORM \
-    -v $OUTPUT_DIR/librocksdb/$TARGETPLATFORM:/artifacts/$TARGETPLATFORM \
+    --target $platform \
+    -v $OUTPUT_DIR/librocksdb/$platform:/artifacts/$platform \
     $build_image \
-    cp /publish/$TARGETPLATFORM/librocksdb.so /artifacts/$TARGETPLATFORM/
+    cp /publish/$platform/librocksdb.so /artifacts/$platform/
