@@ -10,11 +10,11 @@ jobs:
       arm32:
         pool_name: $(pool.linux.arm.name)
         agent_image: agent-aziotedge-ubuntu-20.04-arm64-docker
-        arch: arm/v7
+        arch: arm32v7
       arm64:
         pool_name: $(pool.linux.arm.name)
         agent_image: agent-aziotedge-ubuntu-20.04-arm64-docker
-        arch: arm64
+        arch: arm64v8
   pool:
       name: $(pool_name)
       demands:
