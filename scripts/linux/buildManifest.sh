@@ -137,6 +137,7 @@ process_args()
 
     if [[ $(echo "$DOCKER_TAGS" | jq -r '. | type') != 'array' ]]; then
         echo 'The value of --tags must be a JSON array'
+        print_help_and_exit
     fi
 }
 
