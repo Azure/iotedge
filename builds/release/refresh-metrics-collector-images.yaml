@@ -496,9 +496,9 @@ stages:
     - script: |
         scripts/linux/buildManifest.sh \
           -r '$(registry.address)' \
+          -i 'azureiotedge-metrics-collector' \
           -v $(version) \
-          -t edge-modules/metrics-collector/docker/manifest.yaml.template \
-          -n public \
+          -n 'public' \
           --tags '$(tags)'
       displayName: Publish Manifest
       workingDirectory: iotedge

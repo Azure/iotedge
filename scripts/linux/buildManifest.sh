@@ -13,9 +13,6 @@ set -euo pipefail
 SCRIPT_NAME=$(basename $0)
 DIR=$(cd "$(dirname "$0")" && pwd)
 
-BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$(realpath $DIR/../..)}
-ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
-
 DEFAULT_ARCH='amd64,arm64,arm/v7'
 ARCH=$DEFAULT_ARCH
 DOCKER_TAGS='[]'

@@ -111,10 +111,6 @@ stages:
   jobs:
   - job: PublishManifest
     displayName: Publish Manifest
-    strategy:
-      matrix:
-        ApiProxy:
-           manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
     steps:
     # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
     - task: Docker@2
@@ -134,7 +130,14 @@ stages:
           echo '##vso[task.setvariable variable=buildVersion]$(version)'
         fi
       displayName: 'Set build version'     
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(buildVersion) -t $(manifestFilePath) -n microsoft --tags "$(tags)"
+    - script: |
+        scripts/linux/buildManifest.sh \
+          -r $(registry.address) \
+          -i 'azureiotedge-api-proxy' \
+          -v $(buildVersion) \
+          -n 'microsoft' \
+          --tags "$(tags)"
+      displayName: 'Create Api Proxy manifest'
 
   - job: ComponentGovernance
     steps:
