@@ -408,7 +408,7 @@ stages:
             -i $(imageName) \
             -v $(Build.BuildNumber) \
             -n 'microsoft' \
-            --tags "$(tags)"
+            --tags '$(tags)'
         displayName: Create manifest for '$(imageName)'
 
     - job: ComponentGovernance
