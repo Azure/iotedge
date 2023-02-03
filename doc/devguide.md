@@ -105,20 +105,8 @@ Sometimes it is useful to build the Edge Hub container locally. If you want to d
 ## Build Manifest Image
 There is a script in the repo to build multi-architecture images.
 This script assumes that the platform specific images are already in the docker registry.
-Usage is as follows:
-```sh
-$ scripts/linux/buildManifest.sh --help
+Call `scripts/linux/buildManifest.sh --help` for more information.
 
-buildManifest.sh [options]
-Note: Depending on the options you might have to run this as root or sudo.
-
-options
- -r, --registry       Docker registry required to build, tag and run the module
- -u, --username       Docker Registry Username
- -p, --password       Docker Username's password
- -v, --image-version  Docker Image Version.
- -t, --template       Yaml file template for manifest definition.
-```
 ## Attach the VSCode Debugger to EdgeAgent
 There is a script in the repo to setup a docker container with the Visual Studio Debugger (vsdbg).  After running the script in a container, you can connect the VSCode debugger to a process running in the container. The following example shows how to run the setup script on a Linux IoT Edge device to setup the debugger in the Edge Agent container:
 

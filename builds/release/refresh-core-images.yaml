@@ -383,7 +383,7 @@ stages:
         project: Microsoft.Azure.Devices.Edge.Agent.Service
         version: $(version)
         use_rocksdb: true
-        manifestTemplate: 'edge-agent/docker/manifest.yaml.template'
+        buildManifest: true
 
   - job: EdgeHub
     displayName: Edge Hub
@@ -395,7 +395,7 @@ stages:
         project: Microsoft.Azure.Devices.Edge.Hub.Service
         version: $(version)
         use_rocksdb: true
-        manifestTemplate: 'edge-hub/docker/manifest.yaml.template'
+        buildManifest: true
 
   - job: TemperatureSensor
     displayName: Temperature sensor
@@ -406,7 +406,7 @@ stages:
         name: "Temperature Sensor"
         project: SimulatedTemperatureSensor
         version: $(version)
-        manifestTemplate: 'edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
+        buildManifest: true
 
   - job: Diagnostics
     displayName: Diagnostics
@@ -417,7 +417,7 @@ stages:
         name: "Diagnostics Module"
         project: IotedgeDiagnosticsDotnet
         version: $(diagnostics_version)
-        manifestTemplate: 'edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+        buildManifest: true
 
   # for E2E tests
   - job: MetricsValidator
@@ -428,6 +428,7 @@ stages:
         name: Metrics Validator
         imageName: azureiotedge-metrics-validator
         project: MetricsValidator
+        version: $(Build.BuildNumber)
 
   - job: DirectMethodSender
     displayName: Direct method sender
@@ -437,6 +438,7 @@ stages:
         name: Direct Method Sender
         imageName: azureiotedge-direct-method-sender
         project: DirectMethodSender
+        version: $(Build.BuildNumber)
 
   - job: DirectMethodReceiver
     displayName: Direct method receiver
@@ -446,6 +448,7 @@ stages:
         name: Direct Method Receiver
         imageName: azureiotedge-direct-method-receiver
         project: DirectMethodReceiver
+        version: $(Build.BuildNumber)
 
   - job: NumberLogger
     displayName: Number logger
@@ -455,6 +458,7 @@ stages:
         name: Number Logger
         imageName: azureiotedge-number-logger
         project: NumberLogger
+        version: $(Build.BuildNumber)
 
   - job: TemperatureFilter
     displayName: Temperature filter
@@ -464,6 +468,7 @@ stages:
         name: Temperature Filter
         imageName: azureiotedge-temperature-filter
         project: TemperatureFilter
+        version: $(Build.BuildNumber)
 
   - job: LoadGen
     displayName: Load gen
@@ -473,6 +478,7 @@ stages:
         name: Load Gen
         imageName: azureiotedge-load-gen
         project: load-gen
+        version: $(Build.BuildNumber)
 
   - job: TestResultCoordinator
     displayName: Test result coordinator
@@ -482,6 +488,7 @@ stages:
         name: TestResultCoordinator
         imageName: azureiotedge-test-result-coordinator
         project: TestResultCoordinator
+        version: $(Build.BuildNumber)
         use_rocksdb: true
 
   - job: Relayer
@@ -492,8 +499,9 @@ stages:
         name: Relayer
         imageName: azureiotedge-relayer
         project: Relayer
+        version: $(Build.BuildNumber)
 
-  # Functions Sample - Not supported on linux arm64
+  # Functions Sample - Only supported on amd64
   - job: FunctionsSample
     displayName: Functions sample
     steps:
@@ -502,6 +510,7 @@ stages:
         name: Functions Sample
         imageName: azureiotedge-functions-filter
         project: EdgeHubTriggerCSharp
+        version: $(Build.BuildNumber)
 
 ################################################################################
 - stage: TestImages
