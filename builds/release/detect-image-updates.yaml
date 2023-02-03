@@ -60,25 +60,32 @@ steps:
     do
       echo "image: $image"
 
-      # This command assumes that the $image has a manifest, not a manifest list.
-      # In other words, $image is _not_ a multi-arch image.
       read base_image current_digest <<< $(\
-        docker buildx imagetools inspect $image --format "{{json .BuildInfo}}" |
-        jq -r '@text "\(.sources[0].ref) \(.sources[0].pin)"'
+        docker buildx imagetools inspect $image --format '{{json .Provenance}}' |
+        jq -r '[ .SLSA // halt | .materials[] | select(.uri | startswith("pkg:docker/docker/dockerfile") | not) ] |
+        if length == 1 then first else (
+          "Error: inspect command found more than one base image in provenance materials\n\(.)" | halt_error
+        ) end | "\(.uri) \(.digest.sha256)"'
       )
 
-      if [ "$base_image" == 'null' ]
+      if [ -n "$base_image" ]
       then
-        echo "'$image' does not contain Docker BuildInfo metadata. Skipping..."
+        # base image is in the format 'pkg:docker/image@tag?name=value'
+        # first strip off the front of the uri and the query string
+        read image query <<< "${base_image/#pkg:docker\//}"
+        # then replace '@' with ':'
+        base_image="${image/@/:}"
+      else
+        echo "'$image' does not contain provenance metadata. Skipping..."
         remove+=( "$image" )
         continue
       fi
 
-      latest_digest="sha256:$(docker buildx imagetools inspect --raw $base_image | shasum --algorithm 256 | awk '{print$1}')"
+      latest_digest="$(docker buildx imagetools inspect $base_image --format '{{json .Manifest}}' | jq -r '.digest')"
 
       echo -e "  base:\t\t$base_image\n  current:\t$current_digest\n  latest:\t$latest_digest"
 
-      if [ "$current_digest" != 'null' ] && [ "$current_digest" != "$latest_digest" ]
+      if [ -n "$current_digest" ] && [ "$current_digest" != "$latest_digest" ]
       then
         echo "  ## NEEDS UPDATE ##"
       else
