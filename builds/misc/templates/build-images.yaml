@@ -157,11 +157,11 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
-            name: Edge Agent
-            imageName: azureiotedge-agent
-            project: Microsoft.Azure.Devices.Edge.Agent.Service
-            bin_dir: '$(Build.BinariesDirectory)'
-            use_rocksdb: true
+          name: Edge Agent
+          imageName: azureiotedge-agent
+          project: Microsoft.Azure.Devices.Edge.Agent.Service
+          version: $(Build.BuildNumber)
+          use_rocksdb: true
 
     - job: BuildImageEdgeHub
       steps:
@@ -170,7 +170,7 @@ stages:
           name: Edge Hub
           imageName: azureiotedge-hub
           project: Microsoft.Azure.Devices.Edge.Hub.Service
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
           use_rocksdb: true
 
     - job: BuildImageTemperatureSensor
@@ -180,7 +180,7 @@ stages:
           name: Temperature Sensor
           imageName: azureiotedge-simulated-temperature-sensor
           project: SimulatedTemperatureSensor
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageDiagnostics
       steps:
@@ -189,7 +189,7 @@ stages:
           name: Diagnostics
           imageName: azureiotedge-diagnostics
           project: IotedgeDiagnosticsDotnet
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageTemperatureFilter
       steps:
@@ -198,7 +198,7 @@ stages:
           name: Temperature Filter
           imageName: azureiotedge-temperature-filter
           project: TemperatureFilter
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageLoadGen
       steps:
@@ -207,7 +207,8 @@ stages:
           name: Load Gen
           imageName: azureiotedge-load-gen
           project: load-gen
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
+
     - job: BuildImageTestAnalyzer
       steps:
       - template: image-linux.yaml
@@ -215,7 +216,7 @@ stages:
           name: Test Analyzer
           imageName: azureiotedge-analyzer
           project: TestAnalyzer
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
           use_rocksdb: true
 
       # Functions Sample - Not supported on linux arm64
@@ -226,7 +227,7 @@ stages:
           name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageDirectMethodSender
       steps:
@@ -235,7 +236,7 @@ stages:
           name: Direct Method Sender
           imageName: azureiotedge-direct-method-sender
           project: DirectMethodSender
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageDirectMethodReceiver
       steps:
@@ -244,7 +245,7 @@ stages:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageMetricsValidator
       steps:
@@ -253,7 +254,7 @@ stages:
           name: Metrics Validator
           imageName: azureiotedge-metrics-validator
           project: MetricsValidator
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageNumberLogger
       steps:
@@ -262,7 +263,7 @@ stages:
           name: Number Logger
           imageName: azureiotedge-number-logger
           project: NumberLogger
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageModuleRestarter
       steps:
@@ -271,7 +272,7 @@ stages:
           name: Module Restarter
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageTwinTester
       steps:
@@ -280,8 +281,9 @@ stages:
           name: TwinTester
           imageName: azureiotedge-twin-tester
           project: TwinTester
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
           use_rocksdb: true
+
     - job: BuildImageRelayer
       steps:
       - template: image-linux.yaml
@@ -289,7 +291,7 @@ stages:
           name: Relayer
           imageName: azureiotedge-relayer
           project: Relayer
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageNetworkController
       steps:
@@ -298,7 +300,7 @@ stages:
           name: Network Controller
           imageName: azureiotedge-network-controller
           project: NetworkController
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
           use_rocksdb: true
 
     - job: BuildImageTestResultCoordinator
@@ -308,7 +310,7 @@ stages:
           name: TestResultCoordinator
           imageName: azureiotedge-test-result-coordinator
           project: TestResultCoordinator
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
           use_rocksdb: true
 
     - job: BuildImageTestMetricsCollector
@@ -318,8 +320,7 @@ stages:
           name: Test Metrics Collector
           imageName: azureiotedge-test-metrics-collector
           project: TestMetricsCollector
-          bin_dir: '$(Build.BinariesDirectory)'
-
+          version: $(Build.BuildNumber)
 
     - job: BuildImageDeploymentTester
       steps:
@@ -328,8 +329,7 @@ stages:
           name: DeploymentTester
           imageName: azureiotedge-deployment-tester
           project: DeploymentTester
-          bin_dir: '$(Build.BinariesDirectory)'
-
+          version: $(Build.BuildNumber)
 
     - job: BuildImageEdgeHubRestartTester
       steps:
@@ -338,7 +338,7 @@ stages:
           name: EdgeHubRestartTester
           imageName: azureiotedge-edgehub-restart-tester
           project: EdgeHubRestartTester
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageCloudToDeviceMessageTester
       steps:
@@ -347,19 +347,16 @@ stages:
           name: Cloud To Device Message Tester
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
     - job: BuildImageApiProxy
       steps:
-      - bash: |
-          sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
-          docker -v
       - template: image-linux.yaml
         parameters:
           name: API Proxy
           imageName: azureiotedge-api-proxy
           project: api-proxy-module
-          bin_dir: '$(Build.BinariesDirectory)'
+          version: $(Build.BuildNumber)
 
 ################################################################################
   - stage: PublishManifests
@@ -371,22 +368,22 @@ stages:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: BuildImages
     variables:
-      tags: "['latest']"
+      tags: '["latest"]'
     jobs:
     - job: PublishManifest
       displayName: Publish Manifest
       strategy:
         matrix:
           EdgeAgent:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template'
+            imageName: 'azureiotedge-agent'
           EdgeHub:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
+            imageName: 'azureiotedge-hub'
           SimulatedTemperatureSensor:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
+            imageName: 'azureiotedge-simulated-temperature-sensor'
           Diagnostics:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+            imageName: 'azureiotedge-diagnostics'
           ApiProxy:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template'
+            imageName: 'azureiotedge-api-proxy'
       steps:
       - task: Docker@2
         displayName: Docker login edgebuilds
@@ -394,7 +391,14 @@ stages:
           command: login
           containerRegistry: iotedge-edgebuilds-acr
 
-      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(Build.BuildNumber) -t $(manifestFilePath) -n microsoft --tags "$(tags)"
+      - script: |
+          scripts/linux/buildManifest.sh \
+            -r $(registry.address) \
+            -i $(imageName) \
+            -v $(Build.BuildNumber) \
+            -n 'microsoft' \
+            --tags '$(tags)'
+        displayName: Create manifest for '$(imageName)'
 
     - job: ComponentGovernance
       steps:

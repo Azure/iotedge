@@ -1,8 +1,9 @@
-# syntax=docker/dockerfile:1.4
+﻿# syntax=docker/dockerfile:1.4
 
 FROM alpine:3.14
 
 ARG num_procs=4
+ARG TARGETPLATFORM
 
 # Build RocksDB for alpine
 RUN apk update && \
@@ -14,5 +15,5 @@ RUN git clone -b v5.17.2 --depth 1 https://github.com/facebook/rocksdb.git && \
         PORTABLE=1 \
         make -j ${num_procs} shared_lib && \
     strip librocksdb.so && \
-    mkdir -p ../publish && \
-    cp -vL ./librocksdb.so ../publish/librocksdb.so.armhf
+    mkdir -p ../publish/$TARGETPLATFORM && \
+    cp -vL ./librocksdb.so ../publish/$TARGETPLATFORM/
