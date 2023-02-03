@@ -80,7 +80,9 @@ where
             Ok(ids) => {
                 for identity in ids {
                     let identity = crate::identity::Identity::try_from(identity)?;
-                    identities.push(identity);
+                    if identity.managed_by.is_some() {
+                        identities.push(identity);
+                    }
                 }
             }
             Err(err) => {
@@ -109,10 +111,7 @@ where
 
         let identity = match client.create_module_identity(&body.module_id).await {
             Ok(identity) => {
-                let mut identity = crate::identity::Identity::try_from(identity)?;
-                identity.managed_by = body.managed_by;
-
-                identity
+                crate::identity::Identity::try_from(identity)?
             }
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));

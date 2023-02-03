@@ -10,7 +10,7 @@ pub(crate) struct Identity {
     module_id: String,
 
     #[serde(rename = "managedBy")]
-    managed_by: String,
+    managed_by: Option<String>,
 
     #[serde(rename = "generationId")]
     generation_id: String,
@@ -45,7 +45,7 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
 
                 Ok(Identity {
                     module_id,
-                    managed_by: default_managed_by(),
+                    managed_by: identity.managed_by,
                     generation_id,
                     auth_type: "sas".to_string(),
                 })
