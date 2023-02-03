@@ -151,10 +151,8 @@ for arch in ${architectures[@]}
 do
     image="$image_name:$DOCKER_IMAGEVERSION-linux-$(convert_arch $arch)"
     arch_digests+=( $(docker buildx imagetools inspect $image --format '{{json .Manifest}}' |
-        jq --arg arch "$arch" -r '($arch | split("/")) as $parts |
-            .manifests[] |
-            select(.platform.architecture == $parts[0]) |
-            if ($parts | length > 1) then select(.platform.variant == $parts[1]) else . end |
+        jq --arg arch "$arch" -r '.manifests[] |
+            select($arch == ([.platform | (.architecture, .variant // empty)] | join("/"))) |
             .digest') )
 done
 
