@@ -37,6 +37,9 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "ubuntu20.04" ]]; then
         OS_NAME="ubuntu"
         OS_VERSION="focal"
+    elif [[ "$PACKAGE_OS" == "ubuntu22.04" ]]; then
+        OS_NAME="ubuntu"
+        OS_VERSION="jammy"
     elif [[ "$PACKAGE_OS" == "debian10" ]]; then
         OS_NAME="debian"
         OS_VERSION="buster"
