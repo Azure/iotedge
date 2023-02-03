@@ -44,10 +44,9 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
                 };
 
                 let managed_by = match identity {
-                    aziot_identity_common::Identity::Aziot(aziot_identity_common::AziotIdentity {
-                        managed_by,
-                        ..
-                    }) => managed_by,
+                    aziot_identity_common::Identity::Aziot(
+                        aziot_identity_common::AziotIdentity { managed_by, .. },
+                    ) => managed_by,
                     _ => None,
                 };
 

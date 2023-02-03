@@ -110,9 +110,7 @@ where
         let client = self.client.lock().await;
 
         let identity = match client.create_module_identity(&body.module_id).await {
-            Ok(identity) => {
-                crate::identity::Identity::try_from(identity)?
-            }
+            Ok(identity) => crate::identity::Identity::try_from(identity)?,
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
