@@ -3,6 +3,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
 
 ARG EXE_DIR=.
+ARG TARGETPLATFORM
 
 # RocksDB requires snappy
 RUN apk update && \
@@ -13,7 +14,7 @@ RUN apk update && \
 RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet
 
 # Install RocksDB
-COPY $EXE_DIR/librocksdb/librocksdb.so.armhf /usr/local/lib/librocksdb.so
+COPY $EXE_DIR/librocksdb/$TARGETPLATFORM/librocksdb.so /usr/local/lib/librocksdb.so
 
 WORKDIR /app
 
@@ -24,9 +25,6 @@ EXPOSE 1883/tcp
 EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp
-
-ENV OptimizeForPerformance false
-ENV MqttEventsProcessorThreadCount 1
 
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
     exec /app/hubStart.sh
