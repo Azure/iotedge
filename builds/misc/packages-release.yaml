@@ -179,8 +179,9 @@ stages:
           # for the partner teams. We don't fully support edgelet upload because 
           # there is a known docker issue with debian 10.
           Debian10-arm32v7:
+            excludeEdgelet: true
             os: debian10
-            artifactName: empty_package
+            artifactName: iotedged-debian10-arm32v7
             identityServiceArtifactName: packages_debian-10-slim_arm32v7
             identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           Debian11-arm32v7:
@@ -227,6 +228,7 @@ stages:
         - checkout: self
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
+          condition: not(eq(variables.excludeEdgelet, true))
           inputs:
             source: 'current'
             path: $(System.ArtifactsDirectory)
