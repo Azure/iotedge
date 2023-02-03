@@ -18,6 +18,12 @@ where
     runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
 }
 
+#[derive(Debug, serde::Deserialize)]
+pub(crate) struct UpdateIdentityRequest {
+    #[serde(rename = "managedBy", skip_serializing_if = "Option::is_none")]
+    managed_by: Option<String>,
+}
+
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
@@ -71,13 +77,16 @@ where
 
     type PostBody = serde::de::IgnoredAny;
 
-    type PutBody = serde::de::IgnoredAny;
-    async fn put(self, _body: Self::PutBody) -> http_common::server::RouteResponse {
+    type PutBody = UpdateIdentityRequest;
+    async fn put(self, body: Self::PutBody) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
 
-        let identity = match client.update_module_identity(&self.module_id).await {
+        let identity = match client
+            .update_module_identity(&self.module_id, body.managed_by)
+            .await
+        {
             Ok(identity) => crate::identity::Identity::try_from(identity)?,
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));

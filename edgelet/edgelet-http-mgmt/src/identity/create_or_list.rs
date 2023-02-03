@@ -22,8 +22,8 @@ pub(crate) struct CreateIdentityRequest {
     #[serde(rename = "moduleId")]
     module_id: String,
 
-    #[serde(rename = "managedBy", default = "super::default_managed_by")]
-    managed_by: String,
+    #[serde(rename = "managedBy", skip_serializing_if = "Option::is_none")]
+    managed_by: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -109,7 +109,10 @@ where
 
         let client = self.client.lock().await;
 
-        let identity = match client.create_module_identity(&body.module_id).await {
+        let identity = match client
+            .create_module_identity(&body.module_id, body.managed_by)
+            .await
+        {
             Ok(identity) => crate::identity::Identity::try_from(identity)?,
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
@@ -150,7 +153,7 @@ mod tests {
         ) -> http_common::server::RouteResponse {
             let body = super::CreateIdentityRequest {
                 module_id: "testModule".to_string(),
-                managed_by: crate::identity::default_managed_by(),
+                managed_by: None,
             };
 
             route.post(Some(body)).await
@@ -174,7 +177,7 @@ mod tests {
 
             let body = super::CreateIdentityRequest {
                 module_id: module.to_string(),
-                managed_by: crate::identity::default_managed_by(),
+                managed_by: None,
             };
 
             let response = route.post(Some(body)).await.unwrap();

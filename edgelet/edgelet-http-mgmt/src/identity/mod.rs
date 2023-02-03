@@ -43,16 +43,9 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
                     }
                 };
 
-                let managed_by = match identity {
-                    aziot_identity_common::Identity::Aziot(
-                        aziot_identity_common::AzureIoTSpec { managed_by, .. },
-                    ) => managed_by,
-                    _ => None,
-                };
-
                 Ok(Identity {
                     module_id,
-                    managed_by,
+                    managed_by: identity.managed_by,
                     generation_id,
                     auth_type: "sas".to_string(),
                 })
@@ -62,8 +55,4 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
             )),
         }
     }
-}
-
-fn default_managed_by() -> String {
-    "iotedge".to_string()
 }
