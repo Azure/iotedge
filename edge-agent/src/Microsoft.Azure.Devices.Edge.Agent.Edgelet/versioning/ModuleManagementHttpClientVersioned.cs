@@ -52,6 +52,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         protected ApiVersion Version { get; }
 
+        protected HttpClient GetHttpClient()
+        {
+            return HttpClientHelper.GetHttpClient(this.ManagementUri, this.operationTimeout);
+        }
+
         public abstract Task<Identity> CreateIdentityAsync(string name, string managedBy);
 
         public abstract Task<Identity> UpdateIdentityAsync(string name, string generationId, string managedBy);
@@ -88,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, Option<bool> includeTimestamp, CancellationToken cancellationToken)
         {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            using (HttpClient httpClient = this.GetHttpClient())
             {
                 string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');
                 var logsUrl = new StringBuilder();
@@ -147,8 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 T result = await ExecuteWithRetry(
                     func,
                     (r) => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r),
-                    this.transientErrorDetectionStrategy)
-                    .TimeoutAfter(this.operationTimeout);
+                    this.transientErrorDetectionStrategy);
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;
             }
