@@ -36,6 +36,7 @@ steps:
     set -euo pipefail
 
     branch="${BUILD_SOURCEBRANCH#refs/heads/}"
+    echo "Filtering product-versions.json for images on branch '$branch'"
 
     # transform product-versions.json into a list of images for each product in this branch
     images_json=$(cat product-versions.json | jq --arg registry "$REGISTRY" --arg branch "$branch" '
@@ -56,6 +57,8 @@ steps:
     # use build metadata present in each published image to determine if it is out of date
     remove=( )
     images=( $(echo "$images_json" | jq -r '[ .[].images ] | flatten | join("\n")') )
+    echo "Found ${#images[@]} images"
+
     for image in ${images[@]}
     do
       echo "image: $image"
@@ -72,7 +75,7 @@ steps:
       then
         # base image is in the format 'pkg:docker/image@tag?name=value'
         # first strip off the front of the uri and the query string
-        read image query <<< "${base_image/#pkg:docker\//}"
+        read image query <<< "${base_image#pkg:docker\/}"
         # then replace '@' with ':'
         base_image="${image/@/:}"
       else
