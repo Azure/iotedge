@@ -177,7 +177,7 @@ mod tests {
 
             let body = super::CreateIdentityRequest {
                 module_id: module.to_string(),
-                managed_by: None,
+                managed_by: Some("test".to_string()),
             };
 
             let response = route.post(Some(body)).await.unwrap();

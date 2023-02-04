@@ -105,6 +105,8 @@ mod tests {
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
 
+    use super::UpdateIdentityRequest;
+
     const TEST_PATH: &str = "/identities/testModule";
 
     #[test]
@@ -135,7 +137,7 @@ mod tests {
         async fn put(
             route: super::Route<edgelet_test_utils::runtime::Runtime>,
         ) -> http_common::server::RouteResponse {
-            route.put(serde::de::IgnoredAny).await
+            route.put(UpdateIdentityRequest { managed_by: None }).await
         }
 
         edgelet_test_utils::test_auth_agent!(TEST_PATH, delete);
@@ -152,7 +154,10 @@ mod tests {
         let mut route = test_route_ok!(TEST_PATH);
         route.client = client.clone();
 
-        let response = route.put(serde::de::IgnoredAny).await.unwrap();
+        let response = route
+            .put(UpdateIdentityRequest { managed_by: None })
+            .await
+            .unwrap();
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let _response: crate::identity::Identity = serde_json::from_slice(&body).unwrap();
 
@@ -166,6 +171,9 @@ mod tests {
         let mut route = test_route_ok!(TEST_PATH);
         route.client = client.clone();
 
-        route.put(serde::de::IgnoredAny).await.unwrap_err();
+        route
+            .put(UpdateIdentityRequest { managed_by: None })
+            .await
+            .unwrap_err();
     }
 }

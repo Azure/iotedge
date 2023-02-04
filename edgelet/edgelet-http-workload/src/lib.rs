@@ -325,6 +325,7 @@ mod tests {
             module_id: None,
             gen_id: None,
             auth: None,
+            managed_by: None,
         };
 
         let settings = edgelet_test_utils::Settings::default();
@@ -359,6 +360,7 @@ mod tests {
             module_id: None,
             gen_id: None,
             auth: None,
+            managed_by: None,
         };
 
         let settings = edgelet_test_utils::Settings {
