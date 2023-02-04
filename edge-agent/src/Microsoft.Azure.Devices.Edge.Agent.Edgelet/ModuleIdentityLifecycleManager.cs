@@ -102,18 +102,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         async Task RemoveStaleIdentities(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, Identity> identities)
         {
             // Need to remove any identities (except EA/EH and those in desired) that are managed by EA but don't have a tracked module in the ModuleSet.
-            IEnumerable<string> removeCurrentIdentities = identities.Where(
+            IEnumerable<string> removeOrphanedIdentities = identities.Where(
                 i => !(Constants.EdgeAgentModuleIdentityName.Equals(i.Key, StringComparison.Ordinal) || Constants.EdgeHubModuleIdentityName.Equals(i.Key, StringComparison.Ordinal)) &&
                      Constants.ModuleIdentityEdgeManagedByValue.Equals(i.Value.ManagedBy, StringComparison.OrdinalIgnoreCase) &&
                      !current.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key) &&
                      !desired.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key))
                 .Select(i => i.Key);
 
-            // First any identities that don't have running modules currently.
-            await Task.WhenAll(removeCurrentIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
+            Events.RemoveOrphanedIdentities(removeOrphanedIdentities);
 
-            // Remove any identities from map that were in removeCurrentIdentities
-            identities.RemoveRange(removeCurrentIdentities);
+            // First any identities that don't have running modules currently.
+            await Task.WhenAll(removeOrphanedIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
+
+            // Remove any identities from map that were in removeOrphanedIdentities
+            identities.RemoveRange(removeOrphanedIdentities);
         }
 
         static class Events
@@ -124,11 +126,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             enum EventIds
             {
                 ErrorGettingModuleIdentities = IdStart,
+                RemoveOrphanedIdentities,
             }
 
             public static void ErrorGettingModuleIdentities(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorGettingModuleIdentities, ex, "Error getting module identities.");
+            }
+
+            public static void RemoveOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
+            {
+                Log.LogDebug((int)EventIds.RemoveOrphanedIdentities, $"Removing orphaned identities {removeOrphanedIdentities}");
             }
         }
     }
