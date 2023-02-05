@@ -139,11 +139,13 @@ process_args() {
 #       the config file and artifacts.
 #    3. Validate if the artifacts are readily available on PMC.
 # GLOBALS:
-#    BRANCH_NAME ________________ Source branch name            (string)
-#    CONFIG_DIR _________________ Path to RepoClient config file(string)
-#    OS_NAME ____________________ Operating System name         (string)
-#    OS_VERSION _________________ Operating System version      (string)
-#    PACKAGE_DIR ________________ Path to artifact directory    (string)
+#    BRANCH_NAME ________________ Source branch name                (string)
+#    CONFIG_DIR _________________ Path to RepoClient config file    (string)
+#    OS_NAME ____________________ Operating System name             (string)
+#    OS_VERSION _________________ Operating System version          (string)
+#    PACKAGE_DIR ________________ Path to artifact directory        (string)
+#    SERVER _____________________ Server name for package upload    (string)
+#    WDIR _______________________ Working directory for secrets     (string)
 #
 # OUTPUTS:
 #    Uploaded Linux artifacts in packages.microsoft.com
