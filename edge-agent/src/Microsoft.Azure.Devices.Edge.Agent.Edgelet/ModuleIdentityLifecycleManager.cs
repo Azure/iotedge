@@ -82,7 +82,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
             // Create/update identities.
+            Events.CreateIdentities(createIdentities);
             IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue));
+
+            Events.UpdateIdentities(updateIdentities);
             IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
             Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
@@ -126,12 +129,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             enum EventIds
             {
                 ErrorGettingModuleIdentities = IdStart,
+                CreateIdentities,
+                UpdateIdentities,
                 RemoveOrphanedIdentities,
             }
 
             public static void ErrorGettingModuleIdentities(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorGettingModuleIdentities, ex, "Error getting module identities.");
+            }
+
+            public static void CreateIdentities(IEnumerable<string> identities)
+            {
+                Log.LogDebug((int)EventIds.CreateIdentities, $"Creating identities {String.Join(", ", identities.Select(s => s.ToString()))}");
+            }
+
+            public static void UpdateIdentities(IEnumerable<Identity> identities)
+            {
+                Log.LogDebug((int)EventIds.UpdateIdentities, $"Updating identities {String.Join(", ", identities.Select(s => s.ToString()))}");
             }
 
             public static void RemoveOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
