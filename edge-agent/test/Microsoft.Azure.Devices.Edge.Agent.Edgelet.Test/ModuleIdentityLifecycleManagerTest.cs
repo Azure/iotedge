@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             const string Module1 = "module1";
-            var identity1 = new Identity(Module1, Guid.NewGuid().ToString(), "IotEdge");
+            var identity1 = new Identity(Module1, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
 
             const string Module2 = "module2";
             var identity2 = new Identity(Module2, Guid.NewGuid().ToString(), "Me");
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             const string Module1 = "module1";
-            var identity1 = new Identity(Module1, Guid.NewGuid().ToString(), "IotEdge");
+            var identity1 = new Identity(Module1, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
 
             const string Module2 = "module2";
             var identity2 = new Identity(Module2, Guid.NewGuid().ToString(), "Me");
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             const string Module1 = "module1";
-            var identity1 = new Identity(Module1, Guid.NewGuid().ToString(), "IotEdge");
+            var identity1 = new Identity(Module1, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
 
             const string Module2 = "module2";
             var identity2 = new Identity(Module2, Guid.NewGuid().ToString(), "Me");
@@ -268,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var identity4 = new Identity(Module4, Guid.NewGuid().ToString(), "Me");
 
             const string Module5 = "module5";
-            var identity5 = new Identity(Module5, Guid.NewGuid().ToString(), "IotEdge");
+            var identity5 = new Identity(Module5, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
 
             var edgeAgentIdentity = new Identity(Constants.EdgeAgentModuleIdentityName, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
 
@@ -277,7 +277,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var identityManager = Mock.Of<IIdentityManager>(
                 m =>
                     m.GetIdentities() == Task.FromResult(new List<Identity>() { identity1, identity2, identity3, identity4, identity5, edgeAgentIdentity, edgeHubIdentity }.AsEnumerable()) &&
-                    m.DeleteIdentityAsync(Module3) == Task.FromResult(identity3));
+                    m.DeleteIdentityAsync(Module3) == Task.FromResult(identity3) &&
+                    m.UpdateIdentityAsync(identity5.ModuleId, identity5.GenerationId, identity5.ManagedBy) == Task.FromResult(identity5));
 
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri, true);
             var envVar = new Dictionary<string, EnvVal>();
@@ -292,7 +293,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             // Assert
             Assert.NotNull(moduleIdentities);
-            Assert.Empty(moduleIdentities);
+
+            Assert.True(moduleIdentities.TryGetValue(Module1, out IModuleIdentity module1Identity));
+            Assert.False(moduleIdentities.TryGetValue(Module2, out IModuleIdentity module2Identity));
+            Assert.False(moduleIdentities.TryGetValue(Module3, out IModuleIdentity module3Identity));
+            Assert.True(moduleIdentities.TryGetValue(Module4, out IModuleIdentity module4Identity));
+            Assert.True(moduleIdentities.TryGetValue(Module5, out IModuleIdentity module5Identity));
+            Assert.Equal(Module1, module1Identity.ModuleId);
+            Assert.Equal(Module4, module4Identity.ModuleId);
+            Assert.Equal(Module5, module5Identity.ModuleId);
 
             Mock.Get(identityManager).Verify(im => im.GetIdentities());
 

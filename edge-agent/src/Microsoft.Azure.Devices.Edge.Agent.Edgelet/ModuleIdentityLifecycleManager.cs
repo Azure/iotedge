@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
                 if (this.enableOrphanedIdentityCleanup)
                 {
-                    await this.RemoveStaleIdentities(desired, current, identities);
+                    identities = await this.RemoveStaleIdentities(desired, current, identities);
                 }
 
                 IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff, identities);
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         IModuleIdentity GetModuleIdentity(Identity identity) =>
             this.identityProviderServiceBuilder.Create(identity.ModuleId, identity.GenerationId, this.workloadUri.ToString());
 
-        async Task RemoveStaleIdentities(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, Identity> identities)
+        async Task<IImmutableDictionary<string, Identity>> RemoveStaleIdentities(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, Identity> identities)
         {
             // Need to remove any identities (except EA/EH and those in desired) that are managed by EA but don't have a tracked module in the ModuleSet.
             IEnumerable<string> removeOrphanedIdentities = identities.Where(
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             await Task.WhenAll(removeOrphanedIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
             // Remove any identities from map that were in removeOrphanedIdentities
-            identities.RemoveRange(removeOrphanedIdentities);
+            return identities.RemoveRange(removeOrphanedIdentities);
         }
 
         static class Events
