@@ -252,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
         [Fact]
         [Unit]
-        public async Task TestGetModulesIdentity_WithExistingIdentities_ShouldRemoveThoseIdentities()
+        public async Task TestGetModulesIdentity_WithOrphanedIdentities_ShouldRemoveThoseIdentities()
         {
             // Arrange
             const string Module1 = "module1";

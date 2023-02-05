@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             // Create/update identities.
             IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue));
-            IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, Constants.ModuleIdentityEdgeManagedByValue));
+            IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
             Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
             List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(this.GetModuleIdentity).ToList();
@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             public static void RemoveOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
             {
-                Log.LogDebug((int)EventIds.RemoveOrphanedIdentities, $"Removing orphaned identities {removeOrphanedIdentities}");
+                Log.LogDebug((int)EventIds.RemoveOrphanedIdentities, $"Removing orphaned identities {removeOrphanedIdentities.ToArray()}");
             }
         }
     }
