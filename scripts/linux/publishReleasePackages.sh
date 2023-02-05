@@ -129,9 +129,10 @@ process_args() {
 #    publish_to_microsoft_repo
 #
 # DESCRIPTION:
-#    The function uploads artifacts to Microsoft's Linux Package Repository, a multiarch repository
-#    at packages.microsoft.com (PMC). Artifacts are uploaded using the RepoClient tool (which is now
-#    avaiable as a docker image).
+#    The function uploads artifacts to Microsoft's Linux Package Repository, a
+#    multiarch repository at packages.microsoft.com (PMC). Artifacts are
+#    uploaded using the RepoClient tool (which is now avaiable as a docker
+#    image).
 #
 #    The function does the following:
 #    1. Pull clean docker image for RepoClient
