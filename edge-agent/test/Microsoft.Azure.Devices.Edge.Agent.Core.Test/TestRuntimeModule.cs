@@ -27,13 +27,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             IDictionary<string, EnvVal> env = null)
             : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, startupOrder, deploymentInfo, env)
         {
-            // IoT Hub requires UTC timestamps; all timestamps in this struct must have timezone UTC.
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
-            this.LastStartTimeUtc = lastStartTimeUtc.ToUniversalTime();
-            this.LastExitTimeUtc = lastExitTimeUtc.ToUniversalTime();
+            this.LastStartTimeUtc = lastStartTimeUtc;
+            this.LastExitTimeUtc = lastExitTimeUtc;
             this.RestartCount = restartCount;
-            this.LastRestartTimeUtc = lastRestartTimeUtc.ToUniversalTime();
+            this.LastRestartTimeUtc = lastRestartTimeUtc;
             this.RuntimeStatus = runtimeStatus;
         }
 

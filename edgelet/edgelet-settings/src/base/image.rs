@@ -115,11 +115,10 @@ mod hhmm_as_minutes {
     where
         S: serde::Serializer,
     {
-        chrono::NaiveTime::from_num_seconds_from_midnight_opt(
+        chrono::NaiveTime::from_num_seconds_from_midnight(
             u32::try_from(*cleanup_time * 60).expect("cleanup_time * 60 < 86400 < u32::MAX"),
             0,
         )
-        .ok_or(<S::Error as serde::ser::Error>::custom("invalid timestamp"))?
         .format(TIME_FORMAT)
         .to_string()
         .serialize(ser)

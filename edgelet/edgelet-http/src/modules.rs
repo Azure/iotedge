@@ -160,16 +160,12 @@ where
 
 impl std::convert::From<edgelet_core::ModuleRuntimeState> for ModuleStatus {
     fn from(state: edgelet_core::ModuleRuntimeState) -> Self {
-        // IoT Hub requires UTC timestamps to end with 'Z'; otherwise, the timestamps
-        // will incorrectly be interpreted as local time.
-        let start_time = state
-            .started_at()
-            .map(|start_time| start_time.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true));
+        let start_time = state.started_at().map(chrono::DateTime::to_rfc3339);
 
         let exit_status = if let (Some(code), Some(time)) = (state.exit_code(), state.finished_at())
         {
             Some(ExitStatus {
-                exit_time: time.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
+                exit_time: time.to_rfc3339(),
                 status_code: code.to_string(),
             })
         } else {
@@ -237,7 +233,7 @@ mod tests {
 
     #[test]
     fn into_module_status() {
-        let timestamp = chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
+        let timestamp = chrono::NaiveDateTime::from_timestamp(0, 0);
         let timestamp =
             chrono::DateTime::<chrono::offset::Utc>::from_utc(timestamp, chrono::offset::Utc);
 
@@ -248,7 +244,7 @@ mod tests {
 
         assert_eq!(
             super::ModuleStatus {
-                start_time: Some(timestamp.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)),
+                start_time: Some(timestamp.to_rfc3339()),
                 exit_status: None,
                 runtime_status: super::RuntimeStatus {
                     status: "running".to_string(),
@@ -267,9 +263,9 @@ mod tests {
 
         assert_eq!(
             super::ModuleStatus {
-                start_time: Some(timestamp.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)),
+                start_time: Some(timestamp.to_rfc3339()),
                 exit_status: Some(super::ExitStatus {
-                    exit_time: timestamp.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
+                    exit_time: timestamp.to_rfc3339(),
                     status_code: "0".to_string(),
                 }),
                 runtime_status: super::RuntimeStatus {
@@ -286,7 +282,7 @@ mod tests {
         Vec<(edgelet_test_utils::runtime::Module, ModuleRuntimeState)>,
         chrono::DateTime<chrono::offset::Utc>,
     ) {
-        let timestamp = chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
+        let timestamp = chrono::NaiveDateTime::from_timestamp(0, 0);
         let timestamp =
             chrono::DateTime::<chrono::offset::Utc>::from_utc(timestamp, chrono::offset::Utc);
 
