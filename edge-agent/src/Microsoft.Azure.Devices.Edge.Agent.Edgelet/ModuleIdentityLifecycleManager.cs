@@ -40,6 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
+                Events.GetIdentities(identities);
+
                 if (this.enableOrphanedIdentityCleanup)
                 {
                     identities = await this.RemoveStaleIdentities(desired, current, identities);
@@ -106,7 +108,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         {
             // Need to remove any identities (except EA/EH and those in desired) that are managed by EA but don't have a tracked module in the ModuleSet.
             IEnumerable<string> removeOrphanedIdentities = identities.Where(
-                i => !(Constants.EdgeAgentModuleIdentityName.Equals(i.Key, StringComparison.Ordinal) || Constants.EdgeHubModuleIdentityName.Equals(i.Key, StringComparison.Ordinal)) &&
+                i => !(
+                        Constants.EdgeAgentModuleIdentityName.Equals(i.Key, StringComparison.Ordinal) ||
+                        Constants.EdgeHubModuleIdentityName.Equals(i.Key, StringComparison.Ordinal)
+                     ) &&
                      Constants.ModuleIdentityEdgeManagedByValue.Equals(i.Value.ManagedBy, StringComparison.OrdinalIgnoreCase) &&
                      !current.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key) &&
                      !desired.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key))
@@ -129,6 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             enum EventIds
             {
                 ErrorGettingModuleIdentities = IdStart,
+                GetIdentities,
                 CreateIdentities,
                 UpdateIdentities,
                 RemoveOrphanedIdentities,
@@ -137,6 +143,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             public static void ErrorGettingModuleIdentities(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorGettingModuleIdentities, ex, "Error getting module identities.");
+            }
+
+            public static void GetIdentities(IImmutableDictionary<string, Identity> identities)
+            {
+                Log.LogDebug((int)EventIds.GetIdentities, $"Getting identities {string.Join(", ", identities.Select(s => s.ToString()))}");
             }
 
             public static void CreateIdentities(IEnumerable<string> identities)

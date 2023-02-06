@@ -2,6 +2,8 @@
 
 use std::convert::TryFrom;
 
+use log;
+
 #[cfg(not(test))]
 use aziot_identity_client_async::Client as IdentityClient;
 
@@ -87,11 +89,16 @@ where
             .update_module_identity(&self.module_id, body.managed_by)
             .await
         {
-            Ok(identity) => crate::identity::Identity::try_from(identity)?,
+            Ok(identity) => {
+                log::debug!("Update identity response: {:?}", identity);
+                crate::identity::Identity::try_from(identity)?
+            },
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
+
+        log::debug!("Update edgelet identity response: {:?}", identity);
 
         let res = http_common::server::response::json(hyper::StatusCode::OK, &identity);
 

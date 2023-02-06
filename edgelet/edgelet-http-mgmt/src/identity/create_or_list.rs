@@ -2,6 +2,8 @@
 
 use std::convert::TryFrom;
 
+use log;
+
 #[cfg(not(test))]
 use aziot_identity_client_async::Client as IdentityClient;
 
@@ -78,6 +80,7 @@ where
         let mut identities = vec![];
         match client.get_identities().await {
             Ok(ids) => {
+                log::debug!("List identities response: {:?}", ids);
                 for identity in ids {
                     let identity = crate::identity::Identity::try_from(identity)?;
                     if identity.managed_by.is_some() {
@@ -89,6 +92,8 @@ where
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
+
+        log::debug!("List edgelet identities response: {:?}", identities);
 
         let res = ListIdentitiesResponse { identities };
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
@@ -113,11 +118,16 @@ where
             .create_module_identity(&body.module_id, body.managed_by)
             .await
         {
-            Ok(identity) => crate::identity::Identity::try_from(identity)?,
+            Ok(identity) => {
+                log::debug!("Create identity response: {:?}", identity);
+                crate::identity::Identity::try_from(identity)?
+            },
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
+
+        log::debug!("Create edgelet identity response: {:?}", identity);
 
         let res = http_common::server::response::json(hyper::StatusCode::OK, &identity);
 
