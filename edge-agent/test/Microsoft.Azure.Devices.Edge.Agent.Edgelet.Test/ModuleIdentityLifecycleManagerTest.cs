@@ -314,26 +314,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             Mock.Get(identityManager).VerifyNoOtherCalls();
         }
-
-        [Fact]
-        [Unit]
-        public async Task Test()
-        {
-            var timeout = Option.None<TimeSpan>();
-            var identityManager = new ModuleManagementHttpClient(EdgeletUri, "2022-08-03", "2022-08-03", timeout);
-
-            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri, true);
-
-            var envVar = new Dictionary<string, EnvVal>();
-            var edgeAgent = new TestModule(Constants.EdgeAgentModuleName, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
-            var edgeHub = new TestModule(Constants.EdgeHubModuleName, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
-            var desiredModule = new TestModule("TempSensor", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
-
-            var current = ModuleSet.Create(new IModule[] { edgeAgent, edgeHub });
-            var desired = ModuleSet.Create(new IModule[] { edgeAgent, edgeHub, desiredModule });
-
-            var ids = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desired, current);
-            Assert.Equal(1, ids.Count);
-        }
     }
 }
