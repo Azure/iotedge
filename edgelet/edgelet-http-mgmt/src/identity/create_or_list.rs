@@ -121,7 +121,7 @@ where
             Ok(identity) => {
                 log::debug!("Create identity response: {:?}", identity);
                 crate::identity::Identity::try_from(identity)?
-            },
+            }
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
