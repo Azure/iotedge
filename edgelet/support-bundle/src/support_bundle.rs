@@ -81,7 +81,11 @@ async fn write_all<W>(
 where
     W: Write + Seek + Send,
 {
-    let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+    let file_options = FileOptions::default()
+        .compression_method(CompressionMethod::Deflated)
+        // NOTE: Without this option, uncompressed file sizes are
+        // limited to 4GB.
+        .large_file(true);
 
     // Get Check
     zip_writer

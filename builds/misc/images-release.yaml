@@ -376,7 +376,6 @@ stages:
           name: "Edge Hub"
           project: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
           use_rocksdb: true
     - job: BuildImageEdgeAgent
       steps:
@@ -386,7 +385,6 @@ stages:
           name: "Edge Agent"
           project: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
           use_rocksdb: true
     - job: BuildImageTemperatureSensor
       steps:
@@ -396,7 +394,6 @@ stages:
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
           version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
     - job: BuildImageDiagnostics
       steps:
       - template: templates/image-linux.yaml
@@ -405,7 +402,6 @@ stages:
           name: "Diagnostics Module"
           project: IotedgeDiagnosticsDotnet
           version: $(version)
-          bin_dir: '$(Build.BinariesDirectory)'
 
 ################################################################################
   - stage: PublishManifests
@@ -422,13 +418,13 @@ stages:
       strategy:
         matrix:
           EdgeAgent:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template'
+            imageName: 'azureiotedge-agent'
           EdgeHub:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template'
+            imageName: 'azureiotedge-hub'
           SimulatedTemperatureSensor:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template'
+            imageName: 'azureiotedge-simulated-temperature-sensor'
           Diagnostics:
-            manifestFilePath: '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template'
+            imageName: 'azureiotedge-diagnostics'
       steps:
       # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
       - task: Docker@2
@@ -441,4 +437,11 @@ stages:
         inputs:
           command: login
           containerRegistry: iotedge-release-acr
-      - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(manifestFilePath) -n '$(namespace)' --tags "$(tags)"
+      - script: |
+          scripts/linux/buildManifest.sh \
+            -r $(registry.address) \
+            -i $(imageName) \
+            -v $(version) \
+            -n '$(namespace)' \
+            --tags '$(tags)'
+        displayName: Create manifest for '$(imageName)'

@@ -1,3 +1,33 @@
+# 1.1.1 (2023-01-18)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.1.0 (2023-01-05)
+
+## What's new in 1.1?
+
+The Metrics Collector 1.1 module is a refresh to align with the latest (1.4) version of IoT Edge. Its functionality remains unchanged. Users can confidently update Metrics Collector 1.0 in their IoT Edge deployments to the new 1.1 version. Changes include (see [71584c0](https://github.com/Azure/iotedge/commit/71584c0270b5456e20e27d6af447496c5a215d29)):
+* Update from .NET Core 3.1 to .NET 6.0
+* Move arm32v7/arm64v8 Docker images from Ubuntu to Alpine to be consistent with the amd64 image and to reduce image size
+* Upgrade the IoT device SDK to a version that is consistent with the latest (1.4) version of IoT Edge
+
+## Upgrade notes
+
+Starting with the Metrics Collector 1.1 release, Windows Docker images are no longer provided.
+
+## Bug Fixes
+* Update Newtonsoft.Json dependency to 13.0.2 ( [4dca27b](https://github.com/Azure/iotedge/commit/4dca27be61f40b7b7944ecb4a38e3cd5f8f2867f) )
+
+# 1.0.12 (2022-12-13)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.0.11 (2022-11-08)
+### Bug Fixes
+* Replace instances of Console.WriteLine with standard logging pattern [e33191b](https://github.com/Azure/iotedge/commit/e33191b775523bed32e30a34cc8f4bbb257dfe02)
+
 # 1.0.10 (2022-09-13)
 
 ### Bug Fixes

@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if [[ "$TARGETARCH" == 'arm' ]] || [[ "$TARGETARCH" == 'arm64' ]]; then
+  export OptimizeForPerformance=false
+  export MqttEventsProcessorThreadCount=1
+fi
+
 ###############################################################################
 # Set up EdgeHub to run as a non-root user at runtime, if allowed.
 #

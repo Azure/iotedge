@@ -16,7 +16,6 @@ SCRIPT_NAME=$(basename "$0")
 ARCH=
 BUILD_NUMBER=
 OUTPUT_DIR=
-POSTFIX=
 SOURCE_MAP=
 
 ###############################################################################
@@ -26,8 +25,7 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo "--output-dir          Path where to put librocksdb folder containing built artifact."
-    echo "--postfix             Options: amd64, armhf, arm64."
+    echo "--output-dir          Path to librocksdb folder that contains resulting binaries."
     echo "--build-number        Build number for which to tag image."
     echo "--arch                Options: amd64, arm32v7, arm64v8."
     echo "--source-map          Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
@@ -50,29 +48,32 @@ function process_args() {
             OUTPUT_DIR=$arg
             save_next_arg=0
         elif [ ${save_next_arg} -eq 2 ]; then
-            POSTFIX=$arg
-            save_next_arg=0
-        elif [ ${save_next_arg} -eq 3 ]; then
             BUILD_NUMBER=$arg
             save_next_arg=0
-        elif [ ${save_next_arg} -eq 4 ]; then
+        elif [ ${save_next_arg} -eq 3 ]; then
             ARCH=$arg
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 5 ]]; then
+        elif [[ ${save_next_arg} -eq 4 ]]; then
             SOURCE_MAP="$arg"
             save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
             "--output-dir") save_next_arg=1 ;;
-            "--postfix") save_next_arg=2 ;;
-            "--build-number") save_next_arg=3 ;;
-            "--arch") save_next_arg=4 ;;
-            "--source-map") save_next_arg=5 ;;
+            "--build-number") save_next_arg=2 ;;
+            "--arch") save_next_arg=3 ;;
+            "--source-map") save_next_arg=4 ;;
             *) usage ;;
             esac
         fi
     done
+
+    if [ ! -d "$OUTPUT_DIR" ]; then
+        echo "Value '$OUTPUT_DIR' specified by --output-dir is not a valid directory"
+        print_help_and_exit
+    fi
+
+    OUTPUT_DIR=$(realpath $OUTPUT_DIR)
 
     if [[ -n "$SOURCE_MAP" ]] && [[ ! -f "$SOURCE_MAP" ]]; then
         echo "File specified by --source-map does not exist"
@@ -88,15 +89,14 @@ function process_args() {
 process_args "$@"
 
 case "$ARCH" in
-'amd64') platform='linux/amd64' ;;
-'arm32v7') platform='linux/arm/v7' ;;
-'arm64v8') platform='linux/arm64' ;;
-*) echo "Unrecognized platform '$ARCH'" && exit 1
+    'amd64') platform='linux/amd64' ;;
+    'arm32v7') platform='linux/arm/v7' ;;
+    'arm64v8') platform='linux/arm64' ;;
+    *) echo "Unrecognized platform '$ARCH'" && exit 1
 esac
 
-build_image=rocksdb-build:main-$POSTFIX-$BUILD_NUMBER
-mkdir -p $OUTPUT_DIR/librocksdb
-cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux/$ARCH
+build_image=rocksdb-build:main-$ARCH-$BUILD_NUMBER
+cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 
 build_context=
 if [[ -n "$SOURCE_MAP" ]]; then
@@ -113,4 +113,9 @@ docker buildx build \
     $([ -z "$build_context" ] || echo $build_context) \
     .
 
-docker run --rm -v $OUTPUT_DIR/librocksdb:/artifacts $build_image cp /publish/librocksdb.so.$POSTFIX /artifacts
+docker run \
+    --rm \
+    --platform $platform \
+    -v $OUTPUT_DIR/librocksdb/$platform:/artifacts/$platform \
+    $build_image \
+    cp /publish/$platform/librocksdb.so /artifacts/$platform/
