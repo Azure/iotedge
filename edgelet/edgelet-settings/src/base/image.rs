@@ -121,7 +121,7 @@ mod hhmm_as_minutes {
             u32::try_from(*cleanup_time * 60).expect("cleanup_time * 60 < 86400 < u32::MAX"),
             0,
         )
-        .ok_or(<S::Error as serde::ser::Error>::custom("invalid timestamp"))?
+        .ok_or_else(|| <S::Error as serde::ser::Error>::custom("invalid timestamp"))?
         .format(TIME_FORMAT)
         .to_string()
         .serialize(ser)
