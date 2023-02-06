@@ -266,3 +266,43 @@ jobs:
     - template: templates/e2e-run.yaml
       parameters:
         test_type: http_proxy
+
+################################################################################
+  - job: mariner2_amd64
+################################################################################
+    displayName: Mariner 2.0 amd64
+    condition: eq(variables['run.EFLOW.amd64'], true)
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-mariner-2.0-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner2-amd64
+      identityServiceArtifactName: packages_mariner-2_amd64
+      identityServicePackageFilter: aziot-identity-service-*.cm2.x86_64.rpm
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: mariner2_arm64
+################################################################################
+    displayName: Mariner 2.0 arm64
+    condition: eq(variables['run.EFLOW.arm64'], true)
+    pool:
+      name: $(pool.linux.arm.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-mariner-2.0-arm64
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner2-aarch64
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
