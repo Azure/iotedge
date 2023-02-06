@@ -92,5 +92,5 @@ steps:
     displayName: 'Copy aziot-identity-service'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)"
-      Contents: "${{ parameters['aziotis.package.filter'] }}"
+      Contents: "aziot-identity-service*.deb"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
