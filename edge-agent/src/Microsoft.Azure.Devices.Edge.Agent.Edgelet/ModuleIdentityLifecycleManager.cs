@@ -141,17 +141,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             public static void CreateIdentities(IEnumerable<string> identities)
             {
-                Log.LogDebug((int)EventIds.CreateIdentities, $"Creating identities {String.Join(", ", identities.Select(s => s.ToString()))}");
+                Log.LogDebug((int)EventIds.CreateIdentities, $"Creating identities {string.Join(", ", identities.Select(s => s.ToString()))}");
             }
 
             public static void UpdateIdentities(IEnumerable<Identity> identities)
             {
-                Log.LogDebug((int)EventIds.UpdateIdentities, $"Updating identities {String.Join(", ", identities.Select(s => s.ToString()))}");
+                Log.LogDebug((int)EventIds.UpdateIdentities, $"Updating identities {string.Join(", ", identities.Select(s => s.ToString()))}");
             }
 
             public static void RemoveOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
             {
-                Log.LogDebug((int)EventIds.RemoveOrphanedIdentities, $"Removing orphaned identities {String.Join(", ", removeOrphanedIdentities.Select(s => s.ToString()))}");
+                Log.LogDebug((int)EventIds.RemoveOrphanedIdentities, $"Removing orphaned identities {string.Join(", ", removeOrphanedIdentities.Select(s => s.ToString()))}");
             }
         }
     }
