@@ -31,11 +31,24 @@ where
     W: Write + Send,
 {
     pub async fn execute(&self) -> anyhow::Result<()> {
-        let write = self.output.clone();
-        self.runtime.restart(&self.id).await?;
+        let mut output = String::new();
 
+        // A stop request must be sent to workload socket manager first.
+        // To properly restart, both the stop and start APIs must be called.
+        if let Err(err) = self.runtime.stop(&self.id, None).await {
+            output.push_str(&format!(
+                "warn: {} was not stopped gracefully: {}\n",
+                self.id, err
+            ));
+        }
+
+        self.runtime.start(&self.id).await?;
+        output.push_str(&format!("Restarted {}\n", self.id));
+
+        let write = self.output.clone();
         let mut w = write.lock().unwrap();
-        writeln!(w, "{}", self.id).context(Error::WriteToStdout)?;
+        write!(w, "{}", output).context(Error::WriteToStdout)?;
+
         Ok(())
     }
 }
