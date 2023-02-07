@@ -1,13 +1,12 @@
 #! /bin/bash
 
-#Prerequisites for running locally:
-#- Docker connection to MSINT
-#- Azure CLI login
+#Pre-Requisites For Running Locally
+#Docker Connection to MSINT
+#AZ CLI LOGIN
 SCRIPT_NAME=$(basename $0)
 CONFIG_DIR="/root/.repoclient/configs"
 PACKAGE_DIR="/root/.repoclient/packages"
 SKIP_UPLOAD="false"
-
 ###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
@@ -15,15 +14,15 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo " -h,  --help                   Print this help and exit"
+    echo " -h,  --help                   Print this help and exit."
     echo " -p,  --packageos              Package OS"
-    echo " -d,  --dir                    Package directory to publish"
-    echo " -w,  --wdir                   Working directory for secrets. Default is $(pwd)"
-    echo " -s,  --server                 Server name for package upload"
-    echo " -g,  --ghubpat                GitHub Personal Access Token (PAT). Required only if uploading to GitHub"
-    echo " -v,  --version                Version of the release"
-    echo " -u,  --skip-upload            Skips upload and only creates release for GitHub. Defaults to false"
-    echo " -b,  --branch-name            Git branch name"
+    echo " -d,  --dir                    package directory to publish"
+    echo " -w,  --wdir                   working directory for secrets.Default is $(pwd)."
+    echo " -s,  --server                 server name for package upload"
+    echo " -g,  --ghubpat                value of github pat. Required only if uploading to github"
+    echo " -v,  --version                version of the release."
+    echo " -u,  --skip-upload            Skips Upload and Only Creates Release for Github. Defaults to false"
+    echo " -b,  --branch-name            Git Branch Name"
     exit 1
 }
 
@@ -129,91 +128,91 @@ process_args() {
 #    publish_to_microsoft_repo
 #
 # DESCRIPTION:
-#    The function uploads artifacts to Microsoft's Linux Package Repository, a
-#    multiarch repository at packages.microsoft.com (PMC). Artifacts are
-#    uploaded using the RepoClient tool (which is now avaiable as a docker
-#    image).
+#    The function upload artifacts to Microsoft Linux Package Repository which is multiarch 
+#    repository at packages.microsoft.com (PMC). The upload of the artifacts is done via RepoClient
+#    app (which now avaiable as a docker image)
 #
-#    The function does the following:
-#    1. Pull clean docker image for RepoClient
+#    The script simply does the follow:
+#    1. Pull clean docker image for RepoClient app
 #    2. To upload the artifacts, the function runs the RepoClient image against 
-#       the config file and artifacts.
+#       the config file an the uploading artifacts.
 #    3. Validate if the artifacts are readily available on PMC.
 # GLOBALS:
-#    BRANCH_NAME ________________ Source branch name                (string)
-#    CONFIG_DIR _________________ Path to RepoClient config file    (string)
-#    OS_NAME ____________________ Operating System name             (string)
-#    OS_VERSION _________________ Operating System version          (string)
-#    PACKAGE_DIR ________________ Path to artifact directory        (string)
-#    SERVER _____________________ Server name for package upload    (string)
-#    WDIR _______________________ Working directory for secrets     (string)
+#    BRANCH_NAME ________________ Source Branch name            (string)
+#    CONFIG_DIR _________________ Path to RepoClient config file(string)
+#    OS_NAME ____________________ Operating System name         (string)
+#    OS_VERSION _________________ Operating System version      (string)
+#    PACKAGE_DIR ________________ Path to artifact directory    (string)
+#    SERVER _____________________ Server name for package upload(string)
+#    WDIR _______________________ Working directory for secrets (string)
 #
 # OUTPUTS:
-#    Uploaded Linux artifacts in packages.microsoft.com
+#    Uploaded linux artifacts in packages.microsoft.com
 #######################################
 publish_to_microsoft_repo()
 {
-    #Cleanup
-    sudo rm -rf $WDIR/private-key.pem || true
-    sudo rm -rf $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json || true
+#Cleanup
+sudo rm -rf $WDIR/private-key.pem || true
+sudo rm -rf $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json || true
 
-    #Download secrets - requires az login and proper subscription to be selected
-    az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f $WDIR/private-key.pem
-    az keyvault secret download --vault-name iotedge-packages -n $OS_NAME-$OS_VERSION-multi-aad -f $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json
+#Download Secrets - Requires az login and proper subscription to be selected
+az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f $WDIR/private-key.pem
+az keyvault secret download --vault-name iotedge-packages -n $OS_NAME-$OS_VERSION-multi-aad -f $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json
 
-    #Replace server name and absolute path of private-key.pem and replace JSON
-    echo $(cat $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json | jq '.AADClientCertificate='\"$CONFIG_DIR/private-key.pem\"'' | jq '.server='\"$SERVER\"'') >$WDIR/$OS_NAME-$OS_VERSION-multi-aad.json
+#Replace Server Name and Absolute Path of Private-key.pem and replace json
+echo $(cat $WDIR/$OS_NAME-$OS_VERSION-multi-aad.json | jq '.AADClientCertificate='\"$CONFIG_DIR/private-key.pem\"'' | jq '.server='\"$SERVER\"'') >$WDIR/$OS_NAME-$OS_VERSION-multi-aad.json
 
-    REPOTOOLCMD="docker run -v $WDIR:$CONFIG_DIR -v $DIR:$PACKAGE_DIR --rm msint.azurecr.io/linuxrepos/repoclient:latest repoclient"
+REPOTOOLCMD="docker run -v $WDIR:$CONFIG_DIR -v $DIR:$PACKAGE_DIR --rm msint.azurecr.io/linuxrepos/repoclient:latest repoclient"
 
-    #Upload packages
-    output=$($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 package add $PACKAGE_DIR/)
-    echo $output
-    status=$(echo $output | jq '.status_code')
-    submission_id=$(echo $output | jq '.message.submissionId')
-    echo "StatusCode: $status"
+#Upload packages
+output=$($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 package add $PACKAGE_DIR/)
+echo $output
+status=$(echo $output | jq '.status_code')
+submission_id=$(echo $output | jq '.message.submissionId')
+echo "StatusCode: $status"
 
-    submission_id=$(echo $submission_id | tr -d '"')
-    echo "Submission ID: $submission_id"
+submission_id=$(echo $submission_id | tr -d '"')
+echo "Submission ID: $submission_id"
 
-    if [[ $status != "202" ]]; then
-        echo "Received Incorrect Upload Status: $status"
-        exit 1
-    fi
+if [[ $status != "202" ]]; then
+    echo "Received Incorrect Upload Status: $status"
+    exit 1
+fi
 
-    #Wait up to 30 minutes to see if package uploaded
-    end_time=$((SECONDS + 1800))
-    uploaded=false
+#Wait upto 30 Minutes to see if package uploaded
+end_time=$((SECONDS + 1800))
+uploaded=false
 
-    while [[ $SECONDS -lt $end_time ]]; do
-        #Check for Successful upload of each of the packages
-        output=($($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 request check $submission_id | jq '.message.packages[].status'))
-        for item in "${output[@]}"; do
-            if [[ $item != "\"Success\"" ]]; then
-                echo "Package Not Uploaded Yet, Status : $item"
-                uploaded=false
-                break
-            else
-                echo "Package Uploaded"
-                uploaded=true
-
-            fi
-        done
-        if [[ $uploaded == false ]]; then
-            echo "Retrying.."
-            sleep 30
-        else
+while [[ $SECONDS -lt $end_time ]]; do
+    #Check for Successful Upload of Each of the Packages
+    output=($($REPOTOOLCMD -c $CONFIG_DIR/$OS_NAME-$OS_VERSION-multi-aad.json -v v3 request check $submission_id | jq '.message.packages[].status'))
+    for item in "${output[@]}"; do
+        if [[ $item != "\"Success\"" ]]; then
+            echo "Package Not Uploaded Yet, Status : $item"
+            uploaded=false
             break
+        else
+            echo "Package Uploaded"
+            uploaded=true
+
         fi
-
     done
-
     if [[ $uploaded == false ]]; then
-        echo "Package(s) Upload Failed"
-        exit 1
+        echo "Retrying.."
+        sleep 30
     else
-        echo "Packages Uploaded"
+        break
     fi
+
+done
+
+if [[ $uploaded == false ]]; then
+    echo "Package(s) Upload Failed"
+    exit 1
+else
+    echo "Packages Uploaded"
+fi
+
 }
 
 
@@ -222,33 +221,33 @@ publish_to_microsoft_repo()
 #    publish_to_github
 #
 # DESCRIPTION:
-#    The function has two operating modes depending the value of $SKIP_UPLOAD
+#    The function has two operating mode depending the value of $SKIP_UPLOAD
 #
-#    If SKIP_UPLOAD=false, the script creates a GitHub release page on Azure/azure-iotedge 
+#    If SKIP_UPLOAD=false, the script creates a github release page on /azure-iotedge 
 #    repository with a VERSION tag to the latest commit. The release page comprises of
 #      - Change log as a description which is parsed from CHANGELOG.MD
 #      - Renamed production artifacts from the build pipeline in the format of
 #        <component>_<version>_<os>_<architecture>.<fileExtension> 
 #        i.e. iotedge_1.1.13-1_debian11_arm64.deb
 #
-#    If SKIP_UPLOAD=true, the script creates a DRAFT GitHub release page on Azure/azure-iotedge
-#    without a GitHub tag AND no production artifacts are uploaded to draft.
+#    If SKIP_UPLOAD=true, the script creates a DRAFT github release page on /azure-iotedge
+#    without a github tag AND no production artifacts are uploaded to draft.
 #    
 # GLOBALS:
-#    BRANCH_NAME ________________ Source branch name            (string)
-#    GITHUB_PAT _________________ GitHub Personal Access Token  (string)
-#    SKIP_UPLOAD ________________ Skip GitHub artifact upload   (bool)
-#      if false, upload artifacts to GitHub release page
-#      if true, create the release page in draft mode without uploading artifacts
+#    BRANCH_NAME ________________ Source Branch name            (string)
+#    GITHUB_PAT _________________ Github Personal Access Token  (string)
+#    SKIP_UPLOAD ________________ Skip Github artifact upload   (bool)
+#      if false, upload artifacts to github release page
+#      if true, create the release page in draft mode without artifacts uploaded.
 #    VERSION ____________________ Current release version       (string)
 #    WDIR _______________________ Current work directory        (string)
 #
 # OUTPUTS:
-#    GitHub release page on Azure/azure-iotedge repository
+#    Github release page on /azure-iotedge repository
 #######################################
 publish_to_github()
 {
-    # Investigate if this can be derived from a commit, hardcode for now.
+    # Investigate if this can be derived from a commit, Hardcode for now.
     if [[ -z $BRANCH_NAME ]]; then
         echo "No Branch Name Provided"
         exit 1
@@ -272,7 +271,7 @@ publish_to_github()
     header_auth="Authorization:token $GITHUB_PAT"
     content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
 
-    # Check if release page has already been created
+    # Check if Release Page has already been created
     release_created=$(echo $content | jq --arg version $VERSION '.[] | select(.name==$version)')
     
     if [[ -z $release_created ]];then
@@ -286,14 +285,14 @@ publish_to_github()
                 
         echo "$(curl -X GET  -H "$header_content" -H "$header_auth" "$download_uri")" > $WDIR/content.txt
         
-        #Find content of new release between (# NEW_VERSION) and (# PREVIOUS_VERSION)
+        #Find Content of New Release between (# NEW_VERSION) and (# PREVIOUS_VERSION)
         
         echo "$(sed -n "/# $VERSION/,/# $latest_release/p" $WDIR/content.txt)" > $WDIR/content.txt
         
-        #Remove last line
+        #Remove Last Line
         sed -i "$ d" $WDIR/content.txt
 
-        #Create release page
+        #Create Release Page
         url="https://api.github.com/repos/Azure/azure-iotedge/releases"
         reqBody='{tag_name: $version, name: $version, target_commitish:"main", draft: true, body: $body}'
         if [[ $SKIP_UPLOAD == "false" ]]; then
@@ -312,7 +311,7 @@ publish_to_github()
     echo "Release ID is $release_id"
 
     if [[ $SKIP_UPLOAD == "false" ]]; then
-        #Upload artifact
+        #Upload Artifact
         for f in $(sudo ls $DIR);
         do  
             echo "File Name is $f, File Extension is ${f##*.}"
@@ -321,7 +320,7 @@ publish_to_github()
             case ${f##*.} in 
                 'deb')
                     mimetype="application/vnd.debian.binary-package"
-                    # Modify name to be of form {name}_{os}_{arch}.{extension}
+                    # Modify Name to be of form {name}_{os}_{arch}.{extension}
                     name="${f%_*}_$PACKAGE_OS"
                     name+="_${f##*_}"
                     ;;
@@ -347,6 +346,7 @@ publish_to_github()
             fi
         done;
     fi
+
 }
 
 
@@ -363,17 +363,17 @@ echo "Version is $OS_VERSION"
 echo "Work Dir is $WDIR"
 echo "Package OS DIR is $DIR"
 
-#Debug view of package dir path
+#Debug View of Package Dir Path
 ls -al $DIR 
 
 
 if [[ $SERVER == *"github"* ]]; then
     if [[ -z $GITHUB_PAT ]]; then
-        echo "GitHub PAT not provided"
+        echo "Github PAT Token Not Provider"
         exit 1
     fi
     if [[ -z $VERSION ]]; then
-        echo "Version not provided"
+        echo "Version Not Provided"
         exit 1
     fi
     publish_to_github
