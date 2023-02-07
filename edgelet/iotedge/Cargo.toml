@@ -54,7 +54,3 @@ edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"
 edgelet-utils = { path = "../edgelet-utils" }
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 support-bundle = { path = "../support-bundle" }
-
-[dev-dependencies]
-edgelet-test-utils = { path = "../edgelet-test-utils" }
-tempfile = "3.1.0"
