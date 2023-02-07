@@ -128,7 +128,8 @@ impl std::str::FromStr for ManualDeviceConnectionString {
         if shared_access_key.is_empty() {
             return Err(missing_parameter(SHAREDACCESSKEY_KEY));
         }
-        let shared_access_key = base64::decode(&shared_access_key)
+        let engine = base64::engine::general_purpose::STANDARD;
+        let shared_access_key = base64::Engine::decode(&engine, &shared_access_key)
             .map_err(|err| malformed_parameter(SHAREDACCESSKEY_KEY, err))?;
 
         let device_id = device_id.ok_or_else(|| missing_parameter(DEVICEID_KEY))?;
@@ -290,7 +291,8 @@ where
         where
             E: serde::de::Error,
         {
-            base64::decode_config(v, base64::STANDARD).map_err(serde::de::Error::custom)
+            let engine = base64::engine::general_purpose::STANDARD;
+            base64::Engine::decode(&engine, v).map_err(serde::de::Error::custom)
         }
     }
 
