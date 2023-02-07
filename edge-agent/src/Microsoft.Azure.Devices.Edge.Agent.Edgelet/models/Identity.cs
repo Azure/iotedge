@@ -17,7 +17,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
         public string ManagedBy { get; }
 
         public string GenerationId { get; }
-
-        public override string ToString() => $"Identity: {{ ModuleId: {this.ModuleId}, GenerationId: {this.GenerationId}, ManagedBy: {this.ManagedBy} }}";
     }
 }

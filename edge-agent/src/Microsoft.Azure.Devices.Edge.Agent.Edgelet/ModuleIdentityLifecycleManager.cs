@@ -40,8 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
-                Events.GetIdentities(identities);
-
                 if (this.enableOrphanedIdentityCleanup)
                 {
                     identities = await this.RemoveStaleIdentities(desired, current, identities);
@@ -84,10 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             await Task.WhenAll(removeIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
             // Create/update identities.
-            Events.CreateIdentities(createIdentities);
             IEnumerable<Task<Identity>> createTasks = createIdentities.Select(i => this.identityManager.CreateIdentityAsync(i, Constants.ModuleIdentityEdgeManagedByValue));
-
-            Events.UpdateIdentities(updateIdentities);
             IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
             Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
@@ -134,30 +129,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             enum EventIds
             {
                 ErrorGettingModuleIdentities = IdStart,
-                GetIdentities,
-                CreateIdentities,
-                UpdateIdentities,
                 RemoveOrphanedIdentities,
             }
 
             public static void ErrorGettingModuleIdentities(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorGettingModuleIdentities, ex, "Error getting module identities.");
-            }
-
-            public static void GetIdentities(IImmutableDictionary<string, Identity> identities)
-            {
-                Log.LogDebug((int)EventIds.GetIdentities, $"Getting identities {string.Join(", ", identities.Select(s => s.ToString()))}");
-            }
-
-            public static void CreateIdentities(IEnumerable<string> identities)
-            {
-                Log.LogDebug((int)EventIds.CreateIdentities, $"Creating identities {string.Join(", ", identities.Select(s => s.ToString()))}");
-            }
-
-            public static void UpdateIdentities(IEnumerable<Identity> identities)
-            {
-                Log.LogDebug((int)EventIds.UpdateIdentities, $"Updating identities {string.Join(", ", identities.Select(s => s.ToString()))}");
             }
 
             public static void RemoveOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
