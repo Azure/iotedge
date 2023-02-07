@@ -316,7 +316,6 @@ mod tests {
             module_id: None,
             gen_id: None,
             auth: None,
-            managed_by: None,
         };
 
         let config = crate::WorkloadConfig::new(&settings, &device_info);

@@ -2,8 +2,6 @@
 
 use std::convert::TryFrom;
 
-use log;
-
 #[cfg(not(test))]
 use aziot_identity_client_async::Client as IdentityClient;
 
@@ -24,8 +22,8 @@ pub(crate) struct CreateIdentityRequest {
     #[serde(rename = "moduleId")]
     module_id: String,
 
-    #[serde(rename = "managedBy", skip_serializing_if = "Option::is_none")]
-    managed_by: Option<String>,
+    #[serde(rename = "managedBy", default = "super::default_managed_by")]
+    managed_by: String,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -80,20 +78,15 @@ where
         let mut identities = vec![];
         match client.get_identities().await {
             Ok(ids) => {
-                log::debug!("List identities response: {:?}", ids);
                 for identity in ids {
                     let identity = crate::identity::Identity::try_from(identity)?;
-                    if identity.managed_by.is_some() {
-                        identities.push(identity);
-                    }
+                    identities.push(identity);
                 }
             }
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
-
-        log::debug!("List edgelet identities response: {:?}", identities);
 
         let res = ListIdentitiesResponse { identities };
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
@@ -114,20 +107,17 @@ where
 
         let client = self.client.lock().await;
 
-        let identity = match client
-            .create_module_identity(&body.module_id, body.managed_by)
-            .await
-        {
+        let identity = match client.create_module_identity(&body.module_id).await {
             Ok(identity) => {
-                log::debug!("Create identity response: {:?}", identity);
-                crate::identity::Identity::try_from(identity)?
+                let mut identity = crate::identity::Identity::try_from(identity)?;
+                identity.managed_by = body.managed_by;
+
+                identity
             }
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
-
-        log::debug!("Create edgelet identity response: {:?}", identity);
 
         let res = http_common::server::response::json(hyper::StatusCode::OK, &identity);
 
@@ -163,7 +153,7 @@ mod tests {
         ) -> http_common::server::RouteResponse {
             let body = super::CreateIdentityRequest {
                 module_id: "testModule".to_string(),
-                managed_by: None,
+                managed_by: crate::identity::default_managed_by(),
             };
 
             route.post(Some(body)).await
@@ -187,7 +177,7 @@ mod tests {
 
             let body = super::CreateIdentityRequest {
                 module_id: module.to_string(),
-                managed_by: Some("test".to_string()),
+                managed_by: crate::identity::default_managed_by(),
             };
 
             let response = route.post(Some(body)).await.unwrap();

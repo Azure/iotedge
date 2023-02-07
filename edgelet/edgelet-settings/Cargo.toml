@@ -6,21 +6,16 @@ publish = false
 edition = "2021"
 
 [dependencies]
-chrono = "0.4"
-serde = { version = "1", features = ["derive"] }
-humantime-serde = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 url = { version = "2", features = ["serde"] }
 
-aziot-certd-config = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-cert-renewal = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-config-common = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity", optional = true }
+config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", optional = true }
 docker = { path = "../docker-rs", optional = true }
-http-common = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
 
 [dev-dependencies]
 lazy_static = "1"
 serde_json = "1"
-test-case = "2"
+test-case = "1"
 
 [features]
 settings-docker = ["config-common", "docker"]

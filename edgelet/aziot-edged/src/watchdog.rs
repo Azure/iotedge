@@ -228,7 +228,7 @@ async fn agent_gen_id(
     identity_client: &aziot_identity_client_async::Client,
 ) -> Result<String, EdgedError> {
     let identity = identity_client
-        .update_module_identity("$edgeAgent", None)
+        .update_module_identity("$edgeAgent")
         .await
         .map_err(|err| EdgedError::from_err("Failed to update $edgeAgent identity", err))?;
 

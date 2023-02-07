@@ -26,25 +26,25 @@ edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-settings = { path = "../edgelet-settings" }
 
-aziot-key-client = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-aziot-key-client-async = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-aziot-key-common = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-aziot-key-common-http = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-aziot-key-openssl-engine = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
-aziot-cert-client-async = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-aziot-cert-common-http = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-aziot-certd-config = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
+aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
-aziot-identity-client-async = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-aziot-identity-common = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-aziot-identity-common-http = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
+aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
-cert-renewal = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
-http-common = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
+cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 [dev-dependencies]
 nix = "0.24"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
-test-common = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
+test-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

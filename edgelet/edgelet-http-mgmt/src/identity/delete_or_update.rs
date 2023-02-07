@@ -2,8 +2,6 @@
 
 use std::convert::TryFrom;
 
-use log;
-
 #[cfg(not(test))]
 use aziot_identity_client_async::Client as IdentityClient;
 
@@ -18,12 +16,6 @@ where
     pid: libc::pid_t,
     module_id: String,
     runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub(crate) struct UpdateIdentityRequest {
-    #[serde(rename = "managedBy", skip_serializing_if = "Option::is_none")]
-    managed_by: Option<String>,
 }
 
 #[async_trait::async_trait]
@@ -79,26 +71,18 @@ where
 
     type PostBody = serde::de::IgnoredAny;
 
-    type PutBody = UpdateIdentityRequest;
-    async fn put(self, body: Self::PutBody) -> http_common::server::RouteResponse {
+    type PutBody = serde::de::IgnoredAny;
+    async fn put(self, _body: Self::PutBody) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
 
-        let identity = match client
-            .update_module_identity(&self.module_id, body.managed_by)
-            .await
-        {
-            Ok(identity) => {
-                log::debug!("Update identity response: {:?}", identity);
-                crate::identity::Identity::try_from(identity)?
-            }
+        let identity = match client.update_module_identity(&self.module_id).await {
+            Ok(identity) => crate::identity::Identity::try_from(identity)?,
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
-
-        log::debug!("Update edgelet identity response: {:?}", identity);
 
         let res = http_common::server::response::json(hyper::StatusCode::OK, &identity);
 
@@ -111,8 +95,6 @@ mod tests {
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
-
-    use super::UpdateIdentityRequest;
 
     const TEST_PATH: &str = "/identities/testModule";
 
@@ -144,7 +126,7 @@ mod tests {
         async fn put(
             route: super::Route<edgelet_test_utils::runtime::Runtime>,
         ) -> http_common::server::RouteResponse {
-            route.put(UpdateIdentityRequest { managed_by: None }).await
+            route.put(serde::de::IgnoredAny).await
         }
 
         edgelet_test_utils::test_auth_agent!(TEST_PATH, delete);
@@ -161,10 +143,7 @@ mod tests {
         let mut route = test_route_ok!(TEST_PATH);
         route.client = client.clone();
 
-        let response = route
-            .put(UpdateIdentityRequest { managed_by: None })
-            .await
-            .unwrap();
+        let response = route.put(serde::de::IgnoredAny).await.unwrap();
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let _response: crate::identity::Identity = serde_json::from_slice(&body).unwrap();
 
@@ -178,9 +157,6 @@ mod tests {
         let mut route = test_route_ok!(TEST_PATH);
         route.client = client.clone();
 
-        route
-            .put(UpdateIdentityRequest { managed_by: None })
-            .await
-            .unwrap_err();
+        route.put(serde::de::IgnoredAny).await.unwrap_err();
     }
 }

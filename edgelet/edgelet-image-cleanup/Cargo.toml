@@ -10,10 +10,10 @@ anyhow = "1"
 chrono = "0.4"
 log = "0.4"
 thiserror = "1"
-tokio = { version = "1", features = ["time"] }
+tokio = "1"
 
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
 
-http-common = { git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/managed_by_identity" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
