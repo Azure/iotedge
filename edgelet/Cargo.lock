@@ -104,7 +104,7 @@ dependencies = [
  "aziot-identity-client-async",
  "aziot-identity-common",
  "aziot-identity-common-http",
- "base64",
+ "base64 0.21.0",
  "chrono",
  "clap",
  "edgelet-core",
@@ -232,7 +232,7 @@ source = "git+https://github.com/Azure/iot-identity-service?branch=main#037885ed
 dependencies = [
  "aziot-key-client",
  "aziot-key-common",
- "base64",
+ "base64 0.13.1",
  "foreign-types-shared",
  "log",
  "openssl",
@@ -283,7 +283,7 @@ dependencies = [
  "aziot-keyd-config",
  "aziot-keys-common",
  "aziot-tpmd-config",
- "base64",
+ "base64 0.13.1",
  "cert-renewal",
  "http-common",
  "log",
@@ -299,6 +299,12 @@ name = "base64"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
+
+[[package]]
+name = "base64"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
 
 [[package]]
 name = "bitflags"
@@ -665,7 +671,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "base64",
+ "base64 0.21.0",
  "chrono",
  "docker",
  "edgelet-core",
@@ -751,7 +757,7 @@ dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
  "aziot-key-openssl-engine",
- "base64",
+ "base64 0.21.0",
  "cert-renewal",
  "chrono",
  "edgelet-core",
@@ -1077,7 +1083,7 @@ version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3e372db8e5c0d213e0cd0b9be18be2aca3d44cf2fe30a9d46a65581cd454584"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "bitflags",
  "bytes",
  "headers-core",
@@ -1154,7 +1160,7 @@ version = "0.1.0"
 source = "git+https://github.com/Azure/iot-identity-service?branch=main#037885ed0c96e2336f2fda25132e3e8926184a0c"
 dependencies = [
  "async-trait",
- "base64",
+ "base64 0.13.1",
  "futures-util",
  "headers",
  "http",
@@ -1348,7 +1354,7 @@ dependencies = [
  "aziot-keys-common",
  "aziot-tpmd-config",
  "aziotctl-common",
- "base64",
+ "base64 0.21.0",
  "byte-unit",
  "bytes",
  "cert-renewal",
@@ -1976,7 +1982,7 @@ version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30d904179146de381af4c93d3af6ca4984b3152db687dacb9c3c35e86f39809c"
 dependencies = [
- "base64",
+ "base64 0.13.1",
  "chrono",
  "hex",
  "indexmap",

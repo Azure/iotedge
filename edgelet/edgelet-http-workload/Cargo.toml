@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 async-trait = "0.1"
-base64 = "0.13"
+base64 = "0.21"
 chrono = "0.4"
 futures-util = "0.3"
 http = "0.2"

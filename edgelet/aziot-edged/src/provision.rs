@@ -139,5 +139,6 @@ fn device_digest(device: &aziot_identity_common::AzureIoTSpec) -> String {
 
     let digest = sha2::Sha256::digest(json.as_bytes());
 
-    base64::encode(digest)
+    let engine = base64::engine::general_purpose::STANDARD;
+    base64::Engine::encode(&engine, digest)
 }
