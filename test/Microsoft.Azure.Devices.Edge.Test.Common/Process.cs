@@ -38,14 +38,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 RedirectStandardInput = true,
             };
 
-            Action<string> onStdout = (string o) => Log.Verbose(o);
-            Action<string> onStderr = (string e) => Log.Verbose(e);
-
-            if (!logVerbose)
+            if (logVerbose)
             {
-                onStdout = (string o) => { };
-                onStderr = (string e) => { };
+                Log.Verbose($"RunAsync: {name} {args}");
             }
+
+            Action<string> MakeOutputHandler(bool logVerbose)
+            {
+                return logVerbose ? (string s) => Log.Verbose(s) : (string o) => { };
+            }
+
+            Action<string> onStdout = MakeOutputHandler(logVerbose);
+            Action<string> onStderr = MakeOutputHandler(logVerbose);
 
             using (ProcessResults result = await ProcessEx.RunAsync(info, onStdout, onStderr, token))
             {
