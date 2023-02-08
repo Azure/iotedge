@@ -33,7 +33,7 @@ tabwriter = "1"
 termcolor = "1"
 thiserror = "1"
 tokio = { version = "1", features = ["macros", "process"] }
-toml = "0.5"
+toml = "0.7"
 url = "2"
 
 aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
