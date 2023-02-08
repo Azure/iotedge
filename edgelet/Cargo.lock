@@ -295,7 +295,7 @@ dependencies = [
  "cert-renewal",
  "http-common",
  "log",
- "nix 0.26.2",
+ "nix",
  "serde",
  "serde_json",
  "serde_with",
@@ -509,7 +509,7 @@ dependencies = [
  "autocfg",
  "cfg-if",
  "crossbeam-utils",
- "memoffset 0.7.1",
+ "memoffset",
  "scopeguard",
 ]
 
@@ -661,7 +661,7 @@ dependencies = [
  "hyper",
  "lazy_static",
  "log",
- "nix 0.24.3",
+ "nix",
  "num_cpus",
  "serde",
  "serde_json",
@@ -687,7 +687,7 @@ dependencies = [
  "http-common",
  "hyper",
  "log",
- "nix 0.24.3",
+ "nix",
  "serde",
  "serde_json",
  "serial_test",
@@ -736,7 +736,7 @@ dependencies = [
  "hyper",
  "libc",
  "log",
- "nix 0.24.3",
+ "nix",
  "percent-encoding",
  "regex",
  "serde",
@@ -776,7 +776,7 @@ dependencies = [
  "hyper",
  "libc",
  "log",
- "nix 0.24.3",
+ "nix",
  "openssl",
  "percent-encoding",
  "regex",
@@ -832,7 +832,7 @@ dependencies = [
  "edgelet-settings",
  "http",
  "hyper",
- "nix 0.24.3",
+ "nix",
  "serde",
  "tokio",
 ]
@@ -1176,7 +1176,7 @@ dependencies = [
  "hyper-proxy",
  "libc",
  "log",
- "nix 0.26.2",
+ "nix",
  "openssl",
  "openssl-sys",
  "percent-encoding",
@@ -1383,7 +1383,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "nix 0.24.3",
+ "nix",
  "regex",
  "serde",
  "serde_json",
@@ -1503,15 +1503,6 @@ checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
 name = "memoffset"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5aa361d4faea93603064a027415f07bd8e1d5c88c9fbf68bf56a285428fd79ce"
-dependencies = [
- "autocfg",
-]
-
-[[package]]
-name = "memoffset"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5de893c32cde5f383baa4c04c5d6dbdd735cfd4a794b0debdb2bb1b421da5ff4"
@@ -1554,18 +1545,6 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.24.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa52e972a9a719cecb6864fb88568781eb706bac2cd1d4f04a648542dbf78069"
-dependencies = [
- "bitflags",
- "cfg-if",
- "libc",
- "memoffset 0.6.5",
-]
-
-[[package]]
-name = "nix"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfdda3d196821d6af13126e40375cdf7da646a96114af134d5f417a9a1dc8e1a"
@@ -1573,7 +1552,7 @@ dependencies = [
  "bitflags",
  "cfg-if",
  "libc",
- "memoffset 0.7.1",
+ "memoffset",
  "pin-utils",
  "static_assertions",
 ]

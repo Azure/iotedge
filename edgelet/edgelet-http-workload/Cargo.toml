@@ -44,7 +44,7 @@ cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch =
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
 
 [dev-dependencies]
-nix = "0.24"
+nix = "0.26"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 test-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.4" }
