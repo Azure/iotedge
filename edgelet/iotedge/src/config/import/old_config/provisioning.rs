@@ -114,11 +114,17 @@ impl std::str::FromStr for ManualDeviceConnectionString {
         let mut shared_access_key = None;
 
         for sections in s.split(';') {
-            let mut parts = sections.split('=');
-            match parts.next() {
-                Some(DEVICEID_KEY) => device_id = parts.next().map(String::from),
-                Some(HOSTNAME_KEY) => hostname = parts.next().map(String::from),
-                Some(SHAREDACCESSKEY_KEY) => shared_access_key = parts.next().map(String::from),
+            let (key, value) = if let Some(parts) = sections.split_once('=') {
+                (parts.0, Some(parts.1.to_string()))
+            } else {
+                // Ignore extraneous component in the connection string
+                continue;
+            };
+
+            match key {
+                DEVICEID_KEY => device_id = value,
+                HOSTNAME_KEY => hostname = value,
+                SHAREDACCESSKEY_KEY => shared_access_key = value,
                 _ => (), // Ignore extraneous component in the connection string
             }
         }
