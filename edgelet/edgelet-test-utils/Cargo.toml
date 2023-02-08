@@ -10,7 +10,7 @@ anyhow = "1"
 async-trait = "0.1"
 http = "0.2"
 hyper = "0.14"
-nix = "0.24"
+nix = "0.26"
 serde = "1"
 tokio = "1"
 
