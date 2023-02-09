@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::io::Write;
+use std::fmt::Write;
 use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
@@ -28,7 +28,7 @@ impl<M, W> Restart<M, W> {
 impl<M, W> Restart<M, W>
 where
     M: ModuleRuntime,
-    W: Write + Send,
+    W: std::io::Write + Send,
 {
     pub async fn execute(&self) -> anyhow::Result<()> {
         let mut output = String::new();
@@ -36,14 +36,15 @@ where
         // A stop request must be sent to workload socket manager first.
         // To properly restart, both the stop and start APIs must be called.
         if let Err(err) = self.runtime.stop(&self.id, None).await {
-            output.push_str(&format!(
-                "warn: {} was not stopped gracefully: {}\n",
+            writeln!(
+                output,
+                "warn: {} was not stopped gracefully: {}",
                 self.id, err
-            ));
+            )?;
         }
 
         self.runtime.start(&self.id).await?;
-        output.push_str(&format!("Restarted {}\n", self.id));
+        writeln!(output, "Restarted {}", self.id)?;
 
         let write = self.output.clone();
         let mut w = write.lock().unwrap();
