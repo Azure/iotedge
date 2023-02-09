@@ -101,7 +101,8 @@ where
 
         match client.decrypt(&key, parameters, &ciphertext).await {
             Ok(plaintext) => {
-                let plaintext = base64::encode(plaintext);
+                let engine = base64::engine::general_purpose::STANDARD;
+                let plaintext = base64::Engine::encode(&engine, plaintext);
 
                 let res = DecryptResponse { plaintext };
                 let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
@@ -149,9 +150,10 @@ mod tests {
         async fn post(
             route: super::Route<edgelet_test_utils::runtime::Runtime>,
         ) -> http_common::server::RouteResponse {
+            let engine = base64::engine::general_purpose::STANDARD;
             let body = super::DecryptRequest {
-                ciphertext: base64::encode("ciphertext"),
-                iv: base64::encode("iv"),
+                ciphertext: base64::Engine::encode(&engine, "ciphertext"),
+                iv: base64::Engine::encode(&engine, "iv"),
             };
 
             route.post(Some(body)).await
@@ -167,10 +169,12 @@ mod tests {
         let response = route.post(None).await.unwrap_err();
         assert_eq!(hyper::StatusCode::BAD_REQUEST, response.status_code);
 
+        let engine = base64::engine::general_purpose::STANDARD;
+
         // ciphertext must be base64-encoded
         let body = super::DecryptRequest {
             ciphertext: "~".to_string(),
-            iv: base64::encode("~"),
+            iv: base64::Engine::encode(&engine, "~"),
         };
 
         let route = test_route_ok!(TEST_PATH);
@@ -179,7 +183,7 @@ mod tests {
 
         // iv must be base64-encoded
         let body = super::DecryptRequest {
-            ciphertext: base64::encode("~"),
+            ciphertext: base64::Engine::encode(&engine, "~"),
             iv: "~".to_string(),
         };
 
@@ -189,14 +193,14 @@ mod tests {
 
         // Response plaintext is base64-encoded
         let body = super::DecryptRequest {
-            ciphertext: base64::encode("~"),
-            iv: base64::encode("~"),
+            ciphertext: base64::Engine::encode(&engine, "~"),
+            iv: base64::Engine::encode(&engine, "~"),
         };
 
         let route = test_route_ok!(TEST_PATH);
         let response = route.post(Some(body)).await.unwrap();
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let response: super::DecryptResponse = serde_json::from_slice(&body).unwrap();
-        base64::decode(response.plaintext).unwrap();
+        base64::Engine::decode(&engine, response.plaintext).unwrap();
     }
 }

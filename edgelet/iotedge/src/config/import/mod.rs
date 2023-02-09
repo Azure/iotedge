@@ -84,7 +84,7 @@ To reconfigure IoT Edge, run:
 
     let config = execute_inner(old_config_file, old_master_encryption_key_path)?;
 
-    common_config::write_file(new_config_file, &config, &root_user, 0o0600)
+    common_config::write_file(new_config_file, config.as_bytes(), &root_user, 0o0600)
         .map_err(|err| format!("{:?}", err))?;
 
     println!("Azure IoT Edge has been configured successfully!");
@@ -105,7 +105,7 @@ To reconfigure IoT Edge, run:
 fn execute_inner(
     old_config_file: &Path,
     old_master_encryption_key_path: Option<PathBuf>,
-) -> Result<Vec<u8>, std::borrow::Cow<'static, str>> {
+) -> Result<String, std::borrow::Cow<'static, str>> {
     let old_config_file_display = old_config_file.display();
 
     let old_config_contents = match std::fs::read_to_string(old_config_file) {
@@ -604,7 +604,7 @@ fn execute_inner(
     };
 
     let config =
-        toml::to_vec(&config).map_err(|err| format!("could not serialize config: {}", err))?;
+        toml::to_string(&config).map_err(|err| format!("could not serialize config: {}", err))?;
 
     Ok(config)
 }

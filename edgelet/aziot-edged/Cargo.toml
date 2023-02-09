@@ -9,7 +9,7 @@ homepage = "https://aka.ms/iotedge"
 license = "MIT"
 
 [dependencies]
-base64 = "0.13"
+base64 = "0.21"
 chrono = "0.4"
 clap = "2.33"
 futures-util = "0.3"

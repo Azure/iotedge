@@ -114,11 +114,17 @@ impl std::str::FromStr for ManualDeviceConnectionString {
         let mut shared_access_key = None;
 
         for sections in s.split(';') {
-            let mut parts = sections.split('=');
-            match parts.next() {
-                Some(DEVICEID_KEY) => device_id = parts.next().map(String::from),
-                Some(HOSTNAME_KEY) => hostname = parts.next().map(String::from),
-                Some(SHAREDACCESSKEY_KEY) => shared_access_key = parts.next().map(String::from),
+            let (key, value) = if let Some(parts) = sections.split_once('=') {
+                (parts.0, Some(parts.1.to_string()))
+            } else {
+                // Ignore extraneous component in the connection string
+                continue;
+            };
+
+            match key {
+                DEVICEID_KEY => device_id = value,
+                HOSTNAME_KEY => hostname = value,
+                SHAREDACCESSKEY_KEY => shared_access_key = value,
                 _ => (), // Ignore extraneous component in the connection string
             }
         }
@@ -128,7 +134,8 @@ impl std::str::FromStr for ManualDeviceConnectionString {
         if shared_access_key.is_empty() {
             return Err(missing_parameter(SHAREDACCESSKEY_KEY));
         }
-        let shared_access_key = base64::decode(&shared_access_key)
+        let engine = base64::engine::general_purpose::STANDARD;
+        let shared_access_key = base64::Engine::decode(&engine, &shared_access_key)
             .map_err(|err| malformed_parameter(SHAREDACCESSKEY_KEY, err))?;
 
         let device_id = device_id.ok_or_else(|| missing_parameter(DEVICEID_KEY))?;
@@ -290,7 +297,8 @@ where
         where
             E: serde::de::Error,
         {
-            base64::decode_config(v, base64::STANDARD).map_err(serde::de::Error::custom)
+            let engine = base64::engine::general_purpose::STANDARD;
+            base64::Engine::decode(&engine, v).map_err(serde::de::Error::custom)
         }
     }
 

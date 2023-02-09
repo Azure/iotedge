@@ -96,7 +96,8 @@ where
                 let json = serde_json::to_string(&a).with_context(|| {
                     Error::RegistryOperation(RegistryOperation::PullImage(image.clone()))
                 })?;
-                base64::encode_config(&json, base64::URL_SAFE)
+                let engine = base64::engine::general_purpose::URL_SAFE;
+                base64::Engine::encode(&engine, &json)
             }
             None => String::new(),
         };
