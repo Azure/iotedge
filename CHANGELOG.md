@@ -1,8 +1,34 @@
+# 1.4.9 (2023-02-14)
+
+## Base image updates
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics
+
+## aziot-edge
+### OS support
+* Add support for Ubuntu 22.04 amd64, arm64v8 ( [b4b54da](https://github.com/Azure/iotedge/commit/b4b54da011b73d2fe3182974ed11b0a6a27a1d38) )
+
+### Bug fixes
+* Enable >4GB files in support_bundle ZIP writer ( [cea876f](https://github.com/Azure/iotedge/commit/cea876ff651987e45d024160aaa66a364c3213c4) )
+* Update cargo dependencies to take security updates ( [a372eca](https://github.com/Azure/iotedge/commit/a372eca9d9ade13c3d6a2df5b554ba1d2fbcd21e) )
+
+## aziot-identity-service
+### OS support
+* Add support for Ubuntu 22.04 amd64, arm64v8 ( [ea9e476](https://github.com/Azure/iot-identity-service/commit/ea9e47617b9d322d15489745d3ba11ac7e666ee9) )
+
+### Bug fixes
+* Retry with exponential backoff when IoT Hub throttles ( [a6aacda](https://github.com/Azure/iot-identity-service/commit/a6aacdaaadde4052f02eb828bd7f6ef583a550fd) )
+* Update cargo dependencies to take security updates ( [b3de517](https://github.com/Azure/iot-identity-service/commit/b3de51744e277ae0f517c6d1d908b9afcbd68142) )
+
 # 1.4.8 (2023-01-26)
 
 ## Edge Agent
 ### Bug fixes
-* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1] (https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
+* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1](https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
 
 ## Edge Hub
 ### Bug fixes
@@ -10,7 +36,7 @@
 
 ## aziot-edge
 ### Bug fixes
-* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1] (https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
+* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1](https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
 * Bump iot-identity-service to 1.4.2
 
 # 1.4.7 (2023-01-10)
