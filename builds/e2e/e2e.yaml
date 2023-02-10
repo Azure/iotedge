@@ -346,6 +346,8 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-mariner2-aarch64
+      identityServiceArtifactName: packages_mariner-2_aarch64
+      identityServicePackageFilter: aziot-identity-service-*.cm2.aarch64.rpm
 
     steps:
     - template: templates/e2e-setup.yaml
