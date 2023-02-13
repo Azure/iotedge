@@ -16,8 +16,8 @@ pub struct Service<M>
 where
     M: edgelet_core::ModuleRuntime,
 {
-    identity: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    identity: std::sync::Arc<tokio::sync::Mutex<IdentityClient>>,
+    runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
     reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::WatchdogAction>,
 }
 
@@ -39,8 +39,8 @@ where
             1,
         );
 
-        let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+        let identity = std::sync::Arc::new(tokio::sync::Mutex::new(identity));
+        let runtime = std::sync::Arc::new(tokio::sync::Mutex::new(runtime));
 
         Ok(Service {
             identity,
@@ -53,9 +53,9 @@ where
     #[cfg(test)]
     pub fn new(runtime: M) -> Self {
         let identity = IdentityClient::default();
-        let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
+        let identity = std::sync::Arc::new(tokio::sync::Mutex::new(identity));
 
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+        let runtime = std::sync::Arc::new(tokio::sync::Mutex::new(runtime));
 
         // We won't use the reprovision sender, but it must be created to construct the
         // Service struct. Note that we drop the reprovision receiver, which will cause
@@ -80,9 +80,9 @@ where
         tokio::sync::mpsc::UnboundedReceiver<edgelet_core::WatchdogAction>,
     ) {
         let identity = IdentityClient::default();
-        let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
+        let identity = std::sync::Arc::new(tokio::sync::Mutex::new(identity));
 
-        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+        let runtime = std::sync::Arc::new(tokio::sync::Mutex::new(runtime));
 
         let (reprovision_tx, reprovision_rx) =
             tokio::sync::mpsc::unbounded_channel::<edgelet_core::WatchdogAction>();
