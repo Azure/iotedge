@@ -90,6 +90,18 @@ stages:
             arch: aarch64
             os: ubuntu20.04
             target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          Ubuntu2204-amd64:
+            arch: amd64
+            os: ubuntu22.04
+            target.iotedged: edgelet/target/release
+          Ubuntu2204-arm32v7:
+            arch: arm32v7
+            os: ubuntu22.04
+            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          Ubuntu2204-aarch64:
+            arch: aarch64
+            os: ubuntu22.04
+            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
       steps:
         - bash: |
             BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -165,8 +177,9 @@ stages:
           # for the partner teams. We don't fully support edgelet upload because 
           # there is a known docker issue with debian 10.
           Debian10-arm32v7:
+            excludeEdgelet: true
             os: debian10
-            artifactName: empty_package
+            artifactName: iotedged-debian10-arm32v7
             identityServiceArtifactName: packages_debian-10-slim_arm32v7
             identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           Debian11-arm32v7:
@@ -202,6 +215,18 @@ stages:
             artifactName: iotedged-ubuntu20.04-aarch64
             identityServiceArtifactName: packages_ubuntu-20.04_aarch64
             identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+
+          Ubuntu2204-amd64:
+            os: ubuntu22.04
+            artifactName: iotedged-ubuntu22.04-amd64
+            identityServiceArtifactName: packages_ubuntu-22.04_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          Ubuntu2204-aarch64:
+            os: ubuntu22.04
+            artifactName: iotedged-ubuntu22.04-aarch64
+            identityServiceArtifactName: packages_ubuntu-22.04_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+
       steps:
         - task: AzureKeyVault@1
           displayName: Get secrets
@@ -213,6 +238,7 @@ stages:
         - checkout: self
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
+          condition: not(eq(variables.excludeEdgelet, true))
           inputs:
             source: 'current'
             path: $(System.ArtifactsDirectory)
@@ -412,6 +438,23 @@ stages:
             artifactName: iotedged-ubuntu20.04-aarch64
             identityServiceArtifactName: packages_ubuntu-20.04_aarch64
             identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+
+          Ubuntu2204-amd64:
+            os: ubuntu22.04
+            artifactName: iotedged-ubuntu22.04-amd64
+            identityServiceArtifactName: packages_ubuntu-22.04_amd64
+            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          Ubuntu2204-arm32v7:
+            os: ubuntu22.04
+            artifactName: iotedged-ubuntu22.04-arm32v7
+            identityServiceArtifactName: packages_ubuntu-22.04_arm32v7
+            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          Ubuntu2204-aarch64:
+            os: ubuntu22.04
+            artifactName: iotedged-ubuntu22.04-aarch64
+            identityServiceArtifactName: packages_ubuntu-22.04_aarch64
+            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+
       steps:
         - task: AzureKeyVault@1
           displayName: Get secrets
