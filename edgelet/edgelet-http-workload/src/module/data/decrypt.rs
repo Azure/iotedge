@@ -10,11 +10,11 @@ pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+    client: std::sync::Arc<tokio::sync::Mutex<KeyClient>>,
     module_id: String,
     gen_id: String,
     pid: libc::pid_t,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
 }
 
 #[derive(Debug, serde::Deserialize)]
