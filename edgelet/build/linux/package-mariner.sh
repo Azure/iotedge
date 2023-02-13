@@ -100,6 +100,9 @@ export CARGO_HOME=${BUILD_REPOSITORY_LOCALPATH}/cargo-home
 echo "Vendoring Rust dependencies"
 cargo vendor vendor
 
+# Purge Cargo.lock files from dependencies. These files are not necessary and will cause
+# Component Governance to incorrectly scan them for issues.
+find "$CARGO_HOME/registry/src/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
 
 # Configure Cargo to use vendored the deps
 mkdir .cargo
