@@ -14,11 +14,11 @@ pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
-    identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
+    key_client: std::sync::Arc<tokio::sync::Mutex<KeyClient>>,
+    identity_client: std::sync::Arc<tokio::sync::Mutex<IdentityClient>>,
     module_id: String,
     pid: libc::pid_t,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -113,7 +113,7 @@ where
 }
 
 async fn get_module_key(
-    client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
+    client: std::sync::Arc<tokio::sync::Mutex<IdentityClient>>,
     module_id: &str,
 ) -> Result<aziot_key_common::KeyHandle, http_common::server::Error> {
     let identity = {
@@ -220,7 +220,7 @@ mod tests {
     async fn get_module_key() {
         // Identity doesn't exist: fail
         let client = super::IdentityClient::default();
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "invalid").await.unwrap_err();
         assert_eq!(
@@ -253,7 +253,7 @@ mod tests {
                 identities.to_owned()
             });
         }
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule")
             .await
@@ -285,7 +285,7 @@ mod tests {
                 identities.to_owned()
             });
         }
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule")
             .await
@@ -320,7 +320,7 @@ mod tests {
                 identities.to_owned()
             });
         }
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule")
             .await
@@ -332,7 +332,7 @@ mod tests {
 
         // Valid identity: succeed
         let client = super::IdentityClient::default();
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule").await.unwrap();
         assert_eq!("testModule-key".to_string(), response.0);

@@ -12,9 +12,9 @@ pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
+    client: std::sync::Arc<tokio::sync::Mutex<IdentityClient>>,
     pid: libc::pid_t,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -168,7 +168,7 @@ mod tests {
 
         // The Identity Client needs to be persisted across API calls.
         let client = super::IdentityClient::default();
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         // Create identities
         for module in &["testModule1", "testModule2", "testModule3"] {
