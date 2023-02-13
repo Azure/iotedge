@@ -15,6 +15,8 @@ The following Docker images were updated because their base images changed:
 ### Bug fixes
 * Enable >4GB files in support_bundle ZIP writer ( [cea876f](https://github.com/Azure/iotedge/commit/cea876ff651987e45d024160aaa66a364c3213c4) )
 * Update cargo dependencies to take security updates ( [a372eca](https://github.com/Azure/iotedge/commit/a372eca9d9ade13c3d6a2df5b554ba1d2fbcd21e) )
+* Update to the latest version of aziot-identity-service ( [37f51c2](https://github.com/Azure/iotedge/commit/37f51c2a39f0e95ea510eb975c38c659723379a4) )
+* Fix `iotedge restart` command to correct a problem with workload sockets ( [08dfac5](https://github.com/Azure/iotedge/commit/08dfac5fb9dd4de02f20feb7014040c8295523e5) )
 
 ## aziot-identity-service
 ### OS support
@@ -23,6 +25,7 @@ The following Docker images were updated because their base images changed:
 ### Bug fixes
 * Retry with exponential backoff when IoT Hub throttles ( [a6aacda](https://github.com/Azure/iot-identity-service/commit/a6aacdaaadde4052f02eb828bd7f6ef583a550fd) )
 * Update cargo dependencies to take security updates ( [b3de517](https://github.com/Azure/iot-identity-service/commit/b3de51744e277ae0f517c6d1d908b9afcbd68142) )
+* Use fair mutex to fix request ordering problem ( [03e383e](https://github.com/Azure/iot-identity-service/commit/03e383e390670bd75e7aab6e58e363ae2276f437) )
 
 # 1.4.8 (2023-01-26)
 
