@@ -11,7 +11,7 @@ version = "0.1.0"
 anyhow = "1"
 async-trait = "0.1"
 atty = "0.2"
-base64 = "0.13"
+base64 = "0.21"
 byte-unit = "4"
 bytes = "1"
 chrono = { version = "0.4.7", features = ["serde"] }
@@ -24,16 +24,16 @@ hyper = "0.14"
 lazy_static = "1"
 libc = "0.2"
 log = { version = "0.4", features = ["std"] }
-nix = "0.24"
+nix = "0.26"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sysinfo = "0.25"
+sysinfo = "0.27"
 tabwriter = "1"
 termcolor = "1"
 thiserror = "1"
 tokio = { version = "1", features = ["macros", "parking_lot", "process", "rt", "sync"] }
-toml = "0.5"
+toml = "0.7"
 url = "2"
 
 aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
@@ -54,7 +54,3 @@ edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"
 edgelet-utils = { path = "../edgelet-utils" }
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 support-bundle = { path = "../support-bundle" }
-
-[dev-dependencies]
-edgelet-test-utils = { path = "../edgelet-test-utils" }
-tempfile = "3.1.0"
