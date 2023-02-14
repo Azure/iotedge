@@ -1,7 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 
-mkdir -p $SNAP_COMMON
-exec >> $SNAP_COMMON/configure-hook.log 2>&1
+set -eux
+exec 1> >(logger -s -t "$SNAP_INSTANCE_NAME.$(basename $0)") 2>&1
 
 toml_kvp() {
 	printf "%s = \"%s\"\n" "$1" "$2"
@@ -41,8 +41,6 @@ mkdir -p /etc/aziot/edged/config.d
 	toml_new_section "moby_runtime"
 	toml_kvp "uri" "unix://$SNAP_COMMON/docker-proxy.sock"
 	toml_kvp "network" "azure-iot-edge"
-
-
 } > /etc/aziot/config.toml
 
 $SNAP/usr/bin/iotedge config apply

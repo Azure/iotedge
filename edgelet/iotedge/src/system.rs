@@ -6,8 +6,13 @@ use lazy_static::lazy_static;
 
 use aziotctl_common::system::{
     get_status, get_system_logs as logs, restart, set_log_level as log_level, stop,
-    ServiceDefinition, SERVICE_DEFINITIONS as IS_SERVICES,
+    ServiceDefinition,
 };
+
+#[cfg(not(feature = "snapctl"))]
+use aziotctl_common::system::SERVICE_DEFINITIONS as IS_SERVICES;
+#[cfg(feature = "snapctl")]
+const IS_SERVICES: &[&ServiceDefinition] = &[];
 
 use aziot_identity_client_async::Client as IdentityClient;
 use aziot_identity_common_http::ApiVersion;
@@ -31,7 +36,10 @@ lazy_static! {
             };
 
         ServiceDefinition {
+            #[cfg(not(feature = "snapctl"))]
             service: "aziot-edged.service",
+            #[cfg(feature = "snapctl")]
+            service: "aziot-edged",
             sockets,
         }
     };

@@ -14,6 +14,16 @@ members = [
     "support-bundle",
 ]
 
+[patch.'https://github.com/Azure/iot-identity-service']
+aziotctl-common = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
+aziot-certd-config = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
+aziot-identity-common = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
+aziot-identityd-config = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
+aziot-key-common = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
+aziot-keyd-config = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
+aziot-keys-common = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
+cert-renewal = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
+
 [profile.dev]
 panic = 'abort'
 
