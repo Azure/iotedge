@@ -103,7 +103,7 @@ cargo vendor vendor
 # Purge Cargo.lock files from dependencies. These files are not necessary and will cause
 # Component Governance to incorrectly scan them for issues.
 find "$CARGO_HOME/registry/src/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
-find "${BUILD_REPOSITORY_LOCALPATH}/vendor/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
+find "${BUILD_REPOSITORY_LOCALPATH}/edgelet/vendor/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
 
 # Configure Cargo to use vendored the deps
 mkdir .cargo
