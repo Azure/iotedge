@@ -7,6 +7,7 @@ use futures_util::{
     pin_mut,
 };
 use log::{error, info, warn};
+use sha2::Digest;
 use tokio::{sync::Notify, task::JoinHandle, time};
 
 use crate::utils::file;
@@ -199,7 +200,10 @@ impl CertificateMonitor {
 
         let trust_bundle = resp.certificate().to_string();
 
-        let bundle_of_trust_hash = format!("{:x}", md5::compute(&trust_bundle));
+        let mut hasher = sha2::Sha256::new();
+        hasher.update(&trust_bundle);
+        let bundle_of_trust_hash = hasher.finalize();
+        let bundle_of_trust_hash = format!("{:x}", bundle_of_trust_hash);
 
         if self.bundle_of_trust_hash.ne(&bundle_of_trust_hash) {
             self.bundle_of_trust_hash = bundle_of_trust_hash;
