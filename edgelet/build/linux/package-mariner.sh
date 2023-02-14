@@ -100,11 +100,6 @@ export CARGO_HOME=${BUILD_REPOSITORY_LOCALPATH}/cargo-home
 echo "Vendoring Rust dependencies"
 cargo vendor vendor
 
-# Purge Cargo.lock files from dependencies. These files are not necessary and will cause
-# Component Governance to incorrectly scan them for issues.
-find "$CARGO_HOME/registry/src/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
-find "${BUILD_REPOSITORY_LOCALPATH}/vendor/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
-
 # Configure Cargo to use vendored the deps
 mkdir .cargo
 cat > .cargo/config << EOF
@@ -164,3 +159,8 @@ pushd toolkit
 make build-packages PACKAGE_BUILD_LIST="aziot-edge" SRPM_FILE_SIGNATURE_HANDLING=update USE_PREVIEW_REPO=$UsePreview CONFIG_FILE= -j$(nproc)
 popd
 popd
+
+# Purge Cargo.lock files from dependencies. If these files are present, Component Governance
+# will incorrectly scan them for issues.
+find "$CARGO_HOME/registry/src/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
+find "$EDGELET_ROOT/vendor/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
