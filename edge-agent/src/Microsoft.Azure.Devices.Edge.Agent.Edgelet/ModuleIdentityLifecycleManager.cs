@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             public static void RemoveOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
             {
-                Log.LogDebug((int)EventIds.RemoveOrphanedIdentities, $"Removing orphaned identities {string.Join(", ", removeOrphanedIdentities.Select(s => s.ToString()))}");
+                Log.LogInformation((int)EventIds.RemoveOrphanedIdentities, $"Removing orphaned identities {string.Join(", ", removeOrphanedIdentities.Select(s => s.ToString()))}");
             }
         }
     }
