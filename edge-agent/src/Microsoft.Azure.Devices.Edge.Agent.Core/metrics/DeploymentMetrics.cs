@@ -114,8 +114,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
             /* handle edgeAgent specially */
             this.edgeAgent.Value.AddPoint(true);
-            this.running.Set(this.edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, true.ToString() });
-            this.expectedRunning.Set(this.edgeAgent.Value.RunningTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, true.ToString() });
+            this.expectedRunning.Set(this.edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, true.ToString() });
+            this.running.Set(this.edgeAgent.Value.RunningTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, true.ToString() });
 
             /* Add points for all other modules found */
             foreach (Availability availability in this.availabilities)
