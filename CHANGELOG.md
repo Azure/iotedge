@@ -12,6 +12,10 @@ The following Docker images were updated because their base images changed:
 * azureiotedge-simulated-temperature-sensor
 * azureiotedge-diagnostics
 
+## Edge Agent
+### Bug fixes
+* Fix swapped metrics ( [94f8072](https://github.com/Azure/iotedge/commit/94f807209964410ee17329be85a7835f00354b07) )
+
 ## aziot-edge
 ### OS support
 * Add support for Ubuntu 22.04 amd64, arm64v8 ( [b4b54da](https://github.com/Azure/iotedge/commit/b4b54da011b73d2fe3182974ed11b0a6a27a1d38) )
