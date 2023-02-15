@@ -14,7 +14,7 @@ The following Docker images were updated because their base images changed:
 
 ## Edge Agent
 ### Bug fixes
-* Fix swapped metrics ( [94f8072](https://github.com/Azure/iotedge/commit/94f807209964410ee17329be85a7835f00354b07) )
+* Fix incorrectly reported metrics on a module's expected and actual running time ( [94f8072](https://github.com/Azure/iotedge/commit/94f807209964410ee17329be85a7835f00354b07) )
 
 ## aziot-edge
 ### OS support
