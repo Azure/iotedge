@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Logging
 {
+    using System;
     using System.Diagnostics.Tracing;
     using System.Linq;
     using Microsoft.Extensions.Logging;
@@ -11,6 +12,21 @@ namespace Microsoft.Azure.Devices.Edge.Util.Logging
     public class LoggerEventListener : EventListener
     {
         readonly ILogger logger;
+
+        private static readonly string[] s_eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
+
+        protected override void OnEventSourceCreated(EventSource eventSource)
+        {
+            if (s_eventFilter.Any(filter => eventSource.Name.StartsWith(filter, StringComparison.OrdinalIgnoreCase)))
+            {
+                base.OnEventSourceCreated(eventSource);
+                EnableEvents(
+                    eventSource,
+                    EventLevel.LogAlways
+                , EventKeywords.All
+                );
+            }
+        }
 
         public LoggerEventListener(ILogger logger)
         {
