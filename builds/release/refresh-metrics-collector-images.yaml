@@ -347,7 +347,27 @@ stages:
         echo "Edge Agent image: $edgeAgentImage"
         echo "Edge Hub image: $edgeHubImage"
         echo "Metrics Collector image: $metricsCollectorImage"
-    
+
+        # Workaround a problem that cropped up recently when Docker changed its manifest format to support provenance
+        # attestation. Our arch-specific images used to be manifests but now they're manifest lists with two entries,
+        # one pointing to the arch-specific manifest and the other pointing to provenance data. Because of this change,
+        # when the host device tries to run the image, it attempts to match the host platform against the platform of
+        # the arch-specific manifest in the list. In the case of arm32v7 where we were running on arm64v8 hosts to avoid
+        # using raspberry pis in release pipelines, 'arm64/v8' != 'arm/v7' so the host device can't start the container.
+        # The workaround is to extract the pointer to the arch-specific manifest from the list (sha256 hash), and refer
+        # to that instead.
+        $sha = docker buildx imagetools inspect --format '{{json .Manifest}}' $metricsCollectorImage |
+          jq -r '
+            .manifests[] |
+            select(\"arm/v7\" == ([.platform | (.architecture, .variant // empty)] | join(\"/\"))) |
+            .digest
+          '
+        if ($sha)
+        {
+          $metricsCollectorImage = "$(registry.address)/microsoft/azureiotedge-metrics-collector@$sha"
+          echo "OVERRIDE Metrics Collector image: $metricsCollectorImage"
+        }
+
         $context = @{
           nestededge = 'false';
           isa95Tag = 'false';
