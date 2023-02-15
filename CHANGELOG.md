@@ -1,5 +1,9 @@
 # 1.4.9 (2023-02-14)
 
+Beginning with this release we are publishing installable packages for Ubuntu 22.04 (amd64, arm64) on Microsoft's [Linux package repository](https://packages.microsoft.com/docs/readme.txt).  
+
+**Note:** On Ubuntu 22.04 the IoT Edge security subsystem has been tested with openssl 3.0. It may not function properly if older versions of openssl are also present on the device. If you previously installed openssl 1.1 in combination with an earlier version of IoT Edge then we would recommend removing both and starting fresh to avoid potential incompatibilities.
+
 ## Base image updates
 
 The following Docker images were updated because their base images changed:
