@@ -160,7 +160,10 @@ make build-packages PACKAGE_BUILD_LIST="aziot-edge" SRPM_FILE_SIGNATURE_HANDLING
 popd
 popd
 
-# Purge Cargo.lock files from dependencies. If these files are present, Component Governance
-# will incorrectly scan them for issues.
+# Purge Cargo.lock and package-lock.json files from dependencies. If these files are present,
+# Component Governance will incorrectly scan them for issues.
 find "$CARGO_HOME/registry/src/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
 find "$EDGELET_ROOT/vendor/" -name "Cargo.lock" -exec echo "Deleting {}" \; -exec rm {} \;
+
+find "$CARGO_HOME/registry/src/" -name "package-lock.json" -exec echo "Deleting {}" \; -exec rm {} \;
+find "$EDGELET_ROOT/vendor/" -name "package-lock.json" -exec echo "Deleting {}" \; -exec rm {} \;
