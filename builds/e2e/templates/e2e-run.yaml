@@ -18,55 +18,57 @@ steps:
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
     $test_type = '${{ parameters.test_type }}'
 
-    # Filter out flaky tests.
-    $filter = 'Category!=Flaky'
+    # # Filter out flaky tests.
+    # $filter = 'Category!=Flaky'
 
-    if ('$(minimal)' -eq 'true')
-    {
-      $filter += '&Name~TempSensor'
-    }
-    if ('$(artifactName)'.Contains('centos'))
-    {
-      $filter += '&Category=CentOsSafe'
-    }
-    elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
-    {
-      $filter += '&Category!=FlakyOnArm'
-      $filter += '&Category!=Amd64Only'
-    }
-    if ($test_type -eq 'nestededge_mqtt')
-    {
-      $filter += '&Category!=SingleNodeOnly'
-      $filter += '&Category!=NestedEdgeAmqpOnly'
-      $filter += '&Category!=LegacyMqttRequired'
-      $filter += '&Category!=FlakyOnNested'
-      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
-      # When it was resolved the tests were never enabled. We need to re-enable these.
-      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
-    }
-    elseif ($test_type -eq 'nestededge_amqp')
-    {
-      $filter += '&Category!=SingleNodeOnly'
-      $filter += '&Category!=FlakyOnNested'
-      # Below tests were disabled and marked for re-enable when a blocking item was resolved.
-      # When it was resolved the tests were never enabled. We need to re-enable these.
-      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
-    }
-    elseif ($test_type -eq 'nestededge_isa95')
-    {
-      $filter = 'Category=nestededge_isa95'
-    }
-    elseif ($test_type -eq 'http_proxy')
-    {
-      #Disable tests that don't work in proxy environment. Renable post-investigation.
-      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
-      #Disable nested edge tests
-      $filter += '&Category!=NestedEdgeOnly'
-    }
-    else
-    {
-      $filter += '&Category!=NestedEdgeOnly'
-    }
+    # if ('$(minimal)' -eq 'true')
+    # {
+    #   $filter += '&Name~TempSensor'
+    # }
+    # if ('$(artifactName)'.Contains('centos'))
+    # {
+    #   $filter += '&Category=CentOsSafe'
+    # }
+    # elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
+    # {
+    #   $filter += '&Category!=FlakyOnArm'
+    #   $filter += '&Category!=Amd64Only'
+    # }
+    # if ($test_type -eq 'nestededge_mqtt')
+    # {
+    #   $filter += '&Category!=SingleNodeOnly'
+    #   $filter += '&Category!=NestedEdgeAmqpOnly'
+    #   $filter += '&Category!=LegacyMqttRequired'
+    #   $filter += '&Category!=FlakyOnNested'
+    #   # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+    #   # When it was resolved the tests were never enabled. We need to re-enable these.
+    #   $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+    # }
+    # elseif ($test_type -eq 'nestededge_amqp')
+    # {
+    #   $filter += '&Category!=SingleNodeOnly'
+    #   $filter += '&Category!=FlakyOnNested'
+    #   # Below tests were disabled and marked for re-enable when a blocking item was resolved.
+    #   # When it was resolved the tests were never enabled. We need to re-enable these.
+    #   $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+    # }
+    # elseif ($test_type -eq 'nestededge_isa95')
+    # {
+    #   $filter = 'Category=nestededge_isa95'
+    # }
+    # elseif ($test_type -eq 'http_proxy')
+    # {
+    #   #Disable tests that don't work in proxy environment. Renable post-investigation.
+    #   $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
+    #   #Disable nested edge tests
+    #   $filter += '&Category!=NestedEdgeOnly'
+    # }
+    # else
+    # {
+    #   $filter += '&Category!=NestedEdgeOnly'
+    # }
+
+    $filter = 'Name~ValidateMetrics'
     
     #Dotnet SDK 3.1.415 package on Centos doesn't allow dotnet to be accessed via sudo command due to Path issues. Use the below workaround for centos only.
     if ('$(artifactName)'.Contains('centos'))

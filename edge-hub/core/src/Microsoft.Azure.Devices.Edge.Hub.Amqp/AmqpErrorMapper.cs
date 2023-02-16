@@ -8,12 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     public static class AmqpErrorMapper
     {
         // Error codes
-        static readonly AmqpSymbol MessageLockLostError = AmqpConstants.Vendor + ":message-lock-lost";
-        static readonly AmqpSymbol IotHubNotFoundError = AmqpConstants.Vendor + ":iot-hub-not-found-error";
         static readonly AmqpSymbol ArgumentError = AmqpConstants.Vendor + ":argument-error";
         static readonly AmqpSymbol DeviceContainerThrottled = AmqpConstants.Vendor + ":device-container-throttled";
         static readonly AmqpSymbol PreconditionFailed = AmqpConstants.Vendor + ":precondition-failed";
-        static readonly AmqpSymbol IotHubSuspended = AmqpConstants.Vendor + ":iot-hub-suspended";
 
         // Maps the ErrorCode of an IotHubException into an appropriate AMQP error code
         public static AmqpSymbol GetErrorCondition(ErrorCode errorCode)
@@ -28,25 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     return ArgumentError;
 
                 case ErrorCode.IotHubUnauthorizedAccess:
-                case ErrorCode.IotHubUnauthorized:
                     return AmqpErrorCode.UnauthorizedAccess;
 
                 case ErrorCode.DeviceNotFound:
                     return AmqpErrorCode.NotFound;
 
-                case ErrorCode.DeviceMessageLockLost:
-                    return MessageLockLostError;
-
                 case ErrorCode.IotHubQuotaExceeded:
                 case ErrorCode.DeviceMaximumQueueDepthExceeded:
-                case ErrorCode.IotHubMaxCbsTokenExceeded:
                     return AmqpErrorCode.ResourceLimitExceeded;
-
-                case ErrorCode.IotHubSuspended:
-                    return IotHubSuspended;
-
-                case ErrorCode.IotHubNotFound:
-                    return IotHubNotFoundError;
 
                 case ErrorCode.PreconditionFailed:
                     return PreconditionFailed;
