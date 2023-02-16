@@ -515,7 +515,6 @@ stages:
         do
           from="$(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-$arch"
           to="$(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-$arch"
-          echo $"\n$from --> $to"
           scripts/linux/moveImage.sh --from "$from" --to "$to"
         done
       displayName: Publish Metrics Collector images
