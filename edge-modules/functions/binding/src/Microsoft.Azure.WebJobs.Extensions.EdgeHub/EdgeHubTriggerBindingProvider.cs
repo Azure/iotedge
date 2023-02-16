@@ -7,6 +7,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Azure.WebJobs.Host.Triggers;
 
     /// <summary>
@@ -14,10 +15,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     /// It's TryCreateAsync method is called by the runtime for all job parameters, giving it a chance to return a binding.
     /// Please see <see href="https://github.com/Azure/azure-webjobs-sdk-extensions/wiki/Trigger-Binding-Extensions#binding-provider">Trigger Binding Extensions</see>
     /// </summary>
-    class EdgeHubTriggerBindingProvider : ITriggerBindingProvider
+    public class EdgeHubTriggerBindingProvider : ITriggerBindingProvider
     {
+        readonly INameResolver nameResolver;
         readonly ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>> receivers = new ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>>();
         ModuleClient moduleClient;
+
+        public EdgeHubTriggerBindingProvider(INameResolver nameResolver)
+        {
+            this.nameResolver = nameResolver;
+        }
 
         public async Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
         {
@@ -33,13 +40,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 return null;
             }
 
+            var inputName = (this.nameResolver?.ResolveWholeString(attribute.InputName) ?? attribute.InputName).ToLowerInvariant();
+
             await this.TrySetEventDefaultHandlerAsync();
 
             var messageProcessor = new EdgeHubMessageProcessor();
             var triggerBinding = new EdgeHubTriggerBinding(context.Parameter, messageProcessor);
 
             this.receivers.AddOrUpdate(
-                attribute.InputName.ToLowerInvariant(),
+                inputName,
                 // The function used to generate a value for an absent.
                 // Creates a new List and adds the message processor
                 (k) => new List<EdgeHubMessageProcessor>()
@@ -70,8 +79,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
         async Task<MessageResponse> FunctionsMessageHandler(Message message, object userContext)
         {
+            var inputName = message.InputName.ToLowerInvariant();
             byte[] payload = message.GetBytes();
-            if (this.receivers.TryGetValue(message.InputName.ToLowerInvariant(), out IList<EdgeHubMessageProcessor> functionReceivers))
+
+            if (this.receivers.TryGetValue(inputName, out IList<EdgeHubMessageProcessor> functionReceivers))
             {
                 foreach (EdgeHubMessageProcessor edgeHubTriggerBinding in functionReceivers)
                 {
