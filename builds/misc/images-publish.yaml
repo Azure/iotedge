@@ -192,16 +192,14 @@ jobs:
 
             - bash: |
                 VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
-                TAGS=$(echo "${VERSION%.*}")
-
-                TAGS_STR=$(echo "['$TAGS']")
-                TEMP_SENSOR_TAGS_STR=$(echo "['$TAGS','latest']")
+                TAGS=$(echo "${VERSION%.*}" | jq -Rc '[.]')
+                TEMP_SENSOR_TAGS=$(echo $TAGS | jq -c '. + ["latest"]')
 
                 echo "Version: $VERSION"
-                echo "tags : $TAGS_STR"
+                echo "tags : $TAGS"
 
-                echo "##vso[task.setvariable variable=tags;]$TAGS_STR"
-                echo "##vso[task.setvariable variable=tempSensor.tags;]$TEMP_SENSOR_TAGS_STR"
+                echo "##vso[task.setvariable variable=tags;]$TAGS"
+                echo "##vso[task.setvariable variable=tempSensor.tags;]$TEMP_SENSOR_TAGS"
               displayName: Set Version and Tags
 
             - script: |
