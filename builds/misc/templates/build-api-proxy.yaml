@@ -1,8 +1,6 @@
 parameters:
-  name: 'API proxy'
-  project: 'api-proxy-module'
-  configuration: 'release'
-  binDir: '$(Build.BinariesDirectory)'
+  pool.linux.amd64.name: ''
+  pool.linux.arm64.name: ''
 
 jobs:
   - job: BuildApiProxy
@@ -11,21 +9,29 @@ jobs:
       maxParallel: 3
       matrix:
         amd64:
-          arch: "x86_64"
+          arch: x86_64
+          pool: ${{ parameters['pool.linux.amd64.name'] }}
+          agent_image: agent-aziotedge-ubuntu-20.04-docker
         arm32:
-          arch: "armv7l"
+          arch: armv7l
+          pool: ${{ parameters['pool.linux.arm64.name'] }}
+          agent_image: agent-aziotedge-ubuntu-20.04-arm64-docker
         arm64:
-          arch: "aarch64"
+          arch: aarch64
+          pool: ${{ parameters['pool.linux.arm64.name'] }}
+          agent_image: agent-aziotedge-ubuntu-20.04-arm64-docker
+    pool:
+      name: $(pool)
+      demands:
+      - ImageOverride -equals $(agent_image)
     steps:
     - script: |
-        scripts/linux/buildAPIProxy.sh \
-          -P ${{ parameters.project }} \
-          -c ${{ parameters.configuration }} \
+        scripts/linux/buildApiProxy.sh \
           --target-arch $(arch) \
-          --bin-dir ${{ parameters.binDir }}
-      displayName: Build API-Proxy - $(arch)
+          --bin-dir '$(Build.BinariesDirectory)'
+      displayName: Build API Proxy - $(arch)
     - task: PublishBuildArtifacts@1
       inputs:
-        pathtoPublish: '${{ parameters.binDir }}/publish'
+        pathtoPublish: '$(Build.BinariesDirectory)/publish'
         artifactName: api_proxy_$(arch)
         storeAsTar: true

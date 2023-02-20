@@ -5,6 +5,10 @@
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
 FROM arm32v7/nginx:1.23
+
+ARG TARGETPLATFORM
+ARG TARGETOS
+
 WORKDIR /app
 
 RUN apt-get update && \
@@ -19,10 +23,10 @@ RUN chown -R nginx:nginx /app && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx
 RUN touch /var/run/nginx.pid && \
-        chown -R nginx:nginx /var/run/nginx.pid
+    chown -R nginx:nginx /var/run/nginx.pid 
 
-COPY ./docker/linux/arm32v7/api-proxy-module .
-COPY ./docker/linux/arm32v7/templates .
+COPY ./docker/$TARGETPLATFORM/api-proxy-module .
+COPY ./docker/$TARGETOS/templates .
 
 USER nginx
 

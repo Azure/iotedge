@@ -134,7 +134,7 @@ pub fn nginx_controller_start(
         loop {
             let nginx_start = nginx_command(proxy_name, program_path, &start_proxy_args, "start")?;
             futures_util::pin_mut!(nginx_start);
-            info!("Starting/Restarting API-Proxy");
+            info!("Starting/Restarting API Proxy");
 
             loop {
                 let nginx_start = nginx_start.wait().fuse();

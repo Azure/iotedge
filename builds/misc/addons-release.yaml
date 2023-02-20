@@ -19,6 +19,9 @@ stages:
   jobs:
   # Build API Proxy executable
   - template: templates/build-api-proxy.yaml
+    parameters:
+      pool.linux.amd64.name: $(pool.linux.name)
+      pool.linux.arm64.name: $(pool.linux.arm.name)
 
 # TODO: Consider removing this consolidate stage, which is here mostly for
 # consistency with build-images.yaml and images-release.yaml.

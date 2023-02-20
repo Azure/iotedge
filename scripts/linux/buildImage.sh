@@ -180,20 +180,9 @@ process_args() {
         print_help_and_exit
     fi
 
-    # The API proxy module has separate Dockerfiles for each supported platform
-    if [[ "$APP" == 'api-proxy-module' ]]; then
-        if [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/amd64/Dockerfile" ]]; then
-            echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/Dockerfile'"
-            print_help_and_exit
-        elif [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/arm64v8/Dockerfile" ]]; then
-            echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/Dockerfile'"
-            print_help_and_exit
-        elif [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/arm32v7/Dockerfile" ]]; then
-            echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/Dockerfile'"
-            print_help_and_exit
-        fi
-    elif [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/Dockerfile" ]]; then
-        echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/Dockerfile'"
+    # The API proxy module has a separate (non-Alpine) Dockerfile for arm32v7
+    if [[ "$APP" == 'api-proxy-module' ]] && [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/arm32v7/Dockerfile" ]]; then
+        echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/arm32v7/Dockerfile'"
         print_help_and_exit
     fi
 
@@ -228,15 +217,21 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
         CONVERTED_PLATFORM="$(convert_platform $PLATFORM)"
         PLAT_IMAGE="$IMAGE-$CONVERTED_PLATFORM"
 
+        API_PROXY_DOCKERFILE="$DOCKERFILE"
+        # The Dockerfile at the standard location for api-proxy-module only builds amd64 and arm64v8,
+        # so adjust for location for arm32v7
+        if [[ "$CONVERTED_PLATFORM" == 'linux-arm32v7' ]]; then
+            API_PROXY_DOCKERFILE="$APP_BINARIESDIRECTORY/docker/${CONVERTED_PLATFORM/-/\/}/Dockerfile"
+        fi
+
         if [[ -n "$SOURCE_MAP" ]]; then
-            BUILD_CONTEXT=$(gnarly --mod-config $SOURCE_MAP \
-                "$APP_BINARIESDIRECTORY/docker/${CONVERTED_PLATFORM/-/\/}/Dockerfile")
+            BUILD_CONTEXT=$(gnarly --mod-config $SOURCE_MAP "$API_PROXY_DOCKERFILE")
         fi
 
         docker buildx build \
             --no-cache \
             --platform "$PLATFORM" \
-            --file "$APP_BINARIESDIRECTORY/docker/${CONVERTED_PLATFORM/-/\/}/Dockerfile" \
+            --file "$API_PROXY_DOCKERFILE" \
             --output=type=registry,name=$PLAT_IMAGE \
             --build-arg EXE_DIR=. \
             $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
