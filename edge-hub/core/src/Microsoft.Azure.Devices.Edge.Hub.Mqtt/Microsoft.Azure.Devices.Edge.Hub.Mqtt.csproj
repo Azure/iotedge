@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.ProtocolGateway.Core" Version="2.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="5.0.0" />
     <!--
       We have a transitive dependency on Dotnetty via Microsoft.Azure.Devices.ProtocolGateway.Core.
       Use explicit references here to override the version and fix a known OOM bug. See
