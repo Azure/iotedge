@@ -18,6 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- NOTE: If you change the version of Antlr4 here, you also have to change <FullAntlr4ToolLocation> below -->
     <PackageReference Include="Antlr4" Version="4.6.6" />
     <!--
       We have a transitive dependency on System.Net.Http/4.1.0 via Antlr4/4.6.6. Use an explicit
@@ -70,7 +71,7 @@
 
   <Target Name="Antlr4CodeGen" BeforeTargets="Antlr4Sources" Inputs="@(Antlr4Inputs)" Outputs="@(Antlr4Outputs)" Condition="'$(BuildingInsideVisualStudio)' != 'true' Or '$(OS)' != 'Windows_NT'">
     <PropertyGroup>
-      <FullAntlr4ToolLocation>$(NuGetPackageRoot)antlr4.codegenerator/4.6.1-beta002/tools/antlr4-csharp-4.6.1-SNAPSHOT-complete.jar</FullAntlr4ToolLocation>
+      <FullAntlr4ToolLocation>$(NuGetPackageRoot)antlr4.codegenerator/4.6.6/tools/antlr4-csharp-4.6.6-complete.jar</FullAntlr4ToolLocation>
     </PropertyGroup>
     <Exec Command="$(JavaRuntime) -version" EchoOff="true" />
     <MakeDir Directories="grammar\generated" />
