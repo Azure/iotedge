@@ -21,7 +21,7 @@
     <!-- NOTE: If you change the version of Antlr4 here, you also have to change <FullAntlr4ToolLocation> below -->
     <PackageReference Include="Antlr4" Version="4.6.6" />
     <!--
-      We have a transitive dependency on System.Net.Http/4.1.0 via Antlr4/4.6.6. Use an explicit
+      We have a transitive dependency on System.Net.Http via Antlr4/4.6.6. Use an explicit
       reference here to override the version and fix a vulnerability. See
       https://github.com/advisories/GHSA-7jgj-8wvc-jh57.
     -->
