@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using Newtonsoft.Json;
     using static System.FormattableString;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
+    using Metrics = Util.Metrics.Metrics;
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     /// <summary>
