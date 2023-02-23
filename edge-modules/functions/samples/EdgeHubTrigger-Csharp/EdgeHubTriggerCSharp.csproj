@@ -21,13 +21,23 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.1.22" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.13" />
+    <!--
+      We have a transitive dependency on System.Net.Http via Microsoft.NET.Sdk.Functions/3.0.13.
+      Use an explicit reference here to override the version and fix a vulnerability. See
+      https://github.com/advisories/GHSA-7jgj-8wvc-jh57.
+    -->
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+    <!--
+      We have a transitive dependency on System.Text.RegularExpressions via
+      Microsoft.NET.Sdk.Functions/3.0.13. Use an explicit reference here to override the version
+      and fix a vulnerability. See https://github.com/advisories/GHSA-cmhx-cq75-c4mj.
+    -->
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
     <PackageReference Include="System.Text.Encodings.Web" Version="4.7.2" />
   </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\..\binding\src\Microsoft.Azure.WebJobs.Extensions.EdgeHub\Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj" />
   </ItemGroup>
