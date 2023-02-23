@@ -13,7 +13,7 @@
     <!--
       We have a transitive dependency on System.Text.RegularExpressions via
       App.Metrics.Formatters.Prometheus/4.3.0. Use an explicit reference here to override the
-      version and fix a vulnerability. See https://github.com/advisories/GHSA-ghhp-997w-qr28.
+      version and fix a vulnerability. See https://github.com/advisories/GHSA-cmhx-cq75-c4mj.
     -->
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />

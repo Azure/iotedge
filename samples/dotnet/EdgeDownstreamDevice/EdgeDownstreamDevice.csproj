@@ -25,7 +25,7 @@
     <!--
       We have a transitive dependency on System.Text.RegularExpressions via
       Microsoft.Azure.Devices.Client/1.36.6. Use an explicit reference here to override the version
-      and fix a vulnerability. See https://github.com/advisories/GHSA-ghhp-997w-qr28.
+      and fix a vulnerability. See https://github.com/advisories/GHSA-cmhx-cq75-c4mj.
     -->
     <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
   </ItemGroup>
