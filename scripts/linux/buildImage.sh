@@ -209,6 +209,7 @@ docker buildx create --use --bootstrap
 trap "docker buildx rm" EXIT
 
 if [[ "$APP" == 'api-proxy-module' ]]; then
+    APPEND=0
     IFS=',' read -a ARCH_ARR <<< "$ARCH_LIST"
     for ARCH in ${ARCH_ARR[@]}
     do
@@ -226,7 +227,12 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
             $APP_BINARIESDIRECTORY
 
         # Next, append the single-arch image (plus provenance) to multi-arch image
-        docker buildx imagetools create --append --tag $IMAGE $ARCH_IMAGE
+        if [[ "$APPEND" -eq 0 ]]; then
+            docker buildx imagetools create --tag $IMAGE $ARCH_IMAGE
+            APPEND=1
+        else
+            docker buildx imagetools create --append --tag $IMAGE $ARCH_IMAGE
+        fi
     done
 else
     # First, build the complete multi-arch image
