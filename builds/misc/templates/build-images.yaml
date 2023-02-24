@@ -153,6 +153,8 @@ stages:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     dependsOn: ConsolidateAndPubishArtifacts
     jobs:
+
+    # Product images
     - job: BuildImageEdgeAgent
       steps:
       - template: image-linux.yaml
@@ -191,6 +193,25 @@ stages:
           project: IotedgeDiagnosticsDotnet
           version: $(Build.BuildNumber)
 
+    - job: BuildImageMetricsCollector
+      steps:
+      - template: image-linux.yaml
+        parameters:
+          name: Metrics Collector
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          version: $(Build.BuildNumber)
+
+    - job: BuildImageApiProxy
+      steps:
+      - template: image-linux.yaml
+        parameters:
+          name: API Proxy
+          imageName: azureiotedge-api-proxy
+          project: api-proxy-module
+          version: $(Build.BuildNumber)
+
+    # Test images
     - job: BuildImageTemperatureFilter
       steps:
       - template: image-linux.yaml
@@ -347,24 +368,6 @@ stages:
           name: Cloud To Device Message Tester
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
-          version: $(Build.BuildNumber)
-
-    - job: BuildImageMetricsCollector
-      steps:
-      - template: image-linux.yaml
-        parameters:
-          name: Metrics Collector
-          imageName: azureiotedge-metrics-collector
-          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
-          version: $(Build.BuildNumber)
-
-    - job: BuildImageApiProxy
-      steps:
-      - template: image-linux.yaml
-        parameters:
-          name: API Proxy
-          imageName: azureiotedge-api-proxy
-          project: api-proxy-module
           version: $(Build.BuildNumber)
 
 ################################################################################
