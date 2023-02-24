@@ -209,7 +209,8 @@ docker buildx create --use --bootstrap
 trap "docker buildx rm" EXIT
 
 if [[ "$APP" == 'api-proxy-module' ]]; then
-    # First, build each platform-specific image from a separate Dockerfile
+    # First, build each platform-specific image from a separate Dockerfile. This will technically
+    # build a multi-arch image with a single architecture, plus provenance metadata
     ARCH_IMAGES=()
     IFS=',' read -a ARCH_ARR <<< "$ARCH_LIST"
     for ARCH in ${ARCH_ARR[@]}
@@ -228,7 +229,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
         ARCH_IMAGES+=( $ARCH_IMAGE )
     done
 
-    # Next, build the multi-arch image
+    # Next, build the multi-arch image from the single-architecture images
     docker buildx imagetools create --tag $IMAGE ${ARCH_IMAGES[@]}
 else
     # First, build the complete multi-arch image
