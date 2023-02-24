@@ -98,7 +98,7 @@ process_args() {
         else
             case "$arg" in
             "-a" | "--app") save_next_arg=1 ;;
-            "-b" | "--bin-dir") save_next_arg=2 ;;
+            "-b" | "--bin") save_next_arg=2 ;;
             "-h" | "--help") usage ;;
             "-m" | "--source-map") save_next_arg=3 ;;
             "-n" | "--name") save_next_arg=4 ;;
