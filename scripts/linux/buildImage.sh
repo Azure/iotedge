@@ -177,6 +177,10 @@ process_args() {
         echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/Dockerfile'"
         print_help_and_exit
     fi
+
+    if ! command -v jq > /dev/null; then
+        command jq
+    fi
 }
 
 ###############################################################################
