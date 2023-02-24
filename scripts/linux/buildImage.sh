@@ -216,7 +216,8 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
         ARCH_IMAGE="$IMAGE-linux-$(convert_arch $ARCH)"
 
         # First, build each platform-specific image from a separate Dockerfile. This will
-        # technically build a multi-arch image with a single architecture, plus provenance metadata
+        # technically build a multi-arch image that contains a single architecture and provenance
+        # metadata
         docker buildx build \
             --no-cache \
             --platform "linux/$ARCH" \
@@ -226,13 +227,22 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
             $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
             $APP_BINARIESDIRECTORY
 
-        # Next, append the single-arch image (plus provenance) to multi-arch image
+        # Next, append the single-arch image (plus provenance) to the multi-arch image
         if [[ "$APPEND" -eq 0 ]]; then
             docker buildx imagetools create --tag $IMAGE $ARCH_IMAGE
             APPEND=1
         else
             docker buildx imagetools create --append --tag $IMAGE $ARCH_IMAGE
         fi
+
+        # Finally, tag the single-arch image directly
+        # TODO: what should we do about the orphaned multi-arch-with-one-arch image?
+        digest=$(docker buildx imagetools inspect $ARCH_IMAGE --format '{{json .Manifest}}' |
+            jq -r --arg arch "$ARCH" '
+                .manifests[] |
+                select($arch == ([.platform | (.architecture, .variant // empty)] | join("/"))) |
+                .digest')
+        docker buildx imagetools create --tag $ARCH_IMAGE $ARCH_IMAGE@$digest
     done
 else
     # First, build the complete multi-arch image
@@ -255,8 +265,7 @@ else
                 select($arch == ([.platform | (.architecture, .variant // empty)] | join("/"))) |
                 .digest')
 
-        suffix=$(convert_arch $ARCH)
-        docker buildx imagetools create --tag "$IMAGE-linux-$suffix" "$IMAGE@$digest"
+        docker buildx imagetools create --tag "$IMAGE-linux-$(convert_arch $ARCH)" "$IMAGE@$digest"
     done
 fi
 
