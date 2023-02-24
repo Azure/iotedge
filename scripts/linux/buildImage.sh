@@ -219,7 +219,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
         docker buildx build \
             --no-cache \
             --platform "linux/$ARCH" \
-            --file "$APP_BINARIESDIRECTORY/docker/linux/$ARCH/Dockerfile" \
+            --file "$APP_BINARIESDIRECTORY/docker/linux/$(convert_arch $ARCH)/Dockerfile" \
             --output=type=$OUTPUT_TYPE,name=$ARCH_IMAGE \
             --build-arg EXE_DIR=. \
             $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
