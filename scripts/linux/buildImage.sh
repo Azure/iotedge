@@ -220,7 +220,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
             --no-cache \
             --platform "linux/$ARCH" \
             --file "$APP_BINARIESDIRECTORY/docker/linux/$ARCH/Dockerfile" \
-            --output=type=$OUTPUT_TYPE,name=$ARCH_IMAGE,buildinfo-attrs=true \
+            --output=type=$OUTPUT_TYPE,name=$ARCH_IMAGE \
             --build-arg EXE_DIR=. \
             $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
             $APP_BINARIESDIRECTORY
@@ -236,7 +236,7 @@ else
         --no-cache \
         --platform "$PLATFORMS" \
         --file "$DOCKERFILE" \
-        --output=type=$OUTPUT_TYPE,name=$IMAGE,buildinfo-attrs=true \
+        --output=type=$OUTPUT_TYPE,name=$IMAGE \
         --build-arg EXE_DIR=. \
         $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
         "$APP_BINARIESDIRECTORY"
