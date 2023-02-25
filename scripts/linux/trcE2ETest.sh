@@ -837,11 +837,13 @@ function configure_longhaul_settings() {
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
 
     if [ "$image_architecture_label" = 'amd64' ]; then
+        log_upload_enabled=true
         log_rotation_max_file="125"
         log_rotation_max_file_edgehub="400"
     fi
     if [ "$image_architecture_label" = 'arm32v7' ] ||
         [ "$image_architecture_label" = 'arm64v8' ]; then
+        log_upload_enabled=false
         log_rotation_max_file="7"
         log_rotation_max_file_edgehub="30"
 
@@ -885,6 +887,8 @@ function configure_connectivity_settings() {
     CHECK_TRC_DELAY="${TEST_START_DELAY:-00:30:00}"
 
     TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
+
+    log_upload_enabled=false
 }
 
 LONGHAUL_TEST_NAME="LongHaul"
@@ -917,7 +921,6 @@ quickstart_working_folder="$working_folder/quickstart"
 
 if [ "$image_architecture_label" = 'amd64' ]; then
     optimize_for_performance=true
-    log_upload_enabled=true
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:01"
     TWIN_UPDATE_FREQUENCY="00:00:15"
@@ -926,7 +929,6 @@ fi
 if [ "$image_architecture_label" = 'arm32v7' ] ||
     [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
-    log_upload_enabled=false
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:10"
     TWIN_UPDATE_FREQUENCY="00:01:00"
