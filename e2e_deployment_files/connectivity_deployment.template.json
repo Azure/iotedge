@@ -390,7 +390,16 @@
               },
               "topology": {
                 "value": "<Topology>"
-              }
+              },
+              "logAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
+              },
+              "logAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
+              },
+              "logAnalyticsLogType": {
+                "value": "<TestResultCoordinator.LogAnalyticsLogType>"
+              },
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
