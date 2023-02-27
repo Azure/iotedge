@@ -310,6 +310,14 @@ function print_test_run_logs() {
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
+    print_highlighted_message 'aziot-edged LOGS'
+    journalctl -u aziot-edged --since "20 minutes ago" --no-pager || true
+    print_highlighted_message 'aziot-keyd LOGS'
+    journalctl -u aziot-keyd --since "20 minutes ago" --no-pager || true
+    print_highlighted_message 'aziot-identityd LOGS'
+    journalctl -u aziot-identityd --since "20 minutes ago" --no-pager || true
+    print_highlighted_message 'aziot-certd LOGS'
+    journalctl -u aziot-certd --since "20 minutes ago" --no-pager || true
 }
 
 function process_args() {
