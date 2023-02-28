@@ -248,12 +248,6 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
 
     # Finally, tag each platform-specific image. This will untag the intermediate manifest lists,
     # which are no longer needed.
-    #
-    # Note: Using 'docker buildx imagetools create' won't work here because it always creates a
-    #       manifest list. We want our platform-specific image tags to point directly to platform-
-    #       specific images to be consistent with previous versions. We've also had tooling problems
-    #       when publishing platform-specific images as manifest lists in the past. For these
-    #       reasons, we use the Docker v2 Registry APIs directly. See manifest-tools.sh.
     source "$SCRIPT_DIR/manifest-tools.sh"
 
     REGISTRY="$DOCKER_REGISTRY" \
@@ -272,12 +266,6 @@ else
         "$APP_BINARIESDIRECTORY"
 
     # Next, tag each platform-specific image
-    #
-    # Note: Using 'docker buildx imagetools create' won't work here because it always creates a
-    #       manifest list. We want our platform-specific image tags to point directly to platform-
-    #       specific images to be consistent with previous versions. We've also had tooling problems
-    #       when publishing platform-specific images as manifest lists in the past. For these
-    #       reasons, we use the Docker v2 Registry APIs directly. See manifest-tools.sh.
     source "$SCRIPT_DIR/manifest-tools.sh"
 
     REGISTRY="$DOCKER_REGISTRY" \

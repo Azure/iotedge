@@ -11,8 +11,11 @@ set -euo pipefail
 # Define Environment Variables
 ###############################################################################
 SCRIPT_NAME=$(basename $0)
-FROM_IMAGE=
-TO_IMAGE=
+DST_REPO=
+DST_TAG=
+REGISTRY=
+SRC_REF=
+SRC_REPO=
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -23,8 +26,11 @@ usage()
     echo "Note: Depending on the options you might have to run this as root or sudo."
     echo ""
     echo "options"
-    echo " -f, --from           Fully qualified source image"
-    echo " -t, --to             Fully qualified destination image"
+    echo " --dst-repo           Destination repository"
+    echo " --dst-tag            Destination tag"
+    echo " --registry           Target image registry"
+    echo " --src-ref            Source tag or digest"
+    echo " --src-repo           Source repository"
     exit 1;
 }
 
@@ -43,28 +49,55 @@ process_args()
     for arg in $@
     do
         if [ $save_next_arg -eq 1 ]; then
-            FROM_IMAGE="$arg"
+            DST_REPO="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
-            TO_IMAGE="$arg"
+            DST_TAG="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
+            REGISTRY="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 4 ]; then
+            SRC_REF="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 5 ]; then
+            SRC_REPO="$arg"
             save_next_arg=0
         else
             case "$arg" in
+                "--dst-repo") save_next_arg=1;;
+                "--dst-tag" ) save_next_arg=2;;
+                "--registry") save_next_arg=3;;
+                "--src-ref" ) save_next_arg=4;;
+                "--src-repo") save_next_arg=5;;
                 "-h" | "--help" ) usage;;
-                "-f" | "--from" ) save_next_arg=1;;
-                "-t" | "--to" ) save_next_arg=2;;
                 * ) usage;;
             esac
         fi
     done
 
-    if [[ -z "$FROM_IMAGE" ]]; then
-        echo "From image invalid"
+    if [[ -z "$DST_REPO" ]]; then
+        echo "Required parameter --dst-repo not found"
         print_help_and_exit
     fi
 
-    if [[ -z "$TO_IMAGE" ]]; then
-        echo "To image invalid"
+    if [[ -z "$DST_TAG" ]]; then
+        echo "Required parameter --dst-tag not found"
+        print_help_and_exit
+    fi
+
+    if [[ -z "$REGISTRY" ]]; then
+        echo "Required parameter --registry not found"
+        print_help_and_exit
+    fi
+
+    if [[ -z "$SRC_REF" ]]; then
+        echo "Required parameter --src-ref not found"
+        print_help_and_exit
+    fi
+
+    if [[ -z "$SRC_REPO" ]]; then
+        echo "Required parameter --src-repo not found"
         print_help_and_exit
     fi
 }
@@ -74,5 +107,13 @@ process_args()
 ###############################################################################
 process_args "$@"
 
-echo "Copy $FROM_IMAGE to $TO_IMAGE"
-docker buildx imagetools create --tag "$TO_IMAGE" "$FROM_IMAGE"
+if [[ "${SRC_REF:0:7}" == "sha256:" ]]; then
+    ref="@$SRC_REF"
+else
+    ref=":$SRC_REF"
+fi
+
+echo "Copy $REPOSITORY/$SRC_REPO$ref to $REPOSITORY/$DST_REPO:$DST_TAG"
+
+source "$SCRIPT_DIR/manifest-tools.sh"
+copy_manifest
