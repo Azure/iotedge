@@ -19,12 +19,13 @@ set -euo pipefail
 ###############################################################################
 # Define Environment Variables
 ###############################################################################
-ARCH_LIST='amd64,arm/v7,arm64'
+APP=
 APP_BINARIESDIRECTORY=
+ARCH_LIST='amd64,arm/v7,arm64'
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 DOCKER_IMAGENAME=
 DOCKER_NAMESPACE='microsoft'
-APP=
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 SCRIPT_NAME=$(basename "$0")
 SKIP_PUSH=0
 SOURCE_MAP=
@@ -234,7 +235,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
 
     # Finally, tag each single-arch image. This will untag the intermediate manifest list, which
     # is no longer needed.
-    source ./manifest-tools.sh
+    source "$SCRIPT_DIR/manifest-tools.sh"
 
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
@@ -252,7 +253,7 @@ else
         "$APP_BINARIESDIRECTORY"
 
     # Next, tag each arch-specific image
-    source ./manifest-tools.sh
+    source "$SCRIPT_DIR/manifest-tools.sh"
 
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
