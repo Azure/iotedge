@@ -372,35 +372,35 @@ stages:
       steps:
       - template: templates/image-linux.yaml
         parameters:
-          imageName: azureiotedge-hub
-          name: "Edge Hub"
-          project: Microsoft.Azure.Devices.Edge.Hub.Service
+          app: Microsoft.Azure.Devices.Edge.Hub.Service
+          name: azureiotedge-hub
+          displayName: Edge Hub
           version: $(version)
           use_rocksdb: true
     - job: BuildImageEdgeAgent
       steps:
       - template: templates/image-linux.yaml
         parameters:
-          imageName: azureiotedge-agent
-          name: "Edge Agent"
-          project: Microsoft.Azure.Devices.Edge.Agent.Service
+          app: Microsoft.Azure.Devices.Edge.Agent.Service
+          name: azureiotedge-agent
+          displayName: Edge Agent
           version: $(version)
           use_rocksdb: true
     - job: BuildImageTemperatureSensor
       steps:
       - template: templates/image-linux.yaml
         parameters:
-          imageName: azureiotedge-simulated-temperature-sensor
-          name: "Temperature Sensor"
-          project: SimulatedTemperatureSensor
+          app: SimulatedTemperatureSensor
+          name: azureiotedge-simulated-temperature-sensor
+          displayName: Temperature Sensor
           version: $(version)
     - job: BuildImageDiagnostics
       steps:
       - template: templates/image-linux.yaml
         parameters:
-          imageName: azureiotedge-diagnostics
-          name: "Diagnostics Module"
-          project: IotedgeDiagnosticsDotnet
+          app: IotedgeDiagnosticsDotnet
+          name: azureiotedge-diagnostics
+          displayName: Diagnostics Module
           version: $(version)
 
 ################################################################################

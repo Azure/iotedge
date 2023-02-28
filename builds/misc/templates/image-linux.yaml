@@ -1,13 +1,14 @@
 parameters:
-  name: ''
-  imageName: ''
-  namespace: 'microsoft'
-  project: ''
-  version: ''
+  app: ''
   bin_dir: '$(Build.BinariesDirectory)'
-  use_rocksdb: false
-  download_artifacts: true
   buildManifest: false
+  displayName: ''
+  download_artifacts: true
+  name: ''
+  namespace: 'microsoft'
+  platforms: 'linux/amd64,linux/arm/v7,linux/arm64'
+  use_rocksdb: false
+  version: ''
 
 steps:
   - task: DownloadBuildArtifacts@0
@@ -29,12 +30,12 @@ steps:
       targetFolder: '$(Build.BinariesDirectory)/publish'          
 
   - task: CopyFiles@2
-    displayName: Copy RocksDB libs into project
+    displayName: Copy RocksDB libs into app
     condition: and(succeeded(), eq('${{ parameters.use_rocksdb }}', 'true'))
     inputs:
       sourceFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
       contents: '**'
-      targetFolder: '$(Build.BinariesDirectory)/publish/${{ parameters.project }}/librocksdb'          
+      targetFolder: '$(Build.BinariesDirectory)/publish/${{ parameters.app }}/librocksdb'          
 
   - task: Docker@2
     displayName: Docker login - CI
@@ -50,42 +51,21 @@ steps:
 
   - script: |
       scripts/linux/buildImage.sh \
-        --app "${{ parameters.project }}" \
-        --bin "${{ parameters.bin_dir }}" \
-        --name "${{ parameters.imageName }}" \
-        --registry "$(registry.address)" \
-        --version "${{ parameters.version }}" \
+        --app '${{ parameters.app }}' \
+        --bin '${{ parameters.bin_dir }}' \
+        --name '${{ parameters.name }}' \
+        --platforms '${{ parameters.platforms }}' \
+        --registry '$(registry.address)' \
+        --version '${{ parameters.version }}' \
         --source-map '/etc/iotedge-source-map.json' \
-    displayName: Build Image - ${{ parameters.name }} - amd64
-
-  - script: |
-      scripts/linux/buildImage.sh \
-        --app "${{ parameters.project }}" \
-        --bin "${{ parameters.bin_dir }}" \
-        --name "${{ parameters.imageName }}" \
-        --registry "$(registry.address)" \
-        --version "${{ parameters.version }}" \
-        --source-map '/etc/iotedge-source-map.json' \
-    displayName: Build Image - ${{ parameters.name }} - arm/v7
-    condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
-
-  - script: |
-      scripts/linux/buildImage.sh \
-        --app "${{ parameters.project }}" \
-        --bin "${{ parameters.bin_dir }}" \
-        --name "${{ parameters.imageName }}" \
-        --registry "$(registry.address)" \
-        --version "${{ parameters.version }}" \
-        --source-map '/etc/iotedge-source-map.json' \
-    displayName: Build Image - ${{ parameters.name }} - arm64
-    condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
+    displayName: Build Image - ${{ parameters.displayName }}
 
   - script: |
       scripts/linux/buildManifest.sh \
         -r '$(registry.address)' \
-        -i '${{ parameters.imageName }}' \
+        -i '${{ parameters.name }}' \
         -n '${{ parameters.namespace }}' \
         -v '${{ parameters.version }}' \
         --tags '$(tags)'
-    displayName: Build Image Manifest - ${{ parameters.name }}
+    displayName: Build Image Manifest - ${{ parameters.displayName }}
     condition: and(${{ parameters.buildManifest }}, succeeded())

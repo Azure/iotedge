@@ -5,8 +5,8 @@
 # and tags it as:
 #   {registry}/{namespace}/{name}:{version}
 # Each platform-specific image is also tagged:
-#   {registry}/{namespace}/{name}:{version}-linux-{arch}
-# ...where {arch} is one of amd64, arm64v8, or arm32v7.
+#   {registry}/{namespace}/{name}:{version}-{platform}
+# ...where {platform} is one of linux-amd64, linux-arm64v8, or linux-arm32v7.
 #
 # The script expects that buildBranch.sh was invoked earlier and all the
 # application's files were published to the directory '{bin}/publish/{app}',
@@ -22,7 +22,7 @@ set -euo pipefail
 ###############################################################################
 APP=
 APP_BINARIESDIRECTORY=
-ARCH_LIST='amd64,arm/v7,arm64'
+PLATFORMS='linux/amd64,linux/arm/v7,linux/arm64'
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 DOCKER_IMAGENAME=
 DOCKER_NAMESPACE='microsoft'
@@ -31,20 +31,35 @@ SCRIPT_NAME=$(basename "$0")
 SOURCE_MAP=
 
 ###############################################################################
-# Convert from Docker's architecture format to our image tag format.
+# Check format and content of the --platforms argument
+###############################################################################
+check_platforms() {
+    IFS=',' read -a plat_arr <<< "$PLATFORMS"
+    for platform in ${plat_arr[@]}
+    do
+        case "$platform" in
+            'linux/amd64'|'linux/arm64'|'linux/arm/v7') ;;
+            *) echo "Unsupported platform '$platform'" && exit 1 ;;
+        esac
+    done
+}
+
+###############################################################################
+# Convert from Docker's platform format to our image tag format.
 # Docker's format:
-#   amd64, arm64, or arm/v7 (see Docker's TARGETARCH automatic variable[1])
+#   linux/amd64, linux/arm64, or linux/arm/v7
+#   (see Docker's TARGETPLATFORM automatic variable[1])
 # Our format:
-#   amd64,  arm64v8, and arm32v7
+#   linux-amd64,  linux-arm64v8, and linux-arm32v7
 # [1] https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 ###############################################################################
-convert_arch() {
-    arch="$1"
-    case "$arch" in
-        'amd64') echo 'amd64' ;;
-        'arm/v7') echo 'arm32v7' ;;
-        'arm64') echo 'arm64v8' ;;
-        *) echo "Unsupported architecture '$arch'" && exit 1 ;;
+convert_platform() {
+    platform="$1"
+    case "$platform" in
+        'linux/amd64') echo 'linux-amd64' ;;
+        'linux/arm64') echo 'linux-arm64v8' ;;
+        'linux/arm/v7') echo 'linux-arm32v7' ;;
+        *) echo "Unsupported platform '$platform'" && exit 1 ;;
     esac
 }
 
@@ -61,6 +76,7 @@ usage() {
     echo " -h, --help           Print this message and exit"
     echo " -m, --source-map     Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo " -n, --name           Image name (e.g. azureiotedge-agent)"
+    echo " -p, --platforms      Platforms to build. Default is '$PLATFORMS'"
     echo " -r, --registry       Docker registry required to build, tag and run the module"
     echo " -v, --version        App version. Either use this option or set env variable BUILD_BUILDNUMBER"
     exit 1
@@ -90,9 +106,13 @@ process_args() {
             DOCKER_IMAGENAME="$arg"
             save_next_arg=0
         elif [[ ${save_next_arg} -eq 5 ]]; then
-            DOCKER_REGISTRY="$arg"
+            PLATFORMS="$arg"
+            check_platforms
             save_next_arg=0
         elif [[ ${save_next_arg} -eq 6 ]]; then
+            DOCKER_REGISTRY="$arg"
+            save_next_arg=0
+        elif [[ ${save_next_arg} -eq 7 ]]; then
             DOCKER_IMAGEVERSION="$arg"
             save_next_arg=0
         else
@@ -102,8 +122,9 @@ process_args() {
             "-h" | "--help") usage ;;
             "-m" | "--source-map") save_next_arg=3 ;;
             "-n" | "--name") save_next_arg=4 ;;
-            "-r" | "--registry") save_next_arg=5 ;;
-            "-v" | "--version") save_next_arg=6 ;;
+            "-p" | "--platforms") save_next_arg=5 ;;
+            "-r" | "--registry") save_next_arg=6 ;;
+            "-v" | "--version") save_next_arg=7 ;;
             *) echo "Unknown argument '$arg'"; usage ;;
             esac
         fi
@@ -189,7 +210,6 @@ process_args $@
 BUILD_CONTEXT=
 DOCKERFILE="$APP_BINARIESDIRECTORY/docker/linux/Dockerfile"
 IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION"
-PLATFORMS="linux/${ARCH_LIST//,/,linux/}"
 
 echo "Building and pushing image '$IMAGE'"
 
@@ -206,15 +226,15 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     #   1. a platform-specific image
     #   2. a provenance artifact
     PLAT_IMAGES=()
-    IFS=',' read -a ARCH_ARR <<< "$ARCH_LIST"
-    for ARCH in ${ARCH_ARR[@]}
+    IFS=',' read -a PLAT_ARR <<< "$PLATFORMS"
+    for PLATFORM in ${PLAT_ARR[@]}
     do
-        PLAT_IMAGE="$IMAGE-linux-$(convert_arch $ARCH)"
+        PLAT_IMAGE="$IMAGE-$(convert_platform $PLATFORM)"
 
         docker buildx build \
             --no-cache \
-            --platform "linux/$ARCH" \
-            --file "$APP_BINARIESDIRECTORY/docker/linux/$(convert_arch $ARCH)/Dockerfile" \
+            --platform "$PLATFORM" \
+            --file "$APP_BINARIESDIRECTORY/docker/$PLATFORM/Dockerfile" \
             --output=type=registry,name=$PLAT_IMAGE \
             --build-arg EXE_DIR=. \
             $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \

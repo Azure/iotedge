@@ -241,11 +241,11 @@ stages:
 
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Metrics Collector
-        imageName: azureiotedge-metrics-collector
-        project: Microsoft.Azure.Devices.Edge.Azure.Monitor
-        version: $(version)
+        app: Microsoft.Azure.Devices.Edge.Azure.Monitor
+        displayName: Metrics Collector
         download_artifacts: false
+        name: azureiotedge-metrics-collector
+        version: $(version)
         buildManifest: true
 
 ################################################################################

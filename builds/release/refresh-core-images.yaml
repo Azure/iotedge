@@ -378,9 +378,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        imageName: azureiotedge-agent
-        name: "Edge Agent"
-        project: Microsoft.Azure.Devices.Edge.Agent.Service
+        app: Microsoft.Azure.Devices.Edge.Agent.Service
+        name: azureiotedge-agent
+        displayName: Edge Agent
         version: $(version)
         use_rocksdb: true
         buildManifest: true
@@ -390,9 +390,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        imageName: azureiotedge-hub
-        name: "Edge Hub"
-        project: Microsoft.Azure.Devices.Edge.Hub.Service
+        app: Microsoft.Azure.Devices.Edge.Hub.Service
+        name: azureiotedge-hub
+        displayName: Edge Hub
         version: $(version)
         use_rocksdb: true
         buildManifest: true
@@ -402,9 +402,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        imageName: azureiotedge-simulated-temperature-sensor
-        name: "Temperature Sensor"
-        project: SimulatedTemperatureSensor
+        app: SimulatedTemperatureSensor
+        name: azureiotedge-simulated-temperature-sensor
+        displayName: Temperature Sensor
         version: $(version)
         buildManifest: true
 
@@ -413,9 +413,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        imageName: azureiotedge-diagnostics
-        name: "Diagnostics Module"
-        project: IotedgeDiagnosticsDotnet
+        app: IotedgeDiagnosticsDotnet
+        name: azureiotedge-diagnostics
+        displayName: Diagnostics Module
         version: $(diagnostics_version)
         buildManifest: true
 
@@ -425,9 +425,9 @@ stages:
     steps:
     - template: templates/image-linux.yaml
       parameters:
-        name: Metrics Collector
-        imageName: azureiotedge-metrics-collector
-        project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+        app: Microsoft.Azure.Devices.Edge.Azure.Monitor
+        displayName: Metrics Collector
+        name: azureiotedge-metrics-collector
         version: $(Build.BuildNumber)
 
   - job: MetricsValidator
@@ -435,9 +435,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Metrics Validator
-        imageName: azureiotedge-metrics-validator
-        project: MetricsValidator
+        app: MetricsValidator
+        displayName: Metrics Validator
+        name: azureiotedge-metrics-validator
         version: $(Build.BuildNumber)
 
   - job: DirectMethodSender
@@ -445,9 +445,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Direct Method Sender
-        imageName: azureiotedge-direct-method-sender
-        project: DirectMethodSender
+        app: DirectMethodSender
+        displayName: Direct Method Sender
+        name: azureiotedge-direct-method-sender
         version: $(Build.BuildNumber)
 
   - job: DirectMethodReceiver
@@ -455,9 +455,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Direct Method Receiver
-        imageName: azureiotedge-direct-method-receiver
-        project: DirectMethodReceiver
+        app: DirectMethodReceiver
+        displayName: Direct Method Receiver
+        name: azureiotedge-direct-method-receiver
         version: $(Build.BuildNumber)
 
   - job: NumberLogger
@@ -465,9 +465,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Number Logger
-        imageName: azureiotedge-number-logger
-        project: NumberLogger
+        app: NumberLogger
+        displayName: Number Logger
+        name: azureiotedge-number-logger
         version: $(Build.BuildNumber)
 
   - job: TemperatureFilter
@@ -475,9 +475,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Temperature Filter
-        imageName: azureiotedge-temperature-filter
-        project: TemperatureFilter
+        app: TemperatureFilter
+        displayName: Temperature Filter
+        name: azureiotedge-temperature-filter
         version: $(Build.BuildNumber)
 
   - job: LoadGen
@@ -485,9 +485,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Load Gen
-        imageName: azureiotedge-load-gen
-        project: load-gen
+        app: load-gen
+        displayName: Load Gen
+        name: azureiotedge-load-gen
         version: $(Build.BuildNumber)
 
   - job: TestResultCoordinator
@@ -495,9 +495,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: TestResultCoordinator
-        imageName: azureiotedge-test-result-coordinator
-        project: TestResultCoordinator
+        app: TestResultCoordinator
+        displayName: TestResultCoordinator
+        name: azureiotedge-test-result-coordinator
         version: $(Build.BuildNumber)
         use_rocksdb: true
 
@@ -506,9 +506,9 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Relayer
-        imageName: azureiotedge-relayer
-        project: Relayer
+        app: Relayer
+        displayName: Relayer
+        name: azureiotedge-relayer
         version: $(Build.BuildNumber)
 
   # Functions Sample - Only supported on amd64
@@ -517,9 +517,10 @@ stages:
     steps:
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Functions Sample
-        imageName: azureiotedge-functions-filter
-        project: EdgeHubTriggerCSharp
+        app: EdgeHubTriggerCSharp
+        displayName: Functions Sample
+        name: azureiotedge-functions-filter
+        platforms: linux/amd64
         version: $(Build.BuildNumber)
 
 ################################################################################
