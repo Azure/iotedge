@@ -19,7 +19,7 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo "--registry-address    Docker registry where Edge Hub image will be published."
+    echo "--registry-address    Docker registry where image will be published."
     echo "--version             Tag for built edge hub image."
     echo " -h, --help           Print this help and exit."
     exit 1
@@ -56,5 +56,13 @@ function process_args() {
 process_args "$@"
 
 scripts/linux/buildBranch.sh --no-rocksdb-bin
-scripts/linux/buildRocksDb.sh --output-dir "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service" --build-number debug --arch amd64
-scripts/linux/buildImage.sh -r "$REGISTRY_ADDRESS" -i azureiotedge-hub -n microsoft -P Microsoft.Azure.Devices.Edge.Hub.Service -v "$VERSION" -t amd64 --bin-dir target
+scripts/linux/buildRocksDb.sh \
+    --output-dir "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service" \
+    --build-number debug \
+    --arch amd64
+docker build \
+    --file "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/docker/linux/Dockerfile" \
+    --tag "$REGISTRY_ADDRESS/microsoft/azureiotedge-hub:$VERSION-linux-amd64" \
+    --build-arg EXE_DIR=. \
+    --no-cache \
+    "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service"

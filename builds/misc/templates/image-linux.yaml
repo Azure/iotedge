@@ -50,39 +50,33 @@ steps:
 
   - script: |
       scripts/linux/buildImage.sh \
-        -r "$(registry.address)" \
-        -i "${{ parameters.imageName }}" \
-        -n "${{ parameters.namespace }}" \
-        -P "${{ parameters.project }}" \
-        -v "${{ parameters.version }}" \
-        --bin-dir "${{ parameters.bin_dir }}" \
+        --app "${{ parameters.project }}" \
+        --bin "${{ parameters.bin_dir }}" \
+        --name "${{ parameters.imageName }}" \
+        --registry "$(registry.address)" \
+        --version "${{ parameters.version }}" \
         --source-map '/etc/iotedge-source-map.json' \
-        -t 'amd64'
     displayName: Build Image - ${{ parameters.name }} - amd64
 
   - script: |
       scripts/linux/buildImage.sh \
-        -r "$(registry.address)" \
-        -i "${{ parameters.imageName }}" \
-        -n "${{ parameters.namespace }}" \
-        -P "${{ parameters.project }}" \
-        -v "${{ parameters.version }}" \
-        --bin-dir "${{ parameters.bin_dir }}" \
+        --app "${{ parameters.project }}" \
+        --bin "${{ parameters.bin_dir }}" \
+        --name "${{ parameters.imageName }}" \
+        --registry "$(registry.address)" \
+        --version "${{ parameters.version }}" \
         --source-map '/etc/iotedge-source-map.json' \
-        -t 'arm/v7'
     displayName: Build Image - ${{ parameters.name }} - arm/v7
     condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
 
   - script: |
       scripts/linux/buildImage.sh \
-        -r "$(registry.address)" \
-        -i "${{ parameters.imageName }}" \
-        -n "${{ parameters.namespace }}" \
-        -P "${{ parameters.project }}" \
-        -v "${{ parameters.version }}" \
-        --bin-dir "${{ parameters.bin_dir }}" \
+        --app "${{ parameters.project }}" \
+        --bin "${{ parameters.bin_dir }}" \
+        --name "${{ parameters.imageName }}" \
+        --registry "$(registry.address)" \
+        --version "${{ parameters.version }}" \
         --source-map '/etc/iotedge-source-map.json' \
-        -t 'arm64'
     displayName: Build Image - ${{ parameters.name }} - arm64
     condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
 
