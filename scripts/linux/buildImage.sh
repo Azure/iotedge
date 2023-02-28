@@ -210,8 +210,8 @@ docker buildx create --use --bootstrap
 trap "docker buildx rm" EXIT
 
 if [[ "$APP" == 'api-proxy-module' ]]; then
-    # First, build each platform-specific image from a separate Dockerfile. This will create an
-    # intermediate manifest list that points to a single architecture and provenance metadata.
+    # First, build each arch-specific image from a separate Dockerfile. This will create
+    # intermediate manifest lists, each pointing to a single architecture and provenance metadata.
     ARCH_IMAGES=()
     IFS=',' read -a ARCH_ARR <<< "$ARCH_LIST"
     for ARCH in ${ARCH_ARR[@]}
@@ -233,8 +233,8 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     # Next, create the multi-arch image from the single-arch images
     docker buildx imagetools create --tag $IMAGE ${ARCH_IMAGES[@]}
 
-    # Finally, tag each single-arch image. This will untag the intermediate manifest list, which
-    # is no longer needed.
+    # Finally, tag each single-arch image. This will untag the intermediate manifest lists, which
+    # are no longer needed.
     source "$SCRIPT_DIR/manifest-tools.sh"
 
     REGISTRY="$DOCKER_REGISTRY" \
