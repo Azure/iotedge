@@ -245,7 +245,7 @@ get_platform_specific_digests() {
 }
 
 #
-# Given a manifest list, copy each arch-specific manifest to the same registry, according to the
+# Given a manifest list, copy each platform-specific manifest to the same registry, according to the
 # given mapping of platforms to tags. If a manifest already exists in the registry at the given tag,
 # it will be overwritten.
 #
@@ -272,14 +272,14 @@ get_platform_specific_digests() {
 # Outputs
 #   None
 #
-copy_arch_specific_manifests() {
+copy_platform_specific_manifests() {
     local platform_map=${PLATFORM_MAP:-'[
         {"platform":"linux/amd64","tag_suffix":"-linux-amd64"},
         {"platform":"linux/arm64","tag_suffix":"-linux-arm64v8"},
         {"platform":"linux/arm/v7","tag_suffix":"-linux-arm32v7"}
     ]'}
 
-    # Pull multiarch image's manifest list
+    # Pull multi-platform image's manifest list
     pull_manifest
     local manifest_list="$OUTPUTS"
 

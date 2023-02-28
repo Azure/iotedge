@@ -1,9 +1,10 @@
 #!/bin/bash
 
 ###############################################################################
-# This script builds an Edge application as a multi-arch Docker image, tagged:
+# This script builds an Edge application as a multi-platform Docker image
+# and tags it as:
 #   {registry}/{namespace}/{name}:{version}
-# Each arch-specific image is also tagged:
+# Each platform-specific image is also tagged:
 #   {registry}/{namespace}/{name}:{version}-linux-{arch}
 # ...where {arch} is one of amd64, arm64v8, or arm32v7.
 #
@@ -161,7 +162,7 @@ process_args() {
         print_help_and_exit
     fi
 
-    # The API proxy module has separate Dockerfiles for each supported architecture
+    # The API proxy module has separate Dockerfiles for each supported platform
     if [[ "$APP" == 'api-proxy-module' ]]; then
 
         if [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/amd64/Dockerfile" ]]; then
@@ -210,39 +211,47 @@ docker buildx create --use --bootstrap
 trap "docker buildx rm" EXIT
 
 if [[ "$APP" == 'api-proxy-module' ]]; then
-    # First, build each arch-specific image from a separate Dockerfile. This will create
-    # intermediate manifest lists, each pointing to a single architecture and provenance metadata.
-    ARCH_IMAGES=()
+    # First, build each platform-specific image from a separate Dockerfile. This will create
+    # intermediate manifest lists, each pointing to:
+    #   1. a platform-specific image
+    #   2. a provenance artifact
+    PLAT_IMAGES=()
     IFS=',' read -a ARCH_ARR <<< "$ARCH_LIST"
     for ARCH in ${ARCH_ARR[@]}
     do
-        ARCH_IMAGE="$IMAGE-linux-$(convert_arch $ARCH)"
+        PLAT_IMAGE="$IMAGE-linux-$(convert_arch $ARCH)"
 
         docker buildx build \
             --no-cache \
             --platform "linux/$ARCH" \
             --file "$APP_BINARIESDIRECTORY/docker/linux/$(convert_arch $ARCH)/Dockerfile" \
-            --output=type=$OUTPUT_TYPE,name=$ARCH_IMAGE \
+            --output=type=$OUTPUT_TYPE,name=$PLAT_IMAGE \
             --build-arg EXE_DIR=. \
             $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
             $APP_BINARIESDIRECTORY
 
-        ARCH_IMAGES+=( $ARCH_IMAGE )
+        PLAT_IMAGES+=( $PLAT_IMAGE )
     done
 
-    # Next, create the multi-arch image from the single-arch images
-    docker buildx imagetools create --tag $IMAGE ${ARCH_IMAGES[@]}
+    # Next, create the multi-platform image from the platform-specific images
+    docker buildx imagetools create --tag $IMAGE ${PLAT_IMAGES[@]}
 
-    # Finally, tag each single-arch image. This will untag the intermediate manifest lists, which
-    # are no longer needed.
+    # Finally, tag each platform-specific image. This will untag the intermediate manifest lists,
+    # which are no longer needed.
+    #
+    # Note: Using 'docker buildx imagetools create' won't work here because it always creates a
+    #       manifest list. We want our platform-specific image tags to point directly to platform-
+    #       specific images to be consistent with previous versions. We've also had tooling problems
+    #       when publishing platform-specific images as manifest lists in the past. For these
+    #       reasons, we use the Docker v2 Registry APIs directly. See manifest-tools.sh.
     source "$SCRIPT_DIR/manifest-tools.sh"
 
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
     REFERENCE="$DOCKER_IMAGEVERSION" \
-    copy_arch_specific_manifests
+    copy_platform_specific_manifests
 else
-    # First, build the complete multi-arch image
+    # First, build the complete multi-platform image
     docker buildx build \
         --no-cache \
         --platform "$PLATFORMS" \
@@ -252,13 +261,19 @@ else
         $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
         "$APP_BINARIESDIRECTORY"
 
-    # Next, tag each arch-specific image
+    # Next, tag each platform-specific image
+    #
+    # Note: Using 'docker buildx imagetools create' won't work here because it always creates a
+    #       manifest list. We want our platform-specific image tags to point directly to platform-
+    #       specific images to be consistent with previous versions. We've also had tooling problems
+    #       when publishing platform-specific images as manifest lists in the past. For these
+    #       reasons, we use the Docker v2 Registry APIs directly. See manifest-tools.sh.
     source "$SCRIPT_DIR/manifest-tools.sh"
 
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
     REFERENCE="$DOCKER_IMAGEVERSION" \
-    copy_arch_specific_manifests
+    copy_platform_specific_manifests
 fi
 
 echo "Done building Docker image $DOCKER_IMAGENAME for $APP"
