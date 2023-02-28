@@ -209,15 +209,14 @@ docker buildx create --use --bootstrap
 trap "docker buildx rm" EXIT
 
 if [[ "$APP" == 'api-proxy-module' ]]; then
-    APPEND=0
     IFS=',' read -a ARCH_ARR <<< "$ARCH_LIST"
     for ARCH in ${ARCH_ARR[@]}
     do
         ARCH_IMAGE="$IMAGE-linux-$(convert_arch $ARCH)"
 
         # First, build each platform-specific image from a separate Dockerfile. This will
-        # technically build a multi-arch image that contains a single architecture and provenance
-        # metadata
+        # create an intermediate manifest list that points to a single architecture and provenance
+        # metadata.
         docker buildx build \
             --no-cache \
             --platform "linux/$ARCH" \
@@ -228,22 +227,17 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
             $APP_BINARIESDIRECTORY
 
         # Next, append the single-arch image (plus provenance) to the multi-arch image
-        if [[ "$APPEND" -eq 0 ]]; then
-            docker buildx imagetools create --tag $IMAGE $ARCH_IMAGE
-            APPEND=1
-        else
-            docker buildx imagetools create --append --tag $IMAGE $ARCH_IMAGE
-        fi
-
-        # Finally, tag the single-arch image directly
-        # TODO: what should we do about the orphaned multi-arch-with-one-arch image?
-        digest=$(docker buildx imagetools inspect $ARCH_IMAGE --format '{{json .Manifest}}' |
-            jq -r --arg arch "$ARCH" '
-                .manifests[] |
-                select($arch == ([.platform | (.architecture, .variant // empty)] | join("/"))) |
-                .digest')
-        docker buildx imagetools create --tag $ARCH_IMAGE $ARCH_IMAGE@$digest
+        docker buildx imagetools create --append --tag $IMAGE $ARCH_IMAGE
     done
+
+    # Finally, tag each single-arch image. This will untag the intermediate manifest list, which
+    # is no longer needed.
+    source ./manifest-tools.sh
+
+    REGISTRY="$DOCKER_REGISTRY" \
+    REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
+    REFERENCE="$DOCKER_IMAGEVERSION" \
+    copy_arch_specific_manifests
 else
     # First, build the complete multi-arch image
     docker buildx build \
