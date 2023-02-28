@@ -256,18 +256,12 @@ else
         "$APP_BINARIESDIRECTORY"
 
     # Next, tag each arch-specific image
-    IFS=',' read -a ARCH_ARR <<< "$ARCH_LIST"
-    for ARCH in ${ARCH_ARR[@]}
-    do
-        digest=$(docker buildx imagetools inspect $IMAGE --format '{{json .Manifest}}' |
-            jq -r --arg arch "$ARCH" '
-                .manifests[] |
-                select($arch == ([.platform | (.architecture, .variant // empty)] | join("/"))) |
-                .digest')
+    source ./manifest-tools.sh
 
-        docker buildx imagetools create --tag "$IMAGE-linux-$(convert_arch $ARCH)" "$IMAGE@$digest"
-    done
+    REGISTRY="$DOCKER_REGISTRY" \
+    REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
+    REFERENCE="$DOCKER_IMAGEVERSION" \
+    copy_arch_specific_manifests
 fi
-
 
 echo "Done building Docker image $DOCKER_IMAGENAME for $APP"
