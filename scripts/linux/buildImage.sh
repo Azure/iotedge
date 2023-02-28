@@ -8,7 +8,7 @@
 #   {registry}/{namespace}/{name}:{version}-linux-{arch}
 # ...where {arch} is one of amd64, arm64v8, or arm32v7.
 #
-# This script expects that buildBranch.sh was invoked earlier and all the
+# The script expects that buildBranch.sh was invoked earlier and all the
 # application's files were published to the directory '{bin}/publish/{app}',
 # where {bin} is passed to the script's '--bin' parameter and {app} is passed
 # to the '--app' parameter. It also expects that the application's Dockerfile
@@ -28,7 +28,6 @@ DOCKER_IMAGENAME=
 DOCKER_NAMESPACE='microsoft'
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 SCRIPT_NAME=$(basename "$0")
-SKIP_PUSH=0
 SOURCE_MAP=
 
 ###############################################################################
@@ -63,7 +62,6 @@ usage() {
     echo " -m, --source-map     Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo " -n, --name           Image name (e.g. azureiotedge-agent)"
     echo " -r, --registry       Docker registry required to build, tag and run the module"
-    echo " -s, --skip-push      Build images, but don't push them"
     echo " -v, --version        App version. Either use this option or set env variable BUILD_BUILDNUMBER"
     exit 1
 }
@@ -105,7 +103,6 @@ process_args() {
             "-m" | "--source-map") save_next_arg=3 ;;
             "-n" | "--name") save_next_arg=4 ;;
             "-r" | "--registry") save_next_arg=5 ;;
-            "-s" | "--skip-push") SKIP_PUSH=1 ;;
             "-v" | "--version") save_next_arg=6 ;;
             *) echo "Unknown argument '$arg'"; usage ;;
             esac
@@ -164,7 +161,6 @@ process_args() {
 
     # The API proxy module has separate Dockerfiles for each supported platform
     if [[ "$APP" == 'api-proxy-module' ]]; then
-
         if [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/amd64/Dockerfile" ]]; then
             echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/Dockerfile'"
             print_help_and_exit
@@ -195,13 +191,7 @@ DOCKERFILE="$APP_BINARIESDIRECTORY/docker/linux/Dockerfile"
 IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION"
 PLATFORMS="linux/${ARCH_LIST//,/,linux/}"
 
-if [[ "$SKIP_PUSH" -eq 0 ]]; then
-    OUTPUT_TYPE='registry'
-    echo "Building and pushing image '$IMAGE'"
-else
-    OUTPUT_TYPE='docker'
-    echo "Building image '$IMAGE', skipping push"
-fi
+echo "Building and pushing image '$IMAGE'"
 
 if [[ -n "$SOURCE_MAP" ]]; then
     BUILD_CONTEXT=$(gnarly --mod-config $SOURCE_MAP $DOCKERFILE)
@@ -225,7 +215,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
             --no-cache \
             --platform "linux/$ARCH" \
             --file "$APP_BINARIESDIRECTORY/docker/linux/$(convert_arch $ARCH)/Dockerfile" \
-            --output=type=$OUTPUT_TYPE,name=$PLAT_IMAGE \
+            --output=type=registry,name=$PLAT_IMAGE \
             --build-arg EXE_DIR=. \
             $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
             $APP_BINARIESDIRECTORY
@@ -256,7 +246,7 @@ else
         --no-cache \
         --platform "$PLATFORMS" \
         --file "$DOCKERFILE" \
-        --output=type=$OUTPUT_TYPE,name=$IMAGE \
+        --output=type=registry,name=$IMAGE \
         --build-arg EXE_DIR=. \
         $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
         "$APP_BINARIESDIRECTORY"
