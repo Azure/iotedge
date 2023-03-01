@@ -92,10 +92,10 @@ jobs:
           testrun.network.runProfile: "Cellular3G"
           testrun.duration: "01:00:00"
     pool:
-      name: $(pool.linux.name)
+      name: Azure-IoT-Edge-Core
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
         - agent-group -equals debug
+        - status -equals unlocked
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
