@@ -47,7 +47,7 @@ get_docker_credentials() {
     if [[ "$(echo "$docker_config" | jq --arg reg "$REGISTRY" '.auths | .[$reg] | has("auth")')" == true ]]; then
         # Get credentials directly from config.json
         cred=$(
-            cat "$docker_config" | jq --arg service "$SERVICE" -r '.auths | .[$service].auth' | base64 --decode
+            cat "$docker_config" | jq --arg reg "$REGISTRY" -r '.auths | .[$reg].auth' | base64 --decode
         )
     elif [[ "$(echo "$docker_config" | jq 'has("credsStore")')" == true ]]
         # Get credentials from store
