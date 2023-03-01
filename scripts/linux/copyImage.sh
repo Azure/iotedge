@@ -1,8 +1,9 @@
 #!/bin/bash
 
 ###############################################################################
-# This script moves a docker image from one registry to another registry.
-# It assumes that the caller is logged into both registries
+# This script copies a docker image from one repository to another within a
+# registry, or from one tag to another with a repository. It assumes that the
+# caller is logged into the registry.
 ###############################################################################
 
 set -euo pipefail
