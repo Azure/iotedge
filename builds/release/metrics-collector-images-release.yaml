@@ -105,15 +105,6 @@ jobs:
       version: $(version)
 
   - script: |
-      scripts/linux/buildManifest.sh \
-        -r '$(registry.address)' \
-        -i 'azureiotedge-metrics-collector' \
-        -v '$(version)' \
-        -n 'microsoft' \
-        --tags '$(tags)'
-    displayName: Build Manifest
-  
-  - script: |
       echo '$(version)' > $(Build.ArtifactStagingDirectory)/version.txt
       echo '$(tags)' > $(Build.ArtifactStagingDirectory)/tags.txt
     displayName: Save version as artifact

@@ -246,7 +246,6 @@ stages:
         download_artifacts: false
         name: azureiotedge-metrics-collector
         version: $(version)
-        buildManifest: true
 
 ################################################################################
 - stage: Test
@@ -511,23 +510,33 @@ stages:
         #!/bin/bash
         set -euo pipefail
 
-        for arch in 'amd64' 'arm32v7' 'arm64v8'
+        platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
+
+        # first, copy the platform-specific tags from source to destination repositories
+        for tag in ${$platform_tags[@]}
         do
-          from="$(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-$arch"
-          to="$(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-$arch"
-          scripts/linux/copyImage.sh --from "$from" --to "$to"
+          scripts/linux/copyImage.sh \
+            --registry '$(registry.address)' \
+            --src-repo 'microsoft/azureiotedge-metrics-collector' \
+            --src-ref "$tag" \
+            --dst-repo 'public/azureiotedge-metrics-collector' \
+            --dst-tag "$tag"
+        done
+
+        # next, copy the source repo's multi-platform image into the given tags in the destination repo
+        multi_platform_tags=( $(echo '$(tags)' |
+          jq -r --arg primary_tag '$(version)' '. + [ $primary_tag ] | join("\n")') )
+
+        for tag in ${multi_platform_tags[@]}
+        do
+          scripts/linux/copyImage.sh \
+            --registry '$(registry.address)' \
+            --src-repo 'microsoft/azureiotedge-metrics-collector' \
+            --src-ref "$(version)" \
+            --dst-repo 'public/azureiotedge-metrics-collector' \
+            --dst-tag "$tag"
         done
       displayName: Publish Metrics Collector images
-      workingDirectory: iotedge
-
-    - script: |
-        scripts/linux/buildManifest.sh \
-          -r '$(registry.address)' \
-          -i 'azureiotedge-metrics-collector' \
-          -v $(version) \
-          -n 'public' \
-          --tags '$(tags)'
-      displayName: Publish Manifest
       workingDirectory: iotedge
 
     - task: AzureKeyVault@1

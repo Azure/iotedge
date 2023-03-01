@@ -383,7 +383,6 @@ stages:
         displayName: Edge Agent
         version: $(version)
         use_rocksdb: true
-        buildManifest: true
 
   - job: EdgeHub
     displayName: Edge Hub
@@ -395,7 +394,6 @@ stages:
         displayName: Edge Hub
         version: $(version)
         use_rocksdb: true
-        buildManifest: true
 
   - job: TemperatureSensor
     displayName: Temperature sensor
@@ -406,7 +404,6 @@ stages:
         name: azureiotedge-simulated-temperature-sensor
         displayName: Temperature Sensor
         version: $(version)
-        buildManifest: true
 
   - job: Diagnostics
     displayName: Diagnostics
@@ -417,7 +414,6 @@ stages:
         name: azureiotedge-diagnostics
         displayName: Diagnostics Module
         version: $(diagnostics_version)
-        buildManifest: true
 
   # for E2E tests
   - job: MetricsCollector

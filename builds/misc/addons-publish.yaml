@@ -36,29 +36,44 @@ jobs:
               command: login
               containerRegistry: iotedge-release-acr
         
-          - task: Bash@3
-            displayName: 'Publish Api Proxy - Linux amd64'
-            inputs:
-              filePath: 'scripts/linux/copyImage.sh'
-              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-amd64 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-amd64'
-      
-          - task: Bash@3
-            displayName: 'Publish Api Proxy - Linux arm32v7'
-            inputs:
-              filePath: 'scripts/linux/copyImage.sh'
-              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm32v7 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm32v7'
-      
-          - task: Bash@3
-            displayName: 'Publish Api Proxy - Linux arm64v8'
-            inputs:
-              filePath: 'scripts/linux/copyImage.sh'
-              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm64v8 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm64v8'
-      
           - script: |
-              scripts/linux/buildManifest.sh \
-                -r $(registry.address) \
-                -i 'azureiotedge-api-proxy' \
-                -v $(version) \
-                -n $(to.registry.namespace) \
-                --tags '$(tags)'
-            displayName: 'Publish Api Proxy Manifest'
+              #!/bin/bash
+              set -euo pipefail
+
+              if [[ $(echo "$TAGS" | jq -r '. | type') != 'array' ]]; then
+                  echo 'The 'tags' pipeline parameter must be a JSON array'
+                  exit 1
+              fi
+
+              # first, copy the platform-specific tags from source to destination repositories
+              platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
+
+              for tag in ${$platform_tags[@]}
+              do
+                scripts/linux/copyImage.sh \
+                  --registry '$(registry.address)' \
+                  --src-repo '$(from.registry.namespace)/azureiotedge-api-proxy' \
+                  --src-ref "$tag" \
+                  --dst-repo '$(to.registry.namespace)/azureiotedge-api-proxy' \
+                  --dst-tag "$tag"
+              done
+
+              # next, copy the source repo's multi-platform image into primary and caller-supplied tags in the
+              # destination repo
+
+              # combine primary tag (e.g., '1.4.0') and caller-supplied tags into an array
+              multi_platform_tags=( $(echo "$TAGS" |
+                jq -r --arg primary_tag '$(version)' '. + [ $primary_tag ] | unique | join("\n")') )
+
+              for tag in ${multi_platform_tags[@]}
+              do
+                scripts/linux/copyImage.sh \
+                  --registry '$(registry.address)' \
+                  --src-repo '$(from.registry.namespace)/azureiotedge-api-proxy' \
+                  --src-ref "$(version)" \
+                  --dst-repo '$(to.registry.namespace)/azureiotedge-api-proxy' \
+                  --dst-tag "$tag"
+              done
+            displayName: 'Publish Api Proxy images'
+            env:
+              TAGS: $(tags)

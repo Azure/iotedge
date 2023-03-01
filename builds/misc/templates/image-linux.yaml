@@ -1,11 +1,9 @@
 parameters:
   app: ''
   bin_dir: '$(Build.BinariesDirectory)'
-  buildManifest: false
   displayName: ''
   download_artifacts: true
   name: ''
-  namespace: 'microsoft'
   platforms: 'linux/amd64,linux/arm/v7,linux/arm64'
   use_rocksdb: false
   version: ''
@@ -59,13 +57,3 @@ steps:
         --version '${{ parameters.version }}' \
         --source-map '/etc/iotedge-source-map.json' \
     displayName: Build Image - ${{ parameters.displayName }}
-
-  - script: |
-      scripts/linux/buildManifest.sh \
-        -r '$(registry.address)' \
-        -i '${{ parameters.name }}' \
-        -n '${{ parameters.namespace }}' \
-        -v '${{ parameters.version }}' \
-        --tags '$(tags)'
-    displayName: Build Image Manifest - ${{ parameters.displayName }}
-    condition: and(${{ parameters.buildManifest }}, succeeded())

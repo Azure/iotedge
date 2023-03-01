@@ -21,221 +21,205 @@ resources:
 
 jobs:
 ################################################################################
-  - deployment: safe_guard
+- deployment: safe_guard
 ################################################################################
-    timeoutInMinutes: 180
-    displayName: Safe Guards
-    environment: 'Azure-IoT-Edge-Core Release Env'
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-            - checkout: self
-              clean: true
-              fetchDepth: 100
+  timeoutInMinutes: 180
+  displayName: Safe Guards
+  environment: 'Azure-IoT-Edge-Core Release Env'
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - checkout: self
+          clean: true
+          fetchDepth: 100
 
-            - bash: |
-                VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
-                
-                if [[ "$(resources.pipeline.images.runName)" == "$VERSION" ]]; then
-                  echo "Input image build has the same version as the targetting release tags."
-                  echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
-                  echo "    Targeting Release Version: $VERSION"
-                else
-                  echo "Input image build has a differnt version as the targetting release tags."
-                  echo "Please make sure the input image resource is correctly selected."
-                  echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
-                  echo "    Targeting Release Version: $VERSION"
-                  exit 1;
-                fi
-              displayName: Verify Input Images Version
-
-################################################################################
-  - deployment: publish_linux_images
-################################################################################
-    timeoutInMinutes: 180
-    displayName: Publish Linux Images
-    dependsOn: safe_guard
-    environment: 'Azure-IoT-Edge-Core Release Env'
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-            - checkout: self
-              clean: true
-              fetchDepth: 100
-
-            - task: Docker@2
-              displayName: Docker login edgerelease
-              inputs:
-                command: login
-                containerRegistry: iotedge-release-acr
-
-            - task: Docker@2
-              displayName: Docker login $(to.registry.address)
-              inputs:
-                command: login
-                containerRegistry: $(to.registry.serviceConnection)
-
-            - task: ShellScript@2
-              displayName: 'Publish Edge Agent - Linux amd64'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-amd64'
-
-            - task: ShellScript@2
-              displayName: 'Publish Edge Agent - Linux arm32v7'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm32v7'
-
-            - task: ShellScript@2
-              displayName: 'Publish Edge Agent - Linux arm64v8'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm64v8'
-
-            - task: ShellScript@2
-              displayName: 'Publish Edge Hub - Linux amd64'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-amd64'
-
-            - task: ShellScript@2
-              displayName: 'Publish Edge Hub - Linux arm32v7'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm32v7'
-
-            - task: ShellScript@2
-              displayName: 'Publish Edge Hub - Linux arm64v8'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8'
-
-            - task: ShellScript@2
-              displayName: 'Publish Temperature Sensor - Linux amd64'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64'
-
-            - task: ShellScript@2
-              displayName: 'Publish Temperature Sensor - Linux arm32v7'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7'
-
-            - task: ShellScript@2
-              displayName: 'Publish Temperature Sensor - Linux arm64v8'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8'
-
-            # We decided to list `azureiotedge-diagnostics` module in `/unlisted` namespace instead of `/public` namespace
-            # so the DiscoveryPortal is not bloated with self-diagonos modules.
-            - task: ShellScript@2
-              displayName: 'Publish Diagnostic Module - Linux amd64'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.unlisted.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64'
-
-            - task: ShellScript@2
-              displayName: 'Publish Diagnostic Module - Linux arm32v7'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.unlisted.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7'
-
-            - task: ShellScript@2
-              displayName: 'Publish Diagnostic Module - Linux arm64v8'
-              inputs:
-                scriptPath: 'scripts/linux/copyImage.sh'
-                args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.unlisted.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8'
+        - bash: |
+            VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
+            
+            if [[ "$(resources.pipeline.images.runName)" == "$VERSION" ]]; then
+              echo "Input image build has the same version as the targetting release tags."
+              echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
+              echo "    Targeting Release Version: $VERSION"
+            else
+              echo "Input image build has a differnt version as the targetting release tags."
+              echo "Please make sure the input image resource is correctly selected."
+              echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
+              echo "    Targeting Release Version: $VERSION"
+              exit 1;
+            fi
+          displayName: Verify Input Images Version
 
 ################################################################################
-  - deployment: publish_manifest_images
+- deployment: publish_linux_images
 ################################################################################
-    timeoutInMinutes: 180
-    displayName: Publish Manifest Images
-    environment: 'Azure-IoT-Edge-Core Release Env'
-    dependsOn: publish_linux_images
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-            - checkout: self
-              clean: true
-              fetchDepth: 100
+  timeoutInMinutes: 180
+  displayName: Publish Linux Images
+  dependsOn: safe_guard
+  environment: 'Azure-IoT-Edge-Core Release Env'
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - checkout: self
+          clean: true
+          fetchDepth: 100
 
-            - task: Docker@2
-              displayName: Docker login edgerelease
-              inputs:
-                command: login
-                containerRegistry: iotedge-release-acr
+        - task: Docker@2
+          displayName: Docker login edgerelease
+          inputs:
+            command: login
+            containerRegistry: iotedge-release-acr
 
-            - task: Docker@2
-              displayName: Docker login $(to.registry.address)
-              inputs:
-                command: login
-                containerRegistry: $(to.registry.serviceConnection)
+        - task: Docker@2
+          displayName: Docker login $(to.registry.address)
+          inputs:
+            command: login
+            containerRegistry: $(to.registry.serviceConnection)
 
-            - bash: |
-                VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
-                TAGS=$(echo "${VERSION%.*}")
+        - script: |
+            VERSION='$(resources.pipeline.images.runName)'
+            TAGS="[\"$VERSION\",\"${VERSION%.*}\"]"
 
-                TAGS_STR=$(echo "['$TAGS']")
-                TEMP_SENSOR_TAGS_STR=$(echo "['$TAGS','latest']")
+            echo "Version: $VERSION"
+            echo "Tags : $TAGS"
 
-                echo "Version: $VERSION"
-                echo "tags : $TAGS_STR"
+            echo "##vso[task.setvariable variable=version;]$VERSION"
+            echo "##vso[task.setvariable variable=tags;]$TAGS"
+          displayName: Set version and tags
 
-                echo "##vso[task.setvariable variable=tags;]$TAGS_STR"
-                echo "##vso[task.setvariable variable=tempSensor.tags;]$TEMP_SENSOR_TAGS_STR"
-              displayName: Set Version and Tags
+        - script: |
+            #!/bin/bash
+            set -euo pipefail
 
-            - script: |
-                scripts/linux/buildManifest.sh \
-                  -r "$(to.registry.address)" \
-                  -i "azureiotedge-agent" \
-                  -v "$(resources.pipeline.images.runName)" \
-                  -n "$(to.registry.namespace)" \
-                  --tags '$(tags)'
-              displayName: 'Publish Edge Agent Manifest'
+            platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
 
-            - script: |
-                scripts/linux/buildManifest.sh \
-                  -r "$(to.registry.address)" \
-                  -i "azureiotedge-hub" \
-                  -v "$(resources.pipeline.images.runName)" \
-                  -n "$(to.registry.namespace)" \
-                  --tags '$(tags)'
-              displayName: 'Publish Edge Hub Manifest'
+            # first, copy the platform-specific tags from source to destination repositories
+            for tag in ${$platform_tags[@]}
+            do
+              scripts/linux/copyImage.sh \
+                --registry '$(registry.address)' \
+                --src-repo '$(from.registry.namespace)/azureiotedge-agent' \
+                --src-ref "$tag" \
+                --dst-repo '$(to.registry.namespace)/azureiotedge-agent' \
+                --dst-tag "$tag"
+            done
 
-            - script: |
-                scripts/linux/buildManifest.sh \
-                  -r "$(to.registry.address)" \
-                  -i "azureiotedge-simulated-temperature-sensor" \
-                  -v "$(resources.pipeline.images.runName)" \
-                  -n "$(to.registry.namespace)" \
-                  --tags '$(tempSensor.tags)'
-              displayName: 'Publish Temperature Sensor Manifest'
+            # next, copy the source repo's multi-platform image into the given tags in the destination repo
+            multi_platform_tags=( $(echo '$(tags)' | jq -r '. | join("\n")') )
 
-            - script: |
-                scripts/linux/buildManifest.sh \
-                  -r "$(to.registry.address)" \
-                  -i "azureiotedge-diagnostics" \
-                  -v "$(resources.pipeline.images.runName)" \
-                  -n "$(to.unlisted.registry.namespace)" \
-                  --tags '$(tags)'
-              displayName: 'Publish Diagnostic Module Manifest'
+            for tag in ${multi_platform_tags[@]}
+            do
+              scripts/linux/copyImage.sh \
+                --registry '$(from.registry.address)' \
+                --src-repo '$(from.registry.namespace)/azureiotedge-agent' \
+                --src-ref "$(version)" \
+                --dst-repo '$(to.registry.namespace)/azureiotedge-agent' \
+                --dst-tag "$tag"
+            done
+          displayName: 'Publish Edge Agent images'
+
+        - script: |
+            #!/bin/bash
+            set -euo pipefail
+
+            platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
+
+            # first, copy the platform-specific tags from source to destination repositories
+            for tag in ${$platform_tags[@]}
+            do
+              scripts/linux/copyImage.sh \
+                --registry '$(registry.address)' \
+                --src-repo '$(from.registry.namespace)/azureiotedge-hub' \
+                --src-ref "$tag" \
+                --dst-repo '$(to.registry.namespace)/azureiotedge-hub' \
+                --dst-tag "$tag"
+            done
+
+            # next, copy the source repo's multi-platform image into the given tags in the destination repo
+            multi_platform_tags=( $(echo '$(tags)' | jq -r '. | join("\n")') )
+
+            for tag in ${multi_platform_tags[@]}
+            do
+              scripts/linux/copyImage.sh \
+                --registry '$(from.registry.address)' \
+                --src-repo '$(from.registry.namespace)/azureiotedge-hub' \
+                --src-ref "$(version)" \
+                --dst-repo '$(to.registry.namespace)/azureiotedge-hub' \
+                --dst-tag "$tag"
+            done
+          displayName: 'Publish Edge Hub images'
+
+        - script: |
+            #!/bin/bash
+            set -euo pipefail
+
+            platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
+
+            # first, copy the platform-specific tags from source to destination repositories
+            for tag in ${$platform_tags[@]}
+            do
+              scripts/linux/copyImage.sh \
+                --registry '$(registry.address)' \
+                --src-repo '$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor' \
+                --src-ref "$tag" \
+                --dst-repo '$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor' \
+                --dst-tag "$tag"
+            done
+
+            # next, copy the source repo's multi-platform image into the given tags in the destination repo
+            temp_sensor_tags=$(echo '$(tags)' | jq -c '. + ["latest"]')
+            multi_platform_tags=( $(echo "$temp_sensor_tags" | jq -r '. | join("\n")') )
+
+            for tag in ${multi_platform_tags[@]}
+            do
+              scripts/linux/copyImage.sh \
+                --registry '$(from.registry.address)' \
+                --src-repo '$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor' \
+                --src-ref "$(version)" \
+                --dst-repo '$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor' \
+                --dst-tag "$tag"
+            done
+          displayName: 'Publish Temperature Sensor images'
+
+        # We copy azureiotedge-diagnostics to the unlisted namespace instead of the public
+        # namespace so it won't show up in the MAR Discovery Portal. This image is used
+        # interally by `iotedge check`; it's not an image you would `docker pull`.
+        - script: |
+            #!/bin/bash
+            set -euo pipefail
+
+            platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
+
+            # first, copy the platform-specific tags from source to destination repositories
+            for tag in ${$platform_tags[@]}
+            do
+              scripts/linux/copyImage.sh \
+                --registry '$(registry.address)' \
+                --src-repo '$(from.registry.namespace)/azureiotedge-diagnostics' \
+                --src-ref "$tag" \
+                --dst-repo '$(to.unlisted.registry.namespace)/azureiotedge-diagnostics' \
+                --dst-tag "$tag"
+            done
+
+            # next, copy the source repo's multi-platform image into the given tags in the destination repo
+            multi_platform_tags=( $(echo '$(tags)' | jq -r '. | join("\n")') )
+
+            for tag in ${multi_platform_tags[@]}
+            do
+              scripts/linux/copyImage.sh \
+                --registry '$(from.registry.address)' \
+                --src-repo '$(from.registry.namespace)/azureiotedge-diagnostics' \
+                --src-ref "$(version)" \
+                --dst-repo '$(to.unlisted.registry.namespace)/azureiotedge-diagnostics' \
+                --dst-tag "$tag"
+            done
+          displayName: 'Publish Diagnostics images'

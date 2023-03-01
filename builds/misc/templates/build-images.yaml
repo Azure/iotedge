@@ -211,6 +211,10 @@ stages:
           name: azureiotedge-api-proxy
           version: $(Build.BuildNumber)
 
+      - task: ComponentGovernanceComponentDetection@0
+        inputs:
+          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'
+
     # Test images
     - job: BuildImageTemperatureFilter
       steps:
@@ -370,53 +374,3 @@ stages:
           displayName: Cloud To Device Message Tester
           name: azureiotedge-c2dmessage-tester
           version: $(Build.BuildNumber)
-
-################################################################################
-  - stage: PublishManifests
-################################################################################
-    displayName: Publish Manifests
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: BuildImages
-    variables:
-      tags: '["latest"]'
-    jobs:
-    - job: PublishManifest
-      displayName: Publish Manifest
-      strategy:
-        matrix:
-          EdgeAgent:
-            imageName: 'azureiotedge-agent'
-          EdgeHub:
-            imageName: 'azureiotedge-hub'
-          SimulatedTemperatureSensor:
-            imageName: 'azureiotedge-simulated-temperature-sensor'
-          Diagnostics:
-            imageName: 'azureiotedge-diagnostics'
-          MetricsCollector:
-            imageName: 'azureiotedge-metrics-collector'
-          ApiProxy:
-            imageName: 'azureiotedge-api-proxy'
-      steps:
-      - task: Docker@2
-        displayName: Docker login edgebuilds
-        inputs:
-          command: login
-          containerRegistry: iotedge-edgebuilds-acr
-
-      - script: |
-          scripts/linux/buildManifest.sh \
-            -r $(registry.address) \
-            -i $(imageName) \
-            -v $(Build.BuildNumber) \
-            -n 'microsoft' \
-            --tags '$(tags)'
-        displayName: Create manifest for '$(imageName)'
-
-    - job: ComponentGovernance
-      steps:
-      - task: ComponentGovernanceComponentDetection@0
-        inputs:
-          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'
