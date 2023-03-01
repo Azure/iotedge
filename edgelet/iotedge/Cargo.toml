@@ -56,4 +56,4 @@ http-common = { git = "https://github.com/Azure/iot-identity-service", branch = 
 support-bundle = { path = "../support-bundle" }
 
 [features]
-snapctl = ["aziotctl-common/snapctl"]
+snapctl = ["aziotctl-common/snapctl", "support-bundle/snapctl"]

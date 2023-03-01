@@ -15,3 +15,6 @@ zip = { version = "0.6", features = ["deflate"], default-features = false }
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = {path = "../edgelet-settings" }
+
+[features]
+snapctl = []
