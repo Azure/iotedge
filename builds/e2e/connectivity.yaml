@@ -95,7 +95,6 @@ jobs:
       name: $(pool.linux.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
-        - agent-group -equals debug
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
