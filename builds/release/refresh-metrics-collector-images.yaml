@@ -515,7 +515,7 @@ stages:
         do
           from="$(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-$arch"
           to="$(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-$arch"
-          scripts/linux/moveImage.sh --from "$from" --to "$to"
+          scripts/linux/copyImage.sh --from "$from" --to "$to"
         done
       displayName: Publish Metrics Collector images
       workingDirectory: iotedge

@@ -39,19 +39,19 @@ jobs:
           - task: Bash@3
             displayName: 'Publish Api Proxy - Linux amd64'
             inputs:
-              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+              filePath: 'scripts/linux/copyImage.sh'
               arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-amd64 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-amd64'
       
           - task: Bash@3
             displayName: 'Publish Api Proxy - Linux arm32v7'
             inputs:
-              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+              filePath: 'scripts/linux/copyImage.sh'
               arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm32v7 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm32v7'
       
           - task: Bash@3
             displayName: 'Publish Api Proxy - Linux arm64v8'
             inputs:
-              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
+              filePath: 'scripts/linux/copyImage.sh'
               arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm64v8 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm64v8'
       
           - script: |

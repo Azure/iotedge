@@ -45,7 +45,7 @@ jobs:
           from="$(registry.address)/microsoft/azureiotedge-$mod:$ver-linux-$arch"
           to="$(registry.address)/$ns/azureiotedge-$mod:$ver-linux-$arch"
           echo $"\n$from --> $to"
-          scripts/linux/moveImage.sh --from "$from" --to "$to"
+          scripts/linux/copyImage.sh --from "$from" --to "$to"
         done
       done
     displayName: Publish core images

@@ -70,19 +70,19 @@ jobs:
             containerRegistry: $(service-connection.registry.release)
 
         - script: |
-            scripts/linux/moveImage.sh \
+            scripts/linux/copyImage.sh \
               --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-amd64 \
               --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-amd64
           displayName: 'Publish Image - Linux amd64'
 
         - script: |
-            scripts/linux/moveImage.sh \
+            scripts/linux/copyImage.sh \
               --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-arm32v7 \
               --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-arm32v7
           displayName: 'Publish Image - Linux arm32v7'
 
         - script: |
-            scripts/linux/moveImage.sh \
+            scripts/linux/copyImage.sh \
               --from $(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-arm64v8 \
               --to $(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-arm64v8
           displayName: 'Publish Image - Linux arm64v8'
