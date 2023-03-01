@@ -3,8 +3,6 @@
 # This script is intended to be sourced from other scripts. It expects that 'set -euo pipefail' was
 # invoked by the caller.
 
-DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-
 #
 # Given a WWW-Authenticate header containing a "Bearer" challenge as input, parsed the realm,
 # service, and scope parameters.
@@ -32,6 +30,35 @@ parse_authenticate_header() {
 }
 
 #
+# Retrieves the login credentials for the given registry from Docker's local config. This function
+# can get credentials directly from config.json, or by querying the configured credential manager.
+#
+# Globals
+#   DOCKER_CONFIG   Optional. The path to Docker's config.json. Default value is $HOME/.docker
+#   REGISTRY        Required. The registry that hosts the image
+#
+# Outputs
+#   OUTPUTS         Credentials in the form 'username:secret'
+#
+get_docker_credentials() {
+    local docker_config="$(cat "${DOCKER_CONFIG:-$HOME/.docker}/config.json")"
+    local cred=
+
+    if [[ "$(echo "$docker_config" | jq --arg reg "$REGISTRY" '.auths | .[$reg] | has("auth")')" == true ]]; then
+        # Get credentials directly from config.json
+        cred=$(
+            cat "$docker_config" | jq --arg service "$SERVICE" -r '.auths | .[$service].auth' | base64 --decode
+        )
+    elif [[ "$(echo "$docker_config" | jq 'has("credsStore")')" == true ]]
+        # Get credentials from store
+        local store=$(echo "$docker_config" | jq -r '.credsStore')
+        cred=$(echo "$REGISTRY" | docker-credential-$store get | jq -r '"\(.Username):\(.Secret)"')
+    fi
+
+    OUTPUTS="$cred"    
+}
+
+#
 # Queries the registry's authorization service for a bearer token that can be used to perform
 # operations at the given scope for the given image. The inputs to this function come from the
 # WWW-Authenticate header of a 401 Unathorized response.
@@ -49,10 +76,8 @@ parse_authenticate_header() {
 #   OUTPUTS         The bearer token
 #
 get_bearer_token() {
-    local docker_config="$DOCKER_CONFIG/config.json"
-    local cred=$(cat "$docker_config" |
-        jq --arg service "$SERVICE" -r '.auths | .[$service].auth' |
-        base64 --decode)
+    REGISTRY="$SERVICE" get_docker_credentials
+    local cred="$OUTPUTS"
 
     local result=$(
         curl --show-error --silent --user "$cred" --write-out '\n%{http_code}' "$REALM?service=$SERVICE&scope=$SCOPE"
