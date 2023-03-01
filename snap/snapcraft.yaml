@@ -116,6 +116,7 @@ apps:
     plugs:
       - docker
       - identity-service
+      - home
       - log-observe
       - mount-observe
       - network
