@@ -37,43 +37,10 @@ jobs:
               containerRegistry: iotedge-release-acr
         
           - script: |
-              #!/bin/bash
-              set -euo pipefail
-
-              if [[ $(echo "$TAGS" | jq -r '. | type') != 'array' ]]; then
-                  echo 'The 'tags' pipeline parameter must be a JSON array'
-                  exit 1
-              fi
-
-              # first, copy the platform-specific tags from source to destination repositories
-              platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
-
-              for tag in ${$platform_tags[@]}
-              do
-                scripts/linux/copyImage.sh \
-                  --registry '$(registry.address)' \
-                  --src-repo '$(from.registry.namespace)/azureiotedge-api-proxy' \
-                  --src-ref "$tag" \
-                  --dst-repo '$(to.registry.namespace)/azureiotedge-api-proxy' \
-                  --dst-tag "$tag"
-              done
-
-              # next, copy the source repo's multi-platform image into primary and caller-supplied tags in the
-              # destination repo
-
-              # combine primary tag (e.g., '1.4.0') and caller-supplied tags into an array
-              multi_platform_tags=( $(echo "$TAGS" |
-                jq -r --arg primary_tag '$(version)' '. + [ $primary_tag ] | unique | join("\n")') )
-
-              for tag in ${multi_platform_tags[@]}
-              do
-                scripts/linux/copyImage.sh \
-                  --registry '$(registry.address)' \
-                  --src-repo '$(from.registry.namespace)/azureiotedge-api-proxy' \
-                  --src-ref "$(version)" \
-                  --dst-repo '$(to.registry.namespace)/azureiotedge-api-proxy' \
-                  --dst-tag "$tag"
-              done
-            displayName: 'Publish Api Proxy images'
-            env:
-              TAGS: $(tags)
+              scripts/linux/copyImage.sh \
+                --registry '$(registry.address)' \
+                --repo-src 'microsoft/azureiotedge-api-proxy' \
+                --repo-dst 'public/azureiotedge-api-proxy' \
+                --tag '$(version)' \
+                --tags-extra '$(tags)'
+            displayName: Publish Api Proxy images

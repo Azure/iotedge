@@ -1,9 +1,28 @@
 #!/bin/bash
 
 ###############################################################################
-# This script copies a docker image from one repository to another within a
-# registry, or from one tag to another with a repository. It assumes that the
-# caller is logged into the registry.
+# This script copies a docker multi-platform image from one repository to
+# another within the given registry. This includes copying any platform-specific
+# images, as well as any additional tags supplied by the caller. It assumes that
+# the caller is logged into the registry.
+#
+# For example, if the script is called with the following arguments:
+#
+#   REGISTRY=registry
+#   REPO_SRC=src/repo
+#   REPO_DST=dst/repo
+#   TAG=1.2.3
+#   TAGS_EXTRA='["1.2","latest"]'
+#
+# ...then the following copy operations will take place:
+#
+#   registry/src/repo:1.2.3-linux-amd64   => registry/dst/repo:1.2.3-linux-amd64
+#   registry/src/repo:1.2.3-linux-arm32v7 => registry/dst/repo:1.2.3-linux-arm32v7
+#   registry/src/repo:1.2.3-linux-arm64v8 => registry/dst/repo:1.2.3-linux-arm32v7
+#   registry/src/repo:1.2.3               => registry/dst/repo:1.2.3
+#   registry/src/repo:1.2.3               => registry/dst/repo:1.2
+#   registry/src/repo:1.2.3               => registry/dst/repo:latest
+#
 ###############################################################################
 
 set -euo pipefail
@@ -12,11 +31,11 @@ set -euo pipefail
 # Define Environment Variables
 ###############################################################################
 SCRIPT_NAME=$(basename $0)
-DST_REPO=
-DST_TAG=
 REGISTRY=
-SRC_REF=
-SRC_REPO=
+REPO_DST=
+REPO_SRC=
+TAG=
+TAGS_EXTRA=
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -27,11 +46,11 @@ usage()
     echo "Note: Depending on the options you might have to run this as root or sudo."
     echo ""
     echo "options"
-    echo " --dst-repo           Destination repository"
-    echo " --dst-tag            Destination tag"
-    echo " --registry           Target image registry"
-    echo " --src-ref            Source tag or digest"
-    echo " --src-repo           Source repository"
+    echo " --registry           Image registry (source and destination)"
+    echo " --repo-dst           Destination repository"
+    echo " --repo-src           Source repository"
+    echo " --tag                Tag (soure and destination)"
+    echo " --tags-extra         Optional JSON array of tags to add to the destination image"
     exit 1;
 }
 
@@ -50,55 +69,55 @@ process_args()
     for arg in $@
     do
         if [ $save_next_arg -eq 1 ]; then
-            DST_REPO="$arg"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 2 ]; then
-            DST_TAG="$arg"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
             REGISTRY="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 2 ]; then
+            REPO_DST="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
+            REPO_SRC="$arg"
+            save_next_arg=0
         elif [ $save_next_arg -eq 4 ]; then
-            SRC_REF="$arg"
+            TAG="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 5 ]; then
-            SRC_REPO="$arg"
+            TAGS_EXTRA="$arg"
             save_next_arg=0
         else
             case "$arg" in
-                "--dst-repo") save_next_arg=1;;
-                "--dst-tag" ) save_next_arg=2;;
-                "--registry") save_next_arg=3;;
-                "--src-ref" ) save_next_arg=4;;
-                "--src-repo") save_next_arg=5;;
+                "--registry" ) save_next_arg=1;;
+                "--repo-dst" ) save_next_arg=2;;
+                "--repo-src" ) save_next_arg=3;;
+                "--tag" ) save_next_arg=4;;
+                "--tags-extra" ) save_next_arg=5;;
                 "-h" | "--help" ) usage;;
                 * ) usage;;
             esac
         fi
     done
 
-    if [[ -z "$DST_REPO" ]]; then
-        echo "Required parameter --dst-repo not found"
-        print_help_and_exit
-    fi
-
-    if [[ -z "$DST_TAG" ]]; then
-        echo "Required parameter --dst-tag not found"
-        print_help_and_exit
-    fi
-
     if [[ -z "$REGISTRY" ]]; then
         echo "Required parameter --registry not found"
         print_help_and_exit
     fi
 
-    if [[ -z "$SRC_REF" ]]; then
-        echo "Required parameter --src-ref not found"
+    if [[ -z "$REPO_DST" ]]; then
+        echo "Required parameter --repo-dst not found"
         print_help_and_exit
     fi
 
-    if [[ -z "$SRC_REPO" ]]; then
-        echo "Required parameter --src-repo not found"
+    if [[ -z "$REPO_SRC" ]]; then
+        echo "Required parameter --repo-src not found"
+        print_help_and_exit
+    fi
+
+    if [[ -z "$TAG" ]]; then
+        echo "Required parameter --tag not found"
+        print_help_and_exit
+    fi
+
+    if [[ -n "$TAGS_EXTRA" ]] && [[ $(echo "$TAGS_EXTRA" | jq -r '. | type') != 'array' ]]; then
+        echo 'The value of --tags-extra must be a JSON array'
         print_help_and_exit
     fi
 }
@@ -108,13 +127,22 @@ process_args()
 ###############################################################################
 process_args "$@"
 
-if [[ "${SRC_REF:0:7}" == "sha256:" ]]; then
-    ref="@$SRC_REF"
-else
-    ref=":$SRC_REF"
-fi
-
-echo "Copy $REPOSITORY/$SRC_REPO$ref to $REPOSITORY/$DST_REPO:$DST_TAG"
-
 source "$SCRIPT_DIR/manifest-tools.sh"
-copy_manifest
+
+platform_tags=( "$TAG-linux-amd64" "$TAG-linux-arm64v8" "$TAG-linux-arm32v7" )
+
+# first, copy the platform-specific images from source to destination repositories
+for tag in ${$platform_tags[@]}
+do
+    echo "Copy '$REGISTRY/$REPO_SRC:$tag' to '$REGISTRY/$REPO_DST:$tag'"
+    SRC_TAG="$tag" TAG_DST="$tag" copy_manifest
+done
+
+# next, copy the source repo's multi-platform image into the given tags in the destination repo
+multi_platform_tags=( $(echo "$TAGS_EXTRA" | jq -r --arg version "$TAG" '. + [ $version ] | join("\n")') )
+
+for tag in ${multi_platform_tags[@]}
+do
+    echo "Copy '$REGISTRY/$REPO_SRC:$TAG' to '$REGISTRY/$REPO_DST:$tag'"
+    SRC_TAG="$TAG" TAG_DST="$tag" copy_manifest
+done

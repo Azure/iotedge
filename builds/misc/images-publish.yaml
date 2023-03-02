@@ -97,129 +97,45 @@ jobs:
           displayName: Set version and tags
 
         - script: |
-            #!/bin/bash
-            set -euo pipefail
-
-            platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
-
-            # first, copy the platform-specific tags from source to destination repositories
-            for tag in ${$platform_tags[@]}
-            do
-              scripts/linux/copyImage.sh \
-                --registry '$(registry.address)' \
-                --src-repo '$(from.registry.namespace)/azureiotedge-agent' \
-                --src-ref "$tag" \
-                --dst-repo '$(to.registry.namespace)/azureiotedge-agent' \
-                --dst-tag "$tag"
-            done
-
-            # next, copy the source repo's multi-platform image into the given tags in the destination repo
-            multi_platform_tags=( $(echo '$(tags)' | jq -r '. | join("\n")') )
-
-            for tag in ${multi_platform_tags[@]}
-            do
-              scripts/linux/copyImage.sh \
-                --registry '$(from.registry.address)' \
-                --src-repo '$(from.registry.namespace)/azureiotedge-agent' \
-                --src-ref "$(version)" \
-                --dst-repo '$(to.registry.namespace)/azureiotedge-agent' \
-                --dst-tag "$tag"
-            done
-          displayName: 'Publish Edge Agent images'
+            scripts/linux/copyImage.sh \
+              --registry '$(registry.address)' \
+              --repo-src 'microsoft/azureiotedge-agent' \
+              --repo-dst 'public/azureiotedge-agent' \
+              --tag '$(version)' \
+              --tags-extra '$(tags)'
+          displayName: Publish Edge Agent images
 
         - script: |
-            #!/bin/bash
-            set -euo pipefail
-
-            platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
-
-            # first, copy the platform-specific tags from source to destination repositories
-            for tag in ${$platform_tags[@]}
-            do
-              scripts/linux/copyImage.sh \
-                --registry '$(registry.address)' \
-                --src-repo '$(from.registry.namespace)/azureiotedge-hub' \
-                --src-ref "$tag" \
-                --dst-repo '$(to.registry.namespace)/azureiotedge-hub' \
-                --dst-tag "$tag"
-            done
-
-            # next, copy the source repo's multi-platform image into the given tags in the destination repo
-            multi_platform_tags=( $(echo '$(tags)' | jq -r '. | join("\n")') )
-
-            for tag in ${multi_platform_tags[@]}
-            do
-              scripts/linux/copyImage.sh \
-                --registry '$(from.registry.address)' \
-                --src-repo '$(from.registry.namespace)/azureiotedge-hub' \
-                --src-ref "$(version)" \
-                --dst-repo '$(to.registry.namespace)/azureiotedge-hub' \
-                --dst-tag "$tag"
-            done
-          displayName: 'Publish Edge Hub images'
+            scripts/linux/copyImage.sh \
+              --registry '$(registry.address)' \
+              --repo-src 'microsoft/azureiotedge-hub' \
+              --repo-dst 'public/azureiotedge-hub' \
+              --tag '$(version)' \
+              --tags-extra '$(tags)'
+          displayName: Publish Edge Hub images
 
         - script: |
-            #!/bin/bash
-            set -euo pipefail
-
-            platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
-
-            # first, copy the platform-specific tags from source to destination repositories
-            for tag in ${$platform_tags[@]}
-            do
-              scripts/linux/copyImage.sh \
-                --registry '$(registry.address)' \
-                --src-repo '$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor' \
-                --src-ref "$tag" \
-                --dst-repo '$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor' \
-                --dst-tag "$tag"
-            done
-
-            # next, copy the source repo's multi-platform image into the given tags in the destination repo
             temp_sensor_tags=$(echo '$(tags)' | jq -c '. + ["latest"]')
-            multi_platform_tags=( $(echo "$temp_sensor_tags" | jq -r '. | join("\n")') )
 
-            for tag in ${multi_platform_tags[@]}
-            do
-              scripts/linux/copyImage.sh \
-                --registry '$(from.registry.address)' \
-                --src-repo '$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor' \
-                --src-ref "$(version)" \
-                --dst-repo '$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor' \
-                --dst-tag "$tag"
-            done
-          displayName: 'Publish Temperature Sensor images'
+            scripts/linux/copyImage.sh \
+              --registry '$(registry.address)' \
+              --repo-src 'microsoft/azureiotedge-simulated-temperature-sensor' \
+              --repo-dst 'public/azureiotedge-simulated-temperature-sensor' \
+              --tag '$(version)' \
+              --tags-extra "$temp_sensor_tags"
+          displayName: Publish Simulated Temperature Sensor images
 
-        # We copy azureiotedge-diagnostics to the unlisted namespace instead of the public
-        # namespace so it won't show up in the MAR Discovery Portal. This image is used
-        # interally by `iotedge check`; it's not an image you would `docker pull`.
         - script: |
-            #!/bin/bash
-            set -euo pipefail
+            # The version of the diagnostics image needs to match edgelet, not the runtime modules
+            diag_version=$(cat edgelet/version.txt)
 
-            platform_tags=( '$(version)-linux-amd64' '$(version)-linux-arm64v8' '$(version)-linux-arm32v7' )
-
-            # first, copy the platform-specific tags from source to destination repositories
-            for tag in ${$platform_tags[@]}
-            do
-              scripts/linux/copyImage.sh \
-                --registry '$(registry.address)' \
-                --src-repo '$(from.registry.namespace)/azureiotedge-diagnostics' \
-                --src-ref "$tag" \
-                --dst-repo '$(to.unlisted.registry.namespace)/azureiotedge-diagnostics' \
-                --dst-tag "$tag"
-            done
-
-            # next, copy the source repo's multi-platform image into the given tags in the destination repo
-            multi_platform_tags=( $(echo '$(tags)' | jq -r '. | join("\n")') )
-
-            for tag in ${multi_platform_tags[@]}
-            do
-              scripts/linux/copyImage.sh \
-                --registry '$(from.registry.address)' \
-                --src-repo '$(from.registry.namespace)/azureiotedge-diagnostics' \
-                --src-ref "$(version)" \
-                --dst-repo '$(to.unlisted.registry.namespace)/azureiotedge-diagnostics' \
-                --dst-tag "$tag"
-            done
-          displayName: 'Publish Diagnostics images'
+            # We copy azureiotedge-diagnostics to the unlisted namespace instead of the public
+            # namespace so it won't show up in the MAR Discovery Portal. This image is used
+            # interally by `iotedge check`; it's not an image you would `docker pull`.
+            scripts/linux/copyImage.sh \
+              --registry '$(registry.address)' \
+              --repo-src 'microsoft/azureiotedge-diagnostics' \
+              --repo-dst 'unlisted/azureiotedge-diagnostics' \
+              --tag $diag_version \
+              --tags-extra '$(tags)'
+          displayName: Publish Diagnostics images

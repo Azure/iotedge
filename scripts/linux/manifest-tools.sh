@@ -239,6 +239,8 @@ push_manifest() {
         echo "$result"
         exit 1
     fi
+
+    echo "Pushed $REGISTRY/$REPOSITORY:$TAG"
 }
 
 #
@@ -353,8 +355,6 @@ copy_platform_specific_manifests() {
         local tag="${REFERENCE}-$(echo "$platform_map" |
             jq -r --arg platform "$platform" '.[] | select(.platform == $platform) | .tag_suffix')"
         MANIFEST="$manifest" TAG="$tag" push_manifest
-
-        echo "Pushed $REGISTRY/$REPOSITORY:$tag"
     done
 }
 
@@ -367,20 +367,20 @@ copy_platform_specific_manifests() {
 # Registry APIs directly.
 #
 # Globals
-#   DST_REPO        Required. The destination repository to which the manifest will be copied
-#   DST_TAG         Required. The destination tag to which the manifest will be copied
 #   REGISTRY        Required. The registry in which the manifest will be copied
-#   SRC_REF         Required. The source tag or digest from which the manifest will be copied
-#   SRC_REPO        Required. The source repository from which the manifest will be copied
+#   REF_SRC         Required. The source tag or digest from which the manifest will be copied
+#   REPO_DST        Required. The destination repository to which the manifest will be copied
+#   REPO_SRC        Required. The source repository from which the manifest will be copied
+#   TAG_DST         Required. The destination tag to which the manifest will be copied
 #
 # Outputs
 #   None
 #
 copy_manifest() {
     # Pull source manifest
-    REFERENCE="$SRC_REF" REPOSITORY=$"SRC_REPO" pull_manifest
+    REFERENCE="$REF_SRC" REPOSITORY="$REPO_SRC" pull_manifest
     local manifest="$OUTPUTS"
 
     # Push destination manifest
-    MANIFEST="$manifest" REPOSITORY="$DST_REPO" TAG="$DST_TAG" push_manifest
+    MANIFEST="$manifest" REPOSITORY="$REPO_DST" TAG="$TAG_DST" push_manifest
 }
