@@ -312,7 +312,7 @@ copy_platform_specific_manifests() {
     local platform_map=${PLATFORM_MAP:-$DEFAULT_PLATFORM_MAP}
 
     # Pull multi-platform image's manifest list
-    pull_manifest
+    REFERENCE="$TAG" pull_manifest
     local manifest_list="$OUTPUTS"
 
     # Make sure the image the caller gave us is actually a manifest list
