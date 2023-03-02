@@ -19,29 +19,29 @@ DEFAULT_PLATFORM_MAP='[
 ]'
 
 #
-# Given a WWW-Authenticate header containing a "Bearer" challenge as input, parsed the realm,
-# service, and scope parameters.
+# Given a WWW-Authenticate header containing a "Bearer" challenge as input, parsed the realm and
+# service parameters.
 #
 # Globals
 #   RESPONSE_401    Required. The "401 Unauthorized" response headers which include the
 #                   WWW-Authenticate header to be parsed
 #
 # Outputs
-#   OUTPUTS         REALM, SERVICE, and SCOPE in NAME=value format, suitable for sourcing into the
+#   OUTPUTS         REALM and SERVICE in NAME=value format, suitable for sourcing into the
 #                   current environment
 #
 parse_authenticate_header() {
     local auth_header=$(echo "$RESPONSE_401" | grep -i 'WWW-Authenticate: Bearer ' | sed -e 's/[[:space:]]*$//')
     local challenge_vars=()
 
-    for name in realm service scope
+    for name in realm service
     do
         challenge_vars+=( "local $(echo "$auth_header" | grep -Eo "$name=\"[^\"]+\"")" )
     done
 
     source <(printf '%s\n' "${challenge_vars[@]}")
 
-    OUTPUTS="REALM='$realm'; SERVICE='$service'; SCOPE='$scope'"
+    OUTPUTS="REALM='$realm'; SERVICE='$service'"
 }
 
 #
@@ -75,28 +75,47 @@ get_docker_credentials() {
 
 #
 # Queries the registry's authorization service for a bearer token that can be used to perform
-# operations at the given scope for the given image. The inputs to this function come from the
-# WWW-Authenticate header of a 401 Unathorized response.
+# operations at the given scopes.
 #
 # This function assumes that the needed credentials to acquire the bearer token are available in the
 # Docker configuration file at $DOCKER_CONFIG/config.json.
 #
 # Globals
-#   REALM           Required. The token server from which to request the bearer token
-#   SERVICE         Required. The registry that hosts the image
-#   SCOPE           Required. The resource and requested scope
+#   REGISTRY        Required. The registry from which to request a token
+#   SCOPES          Required. Space-delimited list of scopes for which a token will be requested
+#                   See https://docs.docker.com/registry/spec/auth/token/#requesting-a-token
 #   DOCKER_CONFIG   Optional. The path to Docker's config.json. Default value is $HOME/.docker
 #
 # Outputs
 #   OUTPUTS         The bearer token
 #
 get_bearer_token() {
+    # Make unauthorized request to discover the authorization service
+    local result=$(curl --head --include --show-error --silent "https://$REGISTRY/v2/")
+    local status=$(echo "$result" | tail -n 1)
+    result="$(echo "$result" | head -n -1)"
+    if [[ "$status" != 401 ]]; then
+        echo 'Unauthorized request returned an unexpected result.' \
+            "Expected status=401, actual status=$status, details="
+        echo "$result"
+        return 1
+    fi
+
+    # Get the REALM and SERVICE values from the WWW-Authenticate header
+    RESPONSE_401="$result" parse_authenticate_header
+    source <(echo "$OUTPUTS")
+
+    # Get credentials from Docker config
     REGISTRY="$SERVICE" get_docker_credentials
     local cred="$OUTPUTS"
 
-    local result=$(
-        curl --show-error --silent --user "$cred" --write-out '\n%{http_code}' "$REALM?service=$SERVICE&scope=$SCOPE"
-    )
+    # Make the authorization request for the given scopes
+    local result=$(curl \
+        --show-error \
+        --silent \
+        --user "$cred" \
+        --write-out '\n%{http_code}' \
+        "$REALM?service=$SERVICE&scope=${SCOPES// /&scope=}")
 
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
@@ -110,49 +129,14 @@ get_bearer_token() {
 }
 
 #
-# Makes a push request for the given image without authorization, for the purpose of acquiring
-# a bearer token. This function does not actually push the manifest, but rather returns the bearer
-# token that can be used to push the manifest.
-#
-# Globals
-#   REGISTRY        Required. The registry from which to request a token
-#   REPOSITORY      Required. The image repository for which a token will be requested
-#   TAG             Required. The tag for which a token will be requested
-#
-# Outputs
-#   OUTPUTS         The bearer token
-#
-authorize_push_manifest() {
-    # Make unauthorized push request
-    local result=$(
-        curl --include --request PUT --show-error --silent --write-out '\n%{http_code}' \
-            "https://$REGISTRY/v2/$REPOSITORY/manifests/$TAG"
-    )
-
-    local status=$(echo "$result" | tail -n 1)
-    result="$(echo "$result" | head -n -1)"
-    if [[ "$status" != 401 ]]; then
-        echo 'Unauthorized request returned an unexpected result.' \
-            "Expected status=401, actual status=$status, details="
-        echo "$result"
-        return 1
-    fi
-
-    # Get bearer token
-    RESPONSE_401="$result" parse_authenticate_header
-    source <(echo "$OUTPUTS")
-
-    get_bearer_token
-}
-
-#
 # Pulls the given manifest from the registry.
 #
 # Globals
 #   REFERENCE       Required. The tag or digest for which a manifest will be retreived
 #   REGISTRY        Required. The registry from which a manifest will be retreived
 #   REPOSITORY      Required. The image repository for which a manifest will be retreived
-#   TOKEN           Optional. The bearer token to use. A new token will be generated by default
+#   SCOPES          Optional. If not given, a scope with be generated to perform this operation
+#   TOKEN           Optional. The bearer token to use. If not given, a new token will be generated
 #
 # Outputs
 #   OUTPUTS         The retreived manifest
@@ -161,10 +145,11 @@ authorize_push_manifest() {
 pull_manifest() {
     TOKEN=${TOKEN:-''}
     if [[ -z "$TOKEN" ]]; then
-        # Even though this function only pulls, we always get pull+push authorization because this
-        # function is generally used in the context of pulling one manifest to copy (push) it to
-        # another tag in the same repository.
-        TAG="$REFERENCE" authorize_push_manifest
+        if [[ -z "$SCOPES" ]]; then
+            SCOPES="repository:$REPOSITORY:pull"
+        fi
+
+        get_bearer_token
         TOKEN="$OUTPUTS"
     fi
 
@@ -217,18 +202,20 @@ get_manifest_media_type() {
 #   MANIFEST        Required. The contents of the manifest to push
 #   REGISTRY        Required. The registry to which the manifest will be pushed
 #   REPOSITORY      Required. The repository to which the manifest will be pushed
+#   SCOPES          Optional. If not given, a scope with be generated to perform this operation
 #   TAG             Required. The tag to which the manifest will be pushed
-#   TOKEN           Optional. The bearer token to use. A new token will be generated by default
+#   TOKEN           Optional. The bearer token to use. If not given, a new token will be generated
 #
 # Outputs
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 push_manifest() {
     if [[ -z "$TOKEN" ]]; then
-        # Even though this function only pulls, we always get pull+push authorization because this
-        # function is generally used in the context of pulling one manifest to copy (push) it to
-        # another tag in the same repository.
-        authorize_push_manifest
+        if [[ -z "$SCOPES" ]]; then
+            SCOPES="repository:$REPOSITORY:push"
+        fi
+
+        get_bearer_token
         TOKEN="$OUTPUTS"
     fi
 
@@ -284,6 +271,85 @@ get_platform_specific_digests() {
         { platform: [ .platform | (.os, .architecture, .variant // empty) ] | join("/"), digest: .digest } |
         select(.platform as $candidate | $filter // [ $candidate ] | any(. == $candidate))
     ]')"
+}
+
+#
+# Given a manifest, parse the image layers and copy them to the destination repository.
+#
+# Globals
+#   MANIFEST        Required. The contents of the manifest that describes the image layers to copy
+#   REGISTRY        Required. The registry within which image layers will be copied
+#   REPO_DST        Required. The repository to which the image layers will be copied
+#   REPO_SRC        Required. The repository from which the image layers will be copied
+#   SCOPES          Optional. If not given, a scope with be generated to perform this operation
+#   TOKEN           Optional. The bearer token to use. If not given, a new token will be generated
+#
+# Outputs
+#   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
+#
+copy_image_layers() {
+    # Ensure the manifest has a mediaType we understand
+    local media_type=$(echo "$MANIFEST" | jq -r '.mediaType')
+    if [[ "$media_type" != 'vnd.oci.image.manifest.v1+json' ]] &&
+        [[ "$media_type" != 'application/vnd.docker.distribution.manifest.v2+json' ]]; then
+        echo "Manifest has unexpected media type '$media_type'"
+        return 1
+    fi
+
+    # Get a new authorization token if necessary
+    if [[ -z "$TOKEN" ]]; then
+        if [[ -z "$SCOPES" ]]; then
+            SCOPES="repository:$REPO_SRC:pull repository:$REPO_DST:pull,push"
+        fi
+
+        REPOSITORY="$REPO_DST" get_bearer_token
+        TOKEN="$OUTPUTS"
+    fi
+
+    # Parse the image layer digests from the manifest
+    local digests=( $(echo "$MANIFEST" | jq -r '.. | objects | select(has("digest")) | .digest') )
+
+    for digest in ${digests[@]}; do
+        # Check if the image layer already exists at the destination
+        local result=$(curl \
+            --head \
+            --header "Authorization: Bearer $TOKEN" \
+            --show-error \
+            --silent \
+            --write-out '\n%{http_code}' \
+            "https://$REGISTRY/v2/$REPO_DST/blobs/$digest")
+
+        local status=$(echo "$result" | tail -n 1)
+        result="$(echo "$result" | head -n -1)"
+        if [[ "$status" == 200 ]]; then
+            echo "Image layer '$REGISTRY/$REPO_DST@$digest' already exists"
+        elif [[ "$status" == 404 ]]; then
+            # If the image layer doesn't already exist, copy it
+            result=$(curl \
+                --header "Authorization: Bearer $TOKEN" \
+                --include \
+                --request POST \
+                --show-error \
+                --silent \
+                --write-out '\n%{http_code}' \
+                "https://$REGISTRY/v2/$REPO_DST/blobs/uploads/?mount=$digest&from=$REPO_SRC")
+
+            local status=$(echo "$result" | tail -n 1)
+            result="$(echo "$result" | head -n -1)"
+            if [[ "$status" != 201 ]]; then
+                echo "Failed to copy image layer to '$REGISTRY/$REPO_DST@$digest', status=$status, details="
+                echo "$result"
+                return 1
+            fi
+
+            echo "Pushed image layer to '$REGISTRY/$REPO_DST@$digest'"
+        else [[ "$status" != 200 ]]
+            echo "Request for check existence of image layer '$REGISTRY/$REPO_DST@$digest' " \
+                "failed, status=$status, details="
+            echo "$result"
+            return 1
+        fi
+    done
 }
 
 #
@@ -355,6 +421,10 @@ copy_platform_specific_manifests() {
         if [[ -n "$DST_REPO" ]] && [[ "$DST_REPO" != "$REPOSITORY" ]]; then
             # Pushing to a different repo, so we'll need a different authorization token
             TOKEN=
+
+            # We may also need to copy over the image layers referenced in the platform-specific
+            # manifest
+            MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$DST_REPO" copy_image_layers
         fi
 
         # Push platform-specific manifest by tag
