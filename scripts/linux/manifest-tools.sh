@@ -189,7 +189,7 @@ pull_manifest() {
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
     if [[ "$status" != 200 ]]; then
-        echo 'Request to pull manifest failed, status=$status, details=' \
+        echo "Request to pull manifest failed, status=$status, details=" \
         echo "$result"
         return 1
     fi
@@ -250,7 +250,7 @@ push_manifest() {
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
     if [[ "$status" != 201 ]]; then
-        echo 'Request to push manifest failed, status=$status, details=' \
+        echo "Request to push manifest failed, status=$status, details=" \
         echo "$result"
         return 1
     fi
