@@ -728,6 +728,9 @@ function run_connectivity_test() {
         else
             testExitCode=0
         fi
+
+        docker stop testResultCoordinator || true
+        sleep 30
         
         get_support_bundle_logs
         print_test_run_logs $testExitCode

@@ -347,7 +347,7 @@
             "version": "1.0",
             "type": "docker",
             "status": "running",
-            "restartPolicy": "always",
+            "restartPolicy": "never",
             "env": {
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
