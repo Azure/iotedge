@@ -210,6 +210,7 @@ get_manifest_media_type() {
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 push_manifest() {
+    TOKEN=${TOKEN:-''}
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
             SCOPES="repository:$REPOSITORY:push"
@@ -297,6 +298,7 @@ copy_image_layers() {
     fi
 
     # Get a new authorization token if necessary
+    TOKEN=${TOKEN:-''}
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
             SCOPES="repository:$REPO_SRC:pull repository:$REPO_DST:pull,push"
