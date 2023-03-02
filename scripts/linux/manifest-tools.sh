@@ -349,9 +349,15 @@ copy_platform_specific_manifests() {
         REFERENCE="$digest" pull_manifest
         local manifest="$OUTPUTS"
 
-        # Push platform-specific manifest by tag
         local tag="${TAG}-$(echo "$platform_map" |
             jq -r --arg platform "$platform" '.[] | select(.platform == $platform) | .tag_suffix')"
+
+        if [[ -n "$DST_REPO" ]] && [[ "$DST_REPO" != "$REPOSITORY" ]]; then
+            # Pushing to a different repo, so we'll need a different authorization token
+            TOKEN=
+        fi
+
+        # Push platform-specific manifest by tag
         MANIFEST="$manifest" REPOSITORY="${DST_REPO:-$REPOSITORY}" TAG="$tag" push_manifest
     done
 }
