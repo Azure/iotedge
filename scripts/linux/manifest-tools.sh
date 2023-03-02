@@ -64,7 +64,7 @@ get_docker_credentials() {
         cred=$(
             cat "$docker_config" | jq --arg reg "$REGISTRY" -r '.auths | .[$reg].auth' | base64 --decode
         )
-    elif [[ "$(echo "$docker_config" | jq 'has("credsStore")')" == true ]]
+    elif [[ "$(echo "$docker_config" | jq 'has("credsStore")')" == true ]]; then
         # Get credentials from store
         local store=$(echo "$docker_config" | jq -r '.credsStore')
         cred=$(echo "$REGISTRY" | docker-credential-$store get | jq -r '"\(.Username):\(.Secret)"')
