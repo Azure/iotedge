@@ -291,7 +291,7 @@ get_platform_specific_digests() {
 copy_image_layers() {
     # Ensure the manifest has a mediaType we understand
     local media_type=$(echo "$MANIFEST" | jq -r '.mediaType')
-    if [[ "$media_type" != 'vnd.oci.image.manifest.v1+json' ]] &&
+    if [[ "$media_type" != 'application/vnd.oci.image.manifest.v1+json' ]] &&
         [[ "$media_type" != 'application/vnd.docker.distribution.manifest.v2+json' ]]; then
         echo "Manifest has unexpected media type '$media_type'"
         return 1
