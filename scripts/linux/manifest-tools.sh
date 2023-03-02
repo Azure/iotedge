@@ -115,9 +115,9 @@ get_bearer_token() {
 # token that can be used to push the manifest.
 #
 # Globals
-#   REFERENCE       Required. The tag or digest for which a token will be requested
 #   REGISTRY        Required. The registry from which to request a token
 #   REPOSITORY      Required. The image repository for which a token will be requested
+#   TAG             Required. The tag for which a token will be requested
 #
 # Outputs
 #   OUTPUTS         The bearer token
@@ -126,7 +126,7 @@ authorize_push_manifest() {
     # Make unauthorized push request
     local result=$(
         curl --include --request PUT --show-error --silent --write-out '\n%{http_code}' \
-            "https://$REGISTRY/v2/$REPOSITORY/manifests/$REFERENCE"
+            "https://$REGISTRY/v2/$REPOSITORY/manifests/$TAG"
     )
 
     local status=$(echo "$result" | tail -n 1)
@@ -164,7 +164,7 @@ pull_manifest() {
         # Even though this function only pulls, we always get pull+push authorization because this
         # function is generally used in the context of pulling one manifest to copy (push) it to
         # another tag in the same repository.
-        authorize_push_manifest
+        TAG="$REFERENCE" authorize_push_manifest
         TOKEN="$OUTPUTS"
     fi
 
