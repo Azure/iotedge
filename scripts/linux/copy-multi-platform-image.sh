@@ -34,6 +34,7 @@ set -euo pipefail
 ###############################################################################
 # Define Environment Variables
 ###############################################################################
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 SCRIPT_NAME=$(basename $0)
 REGISTRY=
 REPO_DST=
