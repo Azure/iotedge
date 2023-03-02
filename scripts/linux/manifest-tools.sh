@@ -91,7 +91,7 @@ get_docker_credentials() {
 #
 get_bearer_token() {
     # Make unauthorized request to discover the authorization service
-    local result=$(curl --head --include --show-error --silent "https://$REGISTRY/v2/")
+    local result=$(curl --head --include --show-error --silent --write-out '\n%{http_code}' "https://$REGISTRY/v2/")
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
     if [[ "$status" != 401 ]]; then
@@ -380,7 +380,7 @@ copy_platform_specific_manifests() {
     local platform_map=${PLATFORM_MAP:-$DEFAULT_PLATFORM_MAP}
 
     # Pull multi-platform image's manifest list
-    REFERENCE="$TAG" pull_manifest
+    REFERENCE="$TAG" TOKEN= pull_manifest
     local manifest_list="$OUTPUTS"
 
     # Make sure the image the caller gave us is actually a manifest list
