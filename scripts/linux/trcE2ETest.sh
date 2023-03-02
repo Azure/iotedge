@@ -299,7 +299,7 @@ function get_support_bundle_logs(){
     print_highlighted_message "Getting Support Bundle Logs WITH TIMEOUT"
     mkdir -p $working_folder/support
     time=$(echo $test_start_time | sed 's/ /T/' | sed 's/$/Z/')
-    timeout 300 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || echo "Retrieving support bundle timed out."
+    timeout 900 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || echo "Retrieving support bundle timed out."
     print_highlighted_message "Finished getting support Bundle Logs"
 }
 
