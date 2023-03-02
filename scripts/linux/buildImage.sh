@@ -229,12 +229,13 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     IFS=',' read -a PLAT_ARR <<< "$PLATFORMS"
     for PLATFORM in ${PLAT_ARR[@]}
     do
-        PLAT_IMAGE="$IMAGE-$(convert_platform $PLATFORM)"
+        CONVERTED_PLATFORM="$(convert_platform $PLATFORM)"
+        PLAT_IMAGE="$IMAGE-$CONVERTED_PLATFORM"
 
         docker buildx build \
             --no-cache \
             --platform "$PLATFORM" \
-            --file "$APP_BINARIESDIRECTORY/docker/$(convert_platform $PLATFORM)/Dockerfile" \
+            --file "$APP_BINARIESDIRECTORY/docker/${CONVERTED_PLATFORM/-/\/}"/Dockerfile" \
             --output=type=registry,name=$PLAT_IMAGE \
             --build-arg EXE_DIR=. \
             $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
