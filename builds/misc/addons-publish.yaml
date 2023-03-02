@@ -37,7 +37,7 @@ jobs:
               containerRegistry: iotedge-release-acr
         
           - script: |
-              scripts/linux/copyImage.sh \
+              scripts/linux/copy-multi-platform-image.sh \
                 --registry '$(registry.address)' \
                 --repo-src 'microsoft/azureiotedge-api-proxy' \
                 --repo-dst 'public/azureiotedge-api-proxy' \

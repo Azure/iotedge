@@ -97,7 +97,7 @@ jobs:
           displayName: Set version and tags
 
         - script: |
-            scripts/linux/copyImage.sh \
+            scripts/linux/copy-multi-platform-image.sh \
               --registry '$(registry.address)' \
               --repo-src 'microsoft/azureiotedge-agent' \
               --repo-dst 'public/azureiotedge-agent' \
@@ -106,7 +106,7 @@ jobs:
           displayName: Publish Edge Agent images
 
         - script: |
-            scripts/linux/copyImage.sh \
+            scripts/linux/copy-multi-platform-image.sh \
               --registry '$(registry.address)' \
               --repo-src 'microsoft/azureiotedge-hub' \
               --repo-dst 'public/azureiotedge-hub' \
@@ -117,7 +117,7 @@ jobs:
         - script: |
             temp_sensor_tags=$(echo '$(tags)' | jq -c '. + ["latest"]')
 
-            scripts/linux/copyImage.sh \
+            scripts/linux/copy-multi-platform-image.sh \
               --registry '$(registry.address)' \
               --repo-src 'microsoft/azureiotedge-simulated-temperature-sensor' \
               --repo-dst 'public/azureiotedge-simulated-temperature-sensor' \
@@ -132,7 +132,7 @@ jobs:
             # We copy azureiotedge-diagnostics to the unlisted namespace instead of the public
             # namespace so it won't show up in the MAR Discovery Portal. This image is used
             # interally by `iotedge check`; it's not an image you would `docker pull`.
-            scripts/linux/copyImage.sh \
+            scripts/linux/copy-multi-platform-image.sh \
               --registry '$(registry.address)' \
               --repo-src 'microsoft/azureiotedge-diagnostics' \
               --repo-dst 'unlisted/azureiotedge-diagnostics' \

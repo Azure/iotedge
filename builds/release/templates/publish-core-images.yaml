@@ -27,7 +27,7 @@ jobs:
       containerRegistry: $(service-connection.registry.release)
 
   - script: |
-      scripts/linux/copyImage.sh \
+      scripts/linux/copy-multi-platform-image.sh \
         --registry '$(registry.address)' \
         --repo-src 'microsoft/azureiotedge-agent' \
         --repo-dst 'public/azureiotedge-agent' \
@@ -36,7 +36,7 @@ jobs:
     displayName: Publish Edge Agent images
 
   - script: |
-      scripts/linux/copyImage.sh \
+      scripts/linux/copy-multi-platform-image.sh \
         --registry '$(registry.address)' \
         --repo-src 'microsoft/azureiotedge-hub' \
         --repo-dst 'public/azureiotedge-hub' \
@@ -47,7 +47,7 @@ jobs:
   - script: |
       temp_sensor_tags=$(echo '${{ parameters.tags }}' | jq -c '. + ["latest"]')
 
-      scripts/linux/copyImage.sh \
+      scripts/linux/copy-multi-platform-image.sh \
         --registry '$(registry.address)' \
         --repo-src 'microsoft/azureiotedge-simulated-temperature-sensor' \
         --repo-dst 'public/azureiotedge-simulated-temperature-sensor' \
@@ -56,7 +56,7 @@ jobs:
     displayName: Publish Simulated Temperature Sensor images
 
   - script: |
-      scripts/linux/copyImage.sh \
+      scripts/linux/copy-multi-platform-image.sh \
         --registry '$(registry.address)' \
         --repo-src 'microsoft/azureiotedge-diagnostics' \
         --repo-dst 'unlisted/azureiotedge-diagnostics' \

@@ -70,7 +70,7 @@ jobs:
             containerRegistry: $(service-connection.registry.release)
 
         - script: |
-            scripts/linux/copyImage.sh \
+            scripts/linux/copy-multi-platform-image.sh \
               --registry '$(registry.address)' \
               --repo-src 'microsoft/azureiotedge-metrics-collector' \
               --repo-dst 'public/azureiotedge-metrics-collector' \
