@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This script is intended to be sourced from other scripts. It expects that 'set -euo pipefail' was
+# invoked by the caller.
+
 DEFAULT_PLATFORM_MAP='[
   {
     "platform": "linux/amd64",
@@ -14,9 +17,6 @@ DEFAULT_PLATFORM_MAP='[
     "tag_suffix": "linux-arm32v7"
   }
 ]'
-
-# This script is intended to be sourced from other scripts. It expects that 'set -euo pipefail' was
-# invoked by the caller.
 
 #
 # Given a WWW-Authenticate header containing a "Bearer" challenge as input, parsed the realm,
