@@ -275,4 +275,4 @@ else
     copy_platform_specific_manifests
 fi
 
-echo "Done building Docker image $DOCKER_IMAGENAME for $APP"
+echo "Built and pushed image '$IMAGE'"
