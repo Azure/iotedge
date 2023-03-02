@@ -103,7 +103,7 @@ get_bearer_token() {
     if [[ "$status" != 200 ]]; then
         echo "Request for bearer token failed, status=$status, details="
         echo "$result"
-        exit 1
+        return 1
     fi
 
     OUTPUTS="$(echo "$result" | jq -r '.access_token')"
@@ -135,7 +135,7 @@ authorize_push_manifest() {
         echo 'Unauthorized request returned an unexpected result.' \
             "Expected status=401, actual status=$status, details="
         echo "$result"
-        exit 1
+        return 1
     fi
 
     # Get bearer token
@@ -191,7 +191,7 @@ pull_manifest() {
     if [[ "$status" != 200 ]]; then
         echo 'Request to pull manifest failed, status=$status, details=' \
         echo "$result"
-        exit 1
+        return 1
     fi
 
     OUTPUTS="$result"
@@ -252,7 +252,7 @@ push_manifest() {
     if [[ "$status" != 201 ]]; then
         echo 'Request to push manifest failed, status=$status, details=' \
         echo "$result"
-        exit 1
+        return 1
     fi
 
     echo "Pushed $REGISTRY/$REPOSITORY:$TAG"
@@ -320,7 +320,7 @@ copy_platform_specific_manifests() {
     if [[ "$OUTPUTS" != 'application/vnd.docker.distribution.manifest.list.v2+json' ]] &&
         [[ "$OUTPUTS" != 'application/vnd.oci.image.index.v1+json' ]]; then
         echo "Unexpected manifest media type '$OUTPUTS'"
-        exit 1
+        return 1
     fi
 
     # Parse out the digests of all platform-specific images referenced in the manifest list
@@ -338,7 +338,7 @@ copy_platform_specific_manifests() {
         echo "Manifest list '$REGISTRY/$REPOSITORY:$TAG' does not have the expected entries"
         echo "Expected: $map_platforms"
         echo "Actual: $list_platforms"
-        exit 1
+        return 1
     fi
 
     for platform in $(echo "$list_platforms" | jq -r '.[]')
