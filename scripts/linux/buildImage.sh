@@ -252,7 +252,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
 
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
-    REFERENCE="$DOCKER_IMAGEVERSION" \
+    TAG="$DOCKER_IMAGEVERSION" \
     copy_platform_specific_manifests
 else
     # First, build the complete multi-platform image
@@ -270,7 +270,7 @@ else
 
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
-    REFERENCE="$DOCKER_IMAGEVERSION" \
+    TAG="$DOCKER_IMAGEVERSION" \
     copy_platform_specific_manifests
 fi
 

@@ -1,5 +1,20 @@
 #!/bin/bash
 
+DEFAULT_PLATFORM_MAP='[
+  {
+    "platform": "linux/amd64",
+    "tag_suffix": "linux-amd64"
+  },
+  {
+    "platform": "linux/arm64",
+    "tag_suffix": "linux-arm64v8"
+  },
+  {
+    "platform": "linux/arm/v7",
+    "tag_suffix": "linux-arm32v7"
+  }
+]'
+
 # This script is intended to be sourced from other scripts. It expects that 'set -euo pipefail' was
 # invoked by the caller.
 
@@ -272,9 +287,9 @@ get_platform_specific_digests() {
 }
 
 #
-# Given a manifest list, copy each platform-specific manifest to the same registry, according to the
-# given mapping of platforms to tags. If a manifest already exists in the registry at the given tag,
-# it will be overwritten.
+# Given a manifest list, make a copy of each platform-specific manifest according to the given
+# mapping of platforms to tags. If a manifest already exists in the repository at the given tag, it
+# will be overwritten.
 #
 # Note: Using 'docker buildx imagetools create' won't work here because it always creates a manifest
 # list. We want our platform-specific image tags to point directly to platform-specific images to be
@@ -283,35 +298,18 @@ get_platform_specific_digests() {
 # APIs directly.
 #
 # Globals
+#   DST_REPO        Optional. If set, manifests will be coped to $DST_REPO instead of $REPOSITORY
 #   PLATFORM_MAP    Optional. A JSON object that defines the mapping of platforms to tag suffixes.
-#                   Default:
-#                   [
-#                       {
-#                           "platform": "linux/amd64",
-#                           "tag_suffix": "linux-amd64"
-#                       },
-#                       {
-#                           "platform": "linux/arm64",
-#                           "tag_suffix": "linux-arm64v8"
-#                       },
-#                       {
-#                           "platform": "linux/arm/v7",
-#                           "tag_suffix": "linux-arm32v7"
-#                       }
-#                   ]
-#   REFERENCE       Required. The tag or digest of the source manifest list
+#                   Default is $DEFAULT_PLATFORM_MAP (see definition above)
 #   REGISTRY        Required. The registry in which the manifest(s) will be copied
-#   REPOSITORY      Required. The image repository in which the manifest(s) will be copied
+#   REPOSITORY      Required. The repository in which the manifest(s) will be copied
+#   TAG             Required. The source manifest list's tag
 #
 # Outputs
 #   None
 #
 copy_platform_specific_manifests() {
-    local platform_map=${PLATFORM_MAP:-'[
-        {"platform":"linux/amd64","tag_suffix":"linux-amd64"},
-        {"platform":"linux/arm64","tag_suffix":"linux-arm64v8"},
-        {"platform":"linux/arm/v7","tag_suffix":"linux-arm32v7"}
-    ]'}
+    local platform_map=${PLATFORM_MAP:-$DEFAULT_PLATFORM_MAP}
 
     # Pull multi-platform image's manifest list
     pull_manifest
@@ -337,7 +335,7 @@ copy_platform_specific_manifests() {
         --argjson list_platforms "$list_platforms" \
         '($map_platforms | sort) == ($list_platforms | sort)')
     if [[ "$match" != 'true' ]]; then
-        echo "Manifest list '$REGISTRY/$REPOSITORY/$REFERENCE' does not have the expected entries"
+        echo "Manifest list '$REGISTRY/$REPOSITORY:$TAG' does not have the expected entries"
         echo "Expected: $map_platforms"
         echo "Actual: $list_platforms"
         exit 1
@@ -352,9 +350,9 @@ copy_platform_specific_manifests() {
         local manifest="$OUTPUTS"
 
         # Push platform-specific manifest by tag
-        local tag="${REFERENCE}-$(echo "$platform_map" |
+        local tag="${TAG}-$(echo "$platform_map" |
             jq -r --arg platform "$platform" '.[] | select(.platform == $platform) | .tag_suffix')"
-        MANIFEST="$manifest" TAG="$tag" push_manifest
+        MANIFEST="$manifest" REPOSITORY="${DST_REPO:-$REPOSITORY}" TAG="$tag" push_manifest
     done
 }
 

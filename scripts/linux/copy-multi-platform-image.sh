@@ -6,7 +6,9 @@
 # images, as well as any additional tags supplied by the caller. It assumes that
 # the caller is logged into the registry.
 #
-# For example, if the script is called with the following arguments:
+# For example, if registry/src/repo:1.2.3 is a multi-platform image built for
+# {linux/amd64, linux/arm/v7, linux/arm64}, and the script is called with the
+# following arguments:
 #
 #   REGISTRY=registry
 #   REPO_SRC=src/repo
@@ -14,14 +16,16 @@
 #   TAG=1.2.3
 #   TAGS_EXTRA='["1.2","latest"]'
 #
-# ...then the following copy operations will take place:
+# ...then the script will discover the digests of each platform-specific image
+# (e.g., sha256:aaa, sha256:bbb, sha256:ccc respectively), and will perform the
+# following copy operations:
 #
-#   registry/src/repo:1.2.3-linux-amd64   => registry/dst/repo:1.2.3-linux-amd64
-#   registry/src/repo:1.2.3-linux-arm32v7 => registry/dst/repo:1.2.3-linux-arm32v7
-#   registry/src/repo:1.2.3-linux-arm64v8 => registry/dst/repo:1.2.3-linux-arm32v7
-#   registry/src/repo:1.2.3               => registry/dst/repo:1.2.3
-#   registry/src/repo:1.2.3               => registry/dst/repo:1.2
-#   registry/src/repo:1.2.3               => registry/dst/repo:latest
+#   registry/src/repo@sha256:aaa    => registry/dst/repo:1.2.3-linux-amd64
+#   registry/src/repo@sha256:bbb    => registry/dst/repo:1.2.3-linux-arm32v7
+#   registry/src/repo@sha256:ccc    => registry/dst/repo:1.2.3-linux-arm32v7
+#   registry/src/repo:1.2.3         => registry/dst/repo:1.2.3
+#   registry/src/repo:1.2.3         => registry/dst/repo:1.2
+#   registry/src/repo:1.2.3         => registry/dst/repo:latest
 #
 ###############################################################################
 
@@ -129,14 +133,8 @@ process_args "$@"
 
 source "$SCRIPT_DIR/manifest-tools.sh"
 
-platform_tags=( "$TAG-linux-amd64" "$TAG-linux-arm64v8" "$TAG-linux-arm32v7" )
-
 # first, copy the platform-specific images from source to destination repositories
-for tag in ${$platform_tags[@]}
-do
-    echo "Copy '$REGISTRY/$REPO_SRC:$tag' to '$REGISTRY/$REPO_DST:$tag'"
-    SRC_TAG="$tag" TAG_DST="$tag" copy_manifest
-done
+DST_REPO="$REPO_DST" REPOSITORY="$REPO_SRC" TAG="$TAG" copy_platform_specific_manifests
 
 # next, copy the source repo's multi-platform image into the given tags in the destination repo
 multi_platform_tags=( $(echo "$TAGS_EXTRA" | jq -r --arg version "$TAG" '. + [ $version ] | join("\n")') )
