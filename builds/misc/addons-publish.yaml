@@ -42,5 +42,5 @@ jobs:
                 --repo-src 'microsoft/azureiotedge-api-proxy' \
                 --repo-dst 'public/azureiotedge-api-proxy' \
                 --tag '$(version)' \
-                --tags-extra '$(tags)'
+                --tags-add '$(tags)'
             displayName: Publish Api Proxy images

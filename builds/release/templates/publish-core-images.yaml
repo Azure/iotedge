@@ -32,7 +32,7 @@ jobs:
         --repo-src 'microsoft/azureiotedge-agent' \
         --repo-dst 'public/azureiotedge-agent' \
         --tag '${{ parameters['version.core'] }}' \
-        --tags-extra '${{ parameters.tags }}'
+        --tags-add '${{ parameters.tags }}'
     displayName: Publish Edge Agent images
 
   - script: |
@@ -41,7 +41,7 @@ jobs:
         --repo-src 'microsoft/azureiotedge-hub' \
         --repo-dst 'public/azureiotedge-hub' \
         --tag '${{ parameters['version.core'] }}' \
-        --tags-extra '${{ parameters.tags }}'
+        --tags-add '${{ parameters.tags }}'
     displayName: Publish Edge Hub images
 
   - script: |
@@ -52,7 +52,7 @@ jobs:
         --repo-src 'microsoft/azureiotedge-simulated-temperature-sensor' \
         --repo-dst 'public/azureiotedge-simulated-temperature-sensor' \
         --tag '${{ parameters['version.core'] }}' \
-        --tags-extra "$temp_sensor_tags"
+        --tags-add "$temp_sensor_tags"
     displayName: Publish Simulated Temperature Sensor images
 
   - script: |
@@ -61,7 +61,7 @@ jobs:
         --repo-src 'microsoft/azureiotedge-diagnostics' \
         --repo-dst 'unlisted/azureiotedge-diagnostics' \
         --tag '${{ parameters['version.diagnostics'] }}' \
-        --tags-extra '${{ parameters.tags }}'
+        --tags-add '${{ parameters.tags }}'
     displayName: Publish Diagnostics images
 
   - task: AzureKeyVault@1

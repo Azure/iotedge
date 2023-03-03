@@ -254,7 +254,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
     TAG="$DOCKER_IMAGEVERSION" \
-    copy_platform_specific_manifests
+    copy_manifests
 else
     # First, build the complete multi-platform image
     docker buildx build \
@@ -272,7 +272,7 @@ else
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
     TAG="$DOCKER_IMAGEVERSION" \
-    copy_platform_specific_manifests
+    copy_manifests
 fi
 
 echo "Built and pushed image '$IMAGE'"

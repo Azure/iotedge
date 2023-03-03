@@ -14,7 +14,7 @@
 #   REPO_SRC=src/repo
 #   REPO_DST=dst/repo
 #   TAG=1.2.3
-#   TAGS_EXTRA='["1.2","latest"]'
+#   TAGS_ADD='["1.2","latest"]'
 #
 # ...then the script will discover the digests of each platform-specific image
 # (e.g., sha256:aaa, sha256:bbb, sha256:ccc respectively), and will perform the
@@ -40,7 +40,7 @@ REGISTRY=
 REPO_DST=
 REPO_SRC=
 TAG=
-TAGS_EXTRA=
+TAGS_ADD=
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -51,11 +51,11 @@ usage()
     echo "Note: Depending on the options you might have to run this as root or sudo."
     echo ""
     echo "options"
-    echo " --registry           Image registry (source and destination)"
+    echo " --registry           Image registry"
     echo " --repo-dst           Destination repository"
     echo " --repo-src           Source repository"
-    echo " --tag                Tag (soure and destination)"
-    echo " --tags-extra         Optional JSON array of tags to add to the destination image"
+    echo " --tag                Tag to copy"
+    echo " --tags-add           Optional JSON array of tags to add to the destination image"
     exit 1;
 }
 
@@ -86,7 +86,7 @@ process_args()
             TAG="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 5 ]; then
-            TAGS_EXTRA="$arg"
+            TAGS_ADD="$arg"
             save_next_arg=0
         else
             case "$arg" in
@@ -94,7 +94,7 @@ process_args()
                 "--repo-dst" ) save_next_arg=2;;
                 "--repo-src" ) save_next_arg=3;;
                 "--tag" ) save_next_arg=4;;
-                "--tags-extra" ) save_next_arg=5;;
+                "--tags-add" ) save_next_arg=5;;
                 "-h" | "--help" ) usage;;
                 * ) usage;;
             esac
@@ -120,11 +120,6 @@ process_args()
         echo "Required parameter --tag not found"
         print_help_and_exit
     fi
-
-    if [[ -n "$TAGS_EXTRA" ]] && [[ $(echo "$TAGS_EXTRA" | jq -r '. | type') != 'array' ]]; then
-        echo 'The value of --tags-extra must be a JSON array'
-        print_help_and_exit
-    fi
 }
 
 ###############################################################################
@@ -133,15 +128,4 @@ process_args()
 process_args "$@"
 
 source "$SCRIPT_DIR/manifest-tools.sh"
-
-# first, copy the platform-specific images from source to destination repositories
-DST_REPO="$REPO_DST" REPOSITORY="$REPO_SRC" TAG="$TAG" copy_platform_specific_manifests
-
-# next, copy the source repo's multi-platform image into the given tags in the destination repo
-multi_platform_tags=( $(echo "$TAGS_EXTRA" | jq -r --arg version "$TAG" '. + [ $version ] | join("\n")') )
-
-for tag in ${multi_platform_tags[@]}
-do
-    echo "Copy '$REGISTRY/$REPO_SRC:$TAG' to '$REGISTRY/$REPO_DST:$tag'"
-    REF_SRC="$TAG" TAG_DST="$tag" copy_manifest
-done
+copy_manifest_list

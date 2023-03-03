@@ -512,7 +512,7 @@ stages:
           --repo-src 'microsoft/azureiotedge-metrics-collector' \
           --repo-dst 'public/azureiotedge-metrics-collector' \
           --tag '$(version)' \
-          --tags-extra '$(tags)'
+          --tags-add '$(tags)'
       displayName: Publish Metrics Collector images
       workingDirectory: iotedge
 

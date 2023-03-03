@@ -208,10 +208,10 @@ get_manifest_media_type() {
 #
 # Globals
 #   MANIFEST        Required. The contents of the manifest to push
+#   REFERENCE       Required. The tag or digest to which the manifest will be pushed
 #   REGISTRY        Required. The registry to which the manifest will be pushed
 #   REPOSITORY      Required. The repository to which the manifest will be pushed
 #   SCOPES          Optional. If not given, a scope with be generated to perform this operation
-#   TAG             Required. The tag to which the manifest will be pushed
 #   TOKEN           Optional. The bearer token to use. If not given, a new token will be generated
 #
 # Outputs
@@ -243,7 +243,7 @@ push_manifest() {
         --show-error \
         --silent \
         --write-out '\n%{http_code}' \
-        "https://$REGISTRY/v2/$REPOSITORY/manifests/$TAG")
+        "https://$REGISTRY/v2/$REPOSITORY/manifests/$REFERENCE")
 
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
@@ -253,52 +253,46 @@ push_manifest() {
         return 1
     fi
 
-    echo "Pushed $REGISTRY/$REPOSITORY:$TAG"
+    local ref=":$REFERENCE"
+    echo "Pushed $REGISTRY/$REPOSITORY:${ref/#:sha256:/@sha256:}"
 }
 
 #
-# Given a manifest list, parse the digests from any platform-specific manifest entries (i.e.,
-# manifest entries with platform.os and platform.architecture != "unknown").
+# Given a manifest list, parse the digests and platforms of all manifests.
 #
 # Globals
 #   MANIFEST_LIST   Required. The contents of a manifest list
-#   PLATFORM_FILTER Optional. A JSON array of the platforms for which to return digests.
 #
 # Outputs
 #   OUTPUTS         A variable containing a JSON document:
 #                   [
-#                       {
-#                           "platform": "linux/arm/v7",
-#                           "digest": "sha256:<value>"
-#                       }, ...
+#                       { "platform": "linux/arm/v7", "digest": "sha256:<value>" },
+#                       { "platform": "unknown/unknown", "digest": "sha256:<value>" },
+#                       ...
 #                   ]
 #
-get_platform_specific_digests() {
-    local filter=${PLATFORM_FILTER:-'null'}
-
-    OUTPUTS="$(echo "$MANIFEST_LIST" | jq -c --argjson filter "$filter" '[
-        .manifests[] |
-        select(.platform | .architecture != "unknown" and .os != "unknown") |
-        { platform: [ .platform | (.os, .architecture, .variant // empty) ] | join("/"), digest: .digest } |
-        select(.platform as $candidate | $filter // [ $candidate ] | any(. == $candidate))
-    ]')"
+get_manifest_digests() {
+    OUTPUTS="$(echo "$MANIFEST_LIST" | jq -c '[ .manifests[] | {
+        platform: [ .platform | (.os, .architecture, .variant // empty) ] | join("/"),
+        digest: .digest
+    } ]')"
 }
 
 #
-# Given a manifest, parse the image layers and copy them to the destination repository.
+# Given a manifest, parse the layers and copy them to the destination repository.
 #
 # Globals
-#   MANIFEST        Required. The contents of the manifest that describes the image layers to copy
-#   REGISTRY        Required. The registry within which image layers will be copied
-#   REPO_DST        Required. The repository to which the image layers will be copied
-#   REPO_SRC        Required. The repository from which the image layers will be copied
+#   MANIFEST        Required. The contents of the manifest that describes the layers to copy
+#   REGISTRY        Required. The registry within which layers will be copied
+#   REPO_DST        Required. The repository to which the layers will be copied
+#   REPO_SRC        Required. The repository from which the layers will be copied
 #   SCOPES          Optional. If not given, a scope with be generated to perform this operation
 #   TOKEN           Optional. The bearer token to use. If not given, a new token will be generated
 #
 # Outputs
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
-copy_image_layers() {
+copy_layers() {
     SCOPES=${SCOPES:-}
     TOKEN=${TOKEN:-}
 
@@ -367,9 +361,9 @@ copy_image_layers() {
 }
 
 #
-# Given a manifest list, make a copy of each platform-specific manifest according to the given
-# mapping of platforms to tags. If a manifest already exists in the repository at the given tag, it
-# will be overwritten.
+# Given a manifest list, make a copy of each manifest. If a manifest represents a platform-specific
+# image that matches an entry in the given platform map, tag it in the destination. If a manifest
+# already exists in the repository at the given tag or digest, it will be overwritten.
 #
 # Note: Using 'docker buildx imagetools create' won't work here because it always creates a manifest
 # list. We want our platform-specific image tags to point directly to platform-specific images to be
@@ -388,7 +382,7 @@ copy_image_layers() {
 # Outputs
 #   None
 #
-copy_platform_specific_manifests() {
+copy_manifests() {
     local platform_map=${PLATFORM_MAP:-$DEFAULT_PLATFORM_MAP}
 
     # Pull multi-platform image's manifest list
@@ -403,17 +397,15 @@ copy_platform_specific_manifests() {
         return 1
     fi
 
-    # Parse out the digests of all platform-specific images referenced in the manifest list
-    local map_platforms="$(echo "$platform_map" | jq -c '[ .[] | .platform ]')"
-    MANIFEST_LIST="$manifest_list" PLATFORM_FILTER="$map_platforms" get_platform_specific_digests
-    local platform_specific_digests="$OUTPUTS"
+    # Parse out the digests of all manifests referenced in the manifest list
+    MANIFEST_LIST="$manifest_list" get_manifest_digests
+    local digests="$OUTPUTS"
 
     # Make sure the manifest list returned a digest for every platform in the caller's map
-    local list_platforms="$(echo "$platform_specific_digests" | jq -c '[ .[] | .platform ]')"
-    local match=$(jq -n \
-        --argjson map_platforms "$map_platforms" \
-        --argjson list_platforms "$list_platforms" \
-        '($map_platforms | sort) == ($list_platforms | sort)')
+    local map_platforms="$(echo "$platform_map" | jq -c '[ .[] | .platform ]')"
+    local list_platforms="$(echo "$digests" | jq -c '[ .[] | .platform ] | select(.platform != "unknown/unknown")')"
+    local match=$(echo "$list_platforms" |
+        jq --argjson filter "$map_platforms" '[ .[] | .platform as $p | $filter | any(. == $p) ] | all')
     if [[ "$match" != 'true' ]]; then
         echo "Manifest list '$REGISTRY/$REPOSITORY:$TAG' does not have the expected entries"
         echo "Expected: $map_platforms"
@@ -421,55 +413,76 @@ copy_platform_specific_manifests() {
         return 1
     fi
 
-    for platform in $(echo "$list_platforms" | jq -r '.[]')
+    if [[ -n "$DST_REPO" ]] && [[ "$DST_REPO" != "$REPOSITORY" ]]; then
+        # Pushing to a different repo, so we'll need a different authorization token
+        TOKEN=
+        SCOPES=
+    fi
+
+    local platform_digest
+    for platform_digest in $(echo "$digests" | jq -r '.[] | "\(.platform),\(.digest)"')
     do
-        # Pull platform-specific manifest by digest
-        local digest="$(echo "$platform_specific_digests" |
-            jq -r --arg platform "$platform" '.[] | select(.platform == $platform) | .digest')"
+        # Pull manifest by digest
+        local platform digest
+        IFS=',' read platform digest <<< $(echo "$platform_digest")
         REFERENCE="$digest" pull_manifest
         local manifest="$OUTPUTS"
 
+        # If the manifest represents a platform-specific image we care about, tag it
         local tag="${TAG}-$(echo "$platform_map" |
             jq -r --arg platform "$platform" '.[] | select(.platform == $platform) | .tag_suffix')"
 
         if [[ -n "$DST_REPO" ]] && [[ "$DST_REPO" != "$REPOSITORY" ]]; then
-            # Pushing to a different repo, so we'll need a different authorization token
-            TOKEN=
-            SCOPES=
-
-            # We may also need to copy over the image layers referenced in the platform-specific
-            # manifest
-            MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$DST_REPO" copy_image_layers
+            # If we're copying to a different repository, always push the manifest. But first, we
+            # might also need to copy the layers referenced in each manifest.
+            MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$DST_REPO" copy_layers
+            MANIFEST="$manifest" REPOSITORY="${DST_REPO:-$REPOSITORY}" REFERENCE="$tag" push_manifest
+        elif [[ -n "$tag" ]]; then
+            # If we're copying within the same repository, we only need to push tags, not digests
+            MANIFEST="$manifest" REPOSITORY="${DST_REPO:-$REPOSITORY}" REFERENCE="$tag" push_manifest
         fi
-
-        # Push platform-specific manifest by tag
-        MANIFEST="$manifest" REPOSITORY="${DST_REPO:-$REPOSITORY}" TAG="$tag" push_manifest
     done
 }
 
 #
-# Given a manifest, copy it to another repository in the same registry, or to another tag in the
-# same repository.
+# Given a manifest list, copy it to another repository in the same registry, or to another tag in
+# the same repository. If necessary, all contained manifests and layers will be copied too.
 #
 # Note: We could use 'docker buildx imagetools create' but it isn't appropriate in many situations
 # because it always creates a manifest list at the destination. Here, we'll use the Docker v2
 # Registry APIs directly.
 #
 # Globals
-#   REGISTRY        Required. The registry in which the manifest will be copied
-#   REF_SRC         Required. The source tag or digest from which the manifest will be copied
-#   REPO_DST        Required. The destination repository to which the manifest will be copied
-#   REPO_SRC        Required. The source repository from which the manifest will be copied
-#   TAG_DST         Required. The destination tag to which the manifest will be copied
+#   REGISTRY        Required. The registry in which the manifest list will be copied
+#   REPO_DST        Required. The destination repository to which the manifest list will be copied
+#   REPO_SRC        Required. The source repository from which the manifest list will be copied
+#   TAG             Required. The source tag from which the manifest list will be copied
+#   TAGS_ADD        Optional. A JSON array of tags to which the manifest list will be copied, in
+#                   addition to TAG.
 #
 # Outputs
 #   None
 #
-copy_manifest() {
-    # Pull source manifest
-    REFERENCE="$REF_SRC" REPOSITORY="$REPO_SRC" pull_manifest
-    local manifest="$OUTPUTS"
+copy_manifest_list() {
+    # first make sure TAGS_ADD is a JSON array
+    if [[ -n "$TAGS_ADD" ]] && [[ $(echo "$TAGS_ADD" | jq -r '. | type') != 'array' ]]; then
+        echo 'The value of TAGS_ADD must be a JSON array'
+        return 1
+    fi
 
-    # Push destination manifest
-    MANIFEST="$manifest" REPOSITORY="$REPO_DST" TAG="$TAG_DST" push_manifest
+    # Copy all child manifests and their layers to the destination repository
+    DST_REPO="$REPO_DST" REPOSITORY="$REPO_SRC" copy_manifests
+
+    # pull the source manifest list
+    REPOSITORY="$REPO_SRC" REFERENCE="$TAG" pull_manifest
+    manifest="$OUTPUTS"
+
+    # make a list of all tags to push
+    tags=( $(echo "$TAGS_ADD" | jq -r --arg tag "$TAG" '. + [ $tag ] | unique | join("\n")') )
+
+    for tag in ${tags[@]}
+    do
+        # push the destination manifest list
+        MANIFEST="$manifest" REPOSITORY="$REPO_DST" REFERENCE="$tag" push_manifest
+    done
 }
