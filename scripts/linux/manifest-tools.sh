@@ -463,17 +463,20 @@ copy_manifests() {
         local manifest="$OUTPUTS"
 
         # If the manifest represents a platform-specific image we care about, tag it
-        local tag="${TAG}-$(echo "$platform_map" |
-            jq -r --arg platform "$platform" '.[] | select(.platform == $platform) | .tag_suffix')"
+        local tag="$(echo "$platform_map" |
+            jq -r --arg platform --arg tag_prefix "$TAG" "$platform" '
+                .[] | select(.platform == $platform) | "\($tag_prefix)-\(.tag_suffix)"
+            ')"
 
+        local repo="${DST_REPO:-$REPOSITORY}"
         if [[ -n "$DST_REPO" ]] && [[ "$DST_REPO" != "$REPOSITORY" ]]; then
             # If we're copying to a different repository, always push the manifest. But first, we
             # might also need to copy the layers referenced in each manifest.
             MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$DST_REPO" copy_layers
-            MANIFEST="$manifest" REPOSITORY="${DST_REPO:-$REPOSITORY}" REFERENCE="$tag" push_manifest
+            MANIFEST="$manifest" REPOSITORY="$DST_REPO" REFERENCE="${tag:-$digest}" push_manifest
         elif [[ -n "$tag" ]]; then
             # If we're copying within the same repository, we only need to push tags, not digests
-            MANIFEST="$manifest" REPOSITORY="${DST_REPO:-$REPOSITORY}" REFERENCE="$tag" push_manifest
+            MANIFEST="$manifest" REPOSITORY="$REPOSITORY" REFERENCE="$tag" push_manifest
         fi
     done
 }
