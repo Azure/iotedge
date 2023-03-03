@@ -21,33 +21,6 @@ DEFAULT_PLATFORM_MAP='[
 ]'
 
 #
-# Given a WWW-Authenticate header containing a "Bearer" challenge as input, parsed the realm and
-# service parameters.
-#
-# Globals
-#   RESPONSE_401    Required. The "401 Unauthorized" response headers which include the
-#                   WWW-Authenticate header to be parsed
-#
-# Outputs
-#   OUTPUTS         REALM and SERVICE in NAME=value format, suitable for sourcing into the
-#                   current environment
-#
-parse_authenticate_header() {
-    local auth_header=$(
-        echo "$RESPONSE_401" | grep -i 'WWW-Authenticate: Bearer ' | sed -e 's/[[:space:]]*$//')
-    local challenge_vars=()
-
-    for name in realm service
-    do
-        challenge_vars+=( "local $(echo "$auth_header" | grep -Eo "$name=\"[^\"]+\"")" )
-    done
-
-    source <(printf '%s\n' "${challenge_vars[@]}")
-
-    OUTPUTS="REALM='$realm'; SERVICE='$service'"
-}
-
-#
 # Retrieves the login credentials for the given registry from Docker's local config. This function
 # can get credentials directly from config.json, or by querying the configured credential manager.
 #
@@ -73,6 +46,33 @@ get_docker_credentials() {
     fi
 
     OUTPUTS="$cred"    
+}
+
+#
+# Given a WWW-Authenticate header containing a "Bearer" challenge as input, parsed the realm and
+# service parameters.
+#
+# Globals
+#   RESPONSE_401    Required. The "401 Unauthorized" response headers which include the
+#                   WWW-Authenticate header to be parsed
+#
+# Outputs
+#   OUTPUTS         REALM and SERVICE in NAME=value format, suitable for sourcing into the
+#                   current environment
+#
+parse_authenticate_header() {
+    local auth_header=$(
+        echo "$RESPONSE_401" | grep -i 'WWW-Authenticate: Bearer ' | sed -e 's/[[:space:]]*$//')
+    local challenge_vars=()
+
+    for key in realm service
+    do
+        challenge_vars+=( "local $(echo "$auth_header" | grep -Eo "$key=\"[^\"]+\"")" )
+    done
+
+    source <(printf '%s\n' "${challenge_vars[@]}")
+
+    OUTPUTS="REALM='$realm'; SERVICE='$service'"
 }
 
 #
