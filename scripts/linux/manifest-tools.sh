@@ -285,25 +285,32 @@ get_platform_specific_digests() {
 }
 
 #
-# Given a manifest, parse any digests and copy the corresponding blobs to the destination
-# repository.
+# Given a manifest, parse the image layers and copy them to the destination repository.
 #
 # Globals
-#   MANIFEST        Required. The contents of the manifest that describes the blobs to copy
-#   REGISTRY        Required. The registry within which blobs will be copied
-#   REPO_DST        Required. The repository to which the blobs will be copied
-#   REPO_SRC        Required. The repository from which the blobs will be copied
+#   MANIFEST        Required. The contents of the manifest that describes the image layers to copy
+#   REGISTRY        Required. The registry within which image layers will be copied
+#   REPO_DST        Required. The repository to which the image layers will be copied
+#   REPO_SRC        Required. The repository from which the image layers will be copied
 #   SCOPES          Optional. If not given, a scope with be generated to perform this operation
 #   TOKEN           Optional. The bearer token to use. If not given, a new token will be generated
 #
 # Outputs
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
-copy_blobs() {
+copy_image_layers() {
+    # Ensure the manifest has a mediaType we understand
+    local media_type=$(echo "$MANIFEST" | jq -r '.mediaType')
+    if [[ "$media_type" != 'application/vnd.oci.image.manifest.v1+json' ]] &&
+        [[ "$media_type" != 'application/vnd.docker.distribution.manifest.v2+json' ]]; then
+        echo "Manifest has unexpected media type '$media_type'"
+        return 1
+    fi
+
+    # Get a new authorization token if necessary
     SCOPES=${SCOPES:-}
     TOKEN=${TOKEN:-}
 
-    # Get a new authorization token if necessary
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
             SCOPES="repository:$REPO_SRC:pull repository:$REPO_DST:pull,push"
@@ -313,11 +320,11 @@ copy_blobs() {
         TOKEN="$OUTPUTS"
     fi
 
-    # Parse the blob digests from the manifest
+    # Parse the image layer digests from the manifest
     local digests=( $(echo "$MANIFEST" | jq -r '.. | objects | select(has("digest")) | .digest') )
 
     for digest in ${digests[@]}; do
-        # Check if the blob already exists at the destination
+        # Check if the image layer already exists at the destination
         local result=$(curl \
             --head \
             --header "Authorization: Bearer $TOKEN" \
@@ -331,7 +338,7 @@ copy_blobs() {
         if [[ "$status" == 200 ]]; then
             echo "Layer $REGISTRY/$REPO_DST@$digest already exists"
         elif [[ "$status" == 404 ]]; then
-            # If the blob doesn't already exist, copy it
+            # If the image layer doesn't already exist, copy it
             result=$(curl \
                 --header "Authorization: Bearer $TOKEN" \
                 --include \
@@ -344,14 +351,15 @@ copy_blobs() {
             local status=$(echo "$result" | tail -n 1)
             result="$(echo "$result" | head -n -1)"
             if [[ "$status" != 201 ]]; then
-                echo "Failed to copy blob to '$REGISTRY/$REPO_DST@$digest', status=$status, details="
+                echo "Failed to copy image layer to '$REGISTRY/$REPO_DST@$digest', status=$status, details="
                 echo "$result"
                 return 1
             fi
 
             echo "Pushed layer $REGISTRY/$REPO_DST@$digest"
         else [[ "$status" != 200 ]]
-            echo "Request to check for existence of blob '$REGISTRY/$REPO_DST@$digest' failed, status=$status, details="
+            echo "Request to check for existence of image layer '$REGISTRY/$REPO_DST@$digest'" \
+                "failed, status=$status, details="
             echo "$result"
             return 1
         fi
@@ -429,8 +437,9 @@ copy_platform_specific_manifests() {
             TOKEN=
             SCOPES=
 
-            # We may also need to copy over the blobs referenced in the platform-specific manifest
-            MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$DST_REPO" copy_blobs
+            # We may also need to copy over the image layers referenced in the platform-specific
+            # manifest
+            MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$DST_REPO" copy_image_layers
         fi
 
         # Push platform-specific manifest by tag
@@ -460,16 +469,6 @@ copy_manifest() {
     # Pull source manifest
     REFERENCE="$REF_SRC" REPOSITORY="$REPO_SRC" pull_manifest
     local manifest="$OUTPUTS"
-
-    if [[ "$REPO_DST" != "$REPO_SRC" ]]; then
-        # Pushing to a different repo, so we'll need a different authorization token
-        TOKEN=
-        SCOPES=
-
-        # We may also need to copy over the attestation manifests referenced in the source manifest
-        MANIFEST="$manifest" copy_blobs
-    fi
-
 
     # Push destination manifest
     MANIFEST="$manifest" REPOSITORY="$REPO_DST" TAG="$TAG_DST" push_manifest
