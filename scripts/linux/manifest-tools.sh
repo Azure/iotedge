@@ -3,6 +3,8 @@
 # This script is intended to be sourced from other scripts. It expects that 'set -euo pipefail' was
 # invoked by the caller.
 
+DEBUG="${DEBUG:-}"
+
 DEFAULT_PLATFORM_MAP='[
   {
     "platform": "linux/amd64",
@@ -125,7 +127,7 @@ get_bearer_token() {
         return 1
     fi
 
-    echo "Authorized for $SERVICE, scope='$SCOPES'"
+    [[ "$DEBUG" -eq 1 ]] && echo "Authorized for $SERVICE, scope='$SCOPES'"
 
     OUTPUTS="$(echo "$result" | jq -r '.access_token')"
 }
@@ -145,8 +147,8 @@ get_bearer_token() {
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 pull_manifest() {
-    SCOPES=${SCOPES:-''}
-    TOKEN=${TOKEN:-''}
+    SCOPES=${SCOPES:-}
+    TOKEN=${TOKEN:-}
 
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
@@ -216,8 +218,8 @@ get_manifest_media_type() {
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 push_manifest() {
-    SCOPES=${SCOPES:-''}
-    TOKEN=${TOKEN:-''}
+    SCOPES=${SCOPES:-}
+    TOKEN=${TOKEN:-}
 
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
@@ -306,8 +308,8 @@ copy_image_layers() {
     fi
 
     # Get a new authorization token if necessary
-    SCOPES=${SCOPES:-''}
-    TOKEN=${TOKEN:-''}
+    SCOPES=${SCOPES:-}
+    TOKEN=${TOKEN:-}
 
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
@@ -354,7 +356,7 @@ copy_image_layers() {
                 return 1
             fi
 
-            echo "Pushed image layer to '$REGISTRY/$REPO_DST@$digest'"
+            echo "Pushed layer $REGISTRY/$REPO_DST@$digest"
         else [[ "$status" != 200 ]]
             echo "Request to check for existence of image layer '$REGISTRY/$REPO_DST@$digest'" \
                 "failed, status=$status, details="
