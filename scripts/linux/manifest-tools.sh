@@ -185,6 +185,9 @@ merge_scopes() {
 #   TOKEN           The current bearer token. Will be updated if SCOPES changes
 #
 __get_token_with_scope() {
+    SCOPES=${SCOPES:-}
+    TOKEN=${TOKEN:-}
+
     # Get a new authorization token if necessary
     SCOPES1="$SCOPES" SCOPES2="$1" merge_scopes
     if [[ -z "$TOKEN" ]] || [[ "$SCOPES" != "$OUTPUTS" ]]; then
@@ -209,9 +212,6 @@ __get_token_with_scope() {
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 pull_manifest() {
-    SCOPES=${SCOPES:-}
-    TOKEN=${TOKEN:-}
-
     __get_token_with_scope "repository:$REPOSITORY:pull"
 
     local accept_types=(
@@ -273,9 +273,6 @@ get_manifest_media_type() {
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 push_manifest() {
-    SCOPES=${SCOPES:-}
-    TOKEN=${TOKEN:-}
-
     __get_token_with_scope "repository:$REPOSITORY:push"
 
     get_manifest_media_type
@@ -341,9 +338,6 @@ get_manifest_digests() {
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 copy_layers() {
-    SCOPES=${SCOPES:-}
-    TOKEN=${TOKEN:-}
-
     # Ensure the manifest has a mediaType we understand
     local media_type=$(echo "$MANIFEST" | jq -r '.mediaType')
     if [[ "$media_type" != 'application/vnd.oci.image.manifest.v1+json' ]] &&
