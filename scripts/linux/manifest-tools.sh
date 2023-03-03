@@ -464,7 +464,7 @@ copy_manifests() {
 
         # If the manifest represents a platform-specific image we care about, tag it
         local tag="$(echo "$platform_map" |
-            jq -r --arg platform --arg tag_prefix "$TAG" "$platform" '
+            jq -r --arg platform "$platform" --arg tag_prefix "$TAG" '
                 .[] | select(.platform == $platform) | "\($tag_prefix)-\(.tag_suffix)"
             ')"
 
