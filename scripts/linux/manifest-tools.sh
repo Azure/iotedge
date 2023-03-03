@@ -145,7 +145,9 @@ get_bearer_token() {
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 pull_manifest() {
+    SCOPES=${SCOPES:-''}
     TOKEN=${TOKEN:-''}
+
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
             SCOPES="repository:$REPOSITORY:pull"
@@ -214,7 +216,9 @@ get_manifest_media_type() {
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 push_manifest() {
+    SCOPES=${SCOPES:-''}
     TOKEN=${TOKEN:-''}
+
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
             SCOPES="repository:$REPOSITORY:push"
@@ -302,7 +306,9 @@ copy_image_layers() {
     fi
 
     # Get a new authorization token if necessary
+    SCOPES=${SCOPES:-''}
     TOKEN=${TOKEN:-''}
+
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
             SCOPES="repository:$REPO_SRC:pull repository:$REPO_DST:pull,push"
@@ -427,6 +433,7 @@ copy_platform_specific_manifests() {
         if [[ -n "$DST_REPO" ]] && [[ "$DST_REPO" != "$REPOSITORY" ]]; then
             # Pushing to a different repo, so we'll need a different authorization token
             TOKEN=
+            SCOPES=
 
             # We may also need to copy over the image layers referenced in the platform-specific
             # manifest
