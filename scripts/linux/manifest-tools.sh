@@ -454,7 +454,6 @@ copy_manifests() {
     local platform_digest
     for platform_digest in $(echo "$digests" | jq -r '.[] | "\(.platform),\(.digest)"')
     do
-        # Pull manifest by digest
         local platform digest
         IFS=',' read platform digest <<< $(echo "$platform_digest")
 
