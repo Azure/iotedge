@@ -12,17 +12,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         static readonly TimeSpan TimeBuffer = TimeSpan.FromMinutes(5);
 
         readonly TimeSpan maxRenewAfter;
+        readonly TimeSpan maxCheckCertExpiryAfter;
         readonly EdgeHubCertificates certificates;
         readonly ILogger logger;
         readonly Timer timer;
         readonly CancellationTokenSource cts;
 
-        public CertificateRenewal(EdgeHubCertificates certificates, ILogger logger, TimeSpan maxRenewAfter)
+        public CertificateRenewal(EdgeHubCertificates certificates, ILogger logger, TimeSpan maxRenewAfter, TimeSpan maxCheckCertExpiryAfter)
         {
             this.certificates = Preconditions.CheckNotNull(certificates, nameof(certificates));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.cts = new CancellationTokenSource();
             this.maxRenewAfter = maxRenewAfter;
+            this.maxCheckCertExpiryAfter = maxCheckCertExpiryAfter;
 
             TimeSpan timeToExpire = certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
             if (timeToExpire > TimeBuffer)
@@ -31,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 // This is the maximum value for the timer (~24 days)
                 // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
                 TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
+                logger.LogInformation($"renewAfter = {renewAfter}, maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
+                renewAfter = renewAfter > this.maxCheckCertExpiryAfter ? this.maxCheckCertExpiryAfter : renewAfter;
                 TimeSpan clamped = renewAfter > this.maxRenewAfter
                     ? this.maxRenewAfter
                     : renewAfter;
@@ -84,6 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 // This is the maximum value for the timer (~24 days)
                 // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
                 TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
+                renewAfter = renewAfter > this.maxCheckCertExpiryAfter ? this.maxCheckCertExpiryAfter : renewAfter;
                 TimeSpan clamped = renewAfter > this.maxRenewAfter
                     ? this.maxRenewAfter
                     : renewAfter;

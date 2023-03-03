@@ -126,9 +126,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 double renewAfter = configuration.GetValue("ServerCertificateRenewAfterInMs", int.MaxValue);
                 renewAfter = renewAfter > int.MaxValue ? int.MaxValue : renewAfter;
                 TimeSpan maxRenewAfter = TimeSpan.FromMilliseconds(renewAfter);
+
+                double maxCheckCertExpiryAfterMs = configuration.GetValue("MaxCheckCertExpiryInMs", int.MaxValue);
+                maxCheckCertExpiryAfterMs = maxCheckCertExpiryAfterMs > int.MaxValue ? int.MaxValue : renewAfter;
+                TimeSpan maxCheckCertExpiryAfter = TimeSpan.FromMilliseconds(maxCheckCertExpiryAfterMs);
+
                 using (IProtocolHead mqttBrokerProtocolHead = GetMqttBrokerProtocolHead(container))
                 using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
-                using (var renewal = new CertificateRenewal(certificates, logger, maxRenewAfter))
+                using (var renewal = new CertificateRenewal(certificates, logger, maxRenewAfter, maxCheckCertExpiryAfter))
                 {
                     try
                     {
