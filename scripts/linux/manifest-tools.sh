@@ -33,7 +33,8 @@ DEFAULT_PLATFORM_MAP='[
 #                   current environment
 #
 parse_authenticate_header() {
-    local auth_header=$(echo "$RESPONSE_401" | grep -i 'WWW-Authenticate: Bearer ' | sed -e 's/[[:space:]]*$//')
+    local auth_header=$(
+        echo "$RESPONSE_401" | grep -i 'WWW-Authenticate: Bearer ' | sed -e 's/[[:space:]]*$//')
     local challenge_vars=()
 
     for name in realm service
@@ -61,12 +62,11 @@ get_docker_credentials() {
     local docker_config="$(cat "${DOCKER_CONFIG:-$HOME/.docker}/config.json")"
     local cred=
 
-    if [[ "$(echo "$docker_config" | jq --arg reg "$REGISTRY" '.auths | .[$reg] | has("auth")')" == true ]]; then
+    if $(echo "$docker_config" | jq --arg reg "$REGISTRY" '.auths | .[$reg] | has("auth")'); then
         # Get credentials directly from config.json
-        cred=$(
-            echo "$docker_config" | jq --arg reg "$REGISTRY" -r '.auths | .[$reg].auth' | base64 --decode
-        )
-    elif [[ "$(echo "$docker_config" | jq 'has("credsStore")')" == true ]]; then
+        cred=$(echo "$docker_config" |
+            jq --arg reg "$REGISTRY" -r '.auths | .[$reg].auth' | base64 --decode)
+    elif $(echo "$docker_config" | jq 'has("credsStore")'); then
         # Get credentials from store
         local store=$(echo "$docker_config" | jq -r '.credsStore')
         cred=$(echo "$REGISTRY" | docker-credential-$store get | jq -r '"\(.Username):\(.Secret)"')
@@ -93,7 +93,13 @@ get_docker_credentials() {
 #
 get_bearer_token() {
     # Make unauthorized request to discover the authorization service
-    local result=$(curl --head --include --show-error --silent --write-out '\n%{http_code}' "https://$REGISTRY/v2/")
+    local result=$(curl \
+        --head \
+        --include \
+        --show-error \
+        --silent \
+        --write-out '\n%{http_code}' \
+        "https://$REGISTRY/v2/")
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
     if [[ "$status" != 401 ]]; then
@@ -345,7 +351,8 @@ copy_layers() {
             local status=$(echo "$result" | tail -n 1)
             result="$(echo "$result" | head -n -1)"
             if [[ "$status" != 201 ]]; then
-                echo "Failed to copy image layer to '$REGISTRY/$REPO_DST@$digest', status=$status, details="
+                echo "Failed to copy image layer to '$REGISTRY/$REPO_DST@$digest', status=$status," \
+                    "details="
                 echo "$result"
                 return 1
             fi
