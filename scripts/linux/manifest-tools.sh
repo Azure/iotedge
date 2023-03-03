@@ -299,6 +299,9 @@ get_platform_specific_digests() {
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
 copy_image_layers() {
+    SCOPES=${SCOPES:-}
+    TOKEN=${TOKEN:-}
+
     # Ensure the manifest has a mediaType we understand
     local media_type=$(echo "$MANIFEST" | jq -r '.mediaType')
     if [[ "$media_type" != 'application/vnd.oci.image.manifest.v1+json' ]] &&
@@ -308,9 +311,6 @@ copy_image_layers() {
     fi
 
     # Get a new authorization token if necessary
-    SCOPES=${SCOPES:-}
-    TOKEN=${TOKEN:-}
-
     if [[ -z "$TOKEN" ]]; then
         if [[ -z "$SCOPES" ]]; then
             SCOPES="repository:$REPO_SRC:pull repository:$REPO_DST:pull,push"
