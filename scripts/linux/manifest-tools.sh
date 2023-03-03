@@ -409,14 +409,13 @@ copy_manifests() {
     local digests="$OUTPUTS"
 
     # Make sure the manifest list returned a digest for every platform in the caller's map
-    local map_platforms="$(echo "$platform_map" | jq -c '[ .[] | .platform ]')"
-    local list_platforms="$(echo "$digests" | jq -c '[ .[] | .platform ] | select(.platform != "unknown/unknown")')"
-    local match=$(echo "$list_platforms" |
-        jq --argjson filter "$map_platforms" '[ .[] | .platform as $p | $filter | any(. == $p) ] | all')
-    if [[ "$match" != 'true' ]]; then
-        echo "Manifest list '$REGISTRY/$REPOSITORY:$TAG' does not have the expected entries"
-        echo "Expected: $map_platforms"
-        echo "Actual: $list_platforms"
+    local expected="$(echo "$platform_map" | jq -c '[ .[] | .platform ]')"
+    local actual="$(echo "$digests" | jq -c '[ .[] | .platform ]')"
+    local missed_platforms="$(echo "$expected" | jq -c --argjson actual "$actual" '. - $actual')"
+    if $(echo "$missed_platforms" | jq 'length != 0'); then
+        echo "Manifest list '$REGISTRY/$REPOSITORY:$TAG' is missing entries for the following" \
+            "platform-specific images:"
+        echo "$missed_platforms" | jq -r '.[]'
         return 1
     fi
 
