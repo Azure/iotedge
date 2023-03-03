@@ -336,7 +336,7 @@ copy_image_layers() {
         local status=$(echo "$result" | tail -n 1)
         result="$(echo "$result" | head -n -1)"
         if [[ "$status" == 200 ]]; then
-            echo "Image layer '$REGISTRY/$REPO_DST@$digest' already exists"
+            echo "Layer $REGISTRY/$REPO_DST@$digest already exists"
         elif [[ "$status" == 404 ]]; then
             # If the image layer doesn't already exist, copy it
             result=$(curl \
