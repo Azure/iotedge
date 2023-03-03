@@ -350,12 +350,12 @@ copy_layers() {
 
     __get_token_with_scope "repository:$REPO_SRC:pull repository:$REPO_DST:pull,push"
 
-    # Parse the image layer digests from the manifest
+    # Parse the layer digests from the manifest
     local digests=( $(echo "$MANIFEST" | jq -r '.. | objects | select(has("digest")) | .digest') )
 
     local digest
     for digest in ${digests[@]}; do
-        # Check if the image layer already exists at the destination
+        # Check if the layer already exists at the destination
         local result=$(curl \
             --head \
             --header "Authorization: Bearer $TOKEN" \
@@ -369,7 +369,7 @@ copy_layers() {
         if [[ "$status" == 200 ]]; then
             echo "Layer $REGISTRY/$REPO_DST@$digest already exists"
         elif [[ "$status" == 404 ]]; then
-            # If the image layer doesn't already exist, copy it
+            # If the layer doesn't already exist, copy it
             result=$(curl \
                 --header "Authorization: Bearer $TOKEN" \
                 --include \
@@ -382,7 +382,7 @@ copy_layers() {
             status=$(echo "$result" | tail -n 1)
             result="$(echo "$result" | head -n -1)"
             if [[ "$status" != 201 ]]; then
-                echo "Failed to copy image layer to '$REGISTRY/$REPO_DST@$digest'," \
+                echo "Failed to copy layer to '$REGISTRY/$REPO_DST@$digest'," \
                     "status=$status, details="
                 echo "$result"
                 return 1
@@ -390,7 +390,7 @@ copy_layers() {
 
             echo "Pushed layer $REGISTRY/$REPO_DST@$digest"
         else [[ "$status" != 200 ]]
-            echo "Failed to check existence of image layer '$REGISTRY/$REPO_DST@$digest'," \
+            echo "Failed to check existence of layer '$REGISTRY/$REPO_DST@$digest'," \
                 "status=$status, details="
             echo "$result"
             return 1
