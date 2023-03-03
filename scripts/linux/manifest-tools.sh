@@ -462,7 +462,6 @@ copy_manifests() {
                 .[] | select(.platform == $platform) | "\($tag_prefix)-\(.tag_suffix)"
             ')"
 
-        local repo="${DST_REPO:-$REPOSITORY}"
         if [[ -n "$DST_REPO" ]] && [[ "$DST_REPO" != "$REPOSITORY" ]]; then
             # If we're copying to a different repository, always push the manifest. But first, we
             # might also need to copy the layers referenced in each manifest.
