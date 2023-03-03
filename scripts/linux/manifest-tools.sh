@@ -459,8 +459,6 @@ copy_manifests() {
         # Pull manifest by digest
         local platform digest
         IFS=',' read platform digest <<< $(echo "$platform_digest")
-        REFERENCE="$digest" pull_manifest
-        local manifest="$OUTPUTS"
 
         # If the manifest represents a platform-specific image we care about, tag it
         local tag="$(echo "$platform_map" |
@@ -471,10 +469,14 @@ copy_manifests() {
         if [[ -n "$dst_repo" ]] && [[ "$dst_repo" != "$REPOSITORY" ]]; then
             # If we're copying to a different repository, always push the manifest. But first, we
             # might also need to copy the layers referenced in each manifest.
+            REFERENCE="$digest" pull_manifest
+            local manifest="$OUTPUTS"
             MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$dst_repo" copy_layers
             MANIFEST="$manifest" REPOSITORY="$dst_repo" REFERENCE="${tag:-$digest}" push_manifest
         elif [[ -n "$tag" ]]; then
             # If we're copying within the same repository, we only need to push tags, not digests
+            REFERENCE="$digest" pull_manifest
+            local manifest="$OUTPUTS"
             MANIFEST="$manifest" REPOSITORY="$REPOSITORY" REFERENCE="$tag" push_manifest
         fi
     done
