@@ -47,12 +47,16 @@ pub async fn write_logs(
         .context(Error::Write)?;
 
     println!("processing logs stream: {:?}", module_name);
+    let mut count = 0;
     while let Some(bytes) = logs.try_next().await.context(Error::Write)? {
-        println!(
-            "writing {:?} bytes from logs stream: {:?}",
-            bytes.len(),
-            module_name
-        );
+        if count % 1000 == 0 {
+            println!(
+                "writing {:?} bytes from logs stream: {:?}",
+                bytes.len(),
+                module_name
+            );
+        }
+        count += 1;
         // First 4 bytes represent stderr vs stdout, we currently don't display differently based on that.
         // Next 4 bytes represent length of chunk, rust already encodes this information in the slice.
         if bytes.len() > 8 {
