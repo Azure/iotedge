@@ -175,6 +175,26 @@ merge_scopes() {
 }
 
 #
+# Internal routine to update SCOPES and acquire a new TOKEN if needed.
+#
+# Inputs
+#   $1              The required scope
+#
+# Outputs
+#   SCOPES          The list of scopes to update
+#   TOKEN           The current bearer token. Will be updated if SCOPES changes
+#
+__get_token_with_scope() {
+    # Get a new authorization token if necessary
+    SCOPES1="$SCOPES" SCOPES2="$1" merge_scopes
+    if [[ "$SCOPES" != "$OUTPUTS" ]]; then
+        SCOPES="$OUTPUTS"
+        get_bearer_token
+        TOKEN="$OUTPUTS"
+    fi
+}
+
+#
 # Pulls the given manifest from the registry.
 #
 # Globals
@@ -192,13 +212,7 @@ pull_manifest() {
     SCOPES=${SCOPES:-}
     TOKEN=${TOKEN:-}
 
-    # Get a new authorization token if necessary
-    SCOPES1="$SCOPES" SCOPES2="repository:$REPOSITORY:pull" merge_scopes
-    if [[ "$SCOPES" != "$OUTPUTS" ]]; then
-        SCOPES="$OUTPUTS"
-        get_bearer_token
-        TOKEN="$OUTPUTS"
-    fi
+    __get_token_with_scope "repository:$REPOSITORY:pull"
 
     local accept_types=(
         'application/vnd.docker.distribution.manifest.list.v2+json'
@@ -262,13 +276,7 @@ push_manifest() {
     SCOPES=${SCOPES:-}
     TOKEN=${TOKEN:-}
 
-    # Get a new authorization token if necessary
-    SCOPES1="$SCOPES" SCOPES2="repository:$REPOSITORY:push" merge_scopes
-    if [[ "$SCOPES" != "$OUTPUTS" ]]; then
-        SCOPES="$OUTPUTS"
-        get_bearer_token
-        TOKEN="$OUTPUTS"
-    fi
+    __get_token_with_scope "repository:$REPOSITORY:push"
 
     get_manifest_media_type
     local content_type="$OUTPUTS"
@@ -344,13 +352,7 @@ copy_layers() {
         return 1
     fi
 
-    # Get a new authorization token if necessary
-    SCOPES1="$SCOPES"  SCOPES2="repository:$REPO_SRC:pull repository:$REPO_DST:pull,push" merge_scopes
-    if [[ "$SCOPES" != "$OUTPUTS" ]]; then
-        SCOPES="$OUTPUTS"
-        get_bearer_token
-        TOKEN="$OUTPUTS"
-    fi
+    __get_token_with_scope "repository:$REPO_SRC:pull repository:$REPO_DST:pull,push"
 
     # Parse the image layer digests from the manifest
     local digests=( $(echo "$MANIFEST" | jq -r '.. | objects | select(has("digest")) | .digest') )
