@@ -187,7 +187,7 @@ merge_scopes() {
 __get_token_with_scope() {
     # Get a new authorization token if necessary
     SCOPES1="$SCOPES" SCOPES2="$1" merge_scopes
-    if [[ "$SCOPES" != "$OUTPUTS" ]]; then
+    if [[ -z "$TOKEN" ]] || [[ "$SCOPES" != "$OUTPUTS" ]]; then
         SCOPES="$OUTPUTS"
         get_bearer_token
         TOKEN="$OUTPUTS"
