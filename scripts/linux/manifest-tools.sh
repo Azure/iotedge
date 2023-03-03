@@ -139,6 +139,42 @@ get_bearer_token() {
 }
 
 #
+# Merge two space-delimited lists of scopes into a single list. Scopes for the same repository will
+# be merged into a single entry, so each repository will be represented exactly once.
+#
+# Globals
+#   SCOPES1         Space-delimited list of scopes
+#   SCOPES2         Another space-delimeted list of scopes to merge with the first
+#
+# Outputs
+#   OUTPUTS         The merged list
+#
+merge_scopes() {
+    local scopes
+    local -a json
+    for scopes in "$SCOPES1" "$SCOPES2"; do
+        # Convert each list to this format: [{"repository":"repo1","scopes":["pull","push"]},...]
+        json+=( $(echo "$scopes" | jq -Rc '
+            split(" ") | [
+                .[] | ltrimstr("repository:") | split(":") | 
+                if length == 2 then . else "Invalid scope: \"\(join(":"))\"\n" | halt_error end | 
+                { repository: .[0], scopes: .[1] | split(",") }
+            ]') )
+    done
+
+    # Combine scopes for each repository
+    local merged="$(echo "${json[@]}" | jq -sc '
+        flatten as $source | [
+            [ $source[] | .repository ] | unique[] as $repository |
+            [ $source[] | select(.repository == $repository) | .scopes[] ] | unique | 
+            { repository: $repository, scopes: . }
+        ]')"
+
+    # Return to the original space-delimited scopes format
+    OUTPUTS="$(echo "$merged" | jq -r '[ .[] | "repository:\(.repository):\(.scopes | join(","))" ] | join(" ")')"
+}
+
+#
 # Pulls the given manifest from the registry.
 #
 # Globals
@@ -156,11 +192,10 @@ pull_manifest() {
     SCOPES=${SCOPES:-}
     TOKEN=${TOKEN:-}
 
-    if [[ -z "$TOKEN" ]]; then
-        if [[ -z "$SCOPES" ]]; then
-            SCOPES="repository:$REPOSITORY:pull"
-        fi
-
+    # Get a new authorization token if necessary
+    SCOPES1="$SCOPES" SCOPES2="repository:$REPOSITORY:pull" merge_scopes
+    if [[ "$SCOPES" != "$OUTPUTS" ]]; then
+        SCOPES="$OUTPUTS"
         get_bearer_token
         TOKEN="$OUTPUTS"
     fi
@@ -227,11 +262,10 @@ push_manifest() {
     SCOPES=${SCOPES:-}
     TOKEN=${TOKEN:-}
 
-    if [[ -z "$TOKEN" ]]; then
-        if [[ -z "$SCOPES" ]]; then
-            SCOPES="repository:$REPOSITORY:push"
-        fi
-
+    # Get a new authorization token if necessary
+    SCOPES1="$SCOPES" SCOPES2="repository:$REPOSITORY:push" merge_scopes
+    if [[ "$SCOPES" != "$OUTPUTS" ]]; then
+        SCOPES="$OUTPUTS"
         get_bearer_token
         TOKEN="$OUTPUTS"
     fi
@@ -311,12 +345,10 @@ copy_layers() {
     fi
 
     # Get a new authorization token if necessary
-    if [[ -z "$TOKEN" ]]; then
-        if [[ -z "$SCOPES" ]]; then
-            SCOPES="repository:$REPO_SRC:pull repository:$REPO_DST:pull,push"
-        fi
-
-        REPOSITORY="$REPO_DST" get_bearer_token
+    SCOPES1="$SCOPES"  SCOPES2="repository:$REPO_SRC:pull repository:$REPO_DST:pull,push" merge_scopes
+    if [[ "$SCOPES" != "$OUTPUTS" ]]; then
+        SCOPES="$OUTPUTS"
+        get_bearer_token
         TOKEN="$OUTPUTS"
     fi
 
@@ -417,12 +449,6 @@ copy_manifests() {
             "platform-specific images:"
         echo "$missed_platforms" | jq -r '.[]'
         return 1
-    fi
-
-    if [[ -n "$DST_REPO" ]] && [[ "$DST_REPO" != "$REPOSITORY" ]]; then
-        # Pushing to a different repo, so we'll need a different authorization token
-        TOKEN=
-        SCOPES=
     fi
 
     local platform_digest
