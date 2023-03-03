@@ -87,7 +87,6 @@ parse_authenticate_header() {
 #   REGISTRY        Required. The registry from which to request a token
 #   SCOPES          Required. Space-delimited list of scopes for which a token will be requested
 #                   See https://docs.docker.com/registry/spec/auth/token/#requesting-a-token
-#   DOCKER_CONFIG   Optional. The path to Docker's config.json. Default value is $HOME/.docker
 #
 # Outputs
 #   OUTPUTS         The bearer token
@@ -144,8 +143,8 @@ get_bearer_token() {
 # be merged into a single entry, so each repository will be represented exactly once.
 #
 # Globals
-#   SCOPES1         Space-delimited list of scopes
-#   SCOPES2         Another space-delimeted list of scopes to merge with the first
+#   SCOPES1         Required. Space-delimited list of scopes
+#   SCOPES2         Required. Another space-delimeted list of scopes to merge with the first
 #
 # Outputs
 #   OUTPUTS         The merged list
@@ -424,7 +423,8 @@ copy_layers() {
 #   None
 #
 copy_manifests() {
-    local platform_map=${PLATFORM_MAP:-$DEFAULT_PLATFORM_MAP}
+    local dst_repo="${DST_REPO:-}"
+    local platform_map="${PLATFORM_MAP:-$DEFAULT_PLATFORM_MAP}"
 
     # Pull multi-platform image's manifest list
     REFERENCE="$TAG" pull_manifest
@@ -468,11 +468,11 @@ copy_manifests() {
                 .[] | select(.platform == $platform) | "\($tag_prefix)-\(.tag_suffix)"
             ')"
 
-        if [[ -n "$DST_REPO" ]] && [[ "$DST_REPO" != "$REPOSITORY" ]]; then
+        if [[ -n "$dst_repo" ]] && [[ "$dst_repo" != "$REPOSITORY" ]]; then
             # If we're copying to a different repository, always push the manifest. But first, we
             # might also need to copy the layers referenced in each manifest.
-            MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$DST_REPO" copy_layers
-            MANIFEST="$manifest" REPOSITORY="$DST_REPO" REFERENCE="${tag:-$digest}" push_manifest
+            MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$dst_repo" copy_layers
+            MANIFEST="$manifest" REPOSITORY="$dst_repo" REFERENCE="${tag:-$digest}" push_manifest
         elif [[ -n "$tag" ]]; then
             # If we're copying within the same repository, we only need to push tags, not digests
             MANIFEST="$manifest" REPOSITORY="$REPOSITORY" REFERENCE="$tag" push_manifest
@@ -500,8 +500,10 @@ copy_manifests() {
 #   None
 #
 copy_manifest_list() {
+    local tags_add="${TAGS_ADD:-}"
+
     # first make sure TAGS_ADD is a JSON array
-    if [[ -n "$TAGS_ADD" ]] && [[ $(echo "$TAGS_ADD" | jq -r '. | type') != 'array' ]]; then
+    if [[ -n "$tags_add" ]] && [[ $(echo "$tags_add" | jq -r '. | type') != 'array' ]]; then
         echo 'The value of TAGS_ADD must be a JSON array'
         return 1
     fi
@@ -514,7 +516,7 @@ copy_manifest_list() {
     local manifest="$OUTPUTS"
 
     # make a list of all tags to push
-    local tags=( $(echo "$TAGS_ADD" | jq -r --arg tag "$TAG" '. + [ $tag ] | unique | join("\n")') )
+    local tags=( $(echo "$tags_add" | jq -r --arg tag "$TAG" '. + [ $tag ] | unique | join("\n")') )
 
     local tag
     for tag in ${tags[@]}
