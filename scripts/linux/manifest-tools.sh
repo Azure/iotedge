@@ -181,6 +181,8 @@ pull_manifest() {
         return 1
     fi
 
+    echo "Pulled $REGISTRY/$REPOSITORY:$REFERENCE"
+
     OUTPUTS="$result"
 }
 
