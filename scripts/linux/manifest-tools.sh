@@ -348,7 +348,7 @@ copy_image_layers() {
 
             echo "Pushed image layer to '$REGISTRY/$REPO_DST@$digest'"
         else [[ "$status" != 200 ]]
-            echo "Request to check for existence of image layer '$REGISTRY/$REPO_DST@$digest' " \
+            echo "Request to check for existence of image layer '$REGISTRY/$REPO_DST@$digest'" \
                 "failed, status=$status, details="
             echo "$result"
             return 1
