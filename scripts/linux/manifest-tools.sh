@@ -103,7 +103,7 @@ get_bearer_token() {
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
     if [[ "$status" != 401 ]]; then
-        echo 'Unauthorized request returned an unexpected result.' \
+        echo 'Failed to discover authorization service.' \
             "Expected status=401, actual status=$status, details="
         echo "$result"
         return 1
@@ -128,7 +128,7 @@ get_bearer_token() {
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
     if [[ "$status" != 200 ]]; then
-        echo "Request for bearer token failed, status=$status, details="
+        echo "Failed to get bearer token, status=$status, details="
         echo "$result"
         return 1
     fi
@@ -171,7 +171,8 @@ merge_scopes() {
         ]')"
 
     # Return to the original space-delimited scopes format
-    OUTPUTS="$(echo "$merged" | jq -r '[ .[] | "repository:\(.repository):\(.scopes | join(","))" ] | join(" ")')"
+    OUTPUTS="$(echo "$merged" |
+        jq -r '[ .[] | "repository:\(.repository):\(.scopes | join(","))" ] | join(" ")')"
 }
 
 #
@@ -232,15 +233,17 @@ pull_manifest() {
         --write-out '\n%{http_code}' \
         "https://$REGISTRY/v2/$REPOSITORY/manifests/$REFERENCE")
 
+    local ref=":$REFERENCE"
+    local manifest="$REGISTRY/$REPOSITORY:${ref/#:sha256:/@sha256:}"
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
     if [[ "$status" != 200 ]]; then
-        echo "Request to pull manifest failed, status=$status, details="
+        echo "Failed to pull manifest '$manifest', status=$status, details="
         echo "$result"
         return 1
     fi
 
-    echo "Pulled $REGISTRY/$REPOSITORY:$REFERENCE"
+    echo "Pulled $manifest"
 
     OUTPUTS="$result"
 }
@@ -290,16 +293,17 @@ push_manifest() {
         --write-out '\n%{http_code}' \
         "https://$REGISTRY/v2/$REPOSITORY/manifests/$REFERENCE")
 
+    local ref=":$REFERENCE"
+    local manifest="$REGISTRY/$REPOSITORY:${ref/#:sha256:/@sha256:}"
     local status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
     if [[ "$status" != 201 ]]; then
-        echo "Request to push manifest failed, status=$status, details="
+        echo "Failed to push manifest '$manifest', status=$status, details="
         echo "$result"
         return 1
     fi
 
-    local ref=":$REFERENCE"
-    echo "Pushed $REGISTRY/$REPOSITORY:${ref/#:sha256:/@sha256:}"
+    echo "Pushed $manifest"
 }
 
 #
@@ -379,16 +383,16 @@ copy_layers() {
             local status=$(echo "$result" | tail -n 1)
             result="$(echo "$result" | head -n -1)"
             if [[ "$status" != 201 ]]; then
-                echo "Failed to copy image layer to '$REGISTRY/$REPO_DST@$digest', status=$status," \
-                    "details="
+                echo "Failed to copy image layer to '$REGISTRY/$REPO_DST@$digest'," \
+                    "status=$status, details="
                 echo "$result"
                 return 1
             fi
 
             echo "Pushed layer $REGISTRY/$REPO_DST@$digest"
         else [[ "$status" != 200 ]]
-            echo "Request to check for existence of image layer '$REGISTRY/$REPO_DST@$digest'" \
-                "failed, status=$status, details="
+            echo "Failed to check existence of image layer '$REGISTRY/$REPO_DST@$digest'," \
+                "status=$status, details="
             echo "$result"
             return 1
         fi
