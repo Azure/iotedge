@@ -143,5 +143,5 @@ multi_platform_tags=( $(echo "$TAGS_EXTRA" | jq -r --arg version "$TAG" '. + [ $
 for tag in ${multi_platform_tags[@]}
 do
     echo "Copy '$REGISTRY/$REPO_SRC:$TAG' to '$REGISTRY/$REPO_DST:$tag'"
-    SRC_TAG="$TAG" TAG_DST="$tag" copy_manifest
+    REF_SRC="$TAG" TAG_DST="$tag" copy_manifest
 done
