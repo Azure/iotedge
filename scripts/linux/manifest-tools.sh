@@ -33,7 +33,7 @@ DEFAULT_PLATFORM_MAP='[
 #
 get_docker_credentials() {
     local docker_config="$(cat "${DOCKER_CONFIG:-$HOME/.docker}/config.json")"
-    local cred=
+    local cred
 
     if $(echo "$docker_config" | jq --arg reg "$REGISTRY" '.auths | .[$reg] | has("auth")'); then
         # Get credentials directly from config.json
@@ -63,8 +63,9 @@ get_docker_credentials() {
 parse_authenticate_header() {
     local auth_header=$(
         echo "$RESPONSE_401" | grep -i 'WWW-Authenticate: Bearer ' | sed -e 's/[[:space:]]*$//')
-    local challenge_vars=()
+    local -a challenge_vars
 
+    local key
     for key in realm service
     do
         challenge_vars+=( "local $(echo "$auth_header" | grep -Eo "$key=\"[^\"]+\"")" )
@@ -118,14 +119,14 @@ get_bearer_token() {
     local cred="$OUTPUTS"
 
     # Make the authorization request for the given scopes
-    local result=$(curl \
+    result=$(curl \
         --show-error \
         --silent \
         --user "$cred" \
         --write-out '\n%{http_code}' \
         "$REALM?service=$SERVICE&scope=${SCOPES// /&scope=}")
 
-    local status=$(echo "$result" | tail -n 1)
+    status=$(echo "$result" | tail -n 1)
     result="$(echo "$result" | head -n -1)"
     if [[ "$status" != 200 ]]; then
         echo "Failed to get bearer token, status=$status, details="
@@ -282,7 +283,7 @@ push_manifest() {
     local content_type="$OUTPUTS"
 
     # make the push request with authorization
-    result=$(curl \
+    local result=$(curl \
         --data "$MANIFEST" \
         --header "Authorization: Bearer $TOKEN" \
         --header "Content-Type: $content_type" \
@@ -355,6 +356,7 @@ copy_layers() {
     # Parse the image layer digests from the manifest
     local digests=( $(echo "$MANIFEST" | jq -r '.. | objects | select(has("digest")) | .digest') )
 
+    local digest
     for digest in ${digests[@]}; do
         # Check if the image layer already exists at the destination
         local result=$(curl \
@@ -380,7 +382,7 @@ copy_layers() {
                 --write-out '\n%{http_code}' \
                 "https://$REGISTRY/v2/$REPO_DST/blobs/uploads/?mount=$digest&from=$REPO_SRC")
 
-            local status=$(echo "$result" | tail -n 1)
+            status=$(echo "$result" | tail -n 1)
             result="$(echo "$result" | head -n -1)"
             if [[ "$status" != 201 ]]; then
                 echo "Failed to copy image layer to '$REGISTRY/$REPO_DST@$digest'," \
@@ -425,7 +427,7 @@ copy_manifests() {
     local platform_map=${PLATFORM_MAP:-$DEFAULT_PLATFORM_MAP}
 
     # Pull multi-platform image's manifest list
-    REFERENCE="$TAG" TOKEN= pull_manifest
+    REFERENCE="$TAG" pull_manifest
     local manifest_list="$OUTPUTS"
 
     # Make sure the image the caller gave us is actually a manifest list
@@ -509,11 +511,12 @@ copy_manifest_list() {
 
     # pull the source manifest list
     REPOSITORY="$REPO_SRC" REFERENCE="$TAG" pull_manifest
-    manifest="$OUTPUTS"
+    local manifest="$OUTPUTS"
 
     # make a list of all tags to push
-    tags=( $(echo "$TAGS_ADD" | jq -r --arg tag "$TAG" '. + [ $tag ] | unique | join("\n")') )
+    local tags=( $(echo "$TAGS_ADD" | jq -r --arg tag "$TAG" '. + [ $tag ] | unique | join("\n")') )
 
+    local tag
     for tag in ${tags[@]}
     do
         # push the destination manifest list
