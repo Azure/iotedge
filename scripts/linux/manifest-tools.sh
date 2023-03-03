@@ -125,6 +125,8 @@ get_bearer_token() {
         return 1
     fi
 
+    echo "Authorized for $SERVICE, scope='$SCOPES'"
+
     OUTPUTS="$(echo "$result" | jq -r '.access_token')"
 }
 
