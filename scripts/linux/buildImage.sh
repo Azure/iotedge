@@ -213,10 +213,6 @@ IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION
 
 echo "Building and pushing image '$IMAGE'"
 
-if [[ -n "$SOURCE_MAP" ]]; then
-    BUILD_CONTEXT=$(gnarly --mod-config $SOURCE_MAP $DOCKERFILE)
-fi
-
 docker buildx create --use --bootstrap
 trap "docker buildx rm" EXIT
 
@@ -231,6 +227,11 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     do
         CONVERTED_PLATFORM="$(convert_platform $PLATFORM)"
         PLAT_IMAGE="$IMAGE-$CONVERTED_PLATFORM"
+
+        if [[ -n "$SOURCE_MAP" ]]; then
+            BUILD_CONTEXT=$(gnarly --mod-config $SOURCE_MAP \
+                "$APP_BINARIESDIRECTORY/docker/${CONVERTED_PLATFORM/-/\/}/Dockerfile")
+        fi
 
         docker buildx build \
             --no-cache \
@@ -256,6 +257,10 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     TAG="$DOCKER_IMAGEVERSION" \
     copy_manifests
 else
+    if [[ -n "$SOURCE_MAP" ]]; then
+        BUILD_CONTEXT=$(gnarly --mod-config $SOURCE_MAP $DOCKERFILE)
+    fi
+
     # First, build the complete multi-platform image
     docker buildx build \
         --no-cache \
