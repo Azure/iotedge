@@ -274,6 +274,9 @@ else
     # Next, tag each platform-specific image
     source "$SCRIPT_DIR/manifest-tools.sh"
 
+    PLATFORM_MAP="$(echo "$DEFAULT_PLATFORM_MAP" | jq -c --arg platforms "$PLATFORMS" '
+        map(select(.platform == ($platforms | split(",")[])))
+    ')" \
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
     TAG="$DOCKER_IMAGEVERSION" \
