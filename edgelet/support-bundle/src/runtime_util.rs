@@ -50,8 +50,10 @@ pub async fn write_logs(
     let mut count = 0;
     while let Some(bytes) = logs.try_next().await.context(Error::Write)? {
         if count % 1000 == 0 {
+            let datetime = chrono::Utc::now();
             println!(
-                "writing {:?} bytes from logs stream: {:?}",
+                "[{:?}] - writing {:?} bytes from logs stream: {:?}",
+                datetime,
                 bytes.len(),
                 module_name
             );
