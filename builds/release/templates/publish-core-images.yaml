@@ -54,9 +54,9 @@ jobs:
   - script: |
       scripts/linux/buildManifest.sh \
         -r '$(registry.address)' \
+        -i 'azureiotedge-agent' \
         -v '${{ parameters['version.core'] }}' \
-        -t 'edge-agent/docker/manifest.yaml.template' \
-        -n public \
+        -n 'public' \
         --tags '${{ parameters.tags }}'
     displayName: Publish Edge Agent manifest
     workingDirectory: iotedge
@@ -64,9 +64,9 @@ jobs:
   - script: |
       scripts/linux/buildManifest.sh \
         -r '$(registry.address)' \
+        -i 'azureiotedge-hub' \
         -v '${{ parameters['version.core'] }}' \
-        -t 'edge-hub/docker/manifest.yaml.template' \
-        -n public \
+        -n 'public' \
         --tags '${{ parameters.tags }}'
     displayName: Publish Edge Hub manifest
     workingDirectory: iotedge
@@ -75,9 +75,9 @@ jobs:
       tempsensor_tags=$(echo '${{ parameters.tags }}' | jq -c '. + ["latest"]')
       scripts/linux/buildManifest.sh \
         -r '$(registry.address)' \
+        -i 'azureiotedge-simulated-temperature-sensor' \
         -v '${{ parameters['version.core'] }}' \
-        -t 'edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' \
-        -n public \
+        -n 'public' \
         --tags "$tempsensor_tags"
     displayName: Publish Temperature Sensor manifest
     workingDirectory: iotedge
@@ -85,9 +85,9 @@ jobs:
   - script: |
       scripts/linux/buildManifest.sh \
         -r '$(registry.address)' \
+        -i 'azureiotedge-diagnostics' \
         -v '${{ parameters['version.diagnostics'] }}' \
-        -t 'edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' \
-        -n unlisted \
+        -n 'unlisted' \
         --tags '${{ parameters.tags }}'
     displayName: Publish Diagnostics manifest
     workingDirectory: iotedge
@@ -168,7 +168,7 @@ jobs:
       BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}"
 
       . scripts/linux/release-tools.sh
-      create_github_release_page_in_project_repo
+      create_github_release_page_for_core_images_in_project_repo
     displayName: Create GitHub release page in project repo
     env:
       CORE_VERSION: ${{ parameters['version.core'] }} 

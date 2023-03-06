@@ -2,7 +2,7 @@ trigger: none
 pr: none
 
 schedules:
-# Twice daily (8AM/PM PDT)
+# Twice daily (7AM/PM PST)
 - cron: "0 3,15 * * *"
   displayName: Twice daily check (8AM/PM PDT)
   branches:

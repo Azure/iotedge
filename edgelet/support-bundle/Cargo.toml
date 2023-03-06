@@ -15,7 +15,3 @@ zip = { version = "0.6", features = ["deflate"], default-features = false }
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = {path = "../edgelet-settings" }
-
-[dev-dependencies]
-regex = "1"
-tempfile = "3.2"

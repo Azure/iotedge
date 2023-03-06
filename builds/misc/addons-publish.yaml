@@ -54,9 +54,11 @@ jobs:
               filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
               arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm64v8 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-api-proxy:$(version)-linux-arm64v8'
       
-          - task: Bash@3
+          - script: |
+              scripts/linux/buildManifest.sh \
+                -r $(registry.address) \
+                -i 'azureiotedge-api-proxy' \
+                -v $(version) \
+                -n $(to.registry.namespace) \
+                --tags '$(tags)'
             displayName: 'Publish Api Proxy Manifest'
-            inputs:
-              targetType: filePath
-              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'

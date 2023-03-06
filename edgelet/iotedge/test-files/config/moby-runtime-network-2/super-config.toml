@@ -59,6 +59,7 @@ uri = "unix:///var/run/docker.sock"
 [moby_runtime.network]
 name = "azure-iot-edge"
 ipv6 = true
+
 [[moby_runtime.network.ipam.config]]
 gateway = "172.18.0.1"
 subnet = "172.18.0.0/16"

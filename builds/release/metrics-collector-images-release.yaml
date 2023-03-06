@@ -107,9 +107,9 @@ jobs:
   - script: |
       scripts/linux/buildManifest.sh \
         -r '$(registry.address)' \
+        -i 'azureiotedge-metrics-collector' \
         -v '$(version)' \
-        -t 'edge-modules/metrics-collector/docker/manifest.yaml.template' \
-        -n microsoft \
+        -n 'microsoft' \
         --tags '$(tags)'
     displayName: Build Manifest
   

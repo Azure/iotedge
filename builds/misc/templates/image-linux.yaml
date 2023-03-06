@@ -7,7 +7,7 @@ parameters:
   bin_dir: '$(Build.BinariesDirectory)'
   use_rocksdb: false
   download_artifacts: true
-  manifestTemplate: ''
+  buildManifest: false
 
 steps:
   - task: DownloadBuildArtifacts@0
@@ -56,7 +56,8 @@ steps:
         -P "${{ parameters.project }}" \
         -v "${{ parameters.version }}" \
         --bin-dir "${{ parameters.bin_dir }}" \
-        --source-map /etc/iotedge-source-map.json
+        --source-map '/etc/iotedge-source-map.json' \
+        -t 'amd64'
     displayName: Build Image - ${{ parameters.name }} - amd64
 
   - script: |
@@ -66,10 +67,10 @@ steps:
         -n "${{ parameters.namespace }}" \
         -P "${{ parameters.project }}" \
         -v "${{ parameters.version }}" \
-        --target-arch armv7l \
         --bin-dir "${{ parameters.bin_dir }}" \
-        --source-map /etc/iotedge-source-map.json
-    displayName: Build Image - ${{ parameters.name }} - arm32
+        --source-map '/etc/iotedge-source-map.json' \
+        -t 'arm/v7'
+    displayName: Build Image - ${{ parameters.name }} - arm/v7
     condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
 
   - script: |
@@ -79,18 +80,18 @@ steps:
         -n "${{ parameters.namespace }}" \
         -P "${{ parameters.project }}" \
         -v "${{ parameters.version }}" \
-        --target-arch aarch64 \
         --bin-dir "${{ parameters.bin_dir }}" \
-        --source-map /etc/iotedge-source-map.json
-    displayName: Build Image - ${{ parameters.name }} - arm64 
+        --source-map '/etc/iotedge-source-map.json' \
+        -t 'arm64'
+    displayName: Build Image - ${{ parameters.name }} - arm64
     condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
 
   - script: |
       scripts/linux/buildManifest.sh \
         -r '$(registry.address)' \
-        -n microsoft \
-        -t 'edge-agent/docker/manifest.yaml.template' \
-        -v '$(version)' \
+        -i '${{ parameters.imageName }}' \
+        -n '${{ parameters.namespace }}' \
+        -v '${{ parameters.version }}' \
         --tags '$(tags)'
-    displayName: Build Edge Agent Manifest
-    condition: and(ne('${{ parameters.manifestTemplate }}', ''), succeeded())
+    displayName: Build Image Manifest - ${{ parameters.name }}
+    condition: and(${{ parameters.buildManifest }}, succeeded())

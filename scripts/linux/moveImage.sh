@@ -5,12 +5,14 @@
 # It assumes that the caller is logged into both registries
 ###############################################################################
 
-set -e
+set -euo pipefail
 
 ###############################################################################
 # Define Environment Variables
 ###############################################################################
 SCRIPT_NAME=$(basename $0)
+FROM_IMAGE=
+TO_IMAGE=
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -56,12 +58,12 @@ process_args()
         fi
     done
 
-    if [[ -z ${FROM_IMAGE} ]]; then
+    if [[ -z "$FROM_IMAGE" ]]; then
         echo "From image invalid"
         print_help_and_exit
     fi
 
-    if [[ -z ${TO_IMAGE} ]]; then
+    if [[ -z "$TO_IMAGE" ]]; then
         echo "To image invalid"
         print_help_and_exit
     fi
@@ -72,15 +74,5 @@ process_args()
 ###############################################################################
 process_args "$@"
 
-echo "Pulling $FROM_IMAGE"
-docker pull $FROM_IMAGE
-[ $? -eq 0 ] || exit $?
-
-echo "Tagging image: $TO_IMAGE"
-docker tag $FROM_IMAGE $TO_IMAGE
-[ $? -eq 0 ] || exit $?
-
-echo "Pushing image: $TO_IMAGE"
-docker push $TO_IMAGE
-[ $? -eq 0 ] || exit $?
-
+echo "Copy $FROM_IMAGE to $TO_IMAGE"
+docker buildx imagetools create --tag "$TO_IMAGE" "$FROM_IMAGE"
