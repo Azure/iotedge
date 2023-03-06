@@ -98,10 +98,10 @@ jobs:
 
   - template: ../misc/templates/image-linux.yaml
     parameters:
-      app: Microsoft.Azure.Devices.Edge.Azure.Monitor
       displayName: Metrics Collector
-      download_artifacts: false
       name: azureiotedge-metrics-collector
+      app: Microsoft.Azure.Devices.Edge.Azure.Monitor
+      download_artifacts: false
       version: $(version)
 
   - script: |

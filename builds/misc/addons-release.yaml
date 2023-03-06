@@ -94,9 +94,9 @@ stages:
       displayName: 'Set build version'
     - template: templates/image-linux.yaml
       parameters:
-        app: api-proxy-module
         displayName: API Proxy
         name: azureiotedge-api-proxy
+        app: api-proxy-module
         version: $(buildVersion)
     - task: ComponentGovernanceComponentDetection@0
       inputs:
