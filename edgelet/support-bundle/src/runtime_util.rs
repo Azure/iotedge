@@ -64,6 +64,14 @@ pub async fn write_logs(
         if bytes.len() > 8 {
             writer.write_all(&bytes[8..]).context(Error::Write)?;
         }
+
+        if count % 1000 == 0 {
+            let datetime = chrono::Utc::now();
+            println!(
+                "[{:?}] - successfully wrote to logs stream: {:?}",
+                datetime, module_name
+            );
+        }
     }
 
     Ok(())
