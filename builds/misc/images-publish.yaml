@@ -1,5 +1,5 @@
 # Required variable from pipeline:
-#    to.registry.address: ''
+#    registry.address: ''
 #    pool.linux.name: ''
 #    pool.windows.name: ''
 
@@ -70,10 +70,10 @@ jobs:
               fetchDepth: 100
 
             - task: Docker@2
-              displayName: Docker login $(to.registry.address)
+              displayName: Docker login $(registry.address)
               inputs:
                 command: login
-                containerRegistry: $(to.registry.serviceConnection)
+                containerRegistry: $(service-connection.registry.release)
 
             - script: |
                 VERSION='$(resources.pipeline.images.runName)'
@@ -88,7 +88,7 @@ jobs:
 
             - script: |
                 scripts/linux/copy-multi-platform-image.sh \
-                  --registry '$(to.registry.address)' \
+                  --registry '$(registry.address)' \
                   --repo-src 'microsoft/azureiotedge-agent' \
                   --repo-dst 'public/azureiotedge-agent' \
                   --tag '$(version)' \
@@ -97,7 +97,7 @@ jobs:
 
             - script: |
                 scripts/linux/copy-multi-platform-image.sh \
-                  --registry '$(to.registry.address)' \
+                  --registry '$(registry.address)' \
                   --repo-src 'microsoft/azureiotedge-hub' \
                   --repo-dst 'public/azureiotedge-hub' \
                   --tag '$(version)' \
@@ -108,7 +108,7 @@ jobs:
                 temp_sensor_tags=$(echo '$(tags)' | jq -c '. + ["latest"]')
 
                 scripts/linux/copy-multi-platform-image.sh \
-                  --registry '$(to.registry.address)' \
+                  --registry '$(registry.address)' \
                   --repo-src 'microsoft/azureiotedge-simulated-temperature-sensor' \
                   --repo-dst 'public/azureiotedge-simulated-temperature-sensor' \
                   --tag '$(version)' \
@@ -123,7 +123,7 @@ jobs:
                 # namespace so it won't show up in the MAR Discovery Portal. This image is used
                 # interally by `iotedge check`; it's not an image you would `docker pull`.
                 scripts/linux/copy-multi-platform-image.sh \
-                  --registry '$(to.registry.address)' \
+                  --registry '$(registry.address)' \
                   --repo-src 'microsoft/azureiotedge-diagnostics' \
                   --repo-dst 'unlisted/azureiotedge-diagnostics' \
                   --tag $diag_version \
