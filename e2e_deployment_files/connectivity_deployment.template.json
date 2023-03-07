@@ -347,7 +347,7 @@
             "version": "1.0",
             "type": "docker",
             "status": "running",
-            "restartPolicy": "always",
+            "restartPolicy": "never",
             "env": {
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
@@ -373,15 +373,6 @@
               "optimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
               },
-              "logAnalyticsWorkspaceId": {
-                "value": "<LogAnalyticsWorkspaceId>"
-              },
-              "logAnalyticsSharedKey": {
-                "value": "<LogAnalyticsSharedKey>"
-              },
-              "logAnalyticsLogType": {
-                "value": "<TestResultCoordinator.LogAnalyticsLogType>"
-              },
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
@@ -399,7 +390,16 @@
               },
               "topology": {
                 "value": "<Topology>"
-              }
+              },
+              "logAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
+              },
+              "logAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
+              },
+              "logAnalyticsLogType": {
+                "value": "<TestResultCoordinator.LogAnalyticsLogType>"
+              },
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
