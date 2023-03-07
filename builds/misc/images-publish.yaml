@@ -12,7 +12,7 @@ variables:
 resources:
   pipelines:
   - pipeline: images
-    source: 'Azure-IoT-Edge-Core Images Release YAML'
+    source: 'IoT Edge Core - Stage Images'
     branch: 'main'
 
 jobs:
