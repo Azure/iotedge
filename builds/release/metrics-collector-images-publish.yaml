@@ -55,7 +55,7 @@ jobs:
       tags: $[ dependencies.version_from_pipeline.outputs['set.tags'] ]
   workspace:
     clean: all
-  environment: 'Azure-IoT-Edge-Core Release Env'
+  environment: $(deployment.environment)
   strategy:
     runOnce:
       deploy:

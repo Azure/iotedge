@@ -14,7 +14,7 @@ jobs:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
     workspace:
       clean: all
-    environment: 'Azure-IoT-Edge-Core Release Env'
+    environment: $(deployment.environment)
     strategy:
       runOnce:
         deploy:
