@@ -299,8 +299,14 @@ function get_support_bundle_logs(){
     print_highlighted_message "Getting Support Bundle Logs WITH TIMEOUT xx"
     mkdir -p $working_folder/support
     time=$(echo $test_start_time | sed 's/ /T/' | sed 's/$/Z/')
-    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || true
-    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time"
+    DID_TIMEOUT = false
+    timeout 1200 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT = true 
+    timeout 1200 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT = true
+    # checks if support bundle timed out and exits program if so
+    if [ "$DID_TIMEOUT" = true ] ; then
+        print_highlighted_message "Support Bundle timed out"
+        exit 1
+    fi
     print_highlighted_message "Finished getting support Bundle Logs at $(date)"
 }
 
