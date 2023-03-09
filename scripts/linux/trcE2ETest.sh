@@ -304,7 +304,7 @@ function get_support_bundle_logs(){
 
     # checks if support bundle timed out and exits program if so
     if [ "$DID_TIMEOUT" = true ] ; then
-        print_highlighted_message "Support Bundle timed out"
+        print_highlighted_message "Support Bundle timed out at $(date)"
         exit 1
     fi
     print_highlighted_message "Finished getting support Bundle Logs at $(date)"
