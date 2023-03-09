@@ -287,7 +287,7 @@ function print_deployment_logs() {
     journalctl -u docker --since "$test_start_time" --no-pager || true
 
     print_highlighted_message '========== Logs from iotedge system =========='
-    iotedge system logs -- --since "$test_start_time" --no-pager || true
+    iotedge system logs -- --since "$test_start_time" --no-pager | grep -v "hyper::"
 
     print_highlighted_message '========== Logs from edgeAgent =========='
     docker logs edgeAgent || true
@@ -296,11 +296,18 @@ function print_deployment_logs() {
 
 function get_support_bundle_logs(){
 
-    print_highlighted_message "Getting Support Bundle Logs"
+    print_highlighted_message "Getting Support Bundle Logs WITH TIMEOUT xx"
     mkdir -p $working_folder/support
     time=$(echo $test_start_time | sed 's/ /T/' | sed 's/$/Z/')
-    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time"
-    print_highlighted_message "Finished getting support Bundle Logs"
+    DID_TIMEOUT = false
+    timeout 3600 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT = true 
+
+    # checks if support bundle timed out and exits program if so
+    if [ "$DID_TIMEOUT" = true ] ; then
+        print_highlighted_message "Support Bundle timed out at $(date)"
+        exit 1
+    fi
+    print_highlighted_message "Finished getting support Bundle Logs at $(date)"
 }
 
 function print_test_run_logs() {
@@ -308,8 +315,20 @@ function print_test_run_logs() {
 
     print_highlighted_message "test run exit code=$ret"
     print_highlighted_message 'Print logs'
+
+    print_deployment_logs
+
+
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
+    # print_highlighted_message 'aziot-edged LOGS'
+    # journalctl -u aziot-edged --since "20 minutes ago" --no-pager || true
+    # print_highlighted_message 'aziot-keyd LOGS'
+    # journalctl -u aziot-keyd --since "20 minutes ago" --no-pager || true
+    # print_highlighted_message 'aziot-identityd LOGS'
+    # journalctl -u aziot-identityd --since "20 minutes ago" --no-pager || true
+    # print_highlighted_message 'aziot-certd LOGS'
+    # journalctl -u aziot-certd --since "20 minutes ago" --no-pager || true
 }
 
 function process_args() {
@@ -716,6 +735,9 @@ function run_connectivity_test() {
         else
             testExitCode=0
         fi
+
+        docker stop testResultCoordinator || true
+        sleep 30
         
         get_support_bundle_logs
         print_test_run_logs $testExitCode
@@ -837,11 +859,13 @@ function configure_longhaul_settings() {
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
 
     if [ "$image_architecture_label" = 'amd64' ]; then
+        log_upload_enabled=true
         log_rotation_max_file="125"
         log_rotation_max_file_edgehub="400"
     fi
     if [ "$image_architecture_label" = 'arm32v7' ] ||
         [ "$image_architecture_label" = 'arm64v8' ]; then
+        log_upload_enabled=false
         log_rotation_max_file="7"
         log_rotation_max_file_edgehub="30"
 
@@ -885,6 +909,8 @@ function configure_connectivity_settings() {
     CHECK_TRC_DELAY="${TEST_START_DELAY:-00:30:00}"
 
     TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
+
+    log_upload_enabled=false
 }
 
 LONGHAUL_TEST_NAME="LongHaul"
@@ -917,7 +943,6 @@ quickstart_working_folder="$working_folder/quickstart"
 
 if [ "$image_architecture_label" = 'amd64' ]; then
     optimize_for_performance=true
-    log_upload_enabled=true
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:01"
     TWIN_UPDATE_FREQUENCY="00:00:15"
@@ -926,7 +951,6 @@ fi
 if [ "$image_architecture_label" = 'arm32v7' ] ||
     [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
-    log_upload_enabled=false
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:10"
     TWIN_UPDATE_FREQUENCY="00:01:00"

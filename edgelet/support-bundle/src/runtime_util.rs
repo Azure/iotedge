@@ -39,18 +39,34 @@ pub async fn write_logs(
     options: &LogOptions,
     writer: &mut (impl Write + Send),
 ) -> anyhow::Result<()> {
+    println!("getting logs stream: {:?}", module_name);
     // Collect Logs
     let mut logs = runtime
         .logs(module_name, options)
         .await
         .context(Error::Write)?;
 
+    println!("processing logs stream: {:?}", module_name);
     while let Some(bytes) = logs.try_next().await.context(Error::Write)? {
+        let datetime = chrono::Utc::now();
+        println!(
+            "[{:?}] - writing {:?} bytes from logs stream: {:?}",
+            datetime,
+            bytes.len(),
+            module_name
+        );
+
         // First 4 bytes represent stderr vs stdout, we currently don't display differently based on that.
         // Next 4 bytes represent length of chunk, rust already encodes this information in the slice.
         if bytes.len() > 8 {
             writer.write_all(&bytes[8..]).context(Error::Write)?;
         }
+
+        let datetime = chrono::Utc::now();
+        println!(
+            "[{:?}] - successfully wrote to logs stream: {:?}",
+            datetime, module_name
+        );
     }
 
     Ok(())

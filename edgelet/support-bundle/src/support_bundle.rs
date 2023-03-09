@@ -96,6 +96,8 @@ where
 
     // Get all modules
     for module_name in get_modules(runtime, include_ms_only).await {
+        println!("processing module: {:?}", module_name);
+        println!("zipwriter starting file: {:?}", module_name);
         // Write module logs
         zip_writer
             .start_file(format!("logs/{}_log.txt", module_name), file_options)
