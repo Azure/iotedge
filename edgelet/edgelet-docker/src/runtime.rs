@@ -577,7 +577,7 @@ where
         let total_memory = {
             let mut system_resources = self.system_resources.as_ref().lock().await;
             system_resources.refresh_memory();
-            system_resources.total_memory() * 1024
+            total_memory_bytes(&system_resources)
         };
 
         let mut system_info = CoreSystemInfo::default();
@@ -616,8 +616,8 @@ where
             .as_secs();
 
         let used_cpu = system_resources.global_cpu_info().cpu_usage();
-        let total_memory = system_resources.total_memory() * 1024;
-        let used_memory = system_resources.used_memory() * 1024;
+        let total_memory = total_memory_bytes(&system_resources);
+        let used_memory = used_memory_bytes(&system_resources);
 
         let disks = system_resources
             .disks()
@@ -852,6 +852,14 @@ where
     }
 }
 
+fn total_memory_bytes(system_resources: &System) -> u64 {
+    system_resources.total_memory() * 1024
+}
+
+fn used_memory_bytes(system_resources: &System) -> u64 {
+    system_resources.used_memory() * 1024
+}
+
 fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> Result<Vec<i32>, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -952,6 +960,8 @@ fn drop_unsafe_privileges(
 
 #[cfg(test)]
 mod tests {
+    use std::process::{Command, Stdio};
+
     use super::*;
 
     #[test]
@@ -1081,5 +1091,50 @@ mod tests {
             create_options.host_config().unwrap().cap_drop(),
             Some(&vec!["SETUID".to_owned()])
         );
+    }
+
+    // Compare the total memory returned by the 'total_memory_bytes()' helper method
+    // to the value in /proc/meminfo
+    // TODO: Adjust this test when we upgrade to sysinfo >= v0.26
+    #[test]
+    fn test_total_memory_bytes() {
+        // Use 'total_memory_bytes()' helper method to get total memory
+        let system_resources = System::new_all();
+        let total_memory_bytes = total_memory_bytes(&system_resources);
+
+        // Convert to KiB, which are the units returned by v0.25 of the sysinfo crate.
+        // We perform this conversion to workaround a bug in our code causing us to report
+        // 1.024 times the actual number of bytes for host-level total memory.
+        // TODO: If we decide to fix this bug, remove this conversion and compare the values
+        // in units of bytes.
+        let total_memory_kibibyte = total_memory_bytes / 1024;
+
+        // Get expected total memory directly from /proc/meminfo
+        let cat_proc_meminfo = Command::new("cat")
+            .arg("/proc/meminfo")
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to execute 'cat /proc/meminfo'");
+        let grep_memtotal = Command::new("grep")
+            .arg("-i")
+            .arg("memtotal")
+            .stdin(Stdio::from(cat_proc_meminfo.stdout.unwrap()))
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to execute 'grep -i memtotal'");
+        let grep_value = Command::new("grep")
+            .arg("-o")
+            .arg("[0-9]*")
+            .stdin(Stdio::from(grep_memtotal.stdout.unwrap()))
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to execute 'grep -o [0-9]*'");
+        let output = grep_value.wait_with_output().unwrap();
+        let expected_total_memory_kilobyte_str = str::from_utf8(&output.stdout).unwrap().trim();
+        let expected_total_memory_kibibyte =
+            expected_total_memory_kilobyte_str.parse::<u64>().unwrap() * 1024 / 1000;
+
+        // Compare
+        assert_eq!(total_memory_kibibyte, expected_total_memory_kibibyte);
     }
 }
