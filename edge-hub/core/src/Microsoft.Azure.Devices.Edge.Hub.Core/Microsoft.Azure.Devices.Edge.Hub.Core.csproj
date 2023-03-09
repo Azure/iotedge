@@ -19,7 +19,6 @@
     <PackageReference Include="App.Metrics" Version="3.0.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2018.3.0" />
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.7-private-001" />
-        <PackageReference Include="Microsoft.Azure.Devices.Shared" Version="1.27.2-private-001" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
     <!--
       We have a transitive dependency on Dotnetty via Microsoft.Azure.Devices.Client. Use
