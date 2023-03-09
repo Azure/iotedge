@@ -55,6 +55,31 @@ stages:
     - job: BuildDotnetComponents
       displayName: Build Dotnet Components
       steps:
+      - script: |
+        #!/bin/bash
+        set -euo pipefail
+        base_url='https://sdkprivate.blob.core.windows.net/drops'
+        mkdir -p ../nuget_local
+        curl -Lo \
+          ../nuget_local/Microsoft.Azure.Devices.Client.1.36.7-private-001.nupkg \
+          $base_url/Microsoft.Azure.Devices.Client.1.36.7-private-001.nupkg
+        curl -Lo \
+          ../nuget_local/Microsoft.Azure.Devices.Shared.1.27.2-private-001.nupkg \
+          $base_url/Microsoft.Azure.Devices.Shared.1.27.2-private-001.nupkg
+        ls -al ../nuget_local
+
+        cat > nuget.config <<EOF
+        <?xml version="1.0" encoding="utf-8"?>
+        <configuration>
+          <packageSources>
+            <clear/>
+            <add key="local" value="$(realpath -e ../nuget_local)" />
+            <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+          </packageSources>
+        </configuration>
+        EOF
+        cat nuget.config
+        displayName: Download SDK package
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
         displayName: Build ($(Build.Configuration)) dotnet artifacts
