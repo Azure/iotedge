@@ -240,6 +240,7 @@ docker_build_and_tag_and_push() {
     docker buildx build \
         --no-cache \
         --platform $platform \
+        --provenance false \
         $([ -z "$build_args" ] || echo $build_args) \
         --file $dockerfile \
         --output=type=$output_type,name=$image,buildinfo-attrs=true \
