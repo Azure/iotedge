@@ -853,11 +853,11 @@ where
 }
 
 fn total_memory_bytes(system_resources: &System) -> u64 {
-    system_resources.total_memory() * 1024
+    system_resources.total_memory()
 }
 
 fn used_memory_bytes(system_resources: &System) -> u64 {
-    system_resources.used_memory() * 1024
+    system_resources.used_memory()
 }
 
 fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> Result<Vec<i32>, D::Error>
@@ -1095,19 +1095,11 @@ mod tests {
 
     // Compare the total memory returned by the 'total_memory_bytes()' helper method
     // to the value in /proc/meminfo
-    // TODO: Adjust this test when we upgrade to sysinfo >= v0.26
     #[test]
     fn test_total_memory_bytes() {
         // Use 'total_memory_bytes()' helper method to get total memory
         let system_resources = System::new_all();
         let total_memory_bytes = total_memory_bytes(&system_resources);
-
-        // Convert to KiB, which are the units returned by v0.25 of the sysinfo crate.
-        // We perform this conversion to workaround a bug in our code causing us to report
-        // 1.024 times the actual number of bytes for host-level total memory.
-        // TODO: If we decide to fix this bug, remove this conversion and compare the values
-        // in units of bytes.
-        let total_memory_kibibyte = total_memory_bytes / 1024;
 
         // Get expected total memory directly from /proc/meminfo
         let cat_proc_meminfo = Command::new("cat")
@@ -1130,11 +1122,11 @@ mod tests {
             .spawn()
             .expect("Failed to execute 'grep -o [0-9]*'");
         let output = grep_value.wait_with_output().unwrap();
-        let expected_total_memory_kilobyte_str = str::from_utf8(&output.stdout).unwrap().trim();
-        let expected_total_memory_kibibyte =
-            expected_total_memory_kilobyte_str.parse::<u64>().unwrap() * 1024 / 1000;
+        let expected_total_memory_kilobytes_str = str::from_utf8(&output.stdout).unwrap().trim();
+        let expected_total_memory_bytes =
+            expected_total_memory_kilobytes_str.parse::<u64>().unwrap() * 1024;
 
         // Compare
-        assert_eq!(total_memory_kibibyte, expected_total_memory_kibibyte);
+        assert_eq!(total_memory_bytes, expected_total_memory_bytes);
     }
 }
