@@ -61,8 +61,8 @@ stages:
           base_url='https://sdkprivate.blob.core.windows.net/drops'
           mkdir -p ../nuget_local
           curl -Lo \
-            ../nuget_local/Microsoft.Azure.Devices.Client.1.36.7-private-002.nupkg \
-            $base_url/Microsoft.Azure.Devices.Client.1.36.7-private-002.nupkg
+            ../nuget_local/Microsoft.Azure.Devices.Client.1.36.7-private-001.nupkg \
+            $base_url/Microsoft.Azure.Devices.Client.1.36.7-private-001.nupkg
           curl -Lo \
             ../nuget_local/Microsoft.Azure.Devices.Shared.1.27.2-private-001.nupkg \
             $base_url/Microsoft.Azure.Devices.Shared.1.27.2-private-001.nupkg
