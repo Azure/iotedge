@@ -15,7 +15,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.4-private-001" />
-    <PackageReference Include="Microsoft.Azure.Devices.Shared" Version="1.27.2" />
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.7-private-002" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="5.0.0" />
