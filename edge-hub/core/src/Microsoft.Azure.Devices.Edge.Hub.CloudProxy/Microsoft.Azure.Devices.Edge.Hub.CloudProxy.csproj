@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.4-private-001" />
-    <PackageReference Include="Microsoft.Azure.Devices.Shared" Version="1.27.2" />
+    <PackageReference Include="Microsoft.Azure.Devices.Shared" Version="1.27.2.0" />
     <PackageReference Include="Stateless" Version="4.0.0" />
   </ItemGroup>
 
