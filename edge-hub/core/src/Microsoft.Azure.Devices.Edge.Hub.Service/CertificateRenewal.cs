@@ -78,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void Callback(object _state)
         {
             TimeSpan timeToExpire = this.certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
+            this.logger.LogDebug($"Certificate expiry check callback invoked. Cert expiry: {this.certificates.ServerCertificate.NotAfter}, Current time: {DateTime.UtcNow}, Time to expire: {timeToExpire}");
             if (timeToExpire > TimeBuffer && this.maxRenewAfter == DefaultMaxRenewAfter)
             {
                 // Timer has expired but is not within the time window for renewal
