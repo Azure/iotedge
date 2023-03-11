@@ -123,11 +123,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
-                int renewAfter = configuration.GetValue("ServerCertificateRenewAfterInMs", int.MaxValue);
-                renewAfter = renewAfter > int.MaxValue ? int.MaxValue : renewAfter;
-                TimeSpan maxRenewAfter = TimeSpan.FromMilliseconds(renewAfter);
-
-                long? maxCheckCertExpiryAfterMs = configuration.GetValue<long?>("MaxCheckCertExpiryInMs");
+                long? renewAfter = configuration.GetValue<long?>("ServerCertificateRenewAfterInMs");
+                TimeSpan maxRenewAfter = renewAfter.HasValue ? TimeSpan.FromMilliseconds(renewAfter.Value) : TimeSpan.MaxValue;
+                 
+                long? maxCheckCertExpiryAfterMs = configuration.GetValue<long?>("MaxCheckCertExpiryInMs");                
                 TimeSpan maxCheckCertExpiryAfter = maxCheckCertExpiryAfterMs.HasValue ? TimeSpan.FromMilliseconds(maxCheckCertExpiryAfterMs.Value) : TimeSpan.MaxValue;
 
                 using (IProtocolHead mqttBrokerProtocolHead = GetMqttBrokerProtocolHead(container))
