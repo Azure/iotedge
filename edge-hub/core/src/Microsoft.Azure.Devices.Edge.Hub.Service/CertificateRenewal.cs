@@ -34,13 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
                 TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
                 logger.LogInformation($"renewAfter = {renewAfter}, maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
-                renewAfter = renewAfter > this.maxCheckCertExpiryAfter ? this.maxCheckCertExpiryAfter : renewAfter;
                 TimeSpan clamped = renewAfter > this.maxRenewAfter
                     ? this.maxRenewAfter
                     : renewAfter;
                 logger.LogInformation("Scheduling server certificate renewal for {0}.", DateTime.UtcNow.Add(renewAfter).ToString("o"));
                 logger.LogDebug("Scheduling server certificate renewal timer for {0} (clamped to Int32.MaxValue).", DateTime.UtcNow.Add(clamped).ToString("o"));
-                this.timer = new Timer(this.Callback, null, clamped, Timeout.InfiniteTimeSpan);
+                this.timer = new Timer(this.Callback, null, clamped, maxCheckCertExpiryAfter);
             }
             else
             {
@@ -88,12 +87,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 // This is the maximum value for the timer (~24 days)
                 // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
                 TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
-                renewAfter = renewAfter > this.maxCheckCertExpiryAfter ? this.maxCheckCertExpiryAfter : renewAfter;
                 TimeSpan clamped = renewAfter > this.maxRenewAfter
                     ? this.maxRenewAfter
                     : renewAfter;
                 this.logger.LogDebug("Scheduling server certificate renewal timer for {0}.", DateTime.UtcNow.Add(clamped).ToString("o"));
-                this.timer.Change(clamped, Timeout.InfiniteTimeSpan);
+                this.timer.Change(clamped, this.maxCheckCertExpiryAfter);
             }
             else
             {
