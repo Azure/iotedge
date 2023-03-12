@@ -28,10 +28,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             TimeSpan timeToExpire = certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
             if (timeToExpire > TimeBuffer)
-            {                                
+            {
                 if (maxCheckCertExpiryAfter < maxRenewAfter)
                 {
-                    logger.LogInformation($"Starting timer. maxRenewAfter = {maxRenewAfter}, maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
+                    logger.LogInformation($"Starting timer: maxRenewAfter = {maxRenewAfter}, maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
                     this.timer = new Timer(this.Callback, null, TimeSpan.Zero, maxCheckCertExpiryAfter);
                 }
                 else
