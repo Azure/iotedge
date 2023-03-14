@@ -106,6 +106,7 @@ apps:
     plugs:
       - docker
       - identity-service
+      - mount-observe
       - network
       - network-bind
       - system-observe
@@ -113,10 +114,13 @@ apps:
   iotedge:
     command: usr/bin/iotedge
     plugs:
+      - docker
       - identity-service
       - log-observe
+      - mount-observe
       - network
       - system-observe
+      - workload-sockets
   docker-proxy:
     command: bin/socat.sh
     daemon: simple
@@ -131,6 +135,7 @@ hooks:
       - aziotctl-executables
       - identity-service
       - log-observe
+      - mount-observe
 
 environment:
   PATH: "$PATH:$SNAP/docker/bin:$SNAP/aziotctl/bin"
@@ -165,3 +170,5 @@ layout:
     symlink: $SNAP_COMMON/shared/config/aziot
   /usr/libexec/aziot/aziot-edged:
     symlink: $SNAP/usr/libexec/aziot/aziot-edged
+  /etc/docker/daemon.json:
+    symlink: $SNAP/docker/config/daemon.json
