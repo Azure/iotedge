@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eux
+set -ux
 exec 1> >(logger -s -t "$SNAP_INSTANCE_NAME.$(basename $0)") 2>&1
 
 toml_kvp() {
@@ -25,10 +25,24 @@ fi
 mkdir -p /etc/aziot/edged/config.d
 
 {
+	# put opinionated top level kvps here
 	toml_kvp "hostname" "$(cat /etc/hostname)"
 	toml_kvp "homedir" "$SNAP_COMMON/var/lib/aziot/edged"
 
 	snapctl get raw-config
+
+	# put opinionated sections here
+	toml_new_section "agent"
+	toml_kvp "name" "edgeAgent"
+	toml_kvp "type" "docker"
+
+	toml_new_section "agent.config"
+
+	# Always use prod version of agent for now. Revisit this eventually
+	toml_kvp "image" "mcr.microsoft.com/azureiotedge-agent:${SNAP_VERSION%%-dev}"
+
+	toml_new_section "agent.env"
+	toml_kvp "EDGEAGENTUSER_ID" "0"
 
 	toml_new_section "connect"
 	toml_kvp "workload_uri" "unix:///var/run/iotedge/workload.sock"
