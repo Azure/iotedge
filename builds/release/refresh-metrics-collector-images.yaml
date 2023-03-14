@@ -218,7 +218,7 @@ stages:
         dotnet publish edge-modules/metrics-collector/src/Microsoft.Azure.Devices.Edge.Azure.Monitor.csproj \
           -o '$(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor' \
           -c Release
-      displayName: Build ($(Build.Configuration))
+      displayName: Build
 
     # The code sign task requires .NET Core 2.1.
     # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
@@ -325,9 +325,9 @@ stages:
     
     - pwsh: |
         $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-        dotnet build -c $(Build.Configuration) $testDir
+        dotnet build -c Release $testDir
     
-        $binDir = Convert-Path "$testDir/bin/$(Build.Configuration)/net6.0"
+        $binDir = Convert-Path "$testDir/bin/Release/net6.0"
         Write-Output "##vso[task.setvariable variable=binDir]$binDir"
       displayName: Build tests
       env:
