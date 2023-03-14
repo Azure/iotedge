@@ -147,21 +147,21 @@ plugs:
   identity-service:
     interface: content
     content: aziot-identity-service
-    target: $SNAP_DATA
+    target: $SNAP_COMMON
   workload-sockets:
     interface: system-files
     write: [ /var/run/iotedge, /run/iotedge ]
 
 layout:
   /var/lib/aziot:
-    symlink: $SNAP_DATA/var/lib/aziot
+    symlink: $SNAP_COMMON/var/lib/aziot
   /var/lib/iotedge:
-    symlink: $SNAP_DATA/var/lib/iotedge
+    symlink: $SNAP_COMMON/var/lib/iotedge
   /var/sockets/aziot:
-    symlink: $SNAP_DATA/shared/sockets/aziot
+    symlink: $SNAP_COMMON/shared/sockets/aziot
   /var/secrets/aziot:
-    symlink: $SNAP_DATA/shared/secrets/aziot
+    symlink: $SNAP_COMMON/shared/secrets/aziot
   /etc/aziot:
-    symlink: $SNAP_DATA/shared/config/aziot
+    symlink: $SNAP_COMMON/shared/config/aziot
   /usr/libexec/aziot/aziot-edged:
     symlink: $SNAP/usr/libexec/aziot/aziot-edged
