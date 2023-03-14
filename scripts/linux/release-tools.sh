@@ -269,7 +269,7 @@ get_project_release_info() {
   # Azure Pipelines doesn't seem to handle multi-line task variables, so encode to one line
   # See https://developercommunity.visualstudio.com/t/multiple-lines-variable-in-build-and-release/365667
   readarray -t lines < <(cat "$tmpfile")
-  local changelog=$(printf '\\x0A%s' "${lines[@]}")
+  local changelog=$(printf '\\x0A%s' "${lines[@]//$'\r'}")
   local changelog=${changelog:4} # Remove leading newline
 
   rm "$tmpfile"
@@ -323,7 +323,7 @@ get_metrics_collector_release_info() {
   # Azure Pipelines doesn't seem to handle multi-line task variables, so encode to one line
   # See https://developercommunity.visualstudio.com/t/multiple-lines-variable-in-build-and-release/365667
   readarray -t lines < <(cat "$tmpfile")
-  local changelog=$(printf '\\x0A%s' "${lines[@]}")
+  local changelog=$(printf '\\x0A%s' "${lines[@]//$'\r'}")
   local changelog=${changelog:4} # Remove leading newline
 
   rm "$tmpfile"
