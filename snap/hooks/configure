@@ -58,3 +58,5 @@ mkdir -p /etc/aziot/edged/config.d
 } > /etc/aziot/config.toml
 
 $SNAP/usr/bin/iotedge config apply
+
+snapctl restart $SNAP_INSTANCE_NAME.aziot-edged
