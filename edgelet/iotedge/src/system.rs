@@ -11,14 +11,33 @@ use aziotctl_common::system::{
 
 #[cfg(not(feature = "snapctl"))]
 use aziotctl_common::system::SERVICE_DEFINITIONS as IS_SERVICES;
-#[cfg(feature = "snapctl")]
-const IS_SERVICES: &[&ServiceDefinition] = &[];
 
 use aziot_identity_client_async::Client as IdentityClient;
 use aziot_identity_common_http::ApiVersion;
 
 use crate::error::Error;
 
+#[cfg(feature = "snapctl")]
+lazy_static! {
+    static ref IOTEDGED: ServiceDefinition = {
+        ServiceDefinition {
+            service: "aziot-edged",
+            sockets: &[]
+        }
+    };
+
+    static ref DOCKERPROXY: ServiceDefinition = {
+        ServiceDefinition {
+            service: "docker-proxy",
+            sockets: &[]
+        }
+    };
+
+    static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> =
+        [&*DOCKERPROXY, &*IOTEDGED].into_iter().collect();
+}
+
+#[cfg(not(feature = "snapctl"))]
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
         // If IOTEDGE_LISTEN_MANAGEMENT_URI isn't set at compile-time, assume socket activation is being used.
@@ -36,10 +55,7 @@ lazy_static! {
             };
 
         ServiceDefinition {
-            #[cfg(not(feature = "snapctl"))]
             service: "aziot-edged.service",
-            #[cfg(feature = "snapctl")]
-            service: "aziot-edged",
             sockets,
         }
     };
