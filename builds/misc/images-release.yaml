@@ -22,11 +22,9 @@ stages:
       displayName: Build Dotnet Components
       steps:
         # Build
-        - task: ShellScript@2
-          displayName: "Build .NET artifacts"
-          inputs:
-            args: "-c Release"
-            scriptPath: scripts/linux/buildBranch.sh
+        - script: |
+            scripts/linux/buildBranch.sh -c Release --skip-quickstart
+          displayName: Build .NET artifacts
         - task: DotNetCoreCLI@2
           displayName: "Build Functions Binding nuget package"
           inputs:
@@ -289,8 +287,8 @@ stages:
         - template: ../templates/restore-default-dotnet.yaml
         - bash: |
             mkdir $(Build.ArtifactStagingDirectory)/publish-linux && \
-            mv $(Build.BinariesDirectory)/publish/{CACertificates,e2e_deployment_files,e2e_test_files,\
-            scripts,IotEdgeQuickstart*,LeafDevice*,*.nupkg} $(Build.ArtifactStagingDirectory)/publish-linux
+            mv $(Build.BinariesDirectory)/publish/{CACertificates,scripts,*.nupkg} \
+              $(Build.ArtifactStagingDirectory)/publish-linux
           displayName: Move/stage test file artifacts
         - task: PublishBuildArtifacts@1
           displayName: 'Publish Artifacts to VSTS'

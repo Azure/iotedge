@@ -55,7 +55,7 @@ function process_args() {
 
 process_args "$@"
 
-scripts/linux/buildBranch.sh --no-rocksdb-bin
+scripts/linux/buildBranch.sh --no-rocksdb-bin --skip-quickstart
 scripts/linux/buildRocksDb.sh \
     --output-dir "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service" \
     --build-number debug \

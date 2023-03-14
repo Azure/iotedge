@@ -223,7 +223,7 @@ stages:
       displayName: Check out the new release commit
 
     - script: |
-        scripts/linux/buildBranch.sh -c Release # --skip-quickstart
+        scripts/linux/buildBranch.sh -c Release --skip-quickstart
       displayName: Build .NET artifacts
 
     - task: DotNetCoreCLI@2
