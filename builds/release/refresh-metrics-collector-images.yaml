@@ -103,6 +103,8 @@ stages:
         BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}" \
         make_project_release_commit_for_metrics_collector_image_refresh
         get_metrics_collector_release_info
+        echo 'Metrics Collector release info:'
+        echo "$OUTPUTS" | jq '.'
 
         changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
         next=$(echo "$OUTPUTS" | jq -rc '.version')
@@ -141,6 +143,8 @@ stages:
 
         . scripts/linux/release-tools.sh
         get_metrics_collector_release_info
+        echo 'Metrics Collector release info:'
+        echo "$OUTPUTS" | jq '.'
 
         changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
         next=$(echo "$OUTPUTS" | jq -rc '.version')

@@ -132,7 +132,9 @@ make_project_release_commit_for_core_image_refresh() {
   local tags="[\"${parts[0]}.${parts[1]}\"]"
 
   # determine version of diagnostics image, which must match the edgelet version
-  local diag_version=$(cat edgelet/version.txt)
+  local diag_version=$(
+    cat edgelet/version.txt | grep -Eo '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+'
+  )
 
   # update changelog
   make_core_changelog "$next" "$diag_version" 'CHANGELOG.new.md'
@@ -255,7 +257,9 @@ get_project_release_info() {
   local tags="[\"${parts[0]}.${parts[1]}\"]"
 
   # diagnostics image version must match the edgelet version
-  local diag_version=$(cat edgelet/version.txt)
+  local diag_version=$(
+    cat edgelet/version.txt | grep -Eo '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+'
+  )
 
   # get the changelog for the new release
   local tmpfile=$(mktemp)

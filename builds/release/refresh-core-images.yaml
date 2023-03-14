@@ -63,7 +63,9 @@ stages:
 
         . scripts/linux/release-tools.sh
         prev_core_version=$(get_nearest_version)
-        prev_diag_version=$(cat edgelet/version.txt)
+        prev_diag_version=$(
+          cat edgelet/version.txt | grep -Eo '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+'
+        )
         product='aziot-edge'
         echo "Filtering on { product: $product, version: $prev_core_version }..."
 
@@ -109,6 +111,8 @@ stages:
         BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}" \
         make_project_release_commit_for_core_image_refresh
         get_project_release_info
+        echo 'Core image release info:'
+        echo "$OUTPUTS" | jq '.'
 
         changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
         next=$(echo "$OUTPUTS" | jq -rc '.version')
@@ -147,6 +151,8 @@ stages:
 
         . scripts/linux/release-tools.sh
         get_project_release_info
+        echo 'Core image release info:'
+        echo "$OUTPUTS" | jq '.'
 
         changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
         next=$(echo "$OUTPUTS" | jq -rc '.version')
