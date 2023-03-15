@@ -111,9 +111,6 @@ jobs:
               displayName: Publish Simulated Temperature Sensor images
 
             - script: |
-                # The version of the diagnostics image needs to match edgelet, not the runtime modules
-                diag_version=$(cat edgelet/version.txt | grep -Eo '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+')
-
                 # We copy azureiotedge-diagnostics to the unlisted namespace instead of the public
                 # namespace so it won't show up in the MAR Discovery Portal. This image is used
                 # interally by `iotedge check`; it's not an image you would `docker pull`.
@@ -121,6 +118,6 @@ jobs:
                   --registry '$(registry.address)' \
                   --repo-src 'microsoft/azureiotedge-diagnostics' \
                   --repo-dst 'unlisted/azureiotedge-diagnostics' \
-                  --tag $diag_version \
+                  --tag '$(version)' \
                   --tags-add '$(tags)'
               displayName: Publish Diagnostics images
