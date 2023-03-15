@@ -425,7 +425,7 @@ stages:
   - job: MetricsCollector
     displayName: Metrics collector
     steps:
-    - template: templates/image-linux.yaml
+    - template: ../misc/templates/image-linux.yaml
       parameters:
         displayName: Metrics Collector
         name: azureiotedge-metrics-collector
