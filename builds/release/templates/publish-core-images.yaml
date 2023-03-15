@@ -34,6 +34,7 @@ jobs:
         --tag '${{ parameters['version.core'] }}' \
         --tags-add '${{ parameters.tags }}'
     displayName: Publish Edge Agent images
+    workingDirectory: iotedge
 
   - script: |
       scripts/linux/copy-multi-platform-image.sh \
@@ -43,6 +44,7 @@ jobs:
         --tag '${{ parameters['version.core'] }}' \
         --tags-add '${{ parameters.tags }}'
     displayName: Publish Edge Hub images
+    workingDirectory: iotedge
 
   - script: |
       temp_sensor_tags=$(echo '${{ parameters.tags }}' | jq -c '. + ["latest"]')
@@ -54,6 +56,7 @@ jobs:
         --tag '${{ parameters['version.core'] }}' \
         --tags-add "$temp_sensor_tags"
     displayName: Publish Simulated Temperature Sensor images
+    workingDirectory: iotedge
 
   - script: |
       scripts/linux/copy-multi-platform-image.sh \
@@ -63,6 +66,7 @@ jobs:
         --tag '${{ parameters['version.diagnostics'] }}' \
         --tags-add '${{ parameters.tags }}'
     displayName: Publish Diagnostics images
+    workingDirectory: iotedge
 
   - task: AzureKeyVault@1
     displayName: Get secrets
