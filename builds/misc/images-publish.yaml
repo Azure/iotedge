@@ -65,10 +65,10 @@ jobs:
               fetchDepth: 100
 
             - task: Docker@2
-              displayName: Docker login $(registry.address)
+              displayName: Docker login
               inputs:
                 command: login
-                containerRegistry: $(service-connection.registry.release)
+                containerRegistry: $(service-connection.registry)
 
             - script: |
                 VERSION='$(resources.pipeline.images.runName)'

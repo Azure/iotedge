@@ -338,14 +338,6 @@ stages:
         http_proxy: $(Agent.ProxyUrl)
         https_proxy: $(Agent.ProxyUrl)
 
-    # Added for the `docker buildx imagetools inspect` command in the following pwsh task. If we ever remove the
-    # workaround then we can remove this as well.
-    - task: Docker@2
-      displayName: Docker login
-      inputs:
-        command: login
-        containerRegistry: $(service-connection.registry.release)
-
     - pwsh: |
         $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
         $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
@@ -492,7 +484,7 @@ stages:
       displayName: Docker login
       inputs:
         command: login
-        containerRegistry: $(service-connection.registry.release)
+        containerRegistry: $(service-connection.registry)
 
     - script: |
         scripts/linux/copy-multi-platform-image.sh \

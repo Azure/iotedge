@@ -24,7 +24,7 @@ jobs:
     displayName: Docker login
     inputs:
       command: login
-      containerRegistry: $(service-connection.registry.release)
+      containerRegistry: $(service-connection.registry)
 
   - script: |
       scripts/linux/copy-multi-platform-image.sh \

@@ -36,16 +36,10 @@ steps:
       targetFolder: '$(Build.BinariesDirectory)/publish/${{ parameters.app }}/librocksdb'          
 
   - task: Docker@2
-    displayName: Docker login - CI
+    displayName: Docker login
     inputs:
       command: login
-      containerRegistry: iotedge-edgebuilds-acr
-
-  - task: Docker@2
-    displayName: Docker login - Release
-    inputs:
-      command: login
-      containerRegistry: $(service-connection.registry.release)
+      containerRegistry: $(service-connection.registry)
 
   - script: |
       scripts/linux/buildImage.sh \
