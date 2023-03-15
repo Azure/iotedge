@@ -39,7 +39,7 @@ mkdir -p /etc/aziot/edged/config.d
 	toml_new_section "agent.config"
 
 	# Always use prod version of agent for now. Revisit this eventually
-	toml_kvp "image" "mcr.microsoft.com/azureiotedge-agent:${SNAP_VERSION%%-dev}"
+	toml_kvp "image" "mcr.microsoft.com/azureiotedge-agent:${SNAP_VERSION%%~dev}"
 
 	toml_new_section "agent.env"
 	toml_kvp "EDGEAGENTUSER_ID" "0"
