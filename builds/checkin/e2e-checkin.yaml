@@ -43,6 +43,8 @@ stages:
       - BuildPackages
     condition: or(succeeded('BuildImages'),succeeded('BuildPackages'))
     variables:
+      dependenciesJson: $[ convertToJson(dependencies) ]
+      stageDependenciesJson: $[ convertToJson(stageDependencies) ]
       builtImages: $[dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES']]
       builtPackages: $[dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES']]
     jobs:
