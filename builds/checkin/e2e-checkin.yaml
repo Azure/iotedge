@@ -43,8 +43,8 @@ stages:
       - BuildPackages
     condition: or(succeeded('BuildImages'),succeeded('BuildPackages'))
     variables:
-      builtImages: $[ dependencies.BuildImages.result ]
-      builtPackages: $[ dependencies.BuildPackages.result ]
+      builtImages: $[ convertToJson(dependencies.BuildImages) ]
+      builtPackages: $[ convertToJson(dependencies.BuildPackages) ]
     jobs:
       - job: ubuntu_2004_msmoby
         displayName: Ubuntu 20.04 with iotedge-moby
