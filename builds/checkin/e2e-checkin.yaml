@@ -45,8 +45,8 @@ stages:
       - BuildPackages
     condition: or(succeeded('BuildImages'),succeeded('BuildPackages'))
     variables:
-      builtImages: $[stageDependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES']]
-      builtPackages: $[stageDependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES']]
+      builtImages: $[stageDependencies.CheckBuildImages.check_source_change_runtime.outputs['check_files.RUNTIMECHANGES']]
+      builtPackages: $[stageDependencies.CheckBuildPackages.check_source_change_edgelet.outputs['check_files.EDGELETCHANGES']]
     jobs:
       - job: ubuntu_2004_msmoby
         displayName: Ubuntu 20.04 with iotedge-moby
