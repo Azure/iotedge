@@ -134,6 +134,7 @@ hooks:
   configure:
     plugs:
       - aziotctl-executables
+      - hostname-control
       - identity-service
       - log-observe
       - mount-observe

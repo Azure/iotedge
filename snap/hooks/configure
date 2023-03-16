@@ -12,6 +12,18 @@ toml_new_section() {
 	printf "[%s]\n" "$1"
 }
 
+# Work around the fact that there is no consolidated, machine readable
+# output of `hostnamectl` in the version included in core20. Core22 will
+# be more elegant (i.e. `hostnamectl hostname`)
+get_hostname() {
+	hostname="$(/usr/bin/hostnamectl --static)"
+	if [ -z "$hostname" ] ; then
+		hostname="$(/usr/bin/hostnamectl --transient)"
+	fi
+
+	printf "$hostname"
+}
+
 # make sure we are plugged in to the identity service
 if ! snapctl is-connected identity-service; then
 	exit 0
@@ -26,7 +38,7 @@ mkdir -p /etc/aziot/edged/config.d
 
 {
 	# put opinionated top level kvps here
-	toml_kvp "hostname" "$(cat /etc/hostname)"
+	toml_kvp "hostname" "$(get_hostname)"
 	toml_kvp "homedir" "$SNAP_COMMON/var/lib/aziot/edged"
 
 	snapctl get raw-config
