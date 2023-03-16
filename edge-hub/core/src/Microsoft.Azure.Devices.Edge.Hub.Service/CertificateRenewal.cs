@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         }
 
         /// <summary>
-        /// This cancellation token will expire when certificate renewal is required.
+        /// Gets the cancellation token that will expire when certificate renewal is required.
         /// </summary>
         public CancellationToken Token => this.cts.Token;
 
@@ -115,6 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.logger.LogDebug($"Certificate expiry check callback invoked. Cert expiry: {this.certificates.ServerCertificate.NotAfter}, Current time: {DateTime.UtcNow}, Time to expire: {timeToExpire}");
             if (timeToExpire <= TimeBuffer)
             {
+                this.logger.LogDebug($"Time TO expire = {timeToExpire}, TimeBuffer = {TimeBuffer}, condition = {timeToExpire <= TimeBuffer}");
                 this.logger.LogInformation("Restarting process to perform server certificate renewal.");
                 this.cts.Cancel();
                 this.timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
