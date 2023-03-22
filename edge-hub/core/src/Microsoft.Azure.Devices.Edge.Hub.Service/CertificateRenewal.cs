@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 if (maxCheckCertExpiryAfter < maxRenewAfter)
                 {
                     logger.LogInformation($"Starting timer: maxRenewAfter = {maxRenewAfter}, maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
-                    this.timer = new Timer(this.Callback, null, TimeSpan.Zero, maxCheckCertExpiryAfter);
+                    this.timer = new Timer(this.PeriodicCallback, null, TimeSpan.Zero, maxCheckCertExpiryAfter);
                 }
                 else
                 {
