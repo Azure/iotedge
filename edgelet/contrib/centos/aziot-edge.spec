@@ -22,7 +22,6 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-Requires:       (moby-engine or docker-ce)
 Requires:       aziot-identity-service = 1.4.0~dev-1%{?dist}
 Source0:        aziot-edge-%{version}.tar.gz
 
@@ -63,6 +62,19 @@ make \
 rm -rf $RPM_BUILD_ROOT
 
 %pre
+# Check for container runtime
+if ! /usr/bin/getent group docker >/dev/null; then
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo ""
+    echo " ERROR: No container runtime detected."
+    echo ""
+    echo " Please install a container runtime and run this install again."
+    echo ""
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+
+    exit 1
+fi
+
 # Create iotedge group
 if ! /usr/bin/getent group iotedge >/dev/null; then
     %{_sbindir}/groupadd -r %{iotedge_group}
@@ -106,20 +118,6 @@ fi
 exit 0
 
 %post
-
-# Check for container runtime
-if ! /usr/bin/getent group docker >/dev/null; then
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    echo ""
-    echo " ERROR: No container runtime detected."
-    echo ""
-    echo " Please install a container runtime and run this install again."
-    echo ""
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-
-    exit 1
-fi
-
 if [ ! -f '/etc/aziot/config.toml' ]; then
     echo "==============================================================================="
     echo ""
