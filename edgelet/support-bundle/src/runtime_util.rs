@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::io::Write;
+use std::{cell::RefCell, io::Write, rc::Rc};
 
 use anyhow::Context;
 use futures::TryStreamExt;
 
 use edgelet_core::{LogOptions, Module, ModuleRuntime};
+use tokio::select;
 
 use crate::error::Error;
 
@@ -47,24 +48,41 @@ pub async fn write_logs(
         .context(Error::Write)?;
 
     println!("processing logs stream: {:?}", module_name);
-    let mut count = 0;
-    while let Some(bytes) = logs.try_next().await.context(Error::Write)? {
-        if count % 1000 == 0 {
-            let datetime = chrono::Utc::now();
-            println!(
-                "[{:?}] - writing {:?} bytes from logs stream: {:?}",
-                datetime,
-                bytes.len(),
-                module_name
-            );
+
+    let problem = Rc::new(RefCell::new("N/A".to_string()));
+    let logs = async {
+        let mut count = 0;
+        while let Some(bytes) = logs.try_next().await.context(Error::Write).unwrap() {
+            *problem.borrow_mut() = "problem not reading, writing".to_string();
+            if count % 1000 == 0 {
+                let datetime = chrono::Utc::now();
+                println!(
+                    "[{:?}] - writing {:?} bytes from logs stream: {:?}",
+                    datetime,
+                    bytes.len(),
+                    module_name
+                );
+            }
+            count += 1;
+            // First 4 bytes represent stderr vs stdout, we currently don't display differently based on that.
+            // Next 4 bytes represent length of chunk, rust already encodes this information in the slice.
+            if bytes.len() > 8 {
+                writer.write_all(&bytes[8..]).context(Error::Write).unwrap();
+                *problem.borrow_mut() = "problem not writing, reading".to_string();
+            }
         }
-        count += 1;
-        // First 4 bytes represent stderr vs stdout, we currently don't display differently based on that.
-        // Next 4 bytes represent length of chunk, rust already encodes this information in the slice.
-        if bytes.len() > 8 {
-            writer.write_all(&bytes[8..]).context(Error::Write)?;
+    };
+
+    select! {
+        _ = logs => {
+            println!("success!");
+        },
+        _ = tokio::time::sleep(std::time::Duration::from_secs(60 * 15)) => {
+            println!("timed out waiting for logs stream: {:?}", module_name);
         }
     }
+
+    println!("logs stream: {:?} - {:?}", module_name, *problem.borrow());
 
     Ok(())
 }
