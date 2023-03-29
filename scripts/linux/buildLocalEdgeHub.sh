@@ -56,13 +56,19 @@ function process_args() {
 process_args "$@"
 
 scripts/linux/buildBranch.sh --no-rocksdb-bin --skip-quickstart
+
 scripts/linux/buildRocksDb.sh \
     --output-dir "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service" \
     --build-number debug \
     --arch amd64
+
+docker buildx create --use --bootstrap
+trap "docker buildx rm" EXIT
+
 docker build \
-    --file "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/docker/linux/Dockerfile" \
-    --tag "$REGISTRY_ADDRESS/microsoft/azureiotedge-hub:$VERSION-linux-amd64" \
-    --build-arg EXE_DIR=. \
     --no-cache \
+    --platform 'linux/amd64' \
+    --file "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/docker/linux/Dockerfile" \
+    --output="type=registry,name=$REGISTRY_ADDRESS/microsoft/azureiotedge-hub:$VERSION-linux-amd64" \
+    --build-arg EXE_DIR=. \
     "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service"
