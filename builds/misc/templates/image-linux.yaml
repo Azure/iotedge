@@ -49,5 +49,5 @@ steps:
         --platforms '${{ parameters.platforms }}' \
         --registry '$(registry.address)' \
         --version '${{ parameters.version }}' \
-        --source-map '/etc/iotedge-source-map.json' \
+        --source-map '/etc/iotedge-source-map.json'
     displayName: Build Image - ${{ parameters.displayName }}
