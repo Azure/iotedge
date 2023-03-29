@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::{cell::RefCell, io::Write, rc::Rc};
+use std::io::Write;
 
 use anyhow::Context;
 use futures::TryStreamExt;
@@ -32,6 +32,7 @@ pub async fn get_modules(runtime: &impl ModuleRuntime, include_ms_only: bool) ->
 }
 
 /// # Errors
+/// # Panics
 ///
 /// Will return `Err` if docker is unable to fetch logs
 pub async fn write_logs(
@@ -49,11 +50,11 @@ pub async fn write_logs(
 
     println!("processing logs stream: {:?}", module_name);
 
-    let problem = Rc::new(RefCell::new("N/A".to_string()));
+    let mut problem = "N/A".to_string();
     let logs = async {
         let mut count = 0;
         while let Some(bytes) = logs.try_next().await.context(Error::Write).unwrap() {
-            *problem.borrow_mut() = "problem not reading, writing".to_string();
+            problem = "problem not reading, writing".to_string();
             if count % 1000 == 0 {
                 let datetime = chrono::Utc::now();
                 println!(
@@ -68,7 +69,7 @@ pub async fn write_logs(
             // Next 4 bytes represent length of chunk, rust already encodes this information in the slice.
             if bytes.len() > 8 {
                 writer.write_all(&bytes[8..]).context(Error::Write).unwrap();
-                *problem.borrow_mut() = "problem not writing, reading".to_string();
+                problem = "problem not writing, reading".to_string();
             }
         }
     };
@@ -82,7 +83,7 @@ pub async fn write_logs(
         }
     }
 
-    println!("logs stream: {:?} - {:?}", module_name, *problem.borrow());
+    println!("logs stream: {:?} - {:?}", module_name, problem);
 
     Ok(())
 }
