@@ -62,7 +62,20 @@ make \
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%pre
+%post
+# Check for container runtime
+if ! /usr/bin/getent group docker >/dev/null; then
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo ""
+    echo " ERROR: No container runtime detected."
+    echo ""
+    echo " Please install a container runtime and run this install again."
+    echo ""
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+
+    exit 1
+fi
+
 # Create iotedge group
 if ! /usr/bin/getent group iotedge >/dev/null; then
     %{_sbindir}/groupadd -r %{iotedge_group}
@@ -102,21 +115,6 @@ if /usr/bin/getent group aziotks >/dev/null; then
 fi
 if /usr/bin/getent group aziotid >/dev/null; then
     %{_sbindir}/usermod -aG aziotid %{iotedge_user}
-fi
-exit 0
-
-%post
-# Check for container runtime
-if ! /usr/bin/getent group docker >/dev/null; then
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    echo ""
-    echo " ERROR: No container runtime detected."
-    echo ""
-    echo " Please install a container runtime and run this install again."
-    echo ""
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-
-    exit 1
 fi
 
 if [ ! -f '/etc/aziot/config.toml' ]; then
