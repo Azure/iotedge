@@ -117,7 +117,7 @@ if /usr/bin/getent group aziotid >/dev/null; then
 fi
 exit 0
 
-$post
+%post
 if [ ! -f '/etc/aziot/config.toml' ]; then
     echo "==============================================================================="
     echo ""
