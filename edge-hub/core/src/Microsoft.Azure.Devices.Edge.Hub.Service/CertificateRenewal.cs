@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly ILogger logger;
         readonly Timer timer;
         readonly CancellationTokenSource cts;
+        readonly DateTime maxRenewTime;
 
         public CertificateRenewal(EdgeHubCertificates certificates, ILogger logger, TimeSpan maxRenewAfter, TimeSpan maxCheckCertExpiryAfter)
         {
@@ -24,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.cts = new CancellationTokenSource();
             this.maxRenewAfter = maxRenewAfter;
+            this.maxRenewTime = DateTime.UtcNow.Add(maxRenewAfter);
             this.maxCheckCertExpiryAfter = maxCheckCertExpiryAfter;
 
             TimeSpan timeToExpire = certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
@@ -31,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 if (maxCheckCertExpiryAfter < maxRenewAfter)
                 {
-                    logger.LogInformation($"Starting timer: maxRenewAfter = {maxRenewAfter}, maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
+                    logger.LogInformation($"Starting timer to check periodically with the frequency maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
                     this.timer = new Timer(this.PeriodicCallback, null, TimeSpan.Zero, maxCheckCertExpiryAfter);
                 }
                 else
@@ -50,7 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
             else
             {
-                logger.LogWarning("Server certificate is expired ({0}). Not scheduling renewal.", timeToExpire.ToString("c"));
+                logger.LogWarning("Server certificate is expired ({0}).", timeToExpire.ToString("c"));
+                this.cts.Cancel();
                 this.timer = new Timer(this.Callback, null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
         }
@@ -111,12 +114,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         void PeriodicCallback(object _state)
         {
+            var currentTime = DateTime.UtcNow;
             TimeSpan timeToExpire = this.certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
-            this.logger.LogDebug($"Certificate expiry check callback invoked. Cert expiry: {this.certificates.ServerCertificate.NotAfter}, Current time: {DateTime.UtcNow}, Time to expire: {timeToExpire}");
-            if (timeToExpire <= TimeBuffer)
+            this.logger.LogDebug($"Certificate expiry check callback invoked. Cert expiry: {this.certificates.ServerCertificate.NotAfter}, Current time: {currentTime}, Time to expire: {timeToExpire}, Max renew time: {this.maxRenewTime}");
+            if (timeToExpire <= TimeBuffer || this.maxRenewTime < currentTime)
             {
-                this.logger.LogDebug($"Time TO expire = {timeToExpire}, TimeBuffer = {TimeBuffer}, condition = {timeToExpire <= TimeBuffer}");
                 this.logger.LogInformation("Restarting process to perform server certificate renewal.");
+                if(timeToExpire <= TimeBuffer)
+                {
+                    this.logger.LogDebug($"Certificate is close to expiry or expired. Time to expiry - {timeToExpire}");
+                }
+                else if(this.maxRenewTime < currentTime)
+                {
+                    this.logger.LogDebug($"Max renewal time - {this.maxRenewTime} - has elapsed. Current time - {currentTime}");
+                }
                 this.cts.Cancel();
                 this.timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
