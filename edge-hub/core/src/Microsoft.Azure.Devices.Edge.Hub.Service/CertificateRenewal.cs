@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             var currentTime = DateTime.UtcNow;
             TimeSpan timeToExpire = this.certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
-            this.logger.LogDebug($"Certificate expiry check callback invoked. Cert expiry: {this.certificates.ServerCertificate.NotAfter}, Current time: {currentTime}, Time to expire: {timeToExpire}, Max renew time: {this.maxRenewTime}");
+            this.logger.LogDebug($"Certificate expiry check callback invoked. Cert expiry: {this.certificates.ServerCertificate.NotAfter}, Current time: {currentTime}, Time to expire: {timeToExpire}");
             if (timeToExpire <= TimeBuffer)
             {
                 this.logger.LogInformation($"Restarting process to perform server certificate renewal, as the certificate is close to expiry or expired. Time to expiry - {timeToExpire}.");
