@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly ILogger logger;
         readonly Timer timer;
         readonly CancellationTokenSource cts;
-        readonly DateTime maxRenewTime;
 
         public CertificateRenewal(EdgeHubCertificates certificates, ILogger logger, TimeSpan maxRenewAfter, TimeSpan maxCheckCertExpiryAfter)
         {
@@ -25,7 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.cts = new CancellationTokenSource();
             this.maxRenewAfter = maxRenewAfter;
-            this.maxRenewTime = DateTime.UtcNow.Add(maxRenewAfter);
             this.maxCheckCertExpiryAfter = maxCheckCertExpiryAfter;
 
             TimeSpan timeToExpire = certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
@@ -117,18 +115,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var currentTime = DateTime.UtcNow;
             TimeSpan timeToExpire = this.certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
             this.logger.LogDebug($"Certificate expiry check callback invoked. Cert expiry: {this.certificates.ServerCertificate.NotAfter}, Current time: {currentTime}, Time to expire: {timeToExpire}, Max renew time: {this.maxRenewTime}");
-            if (timeToExpire <= TimeBuffer || this.maxRenewTime < currentTime)
+            if (timeToExpire <= TimeBuffer)
             {
-                this.logger.LogInformation("Restarting process to perform server certificate renewal.");
-                if (timeToExpire <= TimeBuffer)
-                {
-                    this.logger.LogDebug($"Certificate is close to expiry or expired. Time to expiry - {timeToExpire}");
-                }
-                else if (this.maxRenewTime < currentTime)
-                {
-                    this.logger.LogDebug($"Max renewal time - {this.maxRenewTime} - has elapsed. Current time - {currentTime}");
-                }
-
+                this.logger.LogInformation($"Restarting process to perform server certificate renewal, as the certificate is close to expiry or expired. Time to expiry - {timeToExpire}.");
                 this.cts.Cancel();
                 this.timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
