@@ -120,14 +120,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             if (timeToExpire <= TimeBuffer || this.maxRenewTime < currentTime)
             {
                 this.logger.LogInformation("Restarting process to perform server certificate renewal.");
-                if(timeToExpire <= TimeBuffer)
+                if (timeToExpire <= TimeBuffer)
                 {
                     this.logger.LogDebug($"Certificate is close to expiry or expired. Time to expiry - {timeToExpire}");
                 }
-                else if(this.maxRenewTime < currentTime)
+                else if (this.maxRenewTime < currentTime)
                 {
                     this.logger.LogDebug($"Max renewal time - {this.maxRenewTime} - has elapsed. Current time - {currentTime}");
                 }
+
                 this.cts.Cancel();
                 this.timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
