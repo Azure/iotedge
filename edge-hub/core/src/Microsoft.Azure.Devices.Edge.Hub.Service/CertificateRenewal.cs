@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void PeriodicCallback(object _state)
         {
             var currentTime = DateTime.UtcNow;
-            TimeSpan timeToExpire = this.certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
+            TimeSpan timeToExpire = this.certificates.ServerCertificate.NotAfter - currentTime;
             this.logger.LogDebug($"Certificate expiry check callback invoked. Cert expiry: {this.certificates.ServerCertificate.NotAfter}, Current time: {currentTime}, Time to expire: {timeToExpire}");
             if (timeToExpire <= TimeBuffer)
             {
