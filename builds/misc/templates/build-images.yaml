@@ -193,7 +193,7 @@ stages:
           app: IotedgeDiagnosticsDotnet
           version: $(Build.BuildNumber)
 
-   - job: BuildImageApiProxy
+    - job: BuildImageApiProxy
       steps:
       - template: image-linux.yaml
         parameters:
