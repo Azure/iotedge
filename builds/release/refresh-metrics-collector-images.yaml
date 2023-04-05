@@ -103,6 +103,8 @@ stages:
         BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}" \
         make_project_release_commit_for_metrics_collector_image_refresh
         get_metrics_collector_release_info
+        echo 'Metrics Collector release info:'
+        echo "$OUTPUTS" | jq '.'
 
         changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
         next=$(echo "$OUTPUTS" | jq -rc '.version')
@@ -141,6 +143,8 @@ stages:
 
         . scripts/linux/release-tools.sh
         get_metrics_collector_release_info
+        echo 'Metrics Collector release info:'
+        echo "$OUTPUTS" | jq '.'
 
         changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
         next=$(echo "$OUTPUTS" | jq -rc '.version')
@@ -218,7 +222,7 @@ stages:
         dotnet publish edge-modules/metrics-collector/src/Microsoft.Azure.Devices.Edge.Azure.Monitor.csproj \
           -o '$(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor' \
           -c Release
-      displayName: Build ($(Build.Configuration))
+      displayName: Build
 
     # The code sign task requires .NET Core 2.1.
     # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
@@ -241,12 +245,11 @@ stages:
 
     - template: ../misc/templates/image-linux.yaml
       parameters:
-        name: Metrics Collector
-        imageName: azureiotedge-metrics-collector
-        project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+        displayName: Metrics Collector
+        name: azureiotedge-metrics-collector
+        app: Microsoft.Azure.Devices.Edge.Azure.Monitor
         version: $(version)
         download_artifacts: false
-        buildManifest: true
 
 ################################################################################
 - stage: Test
@@ -326,28 +329,24 @@ stages:
     
     - pwsh: |
         $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-        dotnet build -c $(Build.Configuration) $testDir
+        dotnet build -c Release $testDir
     
-        $binDir = Convert-Path "$testDir/bin/$(Build.Configuration)/net6.0"
+        $binDir = Convert-Path "$testDir/bin/Release/net6.0"
         Write-Output "##vso[task.setvariable variable=binDir]$binDir"
       displayName: Build tests
       env:
         http_proxy: $(Agent.ProxyUrl)
         https_proxy: $(Agent.ProxyUrl)
 
-    # Added for the `docker buildx imagetools inspect` command in the following pwsh task. If we ever remove the
-    # workaround then we can remove this as well.
-    - task: Docker@2
-      displayName: Docker login
-      inputs:
-        command: login
-        containerRegistry: $(service-connection.registry.release)
-
     - pwsh: |
         $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
         $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
         $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
-        $runtimeVersion=$(cat versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K\d+\.\d+')
+        $runtimeVersion = (
+          (
+            (Invoke-WebRequest https://aka.ms/latest-aziot-edge).Content | ConvertFrom-Json
+          )."aziot-edge" | Select-String -Pattern '([0-9]+\.[0-9]+)\.[0-9]+'
+        ).Matches[0].Groups[1].Value
         $edgeAgentImage = "mcr.microsoft.com/azureiotedge-agent:$runtimeVersion";
         $edgeHubImage = "mcr.microsoft.com/azureiotedge-hub:$runtimeVersion";
         $metricsCollectorImage = "$(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-$(os)-$(arch)"
@@ -355,26 +354,6 @@ stages:
         echo "Edge Agent image: $edgeAgentImage"
         echo "Edge Hub image: $edgeHubImage"
         echo "Metrics Collector image: $metricsCollectorImage"
-
-        # Workaround a problem that cropped up recently when Docker changed its manifest format to support provenance
-        # attestation. Our arch-specific images used to be manifests but now they're manifest lists with two entries,
-        # one pointing to the arch-specific manifest and the other pointing to provenance data. Because of this change,
-        # when the host device tries to run the image, it attempts to match the host platform against the platform of
-        # the arch-specific manifest in the list. In the case of arm32v7 where we were running on arm64v8 hosts to avoid
-        # using raspberry pis in release pipelines, 'arm64/v8' != 'arm/v7' so the host device can't start the container.
-        # The workaround is to extract the pointer to the arch-specific manifest from the list (sha256 hash), and refer
-        # to that instead.
-        $sha = docker buildx imagetools inspect --format '{{json .Manifest}}' $metricsCollectorImage |
-          jq -r '
-            .manifests[] |
-            select(\"arm/v7\" == ([.platform | (.architecture, .variant // empty)] | join(\"/\"))) |
-            .digest
-          '
-        if ($sha)
-        {
-          $metricsCollectorImage = "$(registry.address)/microsoft/azureiotedge-metrics-collector@$sha"
-          echo "OVERRIDE Metrics Collector image: $metricsCollectorImage"
-        }
 
         $context = @{
           nestededge = 'false';
@@ -505,29 +484,16 @@ stages:
       displayName: Docker login
       inputs:
         command: login
-        containerRegistry: $(service-connection.registry.release)
+        containerRegistry: $(service-connection.registry)
 
     - script: |
-        #!/bin/bash
-        set -euo pipefail
-
-        for arch in 'amd64' 'arm32v7' 'arm64v8'
-        do
-          from="$(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-linux-$arch"
-          to="$(registry.address)/public/azureiotedge-metrics-collector:$(version)-linux-$arch"
-          scripts/linux/moveImage.sh --from "$from" --to "$to"
-        done
+        scripts/linux/copy-multi-platform-image.sh \
+          --registry '$(registry.address)' \
+          --repo-src 'microsoft/azureiotedge-metrics-collector' \
+          --repo-dst 'public/azureiotedge-metrics-collector' \
+          --tag '$(version)' \
+          --tags-add '$(tags)'
       displayName: Publish Metrics Collector images
-      workingDirectory: iotedge
-
-    - script: |
-        scripts/linux/buildManifest.sh \
-          -r '$(registry.address)' \
-          -i 'azureiotedge-metrics-collector' \
-          -v $(version) \
-          -n 'public' \
-          --tags '$(tags)'
-      displayName: Publish Manifest
       workingDirectory: iotedge
 
     - task: AzureKeyVault@1
