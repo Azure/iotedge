@@ -445,6 +445,10 @@
 # cannot be guaranteed, so if random module restarts are unacceptable for your use
 # case, disable auto renewal.
 #
+# Note that for auto-generated (quickstart) certificates, both the certificate and key
+# must be regenerated on renewal so rotate_key must be true. Another issuance method
+# is required if rotate_key = false.
+#
 # [edge_ca.auto_renew]
 # rotate_key = true
 # threshold = "80%"
