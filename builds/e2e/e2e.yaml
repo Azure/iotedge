@@ -206,6 +206,8 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       verbose: true
 
+    timeoutInMinutes: 90
+
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
@@ -227,6 +229,8 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-22.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
       verbose: true
+
+    timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-clean-directory.yaml
@@ -349,6 +353,8 @@ jobs:
       identityServiceArtifactName: packages_mariner-2_amd64
       identityServicePackageFilter: aziot-identity-service-*.cm2.x86_64.rpm
 
+    timeoutInMinutes: 90
+
     steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
@@ -367,6 +373,8 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-mariner2-aarch64
+
+    timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
