@@ -121,7 +121,7 @@ jobs:
         tempFilterImage = "$imagePrefix-temperature-filter:$testTag";
         tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$coreTag";
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$testTag";
-        metricsCollectorImage = "$imagePrefix-metrics-collector:$versionInfo";
+        metricsCollectorImage = "$imagePrefix-metrics-collector:$testTag";
         iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
         verbose = '${{ parameters.verbose }}' -eq 'true';
       }
