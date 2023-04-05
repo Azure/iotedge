@@ -302,9 +302,10 @@ function get_support_bundle_logs(){
 
     MAX_RETRIES=4
     RETRY_COUNT=0
-    DID_TIMEOUT=false
+    DID_SUCCEED=false
 
-    while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ] && [ "$DID_TIMEOUT" = false ]; do
+    while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ] && [ "$DID_SUCCEED" = false ]; do
+        DID_TIMEOUT=false
         timeout 600 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT=true
 
         if [ "$DID_TIMEOUT" = true ]; then
@@ -316,6 +317,8 @@ function get_support_bundle_logs(){
                 print_highlighted_message "Support Bundle timed out after $MAX_RETRIES retries. Exiting."
                 exit 1
             fi
+        else
+            DID_SUCCEED=true
         fi
     done
 
