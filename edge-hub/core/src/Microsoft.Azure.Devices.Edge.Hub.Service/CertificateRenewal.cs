@@ -27,11 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan timeToExpire = certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
             if (timeToExpire > TimeBuffer)
             {
-                maxCheckCertExpiryAfter
+                this.timer = maxCheckCertExpiryAfter
                     .Map(maxCheckCertExpiryAfterVal =>
                     {
-                        logger.LogInformation($"Starting timer to check periodically with the frequency maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
-                        this.timer = new Timer(this.PeriodicCallback, null, TimeSpan.Zero, maxCheckCertExpiryAfter);
+                        logger.LogInformation($"Starting timer to check periodically with the frequency maxCheckCertExpiryAfter = {maxCheckCertExpiryAfterVal}");
+                        return new Timer(this.PeriodicCallback, null, TimeSpan.Zero, maxCheckCertExpiryAfterVal);
                     })
                     .GetOrElse(() =>
                     {
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                             : renewAfter;
                         logger.LogInformation("Scheduling server certificate renewal for {0}.", DateTime.UtcNow.Add(renewAfter).ToString("o"));
                         logger.LogDebug("Scheduling server certificate renewal timer for {0} (clamped to Int32.MaxValue).", DateTime.UtcNow.Add(clamped).ToString("o"));
-                        this.timer = new Timer(this.Callback, null, clamped, Timeout.InfiniteTimeSpan);
+                        return new Timer(this.Callback, null, clamped, Timeout.InfiniteTimeSpan);
                     });
             }
             else
