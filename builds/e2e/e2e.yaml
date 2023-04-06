@@ -195,7 +195,7 @@ jobs:
     displayName: Ubuntu 22.04 on amd64
 
     pool:
-      name: $(pool.custom.name)
+      name: $(pool.linux.name)
       demands: ubu2204-e2e-tests
 
     variables:

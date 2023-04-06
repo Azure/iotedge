@@ -45,7 +45,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     "set -e",
                     $"apt-get install -y --option DPkg::Lock::Timeout=600 {string.Join(' ', packages)}",
-                    $"apt-get install -f --option DPkg::Lock::Timeout=600"
+                    $"apt-get install -f --option DPkg::Lock::Timeout=600",
+                    $"apt show openssl -a",
+                    $"apt show libssl* -a",
+                    $"which openssl",
+                    $"openssl version"
+
                 },
                 SupportedPackageExtension.Rpm => this.os switch {
                     "centos" => new[]
