@@ -123,11 +123,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
-                long? renewAfter = configuration.GetValue<long?>("ServerCertificateRenewAfterInMs");
-                TimeSpan maxRenewAfter = renewAfter.HasValue ? TimeSpan.FromMilliseconds(renewAfter.Value) : TimeSpan.MaxValue;
+                int renewAfter = configuration.GetValue("ServerCertificateRenewAfterInMs", int.MaxValue);
+                TimeSpan maxRenewAfter = TimeSpan.FromMilliseconds(renewAfter);
 
-                long? maxCheckCertExpiryAfterMs = configuration.GetValue<long?>("MaxCheckCertExpiryInMs");
-                TimeSpan maxCheckCertExpiryAfter = maxCheckCertExpiryAfterMs.HasValue ? TimeSpan.FromMilliseconds(maxCheckCertExpiryAfterMs.Value) : TimeSpan.MaxValue;
+                int? maxCheckCertExpiryAfterMs = configuration.GetValue<int?>("MaxCheckCertExpiryInMs");
+                Option<TimeSpan> maxCheckCertExpiryAfter = maxCheckCertExpiryAfterMs.HasValue ? Option.Some(TimeSpan.FromMilliseconds(maxCheckCertExpiryAfterMs.Value)) : Option.None<TimeSpan>();
 
                 using (IProtocolHead mqttBrokerProtocolHead = GetMqttBrokerProtocolHead(container))
                 using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))

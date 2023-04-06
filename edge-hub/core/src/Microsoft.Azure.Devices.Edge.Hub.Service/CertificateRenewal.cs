@@ -12,41 +12,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         static readonly TimeSpan TimeBuffer = TimeSpan.FromMinutes(5);
 
         readonly TimeSpan maxRenewAfter;
-        readonly TimeSpan maxCheckCertExpiryAfter;
         readonly EdgeHubCertificates certificates;
         readonly ILogger logger;
         readonly Timer timer;
         readonly CancellationTokenSource cts;
 
-        public CertificateRenewal(EdgeHubCertificates certificates, ILogger logger, TimeSpan maxRenewAfter, TimeSpan maxCheckCertExpiryAfter)
+        public CertificateRenewal(EdgeHubCertificates certificates, ILogger logger, TimeSpan maxRenewAfter, Option<TimeSpan> maxCheckCertExpiryAfter)
         {
             this.certificates = Preconditions.CheckNotNull(certificates, nameof(certificates));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.cts = new CancellationTokenSource();
             this.maxRenewAfter = maxRenewAfter;
-            this.maxCheckCertExpiryAfter = maxCheckCertExpiryAfter;
 
             TimeSpan timeToExpire = certificates.ServerCertificate.NotAfter - DateTime.UtcNow;
             if (timeToExpire > TimeBuffer)
             {
-                if (maxCheckCertExpiryAfter < maxRenewAfter)
-                {
-                    logger.LogInformation($"Starting timer to check periodically with the frequency maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
-                    this.timer = new Timer(this.PeriodicCallback, null, TimeSpan.Zero, maxCheckCertExpiryAfter);
-                }
-                else
-                {
-                    // Clamp the renew time to TimeSpan.FromMilliseconds(Int32.MaxValue)
-                    // This is the maximum value for the timer (~24 days)
-                    // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
-                    TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
-                    TimeSpan clamped = renewAfter > this.maxRenewAfter
-                        ? this.maxRenewAfter
-                        : renewAfter;
-                    logger.LogInformation("Scheduling server certificate renewal for {0}.", DateTime.UtcNow.Add(renewAfter).ToString("o"));
-                    logger.LogDebug("Scheduling server certificate renewal timer for {0} (clamped to Int32.MaxValue).", DateTime.UtcNow.Add(clamped).ToString("o"));
-                    this.timer = new Timer(this.Callback, null, clamped, Timeout.InfiniteTimeSpan);
-                }
+                maxCheckCertExpiryAfter
+                    .Map(maxCheckCertExpiryAfterVal =>
+                    {
+                        logger.LogInformation($"Starting timer to check periodically with the frequency maxCheckCertExpiryAfter = {maxCheckCertExpiryAfter}");
+                        this.timer = new Timer(this.PeriodicCallback, null, TimeSpan.Zero, maxCheckCertExpiryAfter);
+                    })
+                    .GetOrElse(() =>
+                    {
+                        // Clamp the renew time to TimeSpan.FromMilliseconds(Int32.MaxValue)
+                        // This is the maximum value for the timer (~24 days)
+                        // Math.Min unfortunately doesn't work with TimeSpans so we need to do the check manually
+                        TimeSpan renewAfter = timeToExpire - (TimeBuffer / 2);
+                        TimeSpan clamped = renewAfter > this.maxRenewAfter
+                            ? this.maxRenewAfter
+                            : renewAfter;
+                        logger.LogInformation("Scheduling server certificate renewal for {0}.", DateTime.UtcNow.Add(renewAfter).ToString("o"));
+                        logger.LogDebug("Scheduling server certificate renewal timer for {0} (clamped to Int32.MaxValue).", DateTime.UtcNow.Add(clamped).ToString("o"));
+                        this.timer = new Timer(this.Callback, null, clamped, Timeout.InfiniteTimeSpan);
+                    });
             }
             else
             {
@@ -100,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     ? this.maxRenewAfter
                     : renewAfter;
                 this.logger.LogDebug("Scheduling server certificate renewal timer for {0}.", DateTime.UtcNow.Add(clamped).ToString("o"));
-                this.timer.Change(clamped, this.maxCheckCertExpiryAfter);
+                this.timer.Change(clamped, Timeout.InfiniteTimeSpan);
             }
             else
             {

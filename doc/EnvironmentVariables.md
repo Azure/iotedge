@@ -92,8 +92,8 @@
 | UseServerHeartbeat                        | Sets the client-side heartbeat interval to 60sec for upstream AMQP connections                                                                     | bool                                                                  | true                          |
 | UsePersistentStorage                      | If set, will enable directly persisting messages / twins into the local database before forwarding/processing                                      | bool                                                                  | true                          |
 | EnableNonPersistentStorageBackup          | If messages / twins are not directly persisted, this will backup twins and any unprocessed messages on shutdown so Edge can resume on next startup | bool                                                                  | false                         |
-| ServerCertificateRenewAfterInMs          | Maximum time duration after which the EdgeHub server certificate will be renewed, irrespective of certificate expiry time | int64                                                                  | n/a                         |
-| MaxCheckCertExpiryInMs          | Maximum time duration after which EdgeHub server certificate expiry should be checked, irrespective of certificate expiry time | int64                                                                  | n/a                         |
+| ServerCertificateRenewAfterInMs          | Maximum time duration after which the EdgeHub server certificate will be renewed, irrespective of certificate expiry time | int32                                                                  | int32.max                         |
+| MaxCheckCertExpiryInMs          | Maximum time duration after which EdgeHub server certificate expiry should be checked, irrespective of certificate expiry time | int32                                                                  | n/a                         |
 
 
 ### <a id="cloudauthnote">Cloud AuthenticationMode not supported in production</a>
