@@ -36,6 +36,7 @@ steps:
     set -euo pipefail
 
     branch="${BUILD_SOURCEBRANCH#refs/heads/}"
+    echo "Filtering product-versions.json for images on branch '$branch'"
 
     # transform product-versions.json into a list of images for each product in this branch
     images_json=$(cat product-versions.json | jq --arg registry "$REGISTRY" --arg branch "$branch" '
@@ -72,6 +73,7 @@ steps:
     # ]
 
     images=( $(echo "$images_json" | jq -r '[ .[].images ] | flatten | join("\n")') )
+    echo "Found ${#images[@]} images"
 
     # $images contains something like:
     # mcr.microsoft.com/azureiotedge-agent:1.4.9
@@ -99,7 +101,7 @@ steps:
         '
       ) )
 
-      # $base_images contains something like:
+      # $base_images contains entries in the form of:
       # mcr.microsoft.com/dotnet/runtime@6.0-alpine,sha256:b7a9b8fbdb096327a1e05cda40d40afbec54b96e1a6a1bb7577e67344f9d99e4
 
       for base_info in ${base_images[@]}; do
