@@ -22,6 +22,7 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
+Requires:       (moby-engine or docker-ce)
 Requires:       aziot-identity-service = 1.4.0~dev-1%{?dist}
 Source0:        aziot-edge-%{version}.tar.gz
 
@@ -61,7 +62,7 @@ make \
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%pre
+%post
 # Check for container runtime
 if ! /usr/bin/getent group docker >/dev/null; then
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
@@ -115,9 +116,7 @@ fi
 if /usr/bin/getent group aziotid >/dev/null; then
     %{_sbindir}/usermod -aG aziotid %{iotedge_user}
 fi
-exit 0
 
-%post
 if [ ! -f '/etc/aziot/config.toml' ]; then
     echo "==============================================================================="
     echo ""
