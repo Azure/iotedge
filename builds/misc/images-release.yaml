@@ -1,5 +1,8 @@
 name: $(version)
 
+trigger: none
+pr: none
+
 variables:
   DisableDockerDetector: true
 
@@ -19,11 +22,9 @@ stages:
       displayName: Build Dotnet Components
       steps:
         # Build
-        - task: ShellScript@2
-          displayName: "Build .NET artifacts"
-          inputs:
-            args: "-c Release"
-            scriptPath: scripts/linux/buildBranch.sh
+        - script: |
+            scripts/linux/buildBranch.sh -c Release --skip-quickstart
+          displayName: Build .NET artifacts
         - task: DotNetCoreCLI@2
           displayName: "Build Functions Binding nuget package"
           inputs:
@@ -286,8 +287,8 @@ stages:
         - template: ../templates/restore-default-dotnet.yaml
         - bash: |
             mkdir $(Build.ArtifactStagingDirectory)/publish-linux && \
-            mv $(Build.BinariesDirectory)/publish/{CACertificates,e2e_deployment_files,e2e_test_files,\
-            scripts,IotEdgeQuickstart*,LeafDevice*,*.nupkg} $(Build.ArtifactStagingDirectory)/publish-linux
+            mv $(Build.BinariesDirectory)/publish/{CACertificates,scripts,*.nupkg} \
+              $(Build.ArtifactStagingDirectory)/publish-linux
           displayName: Move/stage test file artifacts
         - task: PublishBuildArtifacts@1
           displayName: 'Publish Artifacts to VSTS'
@@ -372,76 +373,33 @@ stages:
       steps:
       - template: templates/image-linux.yaml
         parameters:
-          imageName: azureiotedge-hub
-          name: "Edge Hub"
-          project: Microsoft.Azure.Devices.Edge.Hub.Service
+          name: azureiotedge-hub
+          displayName: Edge Hub
+          app: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(version)
           use_rocksdb: true
     - job: BuildImageEdgeAgent
       steps:
       - template: templates/image-linux.yaml
         parameters:
-          imageName: azureiotedge-agent
-          name: "Edge Agent"
-          project: Microsoft.Azure.Devices.Edge.Agent.Service
+          name: azureiotedge-agent
+          displayName: Edge Agent
+          app: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(version)
           use_rocksdb: true
     - job: BuildImageTemperatureSensor
       steps:
       - template: templates/image-linux.yaml
         parameters:
-          imageName: azureiotedge-simulated-temperature-sensor
-          name: "Temperature Sensor"
-          project: SimulatedTemperatureSensor
+          name: azureiotedge-simulated-temperature-sensor
+          displayName: Temperature Sensor
+          app: SimulatedTemperatureSensor
           version: $(version)
     - job: BuildImageDiagnostics
       steps:
       - template: templates/image-linux.yaml
         parameters:
-          imageName: azureiotedge-diagnostics
-          name: "Diagnostics Module"
-          project: IotedgeDiagnosticsDotnet
+          name: azureiotedge-diagnostics
+          displayName: Diagnostics Module
+          app: IotedgeDiagnosticsDotnet
           version: $(version)
-
-################################################################################
-  - stage: PublishManifests
-################################################################################
-    displayName: Publish Manifests
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: BuildImages
-    jobs:
-    - job: PublishManifest
-      displayName: Publish Manifest
-      strategy:
-        matrix:
-          EdgeAgent:
-            imageName: 'azureiotedge-agent'
-          EdgeHub:
-            imageName: 'azureiotedge-hub'
-          SimulatedTemperatureSensor:
-            imageName: 'azureiotedge-simulated-temperature-sensor'
-          Diagnostics:
-            imageName: 'azureiotedge-diagnostics'
-      steps:
-      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-      - task: Docker@2
-        displayName: Docker login edgebuilds
-        inputs:
-          command: login
-          containerRegistry: iotedge-edgebuilds-acr
-      - task: Docker@2
-        displayName: Docker login edgerelease
-        inputs:
-          command: login
-          containerRegistry: iotedge-release-acr
-      - script: |
-          scripts/linux/buildManifest.sh \
-            -r $(registry.address) \
-            -i $(imageName) \
-            -v $(version) \
-            -n '$(namespace)' \
-            --tags '$(tags)'
-        displayName: Create manifest for '$(imageName)'
