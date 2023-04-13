@@ -1,0 +1,74 @@
+#!/bin/bash
+
+set -ux
+exec 1> >(logger -s -t "$SNAP_INSTANCE_NAME.$(basename $0)") 2>&1
+
+toml_kvp() {
+	printf "%s = \"%s\"\n" "$1" "$2"
+}
+
+toml_new_section() {
+	printf "\n\n"
+	printf "[%s]\n" "$1"
+}
+
+# Work around the fact that there is no consolidated, machine readable
+# output of `hostnamectl` in the version included in core20. Core22 will
+# be more elegant (i.e. `hostnamectl hostname`)
+get_hostname() {
+	hostname="$(/usr/bin/hostnamectl --static)"
+	if [ -z "$hostname" ] ; then
+		hostname="$(/usr/bin/hostnamectl --transient)"
+	fi
+
+	printf "$hostname"
+}
+
+# make sure we are plugged in to the identity service
+if ! snapctl is-connected identity-service; then
+	exit 0
+fi
+
+# and that we have something worth writing
+if test -z "$(snapctl get raw-config)" ; then
+	exit 0
+fi
+
+mkdir -p /etc/aziot/edged/config.d
+
+{
+	# put opinionated top level kvps here
+	toml_kvp "hostname" "$(get_hostname)"
+	toml_kvp "homedir" "$SNAP_COMMON/var/lib/aziot/edged"
+
+	snapctl get raw-config
+
+	# put opinionated sections here
+	toml_new_section "agent"
+	toml_kvp "name" "edgeAgent"
+	toml_kvp "type" "docker"
+
+	toml_new_section "agent.config"
+
+	# Always use prod version of agent for now. Revisit this eventually
+	toml_kvp "image" "mcr.microsoft.com/azureiotedge-agent:${SNAP_VERSION%%~dev}"
+
+	toml_new_section "agent.env"
+	toml_kvp "EDGEAGENTUSER_ID" "0"
+
+	toml_new_section "connect"
+	toml_kvp "workload_uri" "unix:///var/run/iotedge/workload.sock"
+	toml_kvp "management_uri" "unix:///var/run/iotedge/mgmt.sock"
+
+	toml_new_section "listen"
+	toml_kvp "workload_uri" "unix:///var/run/iotedge/workload.sock"
+	toml_kvp "management_uri" "unix:///var/run/iotedge/mgmt.sock"
+
+	toml_new_section "moby_runtime"
+	toml_kvp "uri" "unix://$SNAP_COMMON/docker-proxy.sock"
+	toml_kvp "network" "azure-iot-edge"
+} > /etc/aziot/config.toml
+
+$SNAP/usr/bin/iotedge config apply
+
+snapctl restart $SNAP_INSTANCE_NAME.aziot-edged

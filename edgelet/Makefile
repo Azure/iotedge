@@ -59,6 +59,14 @@ CONNECT_WORKLOAD_URI=
 LISTEN_MANAGEMENT_URI=
 LISTEN_WORKLOAD_URI=
 
+# Enable special features for specific runtime platforms
+# '' => none, 'snapd' => snapd features
+PLATFORM_FEATURES ?=
+
+ifeq ($(PLATFORM_FEATURES), snapd)
+	CARGOFLAGS += --features snapctl
+endif
+
 all:
 	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS)
 
