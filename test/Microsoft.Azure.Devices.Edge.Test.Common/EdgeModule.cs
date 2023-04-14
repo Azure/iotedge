@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 await Retry.Do(
                     async () =>
                     {
-                        string[] output = await Process.RunAsync("iotedge", "list", token);
+                        string[] output = await IotedgeCli.RunAsync("list", token);
 
                         return output
                             .Where(

@@ -48,8 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             try
                             {
                                 var supportBundlePath = Context.Current.LogFile.Match((file) => Path.GetDirectoryName(file), () => AppDomain.CurrentDomain.BaseDirectory);
-                                await Process.RunAsync(
-                                    "iotedge",
+                                await IotedgeCli.RunAsync(
                                     $"support-bundle -o {supportBundlePath}/supportbundle-{TestContext.CurrentContext.Test.Name} --since \"{this.testStartTime:yyyy-MM-ddTHH:mm:ssZ}\"",
                                     cts.Token);
                             }

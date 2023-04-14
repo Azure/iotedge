@@ -20,13 +20,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // Save module logs
             try
             {
-                string[] output = await Process.RunAsync("iotedge", "list", token);
+                string[] output = await IotedgeCli.RunAsync("list", token);
                 string[] modules = output.Select(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First()).Skip(1).ToArray();
 
                 foreach (string name in modules)
                 {
                     string moduleLog = $"{filePrefix}-{name}.log";
-                    output = await Process.RunAsync("iotedge", $"logs {name}", token, logVerbose: false);
+                    output = await IotedgeCli.RunAsync($"logs {name}", token, logVerbose: false);
                     await File.WriteAllLinesAsync(moduleLog, output, token);
                     paths.Add(moduleLog);
                 }

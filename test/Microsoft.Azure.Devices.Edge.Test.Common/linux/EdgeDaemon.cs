@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Retry.Do(
                 async () =>
                 {
-                    string[] output = await Process.RunAsync("iotedge", "list", token);
+                    string[] output = await IotedgeCli.RunAsync("list", token);
                     return output;
                 },
                 output => true,

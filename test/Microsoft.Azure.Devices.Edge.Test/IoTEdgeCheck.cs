@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             void OnStderr(string e) => Log.Verbose(e);
 
-            await Process.RunAsync("iotedge", args, OnStdout, OnStderr, token);
+            await IotedgeCli.RunAsync(args, OnStdout, OnStderr, token);
 
             Assert.AreEqual(string.Empty, errors_number);
         }
