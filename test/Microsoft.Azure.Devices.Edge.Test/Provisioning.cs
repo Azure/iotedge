@@ -61,8 +61,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
-            await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
-
             var agent = new EdgeAgent(registrationId, this.iotHub);
             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
             await agent.PingAsync(token);
@@ -124,8 +122,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         new object[] { registrationId }));
                 },
                 token);
-
-            await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
             var agent = new EdgeAgent(registrationId, this.iotHub);
             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);

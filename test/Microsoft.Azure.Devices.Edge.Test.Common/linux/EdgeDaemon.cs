@@ -14,9 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        static readonly string[] services = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
         readonly PackageManagement packageManagement;
         readonly Option<string> packagesPath;
+        readonly Services services;
 
         public static async Task<EdgeDaemon> CreateAsync(Option<string> packagesPath, CancellationToken token)
         {
@@ -98,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             this.packagesPath = packagesPath;
             this.packageManagement = packageManagement;
+            this.services = new Services(new[] { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" });
         }
 
         public async Task InstallAsync(Option<Uri> proxy, CancellationToken token)
@@ -164,8 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            await Service.StartAsync(services, token);
-            await WaitForStatusAsync(ServiceControllerStatus.Running, token);
+            await this.services.StartAsync(token);
             await Task.Delay(10000);
 
             await Retry.Do(
@@ -200,8 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            await Service.StopAsync(services, token);
-            await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
+            await this.services.StopAsync(token);
         }
 
         public async Task UninstallAsync(CancellationToken token)
@@ -232,34 +231,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         }
                     }
                 }, "Uninstalled edge daemon");
-        }
-
-        public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token) => Profiler.Run(
-            () => WaitForStatusAsync((ServiceControllerStatus)desired, token),
-            "Edge daemon entered the '{Desired}' state",
-            desired.ToString().ToLower());
-
-        static async Task WaitForStatusAsync(ServiceControllerStatus desired, CancellationToken token)
-        {
-            foreach (string service in services)
-            {
-                while (true)
-                {
-                    bool stateMatchesDesired = desired switch
-                    {
-                        ServiceControllerStatus.Running => await Service.IsRunningAsync(service, token),
-                        ServiceControllerStatus.Stopped => await Service.IsStoppedAsync(service, token),
-                        _ => throw new NotImplementedException($"No handler for {desired}"),
-                    };
-
-                    if (stateMatchesDesired)
-                    {
-                        break;
-                    }
-
-                    await Task.Delay(250, token).ConfigureAwait(false);
-                }
-            }
         }
     }
 }

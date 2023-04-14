@@ -7,12 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public enum EdgeDaemonStatus
-    {
-        Running = ServiceControllerStatus.Running,
-        Stopped = ServiceControllerStatus.Stopped
-    }
-
     public interface IEdgeDaemon
     {
         Task InstallAsync(Option<Uri> proxy, CancellationToken token);
@@ -24,7 +18,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         Task StopAsync(CancellationToken token);
 
         Task UninstallAsync(CancellationToken token);
-
-        Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token);
     }
 }

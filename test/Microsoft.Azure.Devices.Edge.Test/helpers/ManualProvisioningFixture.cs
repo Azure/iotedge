@@ -46,8 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             try
             {
-                await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
-
                 var agent = new EdgeAgent(device.Id, this.IotHub);
                 await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
                 await agent.PingAsync(token);
