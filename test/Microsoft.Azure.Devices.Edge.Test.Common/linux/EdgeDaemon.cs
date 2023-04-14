@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             this.packagesPath = packagesPath;
             this.packageManagement = packageManagement;
-            this.services = new Services(new[] { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" });
+            this.services = new Services();
         }
 
         public async Task InstallAsync(Option<Uri> proxy, CancellationToken token)

@@ -8,12 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     class SystemdServiceManager : ServiceManager
     {
-        readonly string[] names;
-
-        public SystemdServiceManager(string[] names)
-        {
-            this.names = names;
-        }
+        readonly string[] names = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
 
         public override async Task StartAsync(CancellationToken token)
         {

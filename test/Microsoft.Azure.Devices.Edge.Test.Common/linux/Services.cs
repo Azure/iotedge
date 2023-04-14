@@ -19,15 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class Services
     {
-        readonly string[] names;
         ServiceManager manager;
 
-        public Services(string[] names, ServiceManagerType manager = ServiceManagerType.Systemd)
+        public Services(ServiceManagerType manager = ServiceManagerType.Systemd)
         {
-            this.names = names;
             this.manager = manager switch
             {
-                ServiceManagerType.Systemd => new SystemdServiceManager(names),
+                ServiceManagerType.Systemd => new SystemdServiceManager(),
                 _ => throw new NotImplementedException($"Unknown service manager '{manager.ToString()}'"),
             };
         }
