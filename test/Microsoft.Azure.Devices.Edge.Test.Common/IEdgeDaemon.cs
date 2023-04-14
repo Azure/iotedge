@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
-    using System.ServiceProcess;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
