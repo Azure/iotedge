@@ -15,8 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public class EdgeDaemon : IEdgeDaemon
     {
         readonly PackageManagement packageManagement;
+        readonly Option<string> packagesPath;
 
-        public static async Task<EdgeDaemon> CreateAsync(CancellationToken token)
+        public static async Task<EdgeDaemon> CreateAsync(Option<string> packagesPath, CancellationToken token)
         {
             string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
             string os = Array.Find(platformInfo, element => element.StartsWith("ID="));
@@ -39,12 +40,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
             version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
 
+            bool detectedSnap = packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length == 0 ).OrDefault();
+
             SupportedPackageExtension packageExtension;
 
             switch (os)
             {
                 case "ubuntu":
-                    packageExtension = SupportedPackageExtension.Deb;
+                    // if we find .deb and .snap files on an Ubuntu 20.04 host, prefer snap
+                    packageExtension = detectedSnap && version == "20.04"
+                        ? SupportedPackageExtension.Snap
+                        : SupportedPackageExtension.Deb;
                     break;
                 case "raspbian":
                     os = "debian";
@@ -57,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     if (version != "8")
                     {
-                        throw new NotImplementedException($"Daemon is only installed on Red Hat version 8.X, operating system '{os} {version}'");
+                        throw new NotImplementedException($"Operating system '{os} {version}' not supported");
                     }
 
                     break;
@@ -67,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     if (version != "7")
                     {
-                        throw new NotImplementedException($"Daemon is only installed on Centos version 7.X, operating system '{os} {version}'");
+                        throw new NotImplementedException($"Operating system '{os} {version}' not supported");
                     }
 
                     break;
@@ -78,26 +84,33 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }
 
-            return new EdgeDaemon(new PackageManagement(os, version, packageExtension));
+            if (detectedSnap && packageExtension != SupportedPackageExtension.Snap)
+            {
+                throw new NotImplementedException(
+                    $"Snap package was detected but isn't supported on operating system '{os} {version}'");
+            }
+
+            return new EdgeDaemon(packagesPath, new PackageManagement(os, version, packageExtension));
         }
 
-        EdgeDaemon(PackageManagement packageManagement)
+        EdgeDaemon(Option<string> packagesPath, PackageManagement packageManagement)
         {
+            this.packagesPath = packagesPath;
             this.packageManagement = packageManagement;
         }
 
-        public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        public async Task InstallAsync(Option<Uri> proxy, CancellationToken token)
         {
             var properties = new object[] { Dns.GetHostName() };
             string message = "Installed edge daemon on '{Device}'";
-            packagesPath.ForEach(
+            this.packagesPath.ForEach(
                 p =>
                 {
                     message += " from packages in '{InstallPackagePath}'";
                     properties = properties.Append(p).ToArray();
                 });
 
-            string[] commands = packagesPath.Match(
+            string[] commands = this.packagesPath.Match(
                 p => this.packageManagement.GetInstallCommandsFromLocal(p),
                 () => this.packageManagement.GetInstallCommandsFromMicrosoftProd(proxy));
 
