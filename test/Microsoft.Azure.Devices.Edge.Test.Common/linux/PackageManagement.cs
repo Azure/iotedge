@@ -26,14 +26,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             this.packageExtension = extension;
         }
 
+        public SupportedPackageExtension PackageExtension => this.packageExtension;
+
         public string[] GetInstallCommandsFromLocal(string path)
         {
             string[] packages = Directory
-                .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
+                .GetFiles(path, $"*.{this.PackageExtension.ToString().ToLower()}")
                 .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
 
-            return this.packageExtension switch
+            return this.PackageExtension switch
             {
                 SupportedPackageExtension.Deb => new[]
                 {
@@ -91,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     "sudo snap connect azure-iot-edge:docker-executables docker:docker-executables",
                     "sudo snap connect azure-iot-edge:docker docker:docker-daemon"
                 },
-                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.PackageExtension}'"),
             };
         }
 
@@ -109,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 _ => throw new NotImplementedException($"Don't know how to install daemon for '{this.os}'"),
             };
 
-            return this.packageExtension switch
+            return this.PackageExtension switch
             {
                 SupportedPackageExtension.Deb => new[]
                 {
@@ -143,11 +145,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     },
                     _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
                 },
-                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.PackageExtension}'"),
             };
         }
 
-        public string[] GetUninstallCommands() => this.packageExtension switch
+        public string[] GetUninstallCommands() => this.PackageExtension switch
         {
             SupportedPackageExtension.Deb => new[]
             {
@@ -174,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 "sudo snap remove --purge azure-iot-identity azure-iot-edge",
                 "sudo snap restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
-            _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
+            _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.PackageExtension}'")
         };
     }
 }
