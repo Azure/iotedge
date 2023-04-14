@@ -30,8 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             };
         }
 
-        public Task StartAsync(CancellationToken token) => this.manager.StartAsync(token);
+        public Task StartAsync(CancellationToken token) =>
+            Profiler.Run(() => this.manager.StartAsync(token), "Edge daemon entered the running state");
 
-        public Task StopAsync(CancellationToken token) => this.manager.StopAsync(token);
+        public Task StopAsync(CancellationToken token) =>
+            Profiler.Run(() => this.manager.StopAsync(token), "Edge daemon entered the stopped state");
     }
 }

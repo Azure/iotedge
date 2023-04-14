@@ -13,17 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public override async Task StartAsync(CancellationToken token)
         {
             await Process.RunAsync("systemctl", $"start {string.Join(' ', this.names)}", token);
-            await Profiler.Run(
-                () => this.WaitForStatusAsync(ServicesStatus.Running, token),
-                "Edge daemon entered the running state");
+            await this.WaitForStatusAsync(ServicesStatus.Running, token);
         }
 
         public override async Task StopAsync(CancellationToken token)
         {
             await Process.RunAsync("systemctl", $"stop {string.Join(' ', this.names)}", token);
-            await Profiler.Run(
-                () => this.WaitForStatusAsync(ServicesStatus.Stopped, token),
-                "Edge daemon entered the stopped state");
+            await this.WaitForStatusAsync(ServicesStatus.Stopped, token);
         }
 
         async Task WaitForStatusAsync(ServicesStatus desired, CancellationToken token)
