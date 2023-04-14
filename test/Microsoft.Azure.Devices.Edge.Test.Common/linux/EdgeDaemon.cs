@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
+        readonly string[] services = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
         readonly PackageManagement packageManagement;
         readonly Option<string> packagesPath;
 
@@ -163,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
+            await Service.StartAsync(services, token);
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
             await Task.Delay(10000);
 
@@ -199,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
+            await Service.StopAsync(services, token);
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
 
@@ -240,21 +241,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         static async Task WaitForStatusAsync(ServiceControllerStatus desired, CancellationToken token)
         {
-            string[] processes = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
-
-            foreach (string process in processes)
+            foreach (string service in services)
             {
                 while (true)
                 {
-                    Func<string, bool> stateMatchesDesired = desired switch
+                    bool stateMatchesDesired = desired switch
                     {
-                        ServiceControllerStatus.Running => s => s == "active",
-                        ServiceControllerStatus.Stopped => s => s == "inactive" || s == "failed",
+                        ServiceControllerStatus.Running => await Service.IsRunningAsync(service, token),
+                        ServiceControllerStatus.Stopped => await Service.IsStoppedAsync(service, token),
                         _ => throw new NotImplementedException($"No handler for {desired}"),
                     };
 
-                    string[] output = await Process.RunAsync("systemctl", $"-p ActiveState show {process}", token);
-                    if (stateMatchesDesired(output.First().Split("=").Last()))
+                    if (stateMatchesDesired)
                     {
                         break;
                     }

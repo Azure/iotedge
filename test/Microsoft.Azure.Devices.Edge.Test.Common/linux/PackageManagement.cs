@@ -18,19 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         readonly string os;
         readonly string version;
         readonly SupportedPackageExtension packageExtension;
-        public string IotedgeServices { get; }
 
         public PackageManagement(string os, string version, SupportedPackageExtension extension)
         {
             this.os = os;
             this.version = version;
             this.packageExtension = extension;
-            this.IotedgeServices = string.Join(
-                " ",
-                "aziot-keyd.service",
-                "aziot-certd.service",
-                "aziot-identityd.service",
-                "aziot-edged.service");
         }
 
         public string[] GetInstallCommandsFromLocal(string path)
