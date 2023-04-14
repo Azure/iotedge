@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        readonly string[] services = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
+        static readonly string[] services = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
         readonly PackageManagement packageManagement;
         readonly Option<string> packagesPath;
 
