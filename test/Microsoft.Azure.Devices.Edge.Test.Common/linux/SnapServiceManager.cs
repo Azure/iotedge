@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             Service.Keyd => "azure-iot-identity.keyd",
             Service.Certd => "azure-iot-identity.certd",
             Service.Identityd => "azure-iot-identity.identityd",
-            Service.Edged => "azure-iot-edge.aziot-edged"
+            Service.Edged => "azure-iot-edge.aziot-edged",
             _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
         };
     }
