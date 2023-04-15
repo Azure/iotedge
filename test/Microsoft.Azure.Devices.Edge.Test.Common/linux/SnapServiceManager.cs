@@ -31,12 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public async Task<string> ReadConfigurationAsync(Service service, CancellationToken token)
         {
-            string[] output = await Process.RunAsync("snap", "get azure-iot-edge raw-config", token);
+            string[] output = await Process.RunAsync("snap", $"get {SnapService(service)} raw-config", token);
             return string.Join("\n", output);
         }
 
         public Task WriteConfigurationAsync(Service service, string config, CancellationToken token) =>
-            Process.RunAsync("snap", $"set azure-iot-edge raw-config='{config}'", token);
+            Process.RunAsync("snap", $"set {SnapService(service)} raw-config='{config}'", token);
 
         public string GetPrincipalsPath(Service service) =>
             Path.Combine(
@@ -67,5 +67,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 }
             }
         }
+
+        string SnapService(Service service) => service switch
+        {
+            Service.Keyd => "azure-iot-identity.keyd",
+            Service.Certd => "azure-iot-identity.certd",
+            Service.Identityd => "azure-iot-identity.identityd",
+            Service.Edged => "azure-iot-edge.aziot-edged"
+            _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
+        };
     }
 }
