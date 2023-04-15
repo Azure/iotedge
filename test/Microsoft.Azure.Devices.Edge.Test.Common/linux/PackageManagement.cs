@@ -173,7 +173,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.Snap => new[]
             {
-                "sudo snap remove --purge azure-iot-identity azure-iot-edge",
+                "sudo snap remove --purge azure-iot-identity",
+                "sudo snap remove --purge azure-iot-edge",
                 "sudo snap restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.PackageExtension}'")
