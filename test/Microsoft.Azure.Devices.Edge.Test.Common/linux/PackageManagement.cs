@@ -78,20 +78,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 SupportedPackageExtension.Snap => new[]
                 {
                     "set -e",
-                    $"sudo snap install {string.Join(' ', packages)} --dangerous",
-                    "sudo snap connect azure-iot-identity:log-observe",
-                    "sudo snap connect azure-iot-identity:system-observe",
-                    "sudo snap connect azure-iot-identity:tpm",
-                    "sudo snap connect azure-iot-edge:home",
-                    "sudo snap connect azure-iot-edge:hostname-control",
-                    "sudo snap connect azure-iot-edge:log-observe",
-                    "sudo snap connect azure-iot-edge:system-observe",
-                    "sudo snap connect azure-iot-edge:mount-observe",
-                    "sudo snap connect azure-iot-edge:workload-sockets",
-                    "sudo snap connect azure-iot-edge:aziotctl-executables azure-iot-identity:aziotctl-executables",
-                    "sudo snap connect azure-iot-edge:identity-service azure-iot-identity:identity-service",
-                    "sudo snap connect azure-iot-edge:docker-executables docker:docker-executables",
-                    "sudo snap connect azure-iot-edge:docker docker:docker-daemon"
+                    $"snap install {string.Join(' ', packages)} --dangerous",
+                    "snap connect azure-iot-identity:log-observe",
+                    "snap connect azure-iot-identity:system-observe",
+                    "snap connect azure-iot-identity:tpm",
+                    "snap connect azure-iot-edge:home",
+                    "snap connect azure-iot-edge:hostname-control",
+                    "snap connect azure-iot-edge:log-observe",
+                    "snap connect azure-iot-edge:system-observe",
+                    "snap connect azure-iot-edge:mount-observe",
+                    "snap connect azure-iot-edge:workload-sockets",
+                    "snap connect azure-iot-edge:aziotctl-executables azure-iot-identity:aziotctl-executables",
+                    "snap connect azure-iot-edge:identity-service azure-iot-identity:identity-service",
+                    "snap connect azure-iot-edge:docker-executables docker:docker-executables",
+                    "snap connect azure-iot-edge:docker docker:docker-daemon"
                 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.PackageExtension}'"),
             };
@@ -173,9 +173,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.Snap => new[]
             {
-                "sudo snap remove --purge azure-iot-identity",
-                "sudo snap remove --purge azure-iot-edge",
-                "sudo snap restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
+                "snap remove --purge azure-iot-identity",
+                "snap remove --purge azure-iot-edge",
+                "snap restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.PackageExtension}'")
         };
