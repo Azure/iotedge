@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         Snap
     }
 
-    enum ServicesStatus
+    enum ServiceStatus
     {
         Running,
         Stopped
@@ -19,21 +19,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class Services
     {
-        ServiceManager manager;
+        public IServiceManager Manager { get; }
 
-        public Services(ServiceManagerType manager = ServiceManagerType.Systemd)
+        public Services(ServiceManagerType managerType = ServiceManagerType.Systemd)
         {
-            this.manager = manager switch
+            this.Manager = managerType switch
             {
                 ServiceManagerType.Systemd => new SystemdServiceManager(),
-                _ => throw new NotImplementedException($"Unknown service manager '{manager.ToString()}'"),
+                ServiceManagerType.Snap => new SnapServiceManager(),
+                _ => throw new NotImplementedException($"Unknown service manager '{managerType.ToString()}'"),
             };
         }
 
         public Task StartAsync(CancellationToken token) =>
-            Profiler.Run(() => this.manager.StartAsync(token), "Edge daemon entered the running state");
+            Profiler.Run(() => this.Manager.StartAsync(token), "Edge daemon entered the running state");
 
         public Task StopAsync(CancellationToken token) =>
-            Profiler.Run(() => this.manager.StopAsync(token), "Edge daemon entered the stopped state");
+            Profiler.Run(() => this.Manager.StopAsync(token), "Edge daemon entered the stopped state");
+
+        public Task<string> ReadConfigurationAsync(Service service, CancellationToken token) =>
+            this.Manager.ReadConfigurationAsync(service, token);
+
+        public Task WriteConfigurationAsync(Service service, string config, CancellationToken token) =>
+            this.Manager.WriteConfigurationAsync(service, config, token);
     }
 }

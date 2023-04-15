@@ -2,27 +2,64 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
 
-    class SystemdServiceManager : ServiceManager
+    struct ConfigFilePaths
+    {
+        public string Keyd;
+        public string Certd;
+        public string Identityd;
+        public string Edged;
+    }
+
+    class SystemdServiceManager : IServiceManager
     {
         readonly string[] names = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
+        readonly ConfigFilePaths paths = new ConfigFilePaths
+        {
+            Keyd = "/etc/aziot/keyd/config.toml",
+            Certd = "/etc/aziot/certd/config.toml",
+            Identityd = "/etc/aziot/identityd/config.toml",
+            Edged = "/etc/aziot/edged/config.toml"
+        };
 
-        public override async Task StartAsync(CancellationToken token)
+        public async Task StartAsync(CancellationToken token)
         {
             await Process.RunAsync("systemctl", $"start {string.Join(' ', this.names)}", token);
-            await this.WaitForStatusAsync(ServicesStatus.Running, token);
+            await this.WaitForStatusAsync(ServiceStatus.Running, token);
         }
 
-        public override async Task StopAsync(CancellationToken token)
+        public async Task StopAsync(CancellationToken token)
         {
             await Process.RunAsync("systemctl", $"stop {string.Join(' ', this.names)}", token);
-            await this.WaitForStatusAsync(ServicesStatus.Stopped, token);
+            await this.WaitForStatusAsync(ServiceStatus.Stopped, token);
         }
 
-        async Task WaitForStatusAsync(ServicesStatus desired, CancellationToken token)
+        public Task<string> ReadConfigurationAsync(Service service, CancellationToken token) =>
+            File.ReadAllTextAsync(this.ConfigurationPath(service), token);
+
+        public async Task WriteConfigurationAsync(Service service, string config, CancellationToken token)
+        {
+            string path = this.ConfigurationPath(service);
+
+            FileAttributes attr = File.GetAttributes(path);
+            File.SetAttributes(path, attr & ~FileAttributes.ReadOnly);
+
+            await File.WriteAllTextAsync(path, config);
+
+            if (attr != 0)
+            {
+                File.SetAttributes(path, attr);
+            }
+        }
+
+        public string GetPrincipalsPath(Service service) =>
+            Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "config.d");
+
+        async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
             foreach (string service in this.names)
             {
@@ -30,8 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     Func<string, bool> stateMatchesDesired = desired switch
                     {
-                        ServicesStatus.Running => s => s == "active",
-                        ServicesStatus.Stopped => s => s == "inactive" || s == "failed",
+                        ServiceStatus.Running => s => s == "active",
+                        ServiceStatus.Stopped => s => s == "inactive" || s == "failed",
                         _ => throw new NotImplementedException($"No handler for {desired}"),
                     };
 
@@ -45,5 +82,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 }
             }
         }
+
+        string ConfigurationPath(Service service) => service switch
+        {
+            Service.Keyd => this.paths.Keyd,
+            Service.Certd => this.paths.Certd,
+            Service.Identityd => this.paths.Identityd,
+            Service.Edged => this.paths.Edged,
+            _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
+        };
     }
 }

@@ -43,13 +43,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // Configure image garbage collection to happen in 2 minutes
             await this.daemon.ConfigureAsync(
-                config =>
+                async config =>
                 {
                     config.SetImageGarbageCollection(2);
-                    config.Update();
-                    return Task.FromResult((
-                        "with non-default image garbage collection settings.",
-                        new object[] { }));
+                    await config.UpdateAsync(token);
+                    return ("with non-default image garbage collection settings.", new object[] { });
                 },
                 token,
                 true);

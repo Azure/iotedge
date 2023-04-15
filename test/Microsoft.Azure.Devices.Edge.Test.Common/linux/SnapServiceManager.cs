@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     using System.Threading;
     using System.Threading.Tasks;
 
-    class SnapServiceManager : ServiceManager
+    class SnapServiceManager : IServiceManager
     {
         readonly string[] names =
         {
@@ -16,19 +16,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             "azure-iot-edge.aziot-edged"
         };
 
-        public override async Task StartAsync(CancellationToken token)
+        public async Task StartAsync(CancellationToken token)
         {
             await Process.RunAsync("snap", $"start {string.Join(' ', this.names)}", token);
-            await this.WaitForStatusAsync(ServicesStatus.Running, token);
+            await this.WaitForStatusAsync(ServiceStatus.Running, token);
         }
 
-        public override async Task StopAsync(CancellationToken token)
+        public async Task StopAsync(CancellationToken token)
         {
             await Process.RunAsync("snap", $"stop {string.Join(' ', this.names)}", token);
-            await this.WaitForStatusAsync(ServicesStatus.Stopped, token);
+            await this.WaitForStatusAsync(ServiceStatus.Stopped, token);
         }
 
-        async Task WaitForStatusAsync(ServicesStatus desired, CancellationToken token)
+        public Task<string> ReadConfigurationAsync(Service service, CancellationToken token) => throw new NotImplementedException();
+        public Task WriteConfigurationAsync(Service service, string config, CancellationToken token) => throw new NotImplementedException();
+        public string GetPrincipalsPath(Service service) => throw new NotImplementedException();
+
+        async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
             foreach (string service in this.names)
             {
@@ -36,8 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     Func<string, bool> stateMatchesDesired = desired switch
                     {
-                        ServicesStatus.Running => s => s == "active",
-                        ServicesStatus.Stopped => s => s == "inactive",
+                        ServiceStatus.Running => s => s == "active",
+                        ServiceStatus.Stopped => s => s == "inactive",
                         _ => throw new NotImplementedException($"No handler for {desired}"),
                     };
 

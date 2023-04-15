@@ -7,30 +7,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.IO;
     using System.Linq;
     using System.Text.RegularExpressions;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public struct ConfigFilePaths
+    public enum Service
     {
-        public string Keyd;
-        public string Certd;
-        public string Identityd;
-        public string Edged;
+        Keyd,
+        Certd,
+        Identityd,
+        Edged
     }
 
     public class DaemonConfiguration
     {
-        public enum Service
-        {
-            Keyd,
-            Certd,
-            Identityd,
-            Edged
-        }
-
         private struct Config
         {
-            public string ConfigPath;
             public string PrincipalsPath;
             public string Owner;
             public uint Uid;
@@ -38,16 +31,45 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
-        private Dictionary<Service, Config> config;
+        IServiceManager serviceManager;
+        Dictionary<Service, Config> config;
 
-        public DaemonConfiguration(ConfigFilePaths configFiles)
+        public static async Task<DaemonConfiguration> CreateAsync(
+            IServiceManager serviceManager,
+            CancellationToken token)
         {
-            this.config = new Dictionary<Service, Config>();
+            var configs = new Dictionary<Service, Config>();
 
-            this.InitServiceConfig(Service.Keyd, configFiles.Keyd, "aziotks");
-            this.InitServiceConfig(Service.Certd, configFiles.Certd, "aziotcs");
-            this.InitServiceConfig(Service.Identityd, configFiles.Identityd, "aziotid");
-            this.InitServiceConfig(Service.Edged, configFiles.Edged, "iotedge");
+            foreach (Service service in Enum.GetValues(typeof(Service)))
+            {
+                string contents = await serviceManager.ReadConfigurationAsync(service, token);
+                string owner = service switch
+                {
+                    Service.Keyd => "aziotks",
+                    Service.Certd => "aziotcs",
+                    Service.Identityd => "aziotid",
+                    Service.Edged => "iotedge",
+                    _ => throw new NotImplementedException(),
+                };
+
+                var config = new Config
+                {
+                    Document = new TomlDocument(contents),
+                    PrincipalsPath = serviceManager.GetPrincipalsPath(service),
+                    Owner = owner,
+                    Uid = OsPlatform.Current.GetUid(owner)
+                };
+
+                configs.Add(service, config);
+            }
+
+            return new DaemonConfiguration(serviceManager, configs);
+        }
+
+        DaemonConfiguration(IServiceManager serviceManager, Dictionary<Service, Config> configs)
+        {
+            this.serviceManager = serviceManager;
+            this.config = configs;
         }
 
         public void AddHttpsProxy(Uri proxy)
@@ -58,23 +80,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // will use. Always use AmqpWs, and when each test deploys a
             // configuration, it can use whatever it wants.
             this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
-        }
-
-        void InitServiceConfig(Service service, string path, string owner)
-        {
-            Config config;
-            string contents = File.ReadAllText(path);
-
-            config.Document = new TomlDocument(contents);
-
-            config.ConfigPath = path;
-            config.PrincipalsPath = Path.Combine(
-                Path.GetDirectoryName(path),
-                "config.d");
-            config.Owner = owner;
-            config.Uid = OsPlatform.Current.GetUid(owner);
-
-            this.config.Add(service, config);
         }
 
         void SetBasicDpsParam(string idScope)
@@ -349,20 +354,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             OsPlatform.Current.SetOwner(path, this.config[service].Owner, "644");
         }
 
-        public void Update()
+        public async Task UpdateAsync(CancellationToken token)
         {
-            foreach (KeyValuePair<Service, Config> i in this.config)
+            foreach ((Service service, Config config) in this.config)
             {
-                string path = i.Value.ConfigPath;
-                var attr = File.GetAttributes(path);
-                File.SetAttributes(path, attr & ~FileAttributes.ReadOnly);
-
-                File.WriteAllText(path, i.Value.Document.ToString());
-
-                if (attr != 0)
-                {
-                    File.SetAttributes(path, attr);
-                }
+                await this.serviceManager.WriteConfigurationAsync(service, config.Document.ToString(), token);
             }
         }
 

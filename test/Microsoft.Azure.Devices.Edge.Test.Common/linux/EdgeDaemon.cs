@@ -130,7 +130,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 properties);
         }
 
-        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
+        public Task ConfigureAsync(
+            Func<DaemonConfiguration, Task<(string, object[])>> config,
+            CancellationToken token,
+            bool restart)
         {
             var properties = new object[] { };
             var message = "Configured edge daemon";
@@ -140,15 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     await this.InternalStopAsync(token);
 
-                    ConfigFilePaths paths = new ConfigFilePaths
-                    {
-                        Keyd = "/etc/aziot/keyd/config.toml",
-                        Certd = "/etc/aziot/certd/config.toml",
-                        Identityd = "/etc/aziot/identityd/config.toml",
-                        Edged = "/etc/aziot/edged/config.toml"
-                    };
-
-                    DaemonConfiguration conf = new DaemonConfiguration(paths);
+                    var conf = await DaemonConfiguration.CreateAsync(this.services.Manager, token);
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
