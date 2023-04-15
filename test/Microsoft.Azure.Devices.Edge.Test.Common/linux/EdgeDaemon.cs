@@ -95,14 +95,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         EdgeDaemon(Option<string> packagesPath, PackageManagement packageManagement)
         {
-            var serviceMangerType =
+            var serviceManagerType =
                 packageManagement.PackageExtension == SupportedPackageExtension.Snap
                     ? ServiceManagerType.Snap
                     : ServiceManagerType.Systemd;
 
+            Log.Information($"Detected service manager: {serviceManagerType.ToString()}");
+
             this.packagesPath = packagesPath;
             this.packageManagement = packageManagement;
-            this.services = new Services(serviceMangerType);
+            this.services = new Services(serviceManagerType);
         }
 
         public async Task InstallAsync(Option<Uri> proxy, CancellationToken token)
