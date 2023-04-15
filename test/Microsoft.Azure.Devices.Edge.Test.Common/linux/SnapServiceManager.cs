@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -28,9 +29,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await this.WaitForStatusAsync(ServiceStatus.Stopped, token);
         }
 
-        public Task<string> ReadConfigurationAsync(Service service, CancellationToken token) => throw new NotImplementedException();
-        public Task WriteConfigurationAsync(Service service, string config, CancellationToken token) => throw new NotImplementedException();
-        public string GetPrincipalsPath(Service service) => throw new NotImplementedException();
+        public async Task<string> ReadConfigurationAsync(Service service, CancellationToken token)
+        {
+            string[] output = await Process.RunAsync("snap", "get azure-iot-edge raw-config", token);
+            return string.Join("\n", output);
+        }
+
+        public Task WriteConfigurationAsync(Service service, string config, CancellationToken token) =>
+            Process.RunAsync("snap", $"set azure-iot-edge raw-config='{config}'", token);
+
+        public string GetPrincipalsPath(Service service) =>
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                service.ToString(),
+                "config.d");
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
