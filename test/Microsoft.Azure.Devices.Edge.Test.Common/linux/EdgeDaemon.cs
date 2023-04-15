@@ -42,6 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             bool detectedSnap = packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length == 0 ).OrDefault();
 
+            Log.Information($"Detected snap? {detectedSnap}");
+            Log.Information($"# snaps found: {packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length).OrDefault()}");
+
             SupportedPackageExtension packageExtension;
 
             switch (os)
