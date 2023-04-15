@@ -42,9 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             bool detectedSnap = packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length != 0 ).OrDefault();
 
-            Log.Information($"Detected snap? {detectedSnap}");
-            Log.Information($"# snaps found: {packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length).OrDefault()}");
-
             SupportedPackageExtension packageExtension;
 
             switch (os)
@@ -102,8 +99,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 packageManagement.PackageExtension == SupportedPackageExtension.Snap
                     ? ServiceManagerType.Snap
                     : ServiceManagerType.Systemd;
-
-            Log.Information($"Detected service manager: {serviceManagerType.ToString()}");
 
             this.packagesPath = packagesPath;
             this.packageManagement = packageManagement;
