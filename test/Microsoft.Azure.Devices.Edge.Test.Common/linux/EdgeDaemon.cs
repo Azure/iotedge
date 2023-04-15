@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
             version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
 
-            bool detectedSnap = packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length == 0 ).OrDefault();
+            bool detectedSnap = packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length != 0 ).OrDefault();
 
             Log.Information($"Detected snap? {detectedSnap}");
             Log.Information($"# snaps found: {packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length).OrDefault()}");
