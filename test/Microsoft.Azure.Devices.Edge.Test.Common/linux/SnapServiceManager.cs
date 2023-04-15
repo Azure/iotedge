@@ -11,9 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     {
         readonly string[] names =
         {
-            "azure-iot-identity.keyd",
-            "azure-iot-identity.certd",
-            "azure-iot-identity.identityd",
+            // "azure-iot-identity.keyd",
+            // "azure-iot-identity.certd",
+            // "azure-iot-identity.identityd",
             "azure-iot-edge.aziot-edged"
         };
 
