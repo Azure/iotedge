@@ -40,8 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public async Task ResetConfigurationAsync(Service service, CancellationToken token)
         {
-            string config = await File.ReadAllTextAsync($"{this.ConfigPath(service)}/config.toml.default");
-            await this.WriteConfigurationAsync(service, config, token);
+            string svc = this.SnapService(service);
+            string path = $"{this.ConfigPath(service)}/config.toml.default";
+
+            await Process.RunAsync("snap", $"set {svc} raw-config=\"$(cat {path})\"", token);
 
             string principalsPath = this.GetPrincipalsPath(service);
             if (Directory.Exists(principalsPath))
