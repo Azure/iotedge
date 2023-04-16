@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.ConfigureAsync(
                         async config =>
                         {
-                            config.Reset();
+                            await config.ResetAsync(token);
 
                             var msgBuilder = new StringBuilder();
                             var props = new List<object>();

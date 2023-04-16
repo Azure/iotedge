@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        public void ResetConfiguration(Service service)
+        public Task ResetConfigurationAsync(Service service, CancellationToken token)
         {
             string path = this.ConfigurationPath(service);
             string backup = path + ".backup";
@@ -56,6 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             File.Copy(template, path, true);
             OsPlatform.Current.SetOwner(path, Owner(service), "644");
+
+            return Task.CompletedTask;
         }
 
         public string GetPrincipalsPath(Service service) =>

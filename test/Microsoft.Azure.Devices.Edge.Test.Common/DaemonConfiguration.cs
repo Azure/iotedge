@@ -347,11 +347,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             OsPlatform.Current.SetOwner(path, this.config[service].Owner, "644");
         }
 
-        public void Reset()
+        public async Task ResetAsync(CancellationToken token)
         {
             foreach (Service service in Enum.GetValues(typeof(Service)))
             {
-                this.serviceManager.ResetConfiguration(service);
+                await this.serviceManager.ResetConfigurationAsync(service, token);
 
                 string path = this.config[service].PrincipalsPath;
                 if (Directory.Exists(path))

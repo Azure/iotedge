@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         Task StopAsync(CancellationToken token);
         Task<string> ReadConfigurationAsync(Service service, CancellationToken token);
         Task WriteConfigurationAsync(Service service, string config, CancellationToken token);
-        void ResetConfiguration(Service service);
+        Task ResetConfigurationAsync(Service service, CancellationToken token);
         string GetPrincipalsPath(Service service);
     }
 }

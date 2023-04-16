@@ -38,20 +38,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public Task WriteConfigurationAsync(Service service, string config, CancellationToken token) =>
             Process.RunAsync("snap", $"set {this.SnapService(service)} raw-config='{config}'", token);
 
-        public void ResetConfiguration(Service service)
+        public async Task ResetConfigurationAsync(Service service, CancellationToken token)
         {
-            // do nothing since config isn't file-based?
+            string config = await File.ReadAllTextAsync(this.ConfigPath(service));
+            await this.WriteConfigurationAsync(service, config, token);
         }
 
-        public string GetPrincipalsPath(Service service) =>
-            service switch
-            {
-                Service.Keyd => "/snap/azure-iot-identity/current/etc/aziot/keyd/config.d",
-                Service.Certd => "/snap/azure-iot-identity/current/etc/aziot/certd/config.d",
-                Service.Identityd => "/snap/azure-iot-identity/current/etc/aziot/identityd/config.d",
-                Service.Edged => "/snap/azure-iot-edge/current/etc/aziot/edged/config.d",
-                _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
-            };
+        public string GetPrincipalsPath(Service service) => $"{this.ConfigPath(service)}/config.d";
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
@@ -84,6 +77,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             Service.Certd => "azure-iot-identity.certd",
             Service.Identityd => "azure-iot-identity.identityd",
             Service.Edged => "azure-iot-edge.aziot-edged",
+            _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
+        };
+
+        string ConfigPath(Service service) => service switch
+        {
+            Service.Keyd => "/snap/azure-iot-identity/current/etc/aziot/keyd",
+            Service.Certd => "/snap/azure-iot-identity/current/etc/aziot/certd",
+            Service.Identityd => "/snap/azure-iot-identity/current/etc/aziot/identityd",
+            Service.Edged => "/snap/azure-iot-edge/current/etc/aziot/edged",
             _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
         };
     }
