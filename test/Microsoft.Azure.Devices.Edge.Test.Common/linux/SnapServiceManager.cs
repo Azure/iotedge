@@ -58,9 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     };
 
                     string[] output = await Process.RunAsync("snap", $"services {service}", token);
-                    Serilog.Log.Information($"OUTPUT:\n{string.Join("\n", output)}");
-                    Serilog.Log.Information($">>> last line split: '{string.Join("][", output.Last().Split(" "))}'");
-                    if (stateMatchesDesired(output.Last().Split(" ")[2]))
+                    string state = output.Last().Split(" ", StringSplitOptions.RemoveEmptyEntries)[2];
+                    if (stateMatchesDesired(state))
                     {
                         break;
                     }
