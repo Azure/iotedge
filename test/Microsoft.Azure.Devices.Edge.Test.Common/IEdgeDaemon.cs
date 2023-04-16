@@ -12,6 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         Task ConfigureAsync(Func<DaemonConfiguration, Task<(string message, object[] properties)>> config, CancellationToken token, bool restart = true);
 
+        Task ResetConfigurationAsync(CancellationToken token);
+
         Task StartAsync(CancellationToken token);
 
         Task StopAsync(CancellationToken token);

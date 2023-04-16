@@ -158,6 +158,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 properties);
         }
 
+        public async Task ResetConfigurationAsync(CancellationToken token)
+        {
+            foreach (Service service in Enum.GetValues(typeof(Service)))
+            {
+                await this.services.Manager.ResetConfigurationAsync(service, token);
+            }
+        }
+
         public Task StartAsync(CancellationToken token) => Profiler.Run(
             () => this.InternalStartAsync(token),
             "Started edge daemon");

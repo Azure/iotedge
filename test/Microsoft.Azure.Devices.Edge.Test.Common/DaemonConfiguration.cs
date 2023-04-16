@@ -347,23 +347,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             OsPlatform.Current.SetOwner(path, this.config[service].Owner, "644");
         }
 
-        public async Task ResetAsync(CancellationToken token)
-        {
-            foreach (Service service in Enum.GetValues(typeof(Service)))
-            {
-                await this.serviceManager.ResetConfigurationAsync(service, token);
-
-                string path = this.config[service].PrincipalsPath;
-                if (Directory.Exists(path))
-                {
-                    Directory.Delete(path, true);
-                    Directory.CreateDirectory(path);
-                    OsPlatform.Current.SetOwner(path, GetOwner(service), "755");
-                    Serilog.Log.Verbose($"Cleared {path}");
-                }
-            }
-        }
-
         public async Task UpdateAsync(CancellationToken token)
         {
             foreach ((Service service, Config config) in this.config)

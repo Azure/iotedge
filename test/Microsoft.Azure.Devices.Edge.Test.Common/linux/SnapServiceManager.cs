@@ -42,6 +42,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             string config = await File.ReadAllTextAsync($"{this.ConfigPath(service)}/config.toml.default");
             await this.WriteConfigurationAsync(service, config, token);
+
+            string principalsPath = this.GetPrincipalsPath(service);
+            if (Directory.Exists(principalsPath))
+            {
+                Directory.Delete(principalsPath, true);
+                Directory.CreateDirectory(principalsPath);
+                OsPlatform.Current.SetOwner(principalsPath, "root", "755");
+                Serilog.Log.Verbose($"Cleared {principalsPath}");
+            }
         }
 
         public string GetPrincipalsPath(Service service) => $"{this.ConfigPath(service)}/config.d";

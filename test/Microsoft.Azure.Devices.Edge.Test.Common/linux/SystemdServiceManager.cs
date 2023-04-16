@@ -47,8 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             string backup = path + ".backup";
             string template = path + ".default";
 
-            Serilog.Log.Verbose($"Resetting {path} to {template}");
-
             if (File.Exists(path))
             {
                 File.Move(path, backup, true);
@@ -56,6 +54,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             File.Copy(template, path, true);
             OsPlatform.Current.SetOwner(path, Owner(service), "644");
+
+            Serilog.Log.Verbose($"Reset {path} to {template}");
+
+            string principalsPath = this.GetPrincipalsPath(service);
+            if (Directory.Exists(principalsPath))
+            {
+                Directory.Delete(principalsPath, true);
+                Directory.CreateDirectory(principalsPath);
+                OsPlatform.Current.SetOwner(principalsPath, Owner(service), "755");
+                Serilog.Log.Verbose($"Cleared {principalsPath}");
+            }
 
             return Task.CompletedTask;
         }

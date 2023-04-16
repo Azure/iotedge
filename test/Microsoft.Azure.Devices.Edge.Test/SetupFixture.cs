@@ -67,11 +67,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     Directory.CreateDirectory(FixedPaths.E2E_TEST_DIR);
 
+                    await this.daemon.ResetConfigurationAsync(token);
+
                     await this.daemon.ConfigureAsync(
                         async config =>
                         {
-                            await config.ResetAsync(token);
-
                             var msgBuilder = new StringBuilder();
                             var props = new List<object>();
 
