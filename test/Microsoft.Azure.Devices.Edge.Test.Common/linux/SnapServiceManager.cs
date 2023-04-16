@@ -43,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             string svc = this.SnapService(service);
             string path = $"{this.ConfigPath(service)}/config.toml.default";
 
+            await Process.RunAsync("snap", $"services {svc}", token);
+
             await Process.RunAsync("snap", $"set {svc} raw-config=\"$(cat {path})\"", token);
 
             string principalsPath = this.GetPrincipalsPath(service);
