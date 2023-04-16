@@ -43,14 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             foreach (Service service in Enum.GetValues(typeof(Service)))
             {
                 string contents = await serviceManager.ReadConfigurationAsync(service, token);
-                string owner = service switch
-                {
-                    Service.Keyd => "aziotks",
-                    Service.Certd => "aziotcs",
-                    Service.Identityd => "aziotid",
-                    Service.Edged => "iotedge",
-                    _ => throw new NotImplementedException(),
-                };
+                string owner = GetOwner(service);
 
                 var config = new Config
                 {
@@ -354,6 +347,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             OsPlatform.Current.SetOwner(path, this.config[service].Owner, "644");
         }
 
+        public void Reset()
+        {
+            foreach (Service service in Enum.GetValues(typeof(Service)))
+            {
+                this.serviceManager.ResetConfiguration(service);
+
+                string path = this.config[service].PrincipalsPath;
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, true);
+                    Directory.CreateDirectory(path);
+                    OsPlatform.Current.SetOwner(path, GetOwner(service), "755");
+                    Serilog.Log.Verbose($"Cleared {path}");
+                }
+            }
+        }
+
         public async Task UpdateAsync(CancellationToken token)
         {
             foreach ((Service service, Config config) in this.config)
@@ -361,6 +371,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 await this.serviceManager.WriteConfigurationAsync(service, config.Document.ToString(), token);
             }
         }
+
+        static string GetOwner(Service service) => service switch
+        {
+            Service.Keyd => "aziotks",
+            Service.Certd => "aziotcs",
+            Service.Identityd => "aziotid",
+            Service.Edged => "iotedge",
+            _ => throw new NotImplementedException(),
+        };
 
         private static string SanitizeName(string name)
         {

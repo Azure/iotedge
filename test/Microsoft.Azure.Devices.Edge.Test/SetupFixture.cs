@@ -21,15 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         IEdgeDaemon daemon;
 
-        private (string, string)[] configFiles =
-        {
-            ("/etc/aziot/keyd/config.toml", "aziotks"),
-            ("/etc/aziot/certd/config.toml", "aziotcs"),
-            ("/etc/aziot/identityd/config.toml", "aziotid"),
-            ("/etc/aziot/tpmd/config.toml", "aziottpm"),
-            ("/etc/aziot/edged/config.toml", "iotedge")
-        };
-
         [OneTimeSetUp]
         public async Task BeforeAllAsync()
         {
@@ -76,21 +67,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     Directory.CreateDirectory(FixedPaths.E2E_TEST_DIR);
 
-                    // Backup any existing service config files.
-                    foreach ((string file, string owner) in this.configFiles)
-                    {
-                        if (File.Exists(file))
-                        {
-                            File.Move(file, file + ".backup", true);
-                        }
-
-                        // Reset all config files to the default file.
-                        ResetConfigFile(file, file + ".default", owner);
-                    }
-
                     await this.daemon.ConfigureAsync(
                         async config =>
                         {
+                            config.Reset();
+
                             var msgBuilder = new StringBuilder();
                             var props = new List<object>();
 
@@ -159,28 +140,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Log.CloseAndFlush();
             });
-
-        private static void ResetConfigFile(string configFile, string defaultFile, string owner)
-        {
-            // Reset the config file to the default.
-            Log.Verbose($"Resetting {configFile} to {defaultFile}");
-            File.Copy(defaultFile, configFile, true);
-            OsPlatform.Current.SetOwner(configFile, owner, "644");
-
-            // Clear existing principals.
-            string principalsPath = Path.Combine(
-                Path.GetDirectoryName(configFile),
-                "config.d");
-
-            if (Directory.Exists(principalsPath))
-            {
-                Directory.Delete(principalsPath, true);
-
-                Directory.CreateDirectory(principalsPath);
-                OsPlatform.Current.SetOwner(principalsPath, owner, "755");
-                Log.Verbose($"Cleared {principalsPath}");
-            }
-        }
     }
 
     // Generates a test CA cert, test CA key, and trust bundle.

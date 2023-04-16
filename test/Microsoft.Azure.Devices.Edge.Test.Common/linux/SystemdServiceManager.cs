@@ -41,6 +41,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
+        public void ResetConfiguration(Service service)
+        {
+            string path = this.ConfigurationPath(service);
+            string backup = path + ".backup";
+            string template = path + ".default";
+
+            Serilog.Log.Verbose($"Resetting {path} to {template}");
+
+            if (File.Exists(path))
+            {
+                File.Move(path, backup, true);
+            }
+
+            File.Copy(template, path, true);
+            OsPlatform.Current.SetOwner(path, Owner(service), "644");
+        }
+
         public string GetPrincipalsPath(Service service) =>
             Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "config.d");
 
@@ -75,6 +92,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             Service.Identityd => "/etc/aziot/identityd/config.toml",
             Service.Edged => "/etc/aziot/edged/config.toml",
             _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
+        };
+
+        static string Owner(Service service) => service switch
+        {
+            Service.Keyd => "aziotks",
+            Service.Certd => "aziotcs",
+            Service.Identityd => "aziotid",
+            Service.Edged => "iotedge",
+            _ => throw new NotImplementedException(),
         };
     }
 }

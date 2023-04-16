@@ -38,11 +38,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public Task WriteConfigurationAsync(Service service, string config, CancellationToken token) =>
             Process.RunAsync("snap", $"set {this.SnapService(service)} raw-config='{config}'", token);
 
+        public void ResetConfiguration(Service service)
+        {
+            // do nothing since config isn't file-based?
+        }
+
         public string GetPrincipalsPath(Service service) =>
-            Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                service.ToString(),
-                "config.d");
+            service switch
+            {
+                Service.Keyd => "/snap/azure-iot-identity/current/etc/aziot/keyd/config.d",
+                Service.Certd => "/snap/azure-iot-identity/current/etc/aziot/certd/config.d",
+                Service.Identityd => "/snap/azure-iot-identity/current/etc/aziot/identityd/config.d",
+                Service.Edged => "/snap/azure-iot-edge/current/etc/aziot/edged/config.d",
+                _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
+            };
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
