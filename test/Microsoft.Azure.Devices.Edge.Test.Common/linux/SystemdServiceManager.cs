@@ -7,24 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     using System.Threading;
     using System.Threading.Tasks;
 
-    struct ConfigFilePaths
-    {
-        public string Keyd;
-        public string Certd;
-        public string Identityd;
-        public string Edged;
-    }
-
     class SystemdServiceManager : IServiceManager
     {
         readonly string[] names = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
-        readonly ConfigFilePaths paths = new ConfigFilePaths
-        {
-            Keyd = "/etc/aziot/keyd/config.toml",
-            Certd = "/etc/aziot/certd/config.toml",
-            Identityd = "/etc/aziot/identityd/config.toml",
-            Edged = "/etc/aziot/edged/config.toml"
-        };
 
         public async Task StartAsync(CancellationToken token)
         {
@@ -85,10 +70,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         string ConfigurationPath(Service service) => service switch
         {
-            Service.Keyd => this.paths.Keyd,
-            Service.Certd => this.paths.Certd,
-            Service.Identityd => this.paths.Identityd,
-            Service.Edged => this.paths.Edged,
+            Service.Keyd => "/etc/aziot/keyd/config.toml",
+            Service.Certd => "/etc/aziot/certd/config.toml",
+            Service.Identityd => "/etc/aziot/identityd/config.toml",
+            Service.Edged => "/etc/aziot/edged/config.toml",
             _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
         };
     }
