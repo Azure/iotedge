@@ -31,12 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public async Task<string> ReadConfigurationAsync(Service service, CancellationToken token)
         {
-            string[] output = await Process.RunAsync("snap", $"get {SnapService(service)} raw-config", token);
+            string[] output = await Process.RunAsync("snap", $"get {this.SnapService(service)} raw-config", token);
             return string.Join("\n", output);
         }
 
         public Task WriteConfigurationAsync(Service service, string config, CancellationToken token) =>
-            Process.RunAsync("snap", $"set {SnapService(service)} raw-config='{config}'", token);
+            Process.RunAsync("snap", $"set {this.SnapService(service)} raw-config='{config}'", token);
 
         public string GetPrincipalsPath(Service service) =>
             Path.Combine(
@@ -58,6 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     };
 
                     string[] output = await Process.RunAsync("snap", $"services {service}", token);
+                    Serilog.Log.Information($"OUTPUT:\n{string.Join("\n", output)}");
+                    Serilog.Log.Information($">>> last line, 3rd column: '{output.Last().Split(" ")[2]}'");
                     if (stateMatchesDesired(output.Last().Split(" ")[2]))
                     {
                         break;
