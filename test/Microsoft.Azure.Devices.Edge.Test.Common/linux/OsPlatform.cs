@@ -77,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public async Task<uint> GetUidAsync(string user, CancellationToken token)
         {
-            var id = new System.Diagnostics.Process();
             string[] output = await Process.RunAsync("id", $"-u {user}", token);
             string uid = output[0].Trim();
             return System.Convert.ToUInt32(uid, 10);
