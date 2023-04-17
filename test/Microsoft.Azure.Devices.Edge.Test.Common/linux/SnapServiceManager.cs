@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        public Task ResetConfigurationAsync(Service service, CancellationToken token)
+        public async Task ResetConfigurationAsync(Service service, CancellationToken token)
         {
             string path = this.ConfigurationPath(service);
             string backup = path + ".backup";
@@ -64,6 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             Serilog.Log.Verbose($"Reset {path} to {template}");
 
+            await Process.RunAsync("cat", path, token);
+
             string principalsPath = this.GetPrincipalsPath(service);
             if (Directory.Exists(principalsPath))
             {
@@ -73,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 Serilog.Log.Verbose($"Cleared {principalsPath}");
             }
 
-            return Task.CompletedTask;
+            // return Task.CompletedTask;
         }
 
         public string GetPrincipalsPath(Service service) => Path.GetDirectoryName(this.ConfigurationPath(service));
