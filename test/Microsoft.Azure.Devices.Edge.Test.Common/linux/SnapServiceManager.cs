@@ -78,7 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // return Task.CompletedTask;
         }
 
-        public string GetPrincipalsPath(Service service) => Path.GetDirectoryName(this.ConfigurationPath(service));
+        public string GetPrincipalsPath(Service service) =>
+            Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "principals");
 
         public string GetOwner(Service _) => "root";
 
