@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             foreach (Service service in Enum.GetValues(typeof(Service)))
             {
                 string contents = await serviceManager.ReadConfigurationAsync(service, token);
-                string owner = GetOwner(service);
+                string owner = serviceManager.GetOwner(service);
 
                 var config = new Config
                 {
@@ -354,15 +354,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 await this.serviceManager.WriteConfigurationAsync(service, config.Document.ToString(), token);
             }
         }
-
-        static string GetOwner(Service service) => service switch
-        {
-            Service.Keyd => "aziotks",
-            Service.Certd => "aziotcs",
-            Service.Identityd => "aziotid",
-            Service.Edged => "iotedge",
-            _ => throw new NotImplementedException(),
-        };
 
         private static string SanitizeName(string name)
         {

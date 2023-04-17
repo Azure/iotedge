@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.Copy(template, path, true);
-            OsPlatform.Current.SetOwner(path, Owner(service), "644");
+            OsPlatform.Current.SetOwner(path, this.GetOwner(service), "644");
 
             Serilog.Log.Verbose($"Reset {path} to {template}");
 
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             {
                 Directory.Delete(principalsPath, true);
                 Directory.CreateDirectory(principalsPath);
-                OsPlatform.Current.SetOwner(principalsPath, Owner(service), "755");
+                OsPlatform.Current.SetOwner(principalsPath, this.GetOwner(service), "755");
                 Serilog.Log.Verbose($"Cleared {principalsPath}");
             }
 
@@ -78,6 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public string GetPrincipalsPath(Service service) =>
             Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "config.d");
+
+        public string GetOwner(Service _) => "root";
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
@@ -121,7 +123,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             Service.Edged => "/var/snap/azure-iot-edge/current/shared/config/aziot/edged/config.d/00-super.toml",
             _ => throw new NotImplementedException(),
         };
-
-        static string Owner(Service _) => "root";
     }
 }

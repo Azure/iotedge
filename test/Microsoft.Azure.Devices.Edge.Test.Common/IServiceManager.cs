@@ -12,5 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         Task WriteConfigurationAsync(Service service, string config, CancellationToken token);
         Task ResetConfigurationAsync(Service service, CancellationToken token);
         string GetPrincipalsPath(Service service);
+        string GetOwner(Service service);
     }
 }
