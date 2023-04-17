@@ -29,35 +29,54 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await this.WaitForStatusAsync(ServiceStatus.Stopped, token);
         }
 
-        public async Task<string> ReadConfigurationAsync(Service service, CancellationToken token)
+        public Task<string> ReadConfigurationAsync(Service service, CancellationToken token) =>
+            File.ReadAllTextAsync(this.ConfigurationPath(service), token);
+
+        public async Task WriteConfigurationAsync(Service service, string config, CancellationToken token)
         {
-            string[] output = await Process.RunAsync("snap", $"get {this.SnapService(service)} raw-config", token);
-            return string.Join("\n", output);
+            string path = this.ConfigurationPath(service);
+
+            FileAttributes attr = File.GetAttributes(path);
+            File.SetAttributes(path, attr & ~FileAttributes.ReadOnly);
+
+            await File.WriteAllTextAsync(path, config);
+
+            if (attr != 0)
+            {
+                File.SetAttributes(path, attr);
+            }
         }
 
-        public Task WriteConfigurationAsync(Service service, string config, CancellationToken token) =>
-            Process.RunAsync("snap", $"set {this.SnapService(service)} raw-config='{config}'", token);
-
-        public async Task ResetConfigurationAsync(Service service, CancellationToken token)
+        public Task ResetConfigurationAsync(Service service, CancellationToken token)
         {
-            string svc = this.SnapService(service);
-            string path = $"{this.ConfigPath(service)}/config.toml.default";
+            string path = this.ConfigurationPath(service);
+            string backup = path + ".backup";
+            string template = path + ".default";
 
-            await Process.RunAsync("snap", $"services {svc}", token);
+            if (File.Exists(path))
+            {
+                File.Move(path, backup, true);
+            }
 
-            await Process.RunAsync("snap", $"set {svc} raw-config=\"$(cat {path})\"", token);
+            File.Copy(template, path, true);
+            OsPlatform.Current.SetOwner(path, Owner(service), "644");
+
+            Serilog.Log.Verbose($"Reset {path} to {template}");
 
             string principalsPath = this.GetPrincipalsPath(service);
             if (Directory.Exists(principalsPath))
             {
                 Directory.Delete(principalsPath, true);
                 Directory.CreateDirectory(principalsPath);
-                OsPlatform.Current.SetOwner(principalsPath, "root", "755");
+                OsPlatform.Current.SetOwner(principalsPath, Owner(service), "755");
                 Serilog.Log.Verbose($"Cleared {principalsPath}");
             }
+
+            return Task.CompletedTask;
         }
 
-        public string GetPrincipalsPath(Service service) => $"{this.ConfigPath(service)}/config.d";
+        public string GetPrincipalsPath(Service service) =>
+            Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "config.d");
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
@@ -84,22 +103,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        string SnapService(Service service) => service switch
+        string ConfigurationPath(Service service) => service switch
         {
-            Service.Keyd => "azure-iot-identity.keyd",
-            Service.Certd => "azure-iot-identity.certd",
-            Service.Identityd => "azure-iot-identity.identityd",
-            Service.Edged => "azure-iot-edge.aziot-edged",
+            Service.Keyd => "/var/snap/azure-iot-identity/current/shared/config/aziot/keyd/config.d/00-super.toml",
+            Service.Certd => "/var/snap/azure-iot-identity/current/shared/config/aziot/certd/config.d/00-super.toml",
+            Service.Identityd => "/var/snap/azure-iot-identity/current/shared/config/aziot/identityd/config.d/00-super.toml",
+            Service.Edged => "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.d/00-super.toml",
             _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
         };
 
-        string ConfigPath(Service service) => service switch
+        static string Owner(Service service) => service switch
         {
-            Service.Keyd => "/snap/azure-iot-identity/current/etc/aziot/keyd",
-            Service.Certd => "/snap/azure-iot-identity/current/etc/aziot/certd",
-            Service.Identityd => "/snap/azure-iot-identity/current/etc/aziot/identityd",
-            Service.Edged => "/snap/azure-iot-edge/current/etc/aziot/edged",
-            _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
+            _ => "root"
         };
     }
 }
