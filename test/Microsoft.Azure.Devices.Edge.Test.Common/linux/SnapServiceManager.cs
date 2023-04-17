@@ -112,8 +112,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             _ => throw new NotImplementedException(),
         };
 
-        string ConfigurationPath(Service service) =>
-            $"/var/snap/azure-iot-identity/current/shared/config/aziot/{service.ToString().ToLower()}/config.d/00-super.toml";
+        string ConfigurationPath(Service service) => service switch
+        {
+            Service.Keyd => "/var/snap/azure-iot-identity/current/shared/config/aziot/keyd/config.d/00-super.toml",
+            Service.Certd => "/var/snap/azure-iot-identity/current/shared/config/aziot/certd/config.d/00-super.toml",
+            Service.Identityd => "/var/snap/azure-iot-identity/current/shared/config/aziot/identityd/config.d/00-super.toml",
+            Service.Edged => "/var/snap/azure-iot-edge/current/shared/config/aziot/edged/config.d/00-super.toml",
+            _ => throw new NotImplementedException(),
+        };
 
         static string Owner(Service _) => "root";
     }
