@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             string path = this.ConfigurationPath(service);
             string backup = path + ".backup";
-            string template = path + ".default";
+            string template = this.TemplatePath(service);
 
             if (File.Exists(path))
             {
@@ -103,18 +103,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        string ConfigurationPath(Service service) => service switch
-        {
-            Service.Keyd => "/var/snap/azure-iot-identity/current/shared/config/aziot/keyd/config.d/00-super.toml",
-            Service.Certd => "/var/snap/azure-iot-identity/current/shared/config/aziot/certd/config.d/00-super.toml",
-            Service.Identityd => "/var/snap/azure-iot-identity/current/shared/config/aziot/identityd/config.d/00-super.toml",
-            Service.Edged => "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.d/00-super.toml",
-            _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
-        };
+        string TemplatePath(Service service) =>
+            $"/snap/azure-iot-identity/current/etc/aziot/{service.ToString().ToLower()}/config.toml.default";
 
-        static string Owner(Service service) => service switch
-        {
-            _ => "root"
-        };
+        string ConfigurationPath(Service service) => 
+            $"/var/snap/azure-iot-identity/current/shared/config/aziot/{service.ToString().ToLower()}/config.d/00-super.toml";
+
+        static string Owner(Service _) => "root";
     }
 }
