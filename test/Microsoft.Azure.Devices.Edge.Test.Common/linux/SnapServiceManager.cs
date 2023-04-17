@@ -64,8 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             Serilog.Log.Verbose($"Reset {path} to {template}");
 
-            await Process.RunAsync("cat", path, token);
-
             string principalsPath = this.GetPrincipalsPath(service);
             if (Directory.Exists(principalsPath))
             {
@@ -74,6 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 OsPlatform.Current.SetOwner(principalsPath, this.GetOwner(service), "755");
                 Serilog.Log.Verbose($"Cleared {principalsPath}");
             }
+
+            await Process.RunAsync("find", principalsPath, token);
 
             // return Task.CompletedTask;
         }
