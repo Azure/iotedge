@@ -39,6 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         void SetOwner(string filePath, string owner, string permissions);
 
-        uint GetUid(string user);
+        Task<uint> GetUidAsync(string user, CancellationToken token);
     }
 }

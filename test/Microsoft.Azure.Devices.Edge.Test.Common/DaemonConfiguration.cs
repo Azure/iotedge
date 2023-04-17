@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     Document = new TomlDocument(contents),
                     PrincipalsPath = serviceManager.GetPrincipalsPath(service),
                     Owner = owner,
-                    Uid = OsPlatform.Current.GetUid(owner)
+                    Uid = await OsPlatform.Current.GetUidAsync(owner, token)
                 };
 
                 configs.Add(service, config);
