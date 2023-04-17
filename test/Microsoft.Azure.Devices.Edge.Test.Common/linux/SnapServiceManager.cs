@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 File.Move(path, backup, true);
             }
 
+            Directory.CreateDirectory(path);
             File.Copy(template, path, true);
             OsPlatform.Current.SetOwner(path, Owner(service), "644");
 
