@@ -61,10 +61,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             if (Directory.Exists(principalsPath))
             {
                 Directory.Delete(principalsPath, true);
-                Directory.CreateDirectory(principalsPath);
-                OsPlatform.Current.SetOwner(principalsPath, this.GetOwner(service), "755");
                 Serilog.Log.Verbose($"Cleared {principalsPath}");
             }
+
+            Directory.CreateDirectory(principalsPath);
+            OsPlatform.Current.SetOwner(principalsPath, this.GetOwner(service), "755");
 
             return Task.CompletedTask;
         }
