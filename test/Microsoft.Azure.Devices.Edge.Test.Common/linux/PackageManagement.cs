@@ -171,12 +171,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 "yum autoremove -y",
                 "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
-            SupportedPackageExtension.Snap => new[]
+            SupportedPackageExtension.Snap => new string[]
             {
-                "snap remove --purge azure-iot-identity",
-                "snap remove --purge azure-iot-edge",
-                "rm -r -f /etc/aziot",
-                "snap restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
+                // "snap remove --purge azure-iot-identity",
+                // "snap remove --purge azure-iot-edge",
+                // "rm -r -f /etc/aziot",
+                // "snap restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.PackageExtension}'")
         };
