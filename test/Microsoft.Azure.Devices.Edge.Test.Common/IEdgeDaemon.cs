@@ -19,5 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         Task StopAsync(CancellationToken token);
 
         Task UninstallAsync(CancellationToken token);
+
+        IotedgeCli GetCli();
     }
 }

@@ -88,6 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public string GetOwner(Service _) => "root";
 
+        public string GetCliName() => "azure-iot-edge.iotedge";
+
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
             foreach (string service in this.names)

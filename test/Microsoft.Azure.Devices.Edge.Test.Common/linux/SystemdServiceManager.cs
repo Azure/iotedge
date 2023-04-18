@@ -88,6 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             _ => throw new NotImplementedException(),
         };
 
+        public string GetCliName() => "iotedge";
+
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
             foreach (string service in this.names)

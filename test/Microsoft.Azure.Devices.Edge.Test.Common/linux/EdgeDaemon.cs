@@ -175,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Retry.Do(
                 async () =>
                 {
-                    string[] output = await IotedgeCli.RunAsync("list", token);
+                    string[] output = await this.GetCli().RunAsync("list", token);
                     return output;
                 },
                 output => true,
@@ -235,6 +235,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         }
                     }
                 }, "Uninstalled edge daemon");
+        }
+
+        public IotedgeCli GetCli()
+        {
+            return new IotedgeCli(this.serviceManager.GetCliName());
         }
     }
 }

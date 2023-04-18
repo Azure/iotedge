@@ -7,14 +7,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class IotedgeCli
     {
-        public static Task RunAsync(string args, Action<string> onStandardOutput, Action<string> onStandardError, CancellationToken token)
+        readonly string name;
+
+        public IotedgeCli(string name = "iotedge")
         {
-            return Process.RunAsync("iotedge", args, onStandardOutput, onStandardError, token);
+            this.name = name;
         }
 
-        public static Task<string[]> RunAsync(string args, CancellationToken token, bool logVerbose = true)
+        public Task RunAsync(string args, Action<string> onStandardOutput, Action<string> onStandardError, CancellationToken token)
         {
-            return Process.RunAsync("iotedge", args, token, logVerbose);
+            return Process.RunAsync(this.name, args, onStandardOutput, onStandardError, token);
+        }
+
+        public Task<string[]> RunAsync(string args, CancellationToken token, bool logVerbose = true)
+        {
+            return Process.RunAsync(this.name, args, token, logVerbose);
         }
     }
 }

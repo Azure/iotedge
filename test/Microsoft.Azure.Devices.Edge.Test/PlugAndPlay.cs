@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 config,
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -73,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol) + this.BuildAddLoadGenConfig(protocol, loadGenImage);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 config,
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 

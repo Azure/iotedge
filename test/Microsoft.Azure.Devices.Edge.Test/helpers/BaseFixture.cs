@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         DateTime testStartTime;
 
         protected CancellationToken TestToken => this.cts.Token;
+        protected IotedgeCli cli;
 
         protected virtual Task BeforeTestTimerStarts() => Task.CompletedTask;
         protected virtual Task AfterTestTimerEnds() => Task.CompletedTask;
@@ -42,13 +43,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     if ((!Context.Current.ISA95Tag) && (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored))
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
-                        await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
+                        await NUnitLogs.CollectAsync(this.testStartTime, this.cli, cts.Token);
                         if (Context.Current.GetSupportBundle)
                         {
                             try
                             {
                                 var supportBundlePath = Context.Current.LogFile.Match((file) => Path.GetDirectoryName(file), () => AppDomain.CurrentDomain.BaseDirectory);
-                                await IotedgeCli.RunAsync(
+                                await this.cli.RunAsync(
                                     $"support-bundle -o {supportBundlePath}/supportbundle-{TestContext.CurrentContext.Test.Name} --since \"{this.testStartTime:yyyy-MM-ddTHH:mm:ssZ}\"",
                                     cts.Token);
                             }
