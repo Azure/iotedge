@@ -62,7 +62,7 @@ parts:
         CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock \
         CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock \
         LISTEN_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock \
-        LISTEN_WORKLOAD_URI=unix:///var/run/iotedge/mgmt.sock \
+        LISTEN_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock \
         DESTDIR=$SNAPCRAFT_PART_INSTALL
     build-packages:
       - binutils
