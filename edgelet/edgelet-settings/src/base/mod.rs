@@ -39,7 +39,7 @@ pub trait RuntimeSettings {
 
     fn additional_info(&self) -> &std::collections::BTreeMap<String, String>;
 
-    fn image_garbage_collection(&self) -> &image::ImagePruneSettings;
+    fn image_garbage_collection(&self) -> &image::Settings;
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
@@ -128,8 +128,8 @@ pub struct Settings<ModuleConfig> {
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub additional_info: std::collections::BTreeMap<String, String>,
 
-    #[serde(default, skip_serializing_if = "image::ImagePruneSettings::is_default")]
-    pub image_garbage_collection: image::ImagePruneSettings,
+    #[serde(default, skip_serializing_if = "image::Settings::is_default")]
+    pub image_garbage_collection: image::Settings,
 }
 
 pub(crate) fn default_allow_elevated_docker_permissions() -> bool {
@@ -211,7 +211,7 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
         &self.additional_info
     }
 
-    fn image_garbage_collection(&self) -> &image::ImagePruneSettings {
+    fn image_garbage_collection(&self) -> &image::Settings {
         &self.image_garbage_collection
     }
 }

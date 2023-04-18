@@ -18,7 +18,7 @@ mod module;
 mod runtime;
 
 pub use error::Error;
-pub use image_prune_data::ImagePruneData;
+pub use image_prune_data::ImageGarbageCollectionData;
 pub use module::{DockerModule, MODULE_TYPE};
 pub use runtime::{init_client, DockerModuleRuntime};
 
@@ -36,6 +36,6 @@ pub trait MakeModuleRuntime {
     async fn make_runtime(
         settings: &Self::Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
-        image_use_data: ImagePruneData,
+        image_use_data: ImageGarbageCollectionData,
     ) -> anyhow::Result<Self::ModuleRuntime>;
 }

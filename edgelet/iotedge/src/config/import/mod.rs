@@ -14,7 +14,7 @@ mod old_config;
 
 use std::path::{Path, PathBuf};
 
-use edgelet_settings::base::image::ImagePruneSettings;
+use edgelet_settings::base::image::Settings;
 use edgelet_utils::YamlFileSource;
 
 use aziotctl_common::config as common_config;
@@ -600,7 +600,7 @@ fn execute_inner(
                     .transpose()?,
             }
         },
-        image_garbage_collection: ImagePruneSettings::default(),
+        image_garbage_collection: Settings::default(),
     };
 
     let config =
