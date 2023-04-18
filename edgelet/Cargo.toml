@@ -15,14 +15,14 @@ members = [
 ]
 
 [patch.'https://github.com/Azure/iot-identity-service']
-aziotctl-common = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
-aziot-certd-config = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
-aziot-identity-common = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
-aziot-identityd-config = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
-aziot-key-common = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
-aziot-keyd-config = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
-aziot-keys-common = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
-cert-renewal = { git = 'https://github.com/alexclewontin/iot-identity-service', branch = 'feature/snapping-lewontin' }
+aziotctl-common = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
+aziot-certd-config = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
+aziot-identity-common = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
+aziot-identityd-config = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
+aziot-key-common = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
+aziot-keyd-config = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
+aziot-keys-common = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
+cert-renewal = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
 
 [profile.dev]
 panic = 'abort'
