@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     {
         readonly PackageManagement packageManagement;
         readonly Option<string> packagesPath;
-        readonly Services services;
+        readonly IServiceManager serviceManager;
 
         public static async Task<EdgeDaemon> CreateAsync(Option<string> packagesPath, CancellationToken token)
         {
@@ -95,14 +95,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         EdgeDaemon(Option<string> packagesPath, PackageManagement packageManagement)
         {
-            var serviceManagerType =
-                packageManagement.PackageExtension == SupportedPackageExtension.Snap
-                    ? ServiceManagerType.Snap
-                    : ServiceManagerType.Systemd;
-
             this.packagesPath = packagesPath;
             this.packageManagement = packageManagement;
-            this.services = new Services(serviceManagerType);
+            this.serviceManager = packageManagement.PackageExtension == SupportedPackageExtension.Snap
+                ? new SnapServiceManager()
+                : new SystemdServiceManager();
         }
 
         public async Task InstallAsync(Option<Uri> proxy, CancellationToken token)
@@ -143,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     await this.InternalStopAsync(token);
 
-                    var conf = await DaemonConfiguration.CreateAsync(this.services.Manager, token);
+                    var conf = await DaemonConfiguration.CreateAsync(this.serviceManager, token);
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
@@ -162,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             foreach (Service service in Enum.GetValues(typeof(Service)))
             {
-                await this.services.Manager.ResetConfigurationAsync(service, token);
+                await this.serviceManager.ResetConfigurationAsync(service, token);
             }
         }
 
@@ -172,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            await this.services.StartAsync(token);
+            await this.serviceManager.StartAsync(token);
             await Task.Delay(10000);
 
             await Retry.Do(
@@ -207,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            await this.services.StopAsync(token);
+            await this.serviceManager.StopAsync(token);
         }
 
         public async Task UninstallAsync(CancellationToken token)

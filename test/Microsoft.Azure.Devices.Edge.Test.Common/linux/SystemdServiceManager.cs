@@ -9,6 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     class SystemdServiceManager : IServiceManager
     {
+        enum ServiceStatus
+        {
+            Running,
+            Stopped
+        }
+
         readonly string[] names = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
 
         public async Task StartAsync(CancellationToken token)

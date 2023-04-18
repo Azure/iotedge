@@ -9,6 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     class SnapServiceManager : IServiceManager
     {
+        enum ServiceStatus
+        {
+            Running,
+            Stopped
+        }
+
         readonly string[] names =
         {
             // "azure-iot-identity.keyd",
