@@ -88,7 +88,7 @@ impl edgelet_settings::RuntimeSettings for Settings {
         unimplemented!()
     }
 
-    fn image_garbage_collection(&self) -> &edgelet_settings::base::image::Settings {
+    fn image_garbage_collection(&self) -> &edgelet_settings::base::image_gc_settings::Settings {
         unimplemented!()
     }
 }

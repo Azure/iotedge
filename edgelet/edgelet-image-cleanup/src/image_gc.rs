@@ -5,7 +5,7 @@ use std::{collections::HashSet, time::Duration};
 use chrono::Timelike;
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
 use edgelet_docker::ImageGarbageCollectionData;
-use edgelet_settings::base::image::Settings;
+use edgelet_settings::base::image_gc_settings::Settings;
 
 use crate::error::ImageCleanupError;
 

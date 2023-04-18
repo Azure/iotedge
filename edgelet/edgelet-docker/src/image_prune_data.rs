@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, collections::HashSet, fs, time::Duration};
 
-use edgelet_settings::base::image::Settings;
+use edgelet_settings::base::image_gc_settings::Settings;
 
 use crate::Error;
 
@@ -283,7 +283,7 @@ mod tests {
     };
 
     use chrono::{Timelike, Utc};
-    use edgelet_settings::base::image::Settings;
+    use edgelet_settings::base::image_gc_settings::Settings;
     use nix::libc::sleep;
     use serial_test::serial;
 
