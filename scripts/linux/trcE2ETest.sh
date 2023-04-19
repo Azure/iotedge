@@ -301,7 +301,7 @@ function get_support_bundle_logs(){
     mkdir -p $working_folder/support
     time=$(echo $test_start_time | sed 's/ /T/' | sed 's/$/Z/')
 
-    MAX_RETRIES=4
+    MAX_RETRIES=10
     RETRY_COUNT=0
     DID_SUCCEED=false
 
