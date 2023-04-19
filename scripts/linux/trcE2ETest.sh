@@ -307,7 +307,7 @@ function get_support_bundle_logs(){
 
     while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ] && [ "$DID_SUCCEED" = false ]; do
         DID_TIMEOUT=false
-        timeout 600 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT=true
+        timeout 180 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT=true
 
         if [ "$DID_TIMEOUT" = true ]; then
             RETRY_COUNT=$((RETRY_COUNT + 1))
