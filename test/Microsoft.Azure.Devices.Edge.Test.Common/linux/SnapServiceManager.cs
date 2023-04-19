@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             Service.Keyd => "/var/snap/azure-iot-identity/current/shared/config/aziot/keyd/config.d/00-super.toml",
             Service.Certd => "/var/snap/azure-iot-identity/current/shared/config/aziot/certd/config.d/00-super.toml",
             Service.Identityd => "/var/snap/azure-iot-identity/current/shared/config/aziot/identityd/config.d/00-super.toml",
-            Service.Edged => "/var/snap/azure-iot-edge/current/shared/config/aziot/edged/config.d/00-super.toml",
+            Service.Edged => "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.d/00-super.toml",
             _ => throw new NotImplementedException(),
         };
     }
