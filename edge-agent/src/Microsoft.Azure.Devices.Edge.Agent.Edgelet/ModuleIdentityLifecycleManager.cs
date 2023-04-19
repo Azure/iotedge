@@ -117,6 +117,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             // First any identities that don't have running modules currently.
             await Task.WhenAll(removeOrphanedIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
 
+            Events.FinishedRemovingOrphanedIdentities(removeOrphanedIdentities);
+
             // Remove any identities from map that were in removeOrphanedIdentities
             return identities.RemoveRange(removeOrphanedIdentities);
         }
@@ -130,6 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 ErrorGettingModuleIdentities = IdStart,
                 RemoveOrphanedIdentities,
+                FinishedRemovingOrphanedIdentities
             }
 
             public static void ErrorGettingModuleIdentities(Exception ex)
@@ -140,6 +143,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             public static void RemoveOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
             {
                 Log.LogInformation((int)EventIds.RemoveOrphanedIdentities, $"Removing orphaned identities {string.Join(", ", removeOrphanedIdentities.Select(s => s.ToString()))}");
+            }
+
+            public static void FinishedRemovingOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
+            {
+                Log.LogInformation((int)EventIds.FinishedRemovingOrphanedIdentities, $"Finished removing orphaned identities {string.Join(", ", removeOrphanedIdentities.Select(s => s.ToString()))}");
             }
         }
     }
