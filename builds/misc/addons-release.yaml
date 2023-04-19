@@ -1,4 +1,6 @@
 name: $(version)
+trigger: none
+pr: none
 
 variables:
   DisableDockerDetector: true
@@ -94,60 +96,10 @@ stages:
       displayName: 'Set build version'
     - template: templates/image-linux.yaml
       parameters:
-        name: API Proxy
-        imageName: azureiotedge-api-proxy
-        project: api-proxy-module
+        displayName: API Proxy
+        name: azureiotedge-api-proxy
+        app: api-proxy-module
         version: $(buildVersion)
-
-################################################################################
-- stage: PublishManifests
-################################################################################
-  displayName: Publish Manifests
-  pool:
-    name: $(pool.linux.name)
-    demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-  dependsOn: BuildImages
-  jobs:
-  - job: PublishManifest
-    displayName: Publish Manifest
-    steps:
-    # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-    - task: Docker@2
-      displayName: Docker login edgebuilds
-      inputs:
-        command: login
-        containerRegistry: iotedge-edgebuilds-acr
-    - task: Docker@2
-      displayName: Docker login edgerelease
-      inputs:
-        command: login
-        containerRegistry: iotedge-release-acr
-    - bash: |
-        if [ -z '$(version)' ]; then
-          echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
-        else
-          echo '##vso[task.setvariable variable=buildVersion]$(version)'
-        fi
-      displayName: 'Set build version'     
-    - script: |
-        scripts/linux/buildManifest.sh \
-          -r $(registry.address) \
-          -i 'azureiotedge-api-proxy' \
-          -v $(buildVersion) \
-          -n 'microsoft' \
-          --tags '$(tags)'
-      displayName: 'Create Api Proxy manifest'
-
-  - job: ComponentGovernance
-    steps:
-    - bash: |
-        if [ -z '$(version)' ]; then
-          echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
-        else
-          echo '##vso[task.setvariable variable=buildVersion]$(version)'
-        fi
-      displayName: 'Set build version'        
     - task: ComponentGovernanceComponentDetection@0
       inputs:
         dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(buildVersion)-linux-arm64v8'

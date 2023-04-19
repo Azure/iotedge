@@ -1,8 +1,45 @@
+# 1.4.9 (2023-02-14)
+
+Beginning with this release we are publishing installable packages for Ubuntu 22.04 (amd64, arm64) on Microsoft's [Linux package repository](https://packages.microsoft.com/docs/readme.txt).  
+
+**Note:** On Ubuntu 22.04 the IoT Edge security subsystem has been tested with openssl 3.0. It may not function properly if older versions of openssl are also present on the device. If you previously installed openssl 1.1 in combination with an earlier version of IoT Edge then we would recommend removing both and starting fresh to avoid potential incompatibilities.
+
+## Base image updates
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics
+
+## Edge Agent
+### Bug fixes
+* Fix incorrectly reported metrics on a module's expected and actual running time ( [94f8072](https://github.com/Azure/iotedge/commit/94f807209964410ee17329be85a7835f00354b07) )
+
+## aziot-edge
+### OS support
+* Add support for Ubuntu 22.04 amd64, arm64v8 ( [b4b54da](https://github.com/Azure/iotedge/commit/b4b54da011b73d2fe3182974ed11b0a6a27a1d38) )
+
+### Bug fixes
+* Enable >4GB files in support_bundle ZIP writer ( [cea876f](https://github.com/Azure/iotedge/commit/cea876ff651987e45d024160aaa66a364c3213c4) )
+* Update cargo dependencies to take security updates ( [a372eca](https://github.com/Azure/iotedge/commit/a372eca9d9ade13c3d6a2df5b554ba1d2fbcd21e) )
+* Update to the latest version of aziot-identity-service ( [37f51c2](https://github.com/Azure/iotedge/commit/37f51c2a39f0e95ea510eb975c38c659723379a4) )
+* Fix `iotedge restart` command to correct a problem with workload sockets ( [08dfac5](https://github.com/Azure/iotedge/commit/08dfac5fb9dd4de02f20feb7014040c8295523e5) )
+
+## aziot-identity-service
+### OS support
+* Add support for Ubuntu 22.04 amd64, arm64v8 ( [ea9e476](https://github.com/Azure/iot-identity-service/commit/ea9e47617b9d322d15489745d3ba11ac7e666ee9) )
+
+### Bug fixes
+* Retry with exponential backoff when IoT Hub throttles ( [a6aacda](https://github.com/Azure/iot-identity-service/commit/a6aacdaaadde4052f02eb828bd7f6ef583a550fd) )
+* Update cargo dependencies to take security updates ( [b3de517](https://github.com/Azure/iot-identity-service/commit/b3de51744e277ae0f517c6d1d908b9afcbd68142) )
+* Use fair mutex to fix request ordering problem ( [03e383e](https://github.com/Azure/iot-identity-service/commit/03e383e390670bd75e7aab6e58e363ae2276f437) )
+
 # 1.4.8 (2023-01-26)
 
 ## Edge Agent
 ### Bug fixes
-* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1] (https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
+* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1](https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
 
 ## Edge Hub
 ### Bug fixes
@@ -10,7 +47,7 @@
 
 ## aziot-edge
 ### Bug fixes
-* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1] (https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
+* Use ISO 8601 for UTC timestamps sent to IoT Hub ( [0ab44e1](https://github.com/Azure/iotedge/commit/0ab44e170c9bc6a714aa5632fb29962d165205d6) )
 * Bump iot-identity-service to 1.4.2
 
 # 1.4.7 (2023-01-10)
