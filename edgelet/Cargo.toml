@@ -15,14 +15,14 @@ members = [
 ]
 
 [patch.'https://github.com/Azure/iot-identity-service']
-aziotctl-common = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
-aziot-certd-config = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
-aziot-identity-common = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
-aziot-identityd-config = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
-aziot-key-common = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
-aziot-keyd-config = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
-aziot-keys-common = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
-cert-renewal = { git = 'https://github.com/Azure/iot-identity-service', branch = 'feature/snapping' }
+aziotctl-common = { git = 'https://github.com/damonbarry/iot-identity-service', branch = 'feature/snapping' }
+aziot-certd-config = { git = 'https://github.com/damonbarry/iot-identity-service', branch = 'feature/snapping' }
+aziot-identity-common = { git = 'https://github.com/damonbarry/iot-identity-service', branch = 'feature/snapping' }
+aziot-identityd-config = { git = 'https://github.com/damonbarry/iot-identity-service', branch = 'feature/snapping' }
+aziot-key-common = { git = 'https://github.com/damonbarry/iot-identity-service', branch = 'feature/snapping' }
+aziot-keyd-config = { git = 'https://github.com/damonbarry/iot-identity-service', branch = 'feature/snapping' }
+aziot-keys-common = { git = 'https://github.com/damonbarry/iot-identity-service', branch = 'feature/snapping' }
+cert-renewal = { git = 'https://github.com/damonbarry/iot-identity-service', branch = 'feature/snapping' }
 
 [profile.dev]
 panic = 'abort'
