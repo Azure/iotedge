@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
-        IServiceManager serviceManager;
+        readonly IServiceManager serviceManager;
         Dictionary<Service, Config> config;
 
         public static async Task<DaemonConfiguration> CreateAsync(
