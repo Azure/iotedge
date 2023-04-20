@@ -64,7 +64,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         "echo '[Service]' > log-level.conf",
                         "echo 'Environment=AZIOT_LOG=edgelet=debug' >> log-level.conf",
                         "mkdir -p /etc/systemd/system/snap.azure-iot-edge.aziot-edged.service.d",
-                        "mv log-level.conf /etc/systemd/system/snap.azure-iot-edge.aziot-edged.service.d/",
+                        "cp log-level.conf /etc/systemd/system/snap.azure-iot-identity.keyd.service.d/",
+                        "cp log-level.conf /etc/systemd/system/snap.azure-iot-identity.certd.service.d/",
+                        "cp log-level.conf /etc/systemd/system/snap.azure-iot-identity.identityd.service.d/",
+                        "cp log-level.conf /etc/systemd/system/snap.azure-iot-edge.aziot-edged.service.d/",
+                        "rm log-level.conf",
                         "systemctl daemon-reload"
                     };
 
