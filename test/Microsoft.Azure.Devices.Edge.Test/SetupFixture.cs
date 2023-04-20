@@ -59,6 +59,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     await this.daemon.InstallAsync(Context.Current.EdgeProxy, token);
 
+                    var commands = new[]
+                    {
+                        "echo '[Service]' > log-level.conf",
+                        "echo 'Environment=IOTEDGE_LOG=edgelet=debug' >> log-level.conf",
+                        "mv log-level.conf /etc/systemd/system/aziot-edged.service.d/",
+                        "systemctl daemon-reload"
+                    };
+
+                    await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
+
                     // Clean the directory for test certs, keys, etc.
                     if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
                     {
