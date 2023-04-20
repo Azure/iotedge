@@ -170,6 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
                 int edgeletTimeoutSecs = configuration.GetValue(Constants.ManagementApiTimeoutSecs, 300);
                 TimeSpan edgeletTimeout = TimeSpan.FromSeconds(edgeletTimeoutSecs);
+                var enableOrphanedIdentityCleanup = configuration.GetValue("EnableOrphanedIdentityCleanup", false);
 
                 switch (mode.ToLowerInvariant())
                 {
@@ -184,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetTimeSpan("PerformanceMetricsUpdateFrequency", TimeSpan.FromMinutes(5));
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel, moduleUpdateMode));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath, disableDeviceAnalyticsMetadata, moduleUpdateMode, edgeletTimeout));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath, disableDeviceAnalyticsMetadata, moduleUpdateMode, edgeletTimeout, enableOrphanedIdentityCleanup));
                         IEnumerable<X509Certificate2> trustBundle =
                             await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(trustBundle, logger);
