@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     var commands = new[]
                     {
                         "echo '[Service]' > log-level.conf",
-                        "echo 'Environment=IOTEDGE_LOG=edgelet=debug' >> log-level.conf",
+                        "echo 'Environment=AZIOT_LOG=edgelet=debug' >> log-level.conf",
                         "mkdir -p /etc/systemd/system/snap.azure-iot-edge.aziot-edged.service.d",
                         "mv log-level.conf /etc/systemd/system/snap.azure-iot-edge.aziot-edged.service.d/",
                         "systemctl daemon-reload"
