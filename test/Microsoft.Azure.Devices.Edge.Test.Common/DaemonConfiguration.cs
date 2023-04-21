@@ -75,6 +75,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
+        public void AddAgentUserId(int uid)
+        {
+            this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.EDGEAGENTUSER_ID", uid);
+        }
+
         void SetBasicDpsParam(string idScope)
         {
             this.config[Service.Edged].Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
@@ -241,6 +246,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public void SetParentHostname(string value)
         {
             this.config[Service.Edged].Document.ReplaceOrAdd("parent_hostname", value);
+        }
+
+        public void SetMobyRuntimeUri(string value)
+        {
+            this.config[Service.Edged].Document.ReplaceOrAdd("moby_runtime.uri", value);
         }
 
         public void SetCertificates(CaCertificates certs)

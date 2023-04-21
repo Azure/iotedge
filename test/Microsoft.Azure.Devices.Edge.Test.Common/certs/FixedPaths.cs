@@ -6,8 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     public sealed class FixedPaths
     {
         // Directory used by a test run to store temporary keys, certs, etc.
-        public const string E2E_TEST_DIR = "/var/snap/azure-iot-identity/current/shared/config/aziot/e2e_tests";
-        // TODO: Make this path^^^ switchable based on snap vs not-snap
+        public const string E2E_TEST_DIR = "/var/snap/azure-iot-identity/current/shared/config/aziot/e2e_tests"; // TODO: Make this path switchable based on snap vs not-snap
 
         public sealed class DeviceIdentityCert
         {
