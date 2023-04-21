@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         }
 
         public string GetPrincipalsPath(Service service) =>
-            Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "principals");
+            Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "config.d");
 
         public string GetOwner(Service _) => "root";
 
@@ -126,10 +126,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         string ConfigurationPath(Service service) => service switch
         {
-            Service.Keyd => "/var/snap/azure-iot-identity/current/shared/config/aziot/keyd/config.d/00-super.toml",
-            Service.Certd => "/var/snap/azure-iot-identity/current/shared/config/aziot/certd/config.d/00-super.toml",
-            Service.Identityd => "/var/snap/azure-iot-identity/current/shared/config/aziot/identityd/config.d/00-super.toml",
-            Service.Edged => "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.d/00-super.toml",
+            Service.Keyd => "/var/snap/azure-iot-identity/current/shared/config/aziot/keyd/config.toml",
+            Service.Certd => "/var/snap/azure-iot-identity/current/shared/config/aziot/certd/config.toml",
+            Service.Identityd => "/var/snap/azure-iot-identity/current/shared/config/aziot/identityd/config.toml",
+            Service.Edged => "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.toml",
             _ => throw new NotImplementedException(),
         };
     }
