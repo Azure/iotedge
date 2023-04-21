@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                             // TODO: Only set these values for snaps
                             config.SetMobyRuntimeUri("unix:///var/snap/azure-iot-edge/common/docker-proxy.sock");
-                            config.AddAgentUserId(0);
+                            config.AddAgentUserId("0");
 
                             await config.UpdateAsync(token);
 

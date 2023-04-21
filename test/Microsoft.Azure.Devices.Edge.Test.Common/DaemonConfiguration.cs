@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
-        public void AddAgentUserId(int uid)
+        public void AddAgentUserId(string uid)
         {
             this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.EDGEAGENTUSER_ID", uid);
         }
