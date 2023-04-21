@@ -86,7 +86,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public string GetPrincipalsPath(Service service) =>
             Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "config.d");
 
-        public string GetOwner(Service _) => "root";
+        public string GetOwner(Service service) => service switch
+        {
+            Service.Keyd => "root",
+            Service.Certd => "root",
+            Service.Identityd => "root",
+            Service.Edged => "snap_aziotedge",
+            _ => throw new NotImplementedException(),
+        };
 
         public string GetCliName() => "azure-iot-edge.iotedge";
 
