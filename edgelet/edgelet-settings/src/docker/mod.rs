@@ -24,12 +24,10 @@ impl Settings {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let config_path = std::env::var("AZIOT_EDGED_CONFIG")
             .unwrap_or_else(|_| "/etc/aziot/edged/config.toml".to_string());
-        println!("config path: {}", config_path);
         let config_path = std::path::Path::new(&config_path);
 
         let config_directory_path = std::env::var("AZIOT_EDGED_CONFIG_DIR")
             .unwrap_or_else(|_| "/etc/aziot/edged/config.d".to_string());
-        println!("config dir path: {}", config_directory_path);
         let config_directory_path = std::path::Path::new(&config_directory_path);
 
         let mut settings: Settings =
