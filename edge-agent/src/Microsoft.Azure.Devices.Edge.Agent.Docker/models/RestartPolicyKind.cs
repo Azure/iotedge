@@ -1,23 +1,27 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
-    using Newtonsoft.Json;
+    using System.Runtime.Serialization;
 
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
+
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum RestartPolicyKind
     {
-        [JsonProperty("")]
+        [EnumMember(Value ="")]
         Undefined,
 
-        [JsonProperty("no")]
+        [EnumMember(Value = "no")]
         No,
 
-        [JsonProperty("always")]
+        [EnumMember(Value = "always")]
         Always,
 
-        [JsonProperty("on-failure")]
+        [EnumMember(Value = "on-failure")]
         OnFailure,
 
-        [JsonProperty("unless-stopped")]
+        [EnumMember(Value = "unless-stopped")]
         UnlessStopped
     }
 }
