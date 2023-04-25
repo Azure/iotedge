@@ -137,6 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, Option.Some(this.Id), token);
+                    Serilog.Log.Verbose($"Edge device reported properties:\n>>>>>>>>\n{JsonConvert.SerializeObject(twin.Properties.Reported, Formatting.Indented)}\n<<<<<<<<\n");
                     return twin.Properties.Reported;
                 },
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
