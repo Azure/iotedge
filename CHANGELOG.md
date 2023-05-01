@@ -1,6 +1,52 @@
+# 1.4.10 (2023-05-01)
+
+Beginning with this release we are publishing installable packages for Red Hat Enterprise Linux 9 (amd64) on Microsoft's [Linux package repository](https://packages.microsoft.com/docs/readme.txt).
+
+**Note:** On RHEL 9 the IoT Edge security subsystem has been tested with openssl 3.0. It may not function properly if older versions of openssl are also present on the device. If you previously installed openssl 1.1 in combination with an earlier version of IoT Edge then we would recommend removing both and starting fresh to avoid potential incompatibilities.
+
+## Base image updates
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics
+
+## Edge Agent
+### Bug fixes
+* Update versions of .NET dependencies to patch security vulnerabilities ( [82ca5e8](https://github.com/Azure/iotedge/commit/82ca5e8eb082a3d5ebf8276fc0109f923c022ad2) )
+* Update version of Azure IoT SDK to fix a memory leak ( [d98f43c](https://github.com/Azure/iotedge/commit/d98f43c90d456f51903ee2fa3f7266083086d739) )
+* Optionally detect and remove orphaned module identities on startup ( [3bac802](https://github.com/Azure/iotedge/commit/3bac80274305c7f2d4af92c161bead2c486d6820) )
+
+## Edge Hub
+### Bug fixes
+* Update versions of .NET dependencies to patch security vulnerabilities ( [82ca5e8](https://github.com/Azure/iotedge/commit/82ca5e8eb082a3d5ebf8276fc0109f923c022ad2) )
+* Update version of Azure IoT SDK to fix a memory leak ( [d98f43c](https://github.com/Azure/iotedge/commit/d98f43c90d456f51903ee2fa3f7266083086d739) )
+* Optionally check for server cert expiry at the given interval ( [fbe35da](https://github.com/Azure/iotedge/commit/fbe35dad396d87b422c4ea34c6062ab9948d791b) )
+
+## aziot-edge
+### OS support
+* Add support for RHEL 9 amd64 ( [32f7481](https://github.com/Azure/iotedge/commit/32f7481b40bdac21953d9e78b29914e0f1ae8d6d) )
+
+### Bug fixes
+* Add a timeout to prevent `iotedge support-bundle` from hanging in certain circumstances ( [f7dd1aa](https://github.com/Azure/iotedge/commit/f7dd1aaf5fa59da03eee90a2eb1dec6572575168) )
+* Relax padding requirement in symmetric keys ( [907eef1](https://github.com/Azure/iotedge/commit/907eef17af5242dccae4ac90daf3106451bda5b1) )
+* Fix memory and swap information reported by `iotedge check` and Edge Agent ( [b29d736](https://github.com/Azure/iotedge/commit/b29d73632dad88a495c2b93f767e241ab3c3d1ef) )
+* Add comment to config template about quickstart Edge CA ( [a4196a4](https://github.com/Azure/iotedge/commit/a4196a4d4022cf8917f0a17c71979b4b5dc74843) )
+* Update guidance in `iotedge config apply` warning message ( [86b8e69](https://github.com/Azure/iotedge/commit/86b8e698802cde3a427ee62618463642359b2275) )
+* Update version of openssl crate to patch security vulnerabilities ( [3b8b9e3](https://github.com/Azure/iotedge/commit/3b8b9e3efe2c797d9a3db56096c77e527a286d90) )
+
+## aziot-identity-service
+### OS support
+* Add support for RHEL 9 amd64 ( [24f227d](https://github.com/Azure/iot-identity-service/commit/24f227d644ead36ab8fb4195f6203de4603097d3) )
+
+### Bug fixes
+* Relax padding requirement in symmetric keys ( [77ca573](https://github.com/Azure/iot-identity-service/commit/77ca57305b070dba89dcddb948eec5c8f1cb029c) )
+* Update version of openssl crate to patch security vulnerabilities ( [df1885b](https://github.com/Azure/iot-identity-service/commit/df1885b6a78ef6491673c65659ead90a2740427a) )
+
 # 1.4.9 (2023-02-14)
 
-Beginning with this release we are publishing installable packages for Ubuntu 22.04 (amd64, arm64) on Microsoft's [Linux package repository](https://packages.microsoft.com/docs/readme.txt).  
+Beginning with this release we are publishing installable packages for Ubuntu 22.04 (amd64, arm64) on Microsoft's [Linux package repository](https://packages.microsoft.com/docs/readme.txt).
 
 **Note:** On Ubuntu 22.04 the IoT Edge security subsystem has been tested with openssl 3.0. It may not function properly if older versions of openssl are also present on the device. If you previously installed openssl 1.1 in combination with an earlier version of IoT Edge then we would recommend removing both and starting fresh to avoid potential incompatibilities.
 
