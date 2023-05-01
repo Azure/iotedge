@@ -282,6 +282,27 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
+  ################################################################################
+  - job: redhat9_amd64
+  ################################################################################
+    displayName: RedHat9 amd64
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-rhel-9-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-redhat9-amd64
+      identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
+      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
 ################################################################################
   - job: linux_amd64_proxy
 ################################################################################
