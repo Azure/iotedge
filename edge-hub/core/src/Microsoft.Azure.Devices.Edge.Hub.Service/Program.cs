@@ -145,8 +145,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     }
 
                     logger.LogInformation("Stopping the protocol heads...");
-                    await Task.WhenAll(mqttBrokerProtocolHead.CloseAsync(CancellationToken.None), edgeHubProtocolHead.CloseAsync(CancellationToken.None));
-                    logger.LogInformation("Protocol heads stopped.");
+                    try
+                    {
+                        await Task.WhenAll(mqttBrokerProtocolHead.CloseAsync(CancellationToken.None), edgeHubProtocolHead.CloseAsync(CancellationToken.None));
+                        logger.LogInformation("Protocol heads stopped.");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError($"Error stopping protocol heads: {ex.Message}");
+                    }
 
                     await CloseDbStoreProviderAsync(container);
                 }
