@@ -16,7 +16,7 @@ The following Docker images were updated because their base images changed:
 ### Bug fixes
 * Update versions of .NET dependencies to patch security vulnerabilities ( [82ca5e8](https://github.com/Azure/iotedge/commit/82ca5e8eb082a3d5ebf8276fc0109f923c022ad2) )
 * Update version of Azure IoT SDK to fix a memory leak ( [d98f43c](https://github.com/Azure/iotedge/commit/d98f43c90d456f51903ee2fa3f7266083086d739) )
-* Optionally detect and remove orphaned module identities on startup ( [3bac802](https://github.com/Azure/iotedge/commit/3bac80274305c7f2d4af92c161bead2c486d6820) )
+* Optionally detect and remove orphaned module identities when a new deployment is received ( [3bac802](https://github.com/Azure/iotedge/commit/3bac80274305c7f2d4af92c161bead2c486d6820) )
 
 ## Edge Hub
 ### Bug fixes
