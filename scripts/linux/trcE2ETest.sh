@@ -300,13 +300,13 @@ function get_support_bundle_logs(){
     mkdir -p $working_folder/support
     time=$(echo $test_start_time | sed 's/ /T/' | sed 's/$/Z/')
 
-    MAX_RETRIES=4
+    MAX_RETRIES=10
     RETRY_COUNT=0
     DID_SUCCEED=false
 
     while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ] && [ "$DID_SUCCEED" = false ]; do
         DID_TIMEOUT=false
-        timeout 600 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT=true
+        timeout 180 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT=true
 
         if [ "$DID_TIMEOUT" = true ]; then
             RETRY_COUNT=$((RETRY_COUNT + 1))
