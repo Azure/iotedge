@@ -93,7 +93,7 @@ fi
 if /usr/bin/getent group aziotid >/dev/null; then
     %{_sbindir}/usermod -aG aziotid %{iotedge_user}
 fi
-
+exit 0
 %post
 # Check for container runtime
 if ! /usr/bin/getent group docker >/dev/null; then
