@@ -11,7 +11,7 @@ steps:
     inputs:
       targetType: inline
       script: |
-        set -e
+        set -ex
 
         echo "Extracting hub name from connection string"
         #extract full hub name
