@@ -17,8 +17,10 @@
               "image": "$upstream:443/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
-            "https_proxy": {
-              "value": "<proxyAddress>"
+            "env": {
+              "https_proxy": {
+                "value": "<proxyAddress>"
+              }
             }
           },
           "edgeHub": {
