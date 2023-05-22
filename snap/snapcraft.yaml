@@ -110,7 +110,7 @@ apps:
       - network
       - network-bind
       - system-observe
-      - workload-sockets
+      - run-iotedge
   iotedge:
     command: usr/bin/iotedge
     plugs:
@@ -121,7 +121,7 @@ apps:
       - mount-observe
       - network
       - system-observe
-      - workload-sockets
+      - run-iotedge
   docker-proxy:
     command: bin/socat.sh
     daemon: simple
@@ -155,7 +155,7 @@ plugs:
     interface: content
     content: aziot-identity-service
     target: $SNAP_COMMON
-  workload-sockets:
+  run-iotedge:
     interface: system-files
     write: [ /var/run/iotedge, /run/iotedge ]
 
