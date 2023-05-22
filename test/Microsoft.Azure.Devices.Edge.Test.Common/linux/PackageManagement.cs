@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     "snap connect azure-iot-edge:log-observe",
                     "snap connect azure-iot-edge:system-observe",
                     "snap connect azure-iot-edge:mount-observe",
-                    "snap connect azure-iot-edge:workload-sockets",
+                    "snap connect azure-iot-edge:run-iotedge",
                     "snap connect azure-iot-edge:aziotctl-executables azure-iot-identity:aziotctl-executables",
                     "snap connect azure-iot-edge:identity-service azure-iot-identity:identity-service",
                     "snap connect azure-iot-edge:docker-executables docker:docker-executables",
