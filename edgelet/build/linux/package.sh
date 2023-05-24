@@ -114,6 +114,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
                 curl git make rpm-build \
                 gcc gcc-c++ \
                 libcurl-devel libuuid-devel openssl-devel &&
+            git config --global --add safe.directory \'*\'
         '
         ;;
 
