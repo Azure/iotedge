@@ -73,16 +73,15 @@ stages:
         # 'dotnet/aspnet' and some are 'dotnet/runtime'. If this pipeline happens to run, e.g.,
         # after dotnet/runtime gets updated but before dotnet/aspnet gets updated, then we'll end up
         # releasing twice in quick succession. To mitigate this problem, we'll wait until *all* the
-        # images/architectures we build in this pipeline are flagged for update.
+        # images we build in this pipeline are flagged for update.
         continue=$(jq \
           --arg p "$product" \
           --arg cv "$prev_core_version" \
           --arg dv "$prev_diag_version" \
           --argjson cn '["agent","hub","simulated-temperature-sensor"]' \
-          --argjson dn '["diagnostics"]' \
-          --argjson an '["amd64","arm32v7","arm64v8"]' '
+          --argjson dn '["diagnostics"]' '
             def filter: [
-              "mcr.microsoft.com/azureiotedge-\("\($cn[]):\($cv)", "\($dn[]):\($dv)")-linux-\($an[])"
+              "mcr.microsoft.com/azureiotedge-\("\($cn[]):\($cv)", "\($dn[]):\($dv)")"
             ];
             [ .[] | select(.product == $p and .version == $cv) | .images[] ] | contains(filter)
           ' $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json

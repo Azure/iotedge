@@ -288,7 +288,7 @@ function print_deployment_logs() {
     journalctl -u docker --since "$test_start_time" --no-pager || true
 
     print_highlighted_message '========== Logs from iotedge system =========='
-    iotedge system logs -- --since "$test_start_time" --no-pager || true
+    iotedge system logs -- --since "$test_start_time" --no-pager
 
     print_highlighted_message '========== Logs from edgeAgent =========='
     docker logs edgeAgent || true
@@ -297,11 +297,33 @@ function print_deployment_logs() {
 
 function get_support_bundle_logs(){
 
-    print_highlighted_message "Getting Support Bundle Logs"
+    print_highlighted_message "Getting Support Bundle Logs WITH TIMEOUT"
     mkdir -p $working_folder/support
     time=$(echo $test_start_time | sed 's/ /T/' | sed 's/$/Z/')
-    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time"
-    print_highlighted_message "Finished getting support Bundle Logs"
+
+    MAX_RETRIES=10
+    RETRY_COUNT=0
+    DID_SUCCEED=false
+
+    while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ] && [ "$DID_SUCCEED" = false ]; do
+        DID_TIMEOUT=false
+        timeout 180 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT=true
+
+        if [ "$DID_TIMEOUT" = true ]; then
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+
+            if [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; then
+                print_highlighted_message "Support Bundle timed out. Trying again."
+            else
+                print_highlighted_message "Support Bundle timed out after $MAX_RETRIES retries. Exiting."
+                exit 1
+            fi
+        else
+            DID_SUCCEED=true
+        fi
+    done
+
+    print_highlighted_message "Finished getting support Bundle Logs at $(date)"
 }
 
 function print_test_run_logs() {
@@ -309,6 +331,7 @@ function print_test_run_logs() {
 
     print_highlighted_message "test run exit code=$ret"
     print_highlighted_message 'Print logs'
+
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
 }
@@ -843,11 +866,13 @@ function configure_longhaul_settings() {
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
 
     if [ "$image_architecture_label" = 'amd64' ]; then
+        log_upload_enabled=true
         log_rotation_max_file="125"
         log_rotation_max_file_edgehub="400"
     fi
     if [ "$image_architecture_label" = 'arm32v7' ] ||
         [ "$image_architecture_label" = 'arm64v8' ]; then
+        log_upload_enabled=false
         log_rotation_max_file="7"
         log_rotation_max_file_edgehub="30"
 
@@ -891,6 +916,8 @@ function configure_connectivity_settings() {
     CHECK_TRC_DELAY="${TEST_START_DELAY:-00:30:00}"
 
     TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
+
+    log_upload_enabled=false
 }
 
 LONGHAUL_TEST_NAME="LongHaul"
@@ -930,7 +957,6 @@ PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
 
 if [ "$image_architecture_label" = 'amd64' ]; then
     optimize_for_performance=true
-    log_upload_enabled=true
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:01"
     TWIN_UPDATE_FREQUENCY="00:00:15"
@@ -939,7 +965,6 @@ fi
 if [ "$image_architecture_label" = 'arm32v7' ] ||
     [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
-    log_upload_enabled=false
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:10"
     TWIN_UPDATE_FREQUENCY="00:01:00"
