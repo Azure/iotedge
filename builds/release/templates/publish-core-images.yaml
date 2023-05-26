@@ -79,6 +79,10 @@ jobs:
       #!/bin/bash
       set -euo pipefail
 
+      # in case commits were made after this pipeline started but before we arrived here, sync to
+      # the tip of the branch
+      git checkout "$PRODUCT_REPO_BRANCH"
+
       # update product-versions.json
       echo "$(jq '
         def product: .channels[] | .products[] | select(
@@ -97,6 +101,16 @@ jobs:
           | (product).version |= "${{ parameters['version.core'] }}"
       ' product-versions.json )" > product-versions.json
       git add product-versions.json
+
+      # determine whether this is an LTS release, and save that info for later
+      is_lts="$(jq '
+        [
+          .channels[] | .products[] | select(
+            .id=="aziot-edge" and .version=="${{ parameters['version.core'] }}"
+          ) | .name | contains("LTS")
+        ] | any
+      ' product-versions.json)"
+      echo "##vso[task.setvariable variable=is_lts]$is_lts"
 
       # configure git
       git config user.email '$(service-account.email)'
@@ -130,10 +144,11 @@ jobs:
       echo "##vso[task.setvariable variable=release_url]$RELEASE_URL"
     displayName: Create GitHub release page in product repo
     env:
+      BRANCH: main
       CORE_VERSION: ${{ parameters['version.core'] }}
       DIAG_VERSION: ${{ parameters['version.diagnostics'] }}
       GITHUB_TOKEN: $(TestGitHubAccessToken)
-      BRANCH: main
+      IS_LTS: $(is_lts)
       REPO_NAME: $(repo.product.name)
     workingDirectory: iotedge
 
@@ -149,6 +164,7 @@ jobs:
     env:
       CORE_VERSION: ${{ parameters['version.core'] }} 
       GITHUB_TOKEN: $(TestGitHubAccessToken)
+      IS_LTS: $(is_lts)
       RELEASE_URL: $(release_url)
       REPO_NAME: $(repo.project.name)
     workingDirectory: iotedge
