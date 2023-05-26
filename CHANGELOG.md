@@ -1,3 +1,11 @@
+# 1.4.11 (2023-05-26)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.10 to match the daemon)
+
 # 1.4.10 (2023-05-01)
 
 Beginning with this release we are publishing installable packages for Red Hat Enterprise Linux 9 (amd64) on Microsoft's [Linux package repository](https://packages.microsoft.com/docs/readme.txt).
