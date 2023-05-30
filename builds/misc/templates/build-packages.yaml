@@ -59,6 +59,10 @@ stages:
               arch: amd64
               os: redhat8
               target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+            RedHat9-amd64:
+              arch: amd64
+              os: redhat9
+              target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
 
             Debian10-amd64:
               os: debian10

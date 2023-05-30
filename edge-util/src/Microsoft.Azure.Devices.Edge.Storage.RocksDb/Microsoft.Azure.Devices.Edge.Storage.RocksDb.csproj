@@ -18,6 +18,12 @@
       -->
     <PackageReference Include="RocksDbNative" Version="5.17.2" Condition="'$(RocksDbAsPackage)' != 'false'" />
     <PackageReference Include="RocksDbSharp" Version="5.17.2" />
+    <!--
+      We have a transitive dependency on System.Net.Http via RocksDbNative/5.17.2 and
+      RocksDbSharp/5.17.2. Use an explicit reference here to override the version and fix a
+      vulnerability. See https://github.com/advisories/GHSA-7jgj-8wvc-jh57.
+    -->
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
 
   <ItemGroup>

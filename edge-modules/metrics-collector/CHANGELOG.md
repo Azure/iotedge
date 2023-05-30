@@ -1,3 +1,22 @@
+# 1.1.4 (2023-05-26)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.1.3 (2023-05-02)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+## Bug Fixes
+* Patch vulnerabilities in Metrics Collector dependencies ( [558ba1e6a](https://github.com/Azure/iotedge/commit/558ba1e6a98eabca0919484003108a8b8b04e9e6) )
+* Update version of Azure IoT SDK to fix a memory leak ( [3839c69db](https://github.com/Azure/iotedge/commit/3839c69dbacf25cdf804758aa74dedfbc550566f) )
+
+# 1.1.2 (2023-02-14)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
 # 1.1.1 (2023-01-18)
 
 The following Docker images were updated because their base images changed:

@@ -123,12 +123,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
-                double renewAfter = configuration.GetValue("ServerCertificateRenewAfterInMs", int.MaxValue);
-                renewAfter = renewAfter > int.MaxValue ? int.MaxValue : renewAfter;
+                int renewAfter = configuration.GetValue("ServerCertificateRenewAfterInMs", int.MaxValue);
                 TimeSpan maxRenewAfter = TimeSpan.FromMilliseconds(renewAfter);
+
+                int? maxCheckCertExpiryAfterMs = configuration.GetValue<int?>("MaxCheckCertExpiryInMs");
+                Option<TimeSpan> maxCheckCertExpiryAfter = maxCheckCertExpiryAfterMs.HasValue ? Option.Some(TimeSpan.FromMilliseconds(maxCheckCertExpiryAfterMs.Value)) : Option.None<TimeSpan>();
+
                 using (IProtocolHead mqttBrokerProtocolHead = GetMqttBrokerProtocolHead(container))
                 using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
-                using (var renewal = new CertificateRenewal(certificates, logger, maxRenewAfter))
+                using (var renewal = new CertificateRenewal(certificates, logger, maxRenewAfter, maxCheckCertExpiryAfter))
                 {
                     try
                     {
@@ -142,8 +145,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     }
 
                     logger.LogInformation("Stopping the protocol heads...");
-                    await Task.WhenAll(mqttBrokerProtocolHead.CloseAsync(CancellationToken.None), edgeHubProtocolHead.CloseAsync(CancellationToken.None));
-                    logger.LogInformation("Protocol heads stopped.");
+                    try
+                    {
+                        await Task.WhenAll(mqttBrokerProtocolHead.CloseAsync(CancellationToken.None), edgeHubProtocolHead.CloseAsync(CancellationToken.None));
+                        logger.LogInformation("Protocol heads stopped.");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError($"Error stopping protocol heads: {ex.Message}");
+                    }
 
                     await CloseDbStoreProviderAsync(container);
                 }
