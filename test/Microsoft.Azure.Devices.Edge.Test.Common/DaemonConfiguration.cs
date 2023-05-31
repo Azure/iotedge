@@ -330,7 +330,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string path = this.config.ConfigPath;
             await File.WriteAllTextAsync(path, this.config.Document.ToString());
             Serilog.Log.Information(await File.ReadAllTextAsync(path));
-            string[] output = await Process.RunAsync("iotedge", "config apply", token);
         }
 
         private static string SanitizeName(string name)
