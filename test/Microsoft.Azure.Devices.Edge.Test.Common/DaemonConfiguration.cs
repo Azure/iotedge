@@ -326,7 +326,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public async Task UpdateAsync(CancellationToken token)
         {
             string path = this.config.ConfigPath;
-            File.WriteAllText(path, this.config.Document.ToString());
+            await File.WriteAllTextAsync(path, this.config.Document.ToString());
+            Serilog.Log.Information(await File.ReadAllTextAsync(path));
             string[] output = await Process.RunAsync("iotedge", "config apply", token);
         }
 
