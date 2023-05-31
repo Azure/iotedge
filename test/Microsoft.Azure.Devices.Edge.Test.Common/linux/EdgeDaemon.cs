@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     await this.InternalStopAsync(token);
 
-                    var conf = await DaemonConfiguration.CreateAsync(this.serviceManager, token);
+                    var conf = new DaemonConfiguration("/etc/aziot/config.toml");
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     if (restart)
                     {
-                        await this.InternalStartAsync(token);
+                        await Process.RunAsync("iotedge", "config apply", token);
                     }
                 },
                 message.ToString(),
