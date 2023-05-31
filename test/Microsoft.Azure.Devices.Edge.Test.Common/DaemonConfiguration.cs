@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.Document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
             this.config.Document.ReplaceOrAdd("provisioning.device_id", deviceId);
             this.config.Document.ReplaceOrAdd("provisioning.authentication.method", "sas");
-            this.config.Document.ReplaceOrAdd("provisioning.authentication.device_id_pk", key);
+            this.config.Document.ReplaceOrAdd("provisioning.authentication.device_id_pk.value", key);
 
             this.config.Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
 
