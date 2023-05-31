@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     }
 
                     await this.daemon.ConfigureAsync(
-                        config =>
+                        async config =>
                         {
                             var msgBuilder = new StringBuilder();
                             var props = new List<object>();
@@ -125,9 +125,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 props.Add(proxy.ToString());
                             });
 
-                            config.Update();
+                            await config.UpdateAsync(token);
 
-                            return Task.FromResult((msgBuilder.ToString(), props.ToArray()));
+                            return (msgBuilder.ToString(), props.ToArray());
                         },
                         token,
                         restart: false);

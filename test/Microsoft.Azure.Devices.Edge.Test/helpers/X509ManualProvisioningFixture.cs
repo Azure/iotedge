@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(device.Id, token);
 
                         await this.ConfigureDaemonAsync(
-                            config =>
+                            async config =>
                             {
                                 testCerts.AddCertsToConfig(config);
                                 config.SetDeviceManualX509(
@@ -62,10 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                     device.Id,
                                     certPath,
                                     keyPath);
-                                config.Update();
-                                return Task.FromResult((
-                                    "with x509 certificate for device '{Identity}'",
-                                    new object[] { device.Id }));
+                                await config.UpdateAsync(token);
+                                return ("with x509 certificate for device '{Identity}'", new object[] { device.Id });
                             },
                             device,
                             startTime,

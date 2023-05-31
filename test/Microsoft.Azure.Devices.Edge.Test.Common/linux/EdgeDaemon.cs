@@ -121,15 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     await this.InternalStopAsync(token);
 
-                    ConfigFilePaths paths = new ConfigFilePaths
-                    {
-                        Keyd = "/etc/aziot/keyd/config.toml",
-                        Certd = "/etc/aziot/certd/config.toml",
-                        Identityd = "/etc/aziot/identityd/config.toml",
-                        Edged = "/etc/aziot/edged/config.toml"
-                    };
-
-                    DaemonConfiguration conf = new DaemonConfiguration(paths);
+                    DaemonConfiguration conf = new DaemonConfiguration("/etc/aziot/config.toml");
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";

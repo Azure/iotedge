@@ -2,8 +2,8 @@
 
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
+    using System;
     using System.Collections.Generic;
-    using System.Linq;
     using Nett;
 
     class TomlDocument
@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.document = Toml.ReadString(input);
         }
 
-        public void ReplaceOrAdd<T>(string dottedKey, T value)
+        (TomlTable table, string key) TraverseKey(string dottedKey)
         {
             string[] segments = dottedKey.Split(".");
             TomlTable table = this.document;
@@ -24,23 +24,46 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 string tableKey = segments[i];
 
-                try
+                if (!table.ContainsKey(tableKey))
                 {
-                    table = (TomlTable)table[tableKey];
+                    table.Add(tableKey, table.CreateEmptyAttachedTable());
                 }
-                catch (KeyNotFoundException)
-                {
-                    // Nett does not provide a function to easily add table subkeys.
-                    // A hack workaround is to serialize the table, append the new table as a string, then deserialize.
-                    // This only needs to be done once to create the new subtable.
-                    // After that, Nett functions can be used to modify the subtable.
-                    string tableName = string.Join(".", segments.Take(segments.Length - 1));
-                    this.AddTable(tableName, segments[segments.Length - 1], value);
-                    return;
-                }
+
+                table = (TomlTable)table[tableKey];
             }
 
-            string key = segments[segments.Length - 1];
+            return (table, segments[segments.Length - 1]);
+        }
+
+        public void ReplaceOrAdd(string dottedKey, Dictionary<string, string> value)
+        {
+            var (table, key) = TraverseKey(dottedKey);
+
+            if (table.ContainsKey(key))
+            {
+                var elem = table[key];
+                if (elem.TomlType != TomlObjectType.ArrayOfTables)
+                {
+                    throw new ArgumentException(
+                        $"Tried to overwrite TOML value of type {elem.TomlType} with value of " +
+                        $"type {TomlObjectType.ArrayOfTables}");
+                }
+
+                // add existing elements to the TOML array of tables
+                var list = ((TomlTableArray)elem).Items;
+
+                // add new element
+                list.Add(elem.CreateAttached(value));
+            }
+            else
+            {
+            }
+        }
+
+        public void ReplaceOrAdd<T>(string dottedKey, T value)
+        {
+            var (table, key) = TraverseKey(dottedKey);
+
             if (table.ContainsKey(key))
             {
                 table.Update(key, value.ToString()); // May need to fix to support other types.
@@ -75,16 +98,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public override string ToString()
         {
             return this.document.ToString();
-        }
-
-        public void AddTable<T>(string tableName, string key, T value)
-        {
-            string v = value is string ? $"\"{value}\"" : value.ToString().ToLower();
-
-            this.document = Toml.ReadString(
-                this.document.ToString() + "\n" +
-                $"[{tableName}]\n" +
-                $"{key} = {v}\n");
         }
     }
 }
