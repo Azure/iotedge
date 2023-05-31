@@ -192,6 +192,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetEdgeAgentImage(string value, IEnumerable<Registry> registries)
         {
+            this.config.Document.ReplaceOrAdd("agent.name", "edgeAgent");
+            this.config.Document.ReplaceOrAdd("agent.type", "docker");
             this.config.Document.ReplaceOrAdd("agent.config.image", value);
 
             // Currently, the only place for registries is [agent.config.auth]
