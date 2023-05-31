@@ -36,10 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public DaemonConfiguration(string superTomlPath)
         {
-            // string contents = File.ReadAllText(superTomlPath);
+            string contents = File.Exists(superTomlPath) ? File.ReadAllText(superTomlPath) : string.Empty;
             this.config = new Config {
                 ConfigPath = superTomlPath,
-                Document = new TomlDocument(string.Empty)
+                Document = new TomlDocument(contents)
             };
         }
 
