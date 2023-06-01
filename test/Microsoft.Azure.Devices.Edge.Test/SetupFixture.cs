@@ -149,13 +149,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     }
 
                     // Remove packages installed by this run.
-                    await this.daemon.UninstallAsync(token);
+                    // await this.daemon.UninstallAsync(token);         // TODO: RE-ENABLE
 
                     // Delete test certs, keys, etc.
-                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
-                    {
-                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
-                    }
+                    // if (Directory.Exists(FixedPaths.E2E_TEST_DIR))   // TODO: RE-ENABLE
+                    // {
+                    //     Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                    // }
                 },
                 "Completed end-to-end test teardown"),
             () =>
