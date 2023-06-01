@@ -241,6 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // this.config.Document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", "file://" + certs.CertificatePath);
             // this.config.Document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", "file://" + certs.KeyPath);
             // this.config.Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + certs.TrustedCertificatesPath);
+            this.config.Document.ReplaceOrAdd("trust_bundle_cert", "file://" + certs.TrustedCertificatesPath);
         }
 
         // public void RemoveCertificates()
