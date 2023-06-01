@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                     CancellationToken token = cts.Token;
-                    await this.daemon.StopAsync(token);
+                    // await this.daemon.StopAsync(token);                                  // TODO: RE-ENABLE
                     // foreach (EdgeDevice device in Context.Current.DeleteList.Values)     // TODO: RE-ENABLE
                     // {
                     //     await device.MaybeDeleteIdentityAsync(token);
