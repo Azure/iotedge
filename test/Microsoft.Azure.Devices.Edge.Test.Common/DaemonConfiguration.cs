@@ -175,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             this.SetBasicDpsParam(idScope);
             this.config.Document.ReplaceOrAdd("provisioning.attestation.method", "x509");
-            this.config.Document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
+            // this.config.Document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
 
             string certFileName = Path.GetFileName(identityCertPath);
             string certName = DaemonConfiguration.SanitizeName(certFileName);
