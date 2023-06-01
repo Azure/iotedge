@@ -138,10 +138,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [OneTimeTearDown]
         public Task AfterAllAsync() => TryFinally.DoAsync(
             () => Profiler.Run(
-                async () =>
+                () =>
                 {
                     using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                     CancellationToken token = cts.Token;
+                    return Task.CompletedTask;
                     // await this.daemon.StopAsync(token);                                  // TODO: RE-ENABLE
                     // foreach (EdgeDevice device in Context.Current.DeleteList.Values)     // TODO: RE-ENABLE
                     // {
