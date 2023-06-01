@@ -143,16 +143,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                     CancellationToken token = cts.Token;
                     await this.daemon.StopAsync(token);
-                    foreach (EdgeDevice device in Context.Current.DeleteList.Values)
-                    {
-                        await device.MaybeDeleteIdentityAsync(token);
-                    }
+                    // foreach (EdgeDevice device in Context.Current.DeleteList.Values)     // TODO: RE-ENABLE
+                    // {
+                    //     await device.MaybeDeleteIdentityAsync(token);
+                    // }
 
                     // Remove packages installed by this run.
-                    // await this.daemon.UninstallAsync(token);         // TODO: RE-ENABLE
+                    // await this.daemon.UninstallAsync(token);                             // TODO: RE-ENABLE
 
                     // Delete test certs, keys, etc.
-                    // if (Directory.Exists(FixedPaths.E2E_TEST_DIR))   // TODO: RE-ENABLE
+                    // if (Directory.Exists(FixedPaths.E2E_TEST_DIR))                       // TODO: RE-ENABLE
                     // {
                     //     Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
                     // }
