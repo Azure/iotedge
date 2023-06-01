@@ -154,9 +154,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.Document.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
             this.config.Document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
 
-            string keyName = DaemonConfiguration.SanitizeName($"dps-symmetric-key-{registrationId}");
+            // string keyName = DaemonConfiguration.SanitizeName($"dps-symmetric-key-{registrationId}");
             // this.CreatePreloadedKey(keyName, deviceKey);
-            this.config.Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", keyName);
+            this.config.Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", deviceKey);
 
             // this.SetAuth(keyName);
         }
