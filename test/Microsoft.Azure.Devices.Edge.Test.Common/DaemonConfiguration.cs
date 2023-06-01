@@ -133,15 +133,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             this.config.Document.ReplaceOrAdd("provisioning.authentication.method", "x509");
 
-            string certFileName = Path.GetFileName(identityCertPath);
-            string certName = DaemonConfiguration.SanitizeName(certFileName);
-            this.config.Document.ReplaceOrAdd("provisioning.authentication.identity_cert", certName);
-            this.config.Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + identityCertPath);
+            // string certFileName = Path.GetFileName(identityCertPath);
+            // string certName = DaemonConfiguration.SanitizeName(certFileName);
+            this.config.Document.ReplaceOrAdd("provisioning.authentication.identity_cert", "file://" + identityCertPath);
+            // this.config.Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + identityCertPath);
 
-            string keyFileName = Path.GetFileName(identityPkPath);
-            string keyName = DaemonConfiguration.SanitizeName(keyFileName);
-            this.config.Document.ReplaceOrAdd("provisioning.authentication.identity_pk", keyName);
-            this.config.Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
+            // string keyFileName = Path.GetFileName(identityPkPath);
+            // string keyName = DaemonConfiguration.SanitizeName(keyFileName);
+            this.config.Document.ReplaceOrAdd("provisioning.authentication.identity_pk", "file://" + identityPkPath);
+            // this.config.Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
 
             this.config.Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
 
