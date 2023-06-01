@@ -177,15 +177,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.Document.ReplaceOrAdd("provisioning.attestation.method", "x509");
             // this.config.Document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
 
-            string certFileName = Path.GetFileName(identityCertPath);
-            string certName = DaemonConfiguration.SanitizeName(certFileName);
-            this.config.Document.ReplaceOrAdd("provisioning.attestation.identity_cert", certName);
-            this.config.Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + identityCertPath);
+            // string certFileName = Path.GetFileName(identityCertPath);
+            // string certName = DaemonConfiguration.SanitizeName(certFileName);
+            this.config.Document.ReplaceOrAdd("provisioning.attestation.identity_cert", "file://" + identityCertPath);
+            // this.config.Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + identityCertPath);
 
-            string keyFileName = Path.GetFileName(identityPkPath);
-            string keyName = DaemonConfiguration.SanitizeName(keyFileName);
-            this.config.Document.ReplaceOrAdd("provisioning.attestation.identity_pk", keyName);
-            this.config.Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
+            // string keyFileName = Path.GetFileName(identityPkPath);
+            // string keyName = DaemonConfiguration.SanitizeName(keyFileName);
+            this.config.Document.ReplaceOrAdd("provisioning.attestation.identity_pk", "file://" + identityPkPath);
+            // this.config.Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
 
             // this.SetAuth(keyName);
         }
@@ -238,9 +238,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 throw new InvalidOperationException($"{certs.TrustedCertificatesPath} does not exist");
             }
 
-            this.config.Document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", "file://" + certs.CertificatePath);
-            this.config.Document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", "file://" + certs.KeyPath);
-            this.config.Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + certs.TrustedCertificatesPath);
+            // this.config.Document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", "file://" + certs.CertificatePath);
+            // this.config.Document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", "file://" + certs.KeyPath);
+            // this.config.Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + certs.TrustedCertificatesPath);
         }
 
         // public void RemoveCertificates()
