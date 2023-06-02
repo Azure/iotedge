@@ -29,9 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     if (add)
                     {
                         table.Add(tableKey, table.CreateEmptyAttachedTable());
+                        Serilog.Log.Information(" + empty table");
                     }
                     else
                     {
+                        Serilog.Log.Information($"Table not found at {dottedKey}");
                         return (null, string.Empty);
                     }
                 }
@@ -49,10 +51,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             if (table.ContainsKey(key))
             {
                 table.Update(key, value.ToString()); // May need to fix to support other types.
+                Serilog.Log.Information($" ~ {key} = {value}");
             }
             else
             {
                 table.Add(key, value.ToString()); // May need to fix to support other types.
+                Serilog.Log.Information($" + {key} = {value}");
             }
         }
 
@@ -62,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             if (string.IsNullOrEmpty(key))
             {
                 table.Remove(key);
+                Serilog.Log.Information($" - {key}");
             }
         }
 
