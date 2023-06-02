@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void ReplaceOrAdd(string dottedKey, Dictionary<string, string> value)
         {
-            var (table, key) = TraverseKey(dottedKey);
+            var (table, key) = this.TraverseKey(dottedKey);
 
             if (table.ContainsKey(key))
             {
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void ReplaceOrAdd<T>(string dottedKey, T value)
         {
-            var (table, key) = TraverseKey(dottedKey);
+            var (table, key) = this.TraverseKey(dottedKey);
 
             if (table.ContainsKey(key))
             {
