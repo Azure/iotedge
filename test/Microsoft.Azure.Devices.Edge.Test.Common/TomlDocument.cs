@@ -54,13 +54,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (table.ContainsKey(key))
             {
-                table.Update(key, value.ToString()); // May need to fix to support other types.
-                Serilog.Log.Information($" ~ {key} = {value}");
+                table.Update(key, value);
+                Serilog.Log.Information($" ~ {key} = {value} [{typeof(T)}]");
             }
             else
             {
-                table.Add(key, value.ToString()); // May need to fix to support other types.
-                Serilog.Log.Information($" + {key} = {value}");
+                table.Add(key, value);
+                Serilog.Log.Information($" + {key} = {value} [{typeof(T)}]");
             }
         }
 
