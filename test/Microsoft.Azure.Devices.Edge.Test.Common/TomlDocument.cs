@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.document = Toml.ReadString(input);
         }
 
-        (TomlTable table, string key) TraverseKey(string dottedKey)
+        (TomlTable table, string key) TraverseKey(string dottedKey, bool add = false)
         {
             string[] segments = dottedKey.Split(".");
             TomlTable table = this.document;
@@ -26,7 +26,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                 if (!table.ContainsKey(tableKey))
                 {
-                    table.Add(tableKey, table.CreateEmptyAttachedTable());
+                    if (add)
+                    {
+                        table.Add(tableKey, table.CreateEmptyAttachedTable());
+                    }
+                    else
+                    {
+                        return (null, string.Empty);
+                    }
                 }
 
                 table = (TomlTable)table[tableKey];
@@ -37,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void ReplaceOrAdd<T>(string dottedKey, T value)
         {
-            var (table, key) = this.TraverseKey(dottedKey);
+            var (table, key) = this.TraverseKey(dottedKey, add: true);
 
             if (table.ContainsKey(key))
             {
@@ -52,7 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public void RemoveIfExists(string dottedKey)
         {
             var (table, key) = this.TraverseKey(dottedKey);
-            table.Remove(key);
+            if (string.IsNullOrEmpty(key))
+            {
+                table.Remove(key);
+            }
         }
 
         public override string ToString()
