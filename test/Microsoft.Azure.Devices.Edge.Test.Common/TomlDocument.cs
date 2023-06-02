@@ -24,40 +24,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 string tableKey = segments[i];
 
-                if (!table.ContainsKey(tableKey))
+                try
+                {
+                    table = (TomlTable)table[tableKey];
+                }
+                catch (KeyNotFoundException)
                 {
                     table.Add(tableKey, table.CreateEmptyAttachedTable());
                 }
-
-                table = (TomlTable)table[tableKey];
             }
 
             return (table, segments[segments.Length - 1]);
-        }
-
-        public void ReplaceOrAdd(string dottedKey, Dictionary<string, string> value)
-        {
-            var (table, key) = this.TraverseKey(dottedKey);
-
-            if (table.ContainsKey(key))
-            {
-                var elem = table[key];
-                if (elem.TomlType != TomlObjectType.ArrayOfTables)
-                {
-                    throw new ArgumentException(
-                        $"Tried to overwrite TOML value of type {elem.TomlType} with value of " +
-                        $"type {TomlObjectType.ArrayOfTables}");
-                }
-
-                // add existing elements to the TOML array of tables
-                var list = ((TomlTableArray)elem).Items;
-
-                // add new element
-                list.Add(elem.CreateAttached(value));
-            }
-            else
-            {
-            }
         }
 
         public void ReplaceOrAdd<T>(string dottedKey, T value)
@@ -76,23 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void RemoveIfExists(string dottedKey)
         {
-            string[] segments = dottedKey.Split(".");
-            TomlTable table = this.document;
-
-            for (int i = 0; i < segments.Length - 1; i++)
-            {
-                try
-                {
-                    table = (TomlTable)table[segments[i]];
-                }
-                catch (KeyNotFoundException)
-                {
-                    // Key does not exist in table; do nothing.
-                    return;
-                }
-            }
-
-            table.Remove(segments[segments.Length - 1]);
+            var (table, key) = this.TraverseKey(dottedKey);
+            table.Remove(key);
         }
 
         public override string ToString()
