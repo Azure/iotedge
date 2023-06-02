@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     else
                     {
                         Serilog.Log.Information($"Table not found at {dottedKey}");
-                        return (null, string.Empty);
+                        return (table, string.Empty);
                     }
                 }
                 else
@@ -46,6 +46,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             return (table, segments[segments.Length - 1]);
+        }
+
+        public void ReplaceOrAdd(string dottedKey, bool value)
+        {
+            var (table, key) = this.TraverseKey(dottedKey, add: true);
+
+            if (table.ContainsKey(key))
+            {
+                table.Update(key, value);
+                Console.WriteLine($" ~ {key} = {value} [{typeof(bool)}]");
+            }
+            else
+            {
+                table.Add(key, value);
+                Console.WriteLine($" + {key} = {value} [{typeof(bool)}]");
+            }
         }
 
         public void ReplaceOrAdd<T>(string dottedKey, T value)
