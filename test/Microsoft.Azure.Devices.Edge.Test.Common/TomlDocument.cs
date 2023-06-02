@@ -24,14 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 string tableKey = segments[i];
 
-                try
-                {
-                    table = (TomlTable)table[tableKey];
-                }
-                catch (KeyNotFoundException)
+                if (!table.ContainsKey(tableKey))
                 {
                     table.Add(tableKey, table.CreateEmptyAttachedTable());
                 }
+
+                table = (TomlTable)table[tableKey];
             }
 
             return (table, segments[segments.Length - 1]);
