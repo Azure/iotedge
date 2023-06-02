@@ -55,28 +55,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             if (table.ContainsKey(key))
             {
                 table.Update(key, value);
-                Console.WriteLine($" ~ {key} = {value} [{typeof(bool)}]");
+                Console.WriteLine($" ~ {key} = {value} [bool]");
             }
             else
             {
                 table.Add(key, value);
-                Console.WriteLine($" + {key} = {value} [{typeof(bool)}]");
+                Console.WriteLine($" + {key} = {value} [bool]");
             }
         }
 
-        public void ReplaceOrAdd<T>(string dottedKey, T value)
+        public void ReplaceOrAdd(string dottedKey, string value)
         {
             var (table, key) = this.TraverseKey(dottedKey, add: true);
 
             if (table.ContainsKey(key))
             {
                 table.Update(key, value);
-                Serilog.Log.Information($" ~ {key} = {value} [{typeof(T)}]");
+                Serilog.Log.Information($" ~ {key} = {value} [string]");
             }
             else
             {
                 table.Add(key, value);
-                Serilog.Log.Information($" + {key} = {value} [{typeof(T)}]");
+                Serilog.Log.Information($" + {key} = {value} [string]");
             }
         }
 
