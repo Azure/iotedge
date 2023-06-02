@@ -3,10 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Net;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 AuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
-                CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
+                this.ca,
                 this.IotHub,
                 this.device.NestedEdge.DeviceHostname,
                 token,
