@@ -38,6 +38,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         return (null, string.Empty);
                     }
                 }
+                else
+                {
+                    Serilog.Log.Information($" {new string(' ', i)}* [{tableKey}]");
+                }
 
                 table = (TomlTable)table[tableKey];
             }
