@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             string[] segments = dottedKey.Split(".");
             TomlTable table = this.document;
-            Serilog.Log.Information(" * [root]");
 
             for (int i = 0; i < segments.Length - 1; i++)
             {
