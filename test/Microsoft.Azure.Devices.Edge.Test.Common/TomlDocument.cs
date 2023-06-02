@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public override string ToString()
         {
-            return this.document.ToString();
+            return Toml.WriteString(this.document);
         }
     }
 }
