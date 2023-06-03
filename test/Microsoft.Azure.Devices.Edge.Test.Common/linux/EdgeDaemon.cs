@@ -149,7 +149,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     if (restart)
                     {
                         await this.serviceManager.ConfigureAsync(token);
-                        await Process.RunAsync("iotedge", "config apply", token);
                     }
                 },
                 message.ToString(),
