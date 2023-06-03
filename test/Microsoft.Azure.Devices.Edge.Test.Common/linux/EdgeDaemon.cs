@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     await this.InternalStopAsync(token);
 
-                    var conf = new DaemonConfiguration("/etc/aziot/config.toml");
+                    var conf = new DaemonConfiguration(this.serviceManager.ConfigurationPath());
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";

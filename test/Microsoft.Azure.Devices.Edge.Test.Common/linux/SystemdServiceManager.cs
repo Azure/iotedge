@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Process.RunAsync("iotedge", "config apply", token);
         }
 
+        public string ConfigurationPath() => "/etc/aziot/config.toml";
         public string GetCliName() => "iotedge";
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
