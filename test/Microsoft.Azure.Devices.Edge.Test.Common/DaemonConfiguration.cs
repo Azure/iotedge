@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public DaemonConfiguration(string superTomlPath)
         {
+            Directory.CreateDirectory(superTomlPath);
             string contents = File.Exists(superTomlPath) ? File.ReadAllText(superTomlPath) : string.Empty;
             this.config = new Config
             {
