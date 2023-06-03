@@ -167,6 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public void SetMobyRuntimeUri(string value)
         {
             this.config.Document.ReplaceOrAdd("moby_runtime.uri", value);
+            this.config.Document.ReplaceOrAdd("moby_runtime.network", "azure-iot-edge");
         }
 
         public void SetCertificates(CaCertificates certs)
