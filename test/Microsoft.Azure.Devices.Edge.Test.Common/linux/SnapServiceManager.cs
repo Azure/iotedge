@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public async Task ConfigureAsync(CancellationToken token)
         {
+            Directory.CreateDirectory("/etc/aziot/edged/config.d");
             File.Delete("/var/snap/azure-iot-identity/current/shared/config/aziot/config.toml");
             File.Copy(
                 "/etc/aziot/config.toml",
