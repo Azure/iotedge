@@ -29,64 +29,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await this.WaitForStatusAsync(ServiceStatus.Stopped, token);
         }
 
-        public Task<string> ReadConfigurationAsync(Service service, CancellationToken token) =>
-            File.ReadAllTextAsync(this.ConfigurationPath(service), token);
-
-        public async Task WriteConfigurationAsync(Service service, string config, CancellationToken token)
+        public async Task ConfigureAsync(CancellationToken token)
         {
-            string path = this.ConfigurationPath(service);
-
-            FileAttributes attr = File.GetAttributes(path);
-            File.SetAttributes(path, attr & ~FileAttributes.ReadOnly);
-
-            await File.WriteAllTextAsync(path, config);
-
-            if (attr != 0)
-            {
-                File.SetAttributes(path, attr);
-            }
+            await Process.RunAsync("iotedge", "config apply", token);
         }
-
-        public Task ResetConfigurationAsync(Service service, CancellationToken token)
-        {
-            string path = this.ConfigurationPath(service);
-            string backup = path + ".backup";
-            string template = path + ".default";
-
-            if (File.Exists(path))
-            {
-                File.Move(path, backup, true);
-            }
-
-            File.Copy(template, path, true);
-            OsPlatform.Current.SetOwner(path, this.GetOwner(service), "644");
-
-            Serilog.Log.Verbose($"Reset {path} to {template}");
-
-            string principalsPath = this.GetPrincipalsPath(service);
-            if (Directory.Exists(principalsPath))
-            {
-                Directory.Delete(principalsPath, true);
-                Serilog.Log.Verbose($"Cleared {principalsPath}");
-            }
-
-            Directory.CreateDirectory(principalsPath);
-            OsPlatform.Current.SetOwner(principalsPath, this.GetOwner(service), "755");
-
-            return Task.CompletedTask;
-        }
-
-        public string GetPrincipalsPath(Service service) =>
-            Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "config.d");
-
-        public string GetOwner(Service service) => service switch
-        {
-            Service.Keyd => "aziotks",
-            Service.Certd => "aziotcs",
-            Service.Identityd => "aziotid",
-            Service.Edged => "iotedge",
-            _ => throw new NotImplementedException(),
-        };
 
         public string GetCliName() => "iotedge";
 
@@ -113,14 +59,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 }
             }
         }
-
-        string ConfigurationPath(Service service) => service switch
-        {
-            Service.Keyd => "/etc/aziot/keyd/config.toml",
-            Service.Certd => "/etc/aziot/certd/config.toml",
-            Service.Identityd => "/etc/aziot/identityd/config.toml",
-            Service.Edged => "/etc/aziot/edged/config.toml",
-            _ => throw new NotImplementedException($"Unrecognized service '{service.ToString()}'"),
-        };
     }
 }

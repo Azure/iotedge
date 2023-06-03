@@ -148,19 +148,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     if (restart)
                     {
+                        await this.serviceManager.ConfigureAsync(token);
                         await Process.RunAsync("iotedge", "config apply", token);
                     }
                 },
                 message.ToString(),
                 properties);
-        }
-
-        public async Task ResetConfigurationAsync(CancellationToken token)
-        {
-            foreach (Service service in Enum.GetValues(typeof(Service)))
-            {
-                await this.serviceManager.ResetConfigurationAsync(service, token);
-            }
         }
 
         public Task StartAsync(CancellationToken token) => Profiler.Run(

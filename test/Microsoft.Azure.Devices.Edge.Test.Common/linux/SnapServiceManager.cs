@@ -35,65 +35,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await this.WaitForStatusAsync(ServiceStatus.Stopped, token);
         }
 
-        public Task<string> ReadConfigurationAsync(Service service, CancellationToken token) =>
-            File.ReadAllTextAsync(this.ConfigurationPath(service), token);
-
-        public async Task WriteConfigurationAsync(Service service, string config, CancellationToken token)
+        public async Task ConfigureAsync(CancellationToken token)
         {
-            string path = this.ConfigurationPath(service);
-
-            FileAttributes attr = File.GetAttributes(path);
-            File.SetAttributes(path, attr & ~FileAttributes.ReadOnly);
-
-            await File.WriteAllTextAsync(path, config);
-
-            if (attr != 0)
-            {
-                File.SetAttributes(path, attr);
-            }
+            await Process.RunAsync(
+                "snap",
+                $"set azure-iot-edge raw-config=\"$(cat /etc/aziot/config.toml)\"",
+                token);
         }
-
-        public Task ResetConfigurationAsync(Service service, CancellationToken token)
-        {
-            string path = this.ConfigurationPath(service);
-            string backup = path + ".backup";
-            string template = this.TemplatePath(service);
-
-            if (File.Exists(path))
-            {
-                File.Move(path, backup, true);
-            }
-
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            File.Copy(template, path, true);
-            OsPlatform.Current.SetOwner(path, this.GetOwner(service), "644");
-
-            Serilog.Log.Verbose($"Reset {path} to {template}");
-
-            string principalsPath = this.GetPrincipalsPath(service);
-            if (Directory.Exists(principalsPath))
-            {
-                Directory.Delete(principalsPath, true);
-                Serilog.Log.Verbose($"Cleared {principalsPath}");
-            }
-
-            Directory.CreateDirectory(principalsPath);
-            OsPlatform.Current.SetOwner(principalsPath, this.GetOwner(service), "755");
-
-            return Task.CompletedTask;
-        }
-
-        public string GetPrincipalsPath(Service service) =>
-            Path.Combine(Path.GetDirectoryName(this.ConfigurationPath(service)), "config.d");
-
-        public string GetOwner(Service service) => service switch
-        {
-            Service.Keyd => "root",
-            Service.Certd => "root",
-            Service.Identityd => "root",
-            Service.Edged => "snap_aziotedge",
-            _ => throw new NotImplementedException(),
-        };
 
         public string GetCliName() => "azure-iot-edge.iotedge";
 
@@ -121,23 +69,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 }
             }
         }
-
-        string TemplatePath(Service service) => service switch
-        {
-            Service.Keyd => "/snap/azure-iot-identity/current/etc/aziot/keyd/config.toml.default",
-            Service.Certd => "/snap/azure-iot-identity/current/etc/aziot/certd/config.toml.default",
-            Service.Identityd => "/snap/azure-iot-identity/current/etc/aziot/identityd/config.toml.default",
-            Service.Edged => "/snap/azure-iot-edge/current/etc/aziot/edged/config.toml.default",
-            _ => throw new NotImplementedException(),
-        };
-
-        string ConfigurationPath(Service service) => service switch
-        {
-            Service.Keyd => "/var/snap/azure-iot-identity/current/shared/config/aziot/keyd/config.toml",
-            Service.Certd => "/var/snap/azure-iot-identity/current/shared/config/aziot/certd/config.toml",
-            Service.Identityd => "/var/snap/azure-iot-identity/current/shared/config/aziot/identityd/config.toml",
-            Service.Edged => "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.toml",
-            _ => throw new NotImplementedException(),
-        };
     }
 }
