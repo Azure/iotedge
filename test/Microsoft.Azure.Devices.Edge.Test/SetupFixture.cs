@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
@@ -138,25 +137,24 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [OneTimeTearDown]
         public Task AfterAllAsync() => TryFinally.DoAsync(
             () => Profiler.Run(
-                () =>
+                async () =>
                 {
                     using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                     CancellationToken token = cts.Token;
-                    return Task.CompletedTask;
-                    // await this.daemon.StopAsync(token);                                  // TODO: RE-ENABLE
-                    // foreach (EdgeDevice device in Context.Current.DeleteList.Values)     // TODO: RE-ENABLE
-                    // {
-                    //     await device.MaybeDeleteIdentityAsync(token);
-                    // }
+                    await this.daemon.StopAsync(token);
+                    foreach (EdgeDevice device in Context.Current.DeleteList.Values)
+                    {
+                        await device.MaybeDeleteIdentityAsync(token);
+                    }
 
                     // Remove packages installed by this run.
-                    // await this.daemon.UninstallAsync(token);                             // TODO: RE-ENABLE
+                    await this.daemon.UninstallAsync(token);
 
                     // Delete test certs, keys, etc.
-                    // if (Directory.Exists(FixedPaths.E2E_TEST_DIR))                       // TODO: RE-ENABLE
-                    // {
-                    //     Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
-                    // }
+                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
+                    {
+                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                    }
                 },
                 "Completed end-to-end test teardown"),
             () =>
