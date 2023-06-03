@@ -2,8 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
-    using System;
-    using System.Collections.Generic;
     using Nett;
 
     class TomlDocument
@@ -29,17 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     if (add)
                     {
                         table.Add(tableKey, table.CreateEmptyAttachedTable());
-                        Serilog.Log.Information($" {new string(' ', i)}+ [{tableKey}]");
                     }
                     else
                     {
-                        Serilog.Log.Information($"Table not found at {dottedKey}");
                         return (table, string.Empty);
                     }
-                }
-                else
-                {
-                    Serilog.Log.Information($" {new string(' ', i)}* [{tableKey}]");
                 }
 
                 table = (TomlTable)table[tableKey];
@@ -55,12 +47,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             if (table.ContainsKey(key))
             {
                 table.Update(key, value);
-                Console.WriteLine($" ~ {key} = {value} [bool]");
             }
             else
             {
                 table.Add(key, value);
-                Console.WriteLine($" + {key} = {value} [bool]");
             }
         }
 
@@ -71,12 +61,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             if (table.ContainsKey(key))
             {
                 table.Update(key, value);
-                Serilog.Log.Information($" ~ {key} = {value} [string]");
             }
             else
             {
                 table.Add(key, value);
-                Serilog.Log.Information($" + {key} = {value} [string]");
             }
         }
 
@@ -86,7 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             if (string.IsNullOrEmpty(key))
             {
                 table.Remove(key);
-                Serilog.Log.Information($" X {key}");
             }
         }
 
