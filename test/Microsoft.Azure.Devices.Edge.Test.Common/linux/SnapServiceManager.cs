@@ -37,12 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public async Task ConfigureAsync(CancellationToken token)
         {
-            var path = "/var/snap/azure-iot-identity/common/shared/config/aziot";
-            File.Delete(Path.Combine(path, "config.toml"));
-            File.Copy("/etc/aziot/config.toml", Path.Combine(path, "config.toml"));
-
             // 'iotedge config apply' expects this directory to exist, but it doesn't for snaps
-            Directory.CreateDirectory(Path.Combine(path, "edged/config.d"));
+            Directory.CreateDirectory(
+                "/var/snap/azure-iot-identity/common/shared/config/aziot/edged/config.d");
 
             await Process.RunAsync("azure-iot-edge.iotedge", "config apply", token);
         }
