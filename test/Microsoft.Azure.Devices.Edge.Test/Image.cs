@@ -2,11 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
@@ -47,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     config.SetImageGarbageCollection(2);
                     await config.UpdateAsync(token);
-                    return ("with non-default image garbage collection settings.", new object[] {});
+                    return ("with non-default image garbage collection settings.", new object[] { });
                 },
                 token,
                 true);
