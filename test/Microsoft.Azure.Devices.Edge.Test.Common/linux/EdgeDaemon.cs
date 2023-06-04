@@ -153,6 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     if (restart)
                     {
                         Serilog.Log.Information(">>> iotedge config apply");
+                        Serilog.Log.Information(await File.ReadAllTextAsync(this.serviceManager.ConfigurationPath()));
                         await this.serviceManager.ConfigureAsync(token);
                         Serilog.Log.Information("<<< iotedge config apply");
                     }
