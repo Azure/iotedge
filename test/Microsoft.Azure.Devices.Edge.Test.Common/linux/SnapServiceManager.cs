@@ -39,13 +39,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             // 'iotedge config apply' expects this directory to exist, but it doesn't for snaps
             Directory.CreateDirectory(
-                "/var/snap/azure-iot-identity/common/shared/config/aziot/edged/config.d");
+                "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.d");
 
             await Process.RunAsync("azure-iot-edge.iotedge", "config apply", token);
         }
 
         public string ConfigurationPath() =>
-            "/var/snap/azure-iot-identity/x1/shared/config/aziot/config.toml";
+            "/var/snap/azure-iot-identity/current/shared/config/aziot/config.toml";
         public string GetCliName() => "azure-iot-edge.iotedge";
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
