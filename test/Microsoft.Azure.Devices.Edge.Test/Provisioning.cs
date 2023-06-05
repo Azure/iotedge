@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 async config =>
                 {
                     testCerts.AddCertsToConfig(config);
-                    config.SetDpsX509(idScope, registrationId, certPath, keyPath);
+                    config.SetDpsX509(idScope, certPath, keyPath);
                     await config.UpdateAsync(token);
                     return ("with DPS X509 attestation for '{Identity}'", new object[] { registrationId });
                 },
