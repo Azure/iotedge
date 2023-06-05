@@ -159,6 +159,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.Document.ReplaceOrAdd("hostname", value);
         }
 
+        public void SetDeviceHomedir(string value)
+        {
+            this.config.Document.ReplaceOrAdd("homedir", value);
+        }
+
         public void SetParentHostname(string value)
         {
             this.config.Document.ReplaceOrAdd("parent_hostname", value);

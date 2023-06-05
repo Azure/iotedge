@@ -110,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             });
 
                             // TODO: Only set these values for snaps
+                            config.SetDeviceHomedir("/var/snap/azure-iot-edge/common/var/lib/aziot/edged");
                             config.SetMobyRuntimeUri("unix:///var/snap/azure-iot-edge/common/docker-proxy.sock");
                             config.AddAgentUserId("0");
 
