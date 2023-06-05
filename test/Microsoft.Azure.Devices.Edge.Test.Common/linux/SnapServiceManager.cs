@@ -42,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.d");
 
             await Process.RunAsync("azure-iot-edge.iotedge", "config apply", token);
+            await Process.RunAsync("snap", "restart azure-iot-edge.aziot-edged", token);
         }
 
         public string ConfigurationPath() =>
