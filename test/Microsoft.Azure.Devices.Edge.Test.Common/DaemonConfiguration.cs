@@ -177,14 +177,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetConnectSockets(string workloadUri, string managementUri)
         {
-            this.config.Document.ReplaceOrAdd("workload_uri", workloadUri);
-            this.config.Document.ReplaceOrAdd("management_uri", managementUri);
+            this.config.Document.ReplaceOrAdd("connect.workload_uri", workloadUri);
+            this.config.Document.ReplaceOrAdd("connect.management_uri", managementUri);
         }
 
         public void SetListenSockets(string workloadUri, string managementUri)
         {
-            this.config.Document.ReplaceOrAdd("workload_uri", workloadUri);
-            this.config.Document.ReplaceOrAdd("management_uri", managementUri);
+            this.config.Document.ReplaceOrAdd("listen.workload_uri", workloadUri);
+            this.config.Document.ReplaceOrAdd("listen.management_uri", managementUri);
         }
 
         public void SetCertificates(CaCertificates certs)
