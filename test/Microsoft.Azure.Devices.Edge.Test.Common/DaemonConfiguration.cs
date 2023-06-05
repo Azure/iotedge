@@ -64,9 +64,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string key)
         {
             this.config.Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
+            parentHostname.ForEach(parent_hostame => this.SetParentHostname(parent_hostame));
 
             this.config.Document.RemoveIfExists("provisioning");
-            parentHostname.ForEach(parent_hostame => this.SetParentHostname(parent_hostame));
             this.config.Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config.Document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
             this.config.Document.ReplaceOrAdd("provisioning.device_id", deviceId);
@@ -96,9 +96,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             this.config.Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
+            parentHostname.ForEach(parent_hostame => this.SetParentHostname(parent_hostame));
 
             this.config.Document.RemoveIfExists("provisioning");
-            parentHostname.ForEach(parent_hostame => this.SetParentHostname(parent_hostame));
             this.config.Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config.Document.ReplaceOrAdd("provisioning.iothub_hostname", hubhostname);
             this.config.Document.ReplaceOrAdd("provisioning.device_id", deviceId);
