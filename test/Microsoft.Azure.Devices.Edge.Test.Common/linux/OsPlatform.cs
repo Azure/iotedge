@@ -74,12 +74,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             chmod.WaitForExit();
             chmod.Close();
         }
-
-        public async Task<uint> GetUidAsync(string user, CancellationToken token)
-        {
-            string[] output = await Process.RunAsync("id", $"-u {user}", token);
-            string uid = output[0].Trim();
-            return System.Convert.ToUInt32(uid, 10);
-        }
     }
 }
