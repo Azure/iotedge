@@ -140,22 +140,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     await this.InternalStopAsync(token);
 
-                    Serilog.Log.Information("<<< Stopped service");
-
                     var conf = new DaemonConfiguration(this.serviceManager.ConfigurationPath());
-                    Serilog.Log.Information("<<< Got config");
                     (string msg, object[] props) = await config(conf);
-                    Serilog.Log.Information("<<< Called config lambda");
-
                     message += $" {msg}";
                     properties = properties.Concat(props).ToArray();
 
                     if (restart)
                     {
-                        Serilog.Log.Information(">>> iotedge config apply");
-                        Serilog.Log.Information(await File.ReadAllTextAsync(this.serviceManager.ConfigurationPath()));
                         await this.serviceManager.ConfigureAsync(token);
-                        Serilog.Log.Information("<<< iotedge config apply");
                     }
                 },
                 message.ToString(),

@@ -31,8 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             this.ModuleNames = moduleNames
                 .Select(id => id)
                 .ToArray();
-
-            Serilog.Log.Verbose($"Created new edge configuration:\n>>>>>>>>\n{this.ToString()}\n<<<<<<<<\n");
         }
 
         public static EdgeConfiguration Create(string deviceId, IEnumerable<ModuleConfiguration> moduleConfigs)
