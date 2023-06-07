@@ -50,7 +50,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         {
                             testCerts.AddCertsToConfig(config);
 
-                            config.SetManualSasProvisioning(this.IotHub.Hostname, Context.Current.ParentHostname, this.device.Id, this.device.SharedAccessKey);
+                            config.SetManualSasProvisioning(
+                                this.IotHub.Hostname,
+                                Context.Current.ParentHostname,
+                                this.device.Id,
+                                this.device.SharedAccessKey);
 
                             await config.UpdateAsync(token);
                             return ("with connection string for device '{Identity}'", new object[] { this.device.Id });
