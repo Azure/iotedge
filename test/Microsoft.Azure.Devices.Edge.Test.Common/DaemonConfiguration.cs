@@ -83,7 +83,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.Document.ReplaceOrAdd("image_garbage_collection.cleanup_time", cleanupTime);
         }
 
-        public void SetDeviceManualX509(string hubhostname, Option<string> parentHostname, string deviceId, string identityCertPath, string identityPkPath)
+        public void SetDeviceManualX509(
+            string hubhostname,
+            Option<string> parentHostname,
+            string deviceId,
+            string identityCertPath,
+            string identityPkPath)
         {
             if (!File.Exists(identityCertPath))
             {
