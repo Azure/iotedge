@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public async Task UpdateAsync(CancellationToken token)
         {
             await File.WriteAllTextAsync(this.config.ConfigPath, this.config.Document.ToString());
-            Serilog.Log.Information(await File.ReadAllTextAsync(this.config.ConfigPath));
+            // Serilog.Log.Information(await File.ReadAllTextAsync(this.config.ConfigPath));
         }
     }
 }
