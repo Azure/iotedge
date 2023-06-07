@@ -13,14 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class DaemonConfiguration
     {
-        public enum Service
-        {
-            Keyd,
-            Certd,
-            Identityd,
-            Edged
-        }
-
         struct Config
         {
             public string ConfigPath;
