@@ -36,9 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             CancellationToken token = cts.Token;
 
-            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(
-                Context.Current.InstallerPath,
-                token);
+            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(token);
 
             await Profiler.Run(
                 async () =>
