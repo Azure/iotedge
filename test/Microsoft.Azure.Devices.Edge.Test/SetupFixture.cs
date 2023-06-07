@@ -27,21 +27,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             CancellationToken token = cts.Token;
 
+            // Set up logging
+            LogEventLevel consoleLevel = Context.Current.Verbose
+                ? LogEventLevel.Verbose
+                : LogEventLevel.Information;
+            var loggerConfig = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.NUnit(consoleLevel);
+            Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
+            Log.Logger = loggerConfig.CreateLogger();
+
             this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(token);
 
             await Profiler.Run(
                 async () =>
                 {
-                    // Set up logging
-                    LogEventLevel consoleLevel = Context.Current.Verbose
-                        ? LogEventLevel.Verbose
-                        : LogEventLevel.Information;
-                    var loggerConfig = new LoggerConfiguration()
-                        .MinimumLevel.Verbose()
-                        .WriteTo.NUnit(consoleLevel);
-                    Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
-                    Log.Logger = loggerConfig.CreateLogger();
-
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
 
