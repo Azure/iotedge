@@ -175,8 +175,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.Snap => new string[]
             {
-                "snap remove --purge azure-iot-identity",
                 "snap remove --purge azure-iot-edge",
+                "snap remove --purge azure-iot-identity",
                 "rm -r -f /etc/aziot",
                 "snap restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
