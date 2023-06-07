@@ -57,7 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                 this.device.SharedAccessKey);
 
                             await config.UpdateAsync(token);
-
                             return ("with connection string for device '{Identity}'", new object[] { this.device.Id });
                         },
                         this.device,
