@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     await this.daemon.InstallAsync(Context.Current.EdgeProxy, token);
 
-                    var commands = new[]
+                    var commands = new[] // TODO: for snaps only
                     {
                         "snap set azure-iot-identity log-level=debug",
                         "snap set azure-iot-edge log-level=debug"
