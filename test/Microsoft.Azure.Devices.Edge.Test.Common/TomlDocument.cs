@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public void RemoveIfExists(string dottedKey)
         {
             var (table, key) = this.TraverseKey(dottedKey);
-            if (string.IsNullOrEmpty(key))
+            if (!string.IsNullOrEmpty(key))
             {
                 table.Remove(key);
             }
