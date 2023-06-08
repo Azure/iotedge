@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.Document.ReplaceOrAdd("provisioning.attestation.symmetric_key.value", deviceKey);
         }
 
-        public void SetDpsX509(string idScope, string registrationId, string identityCertPath, string identityPkPath)
+        public void SetDpsX509(string idScope, string identityCertPath, string identityPkPath)
         {
             if (!File.Exists(identityCertPath))
             {
