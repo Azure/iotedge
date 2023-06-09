@@ -15,23 +15,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             Stopped
         }
 
-        readonly string[] names =
-        {
-            // "azure-iot-identity.keyd",
-            // "azure-iot-identity.certd",
-            // "azure-iot-identity.identityd",
-            "azure-iot-edge.aziot-edged"
-        };
-
         public async Task StartAsync(CancellationToken token)
         {
-            await Process.RunAsync("snap", $"start {string.Join(' ', this.names)}", token);
+            await Process.RunAsync("snap", $"start azure-iot-edge.aziot-edged", token);
             await this.WaitForStatusAsync(ServiceStatus.Running, token);
         }
 
         public async Task StopAsync(CancellationToken token)
         {
-            await Process.RunAsync("snap", $"stop {string.Join(' ', this.names)}", token);
+            await Process.RunAsync("snap", $"stop azure-iot-edge.aziot-edged", token);
             await this.WaitForStatusAsync(ServiceStatus.Stopped, token);
         }
 
@@ -42,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.d");
 
             await Process.RunAsync("azure-iot-edge.iotedge", "config apply", token);
-            await Process.RunAsync("snap", "restart azure-iot-edge.aziot-edged", token);
+            await Process.RunAsync("snap", "restart azure-iot-identity.identityd azure-iot-edge.aziot-edged", token);
         }
 
         public string ConfigurationPath() =>
@@ -51,26 +43,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
-            foreach (string service in this.names)
+            Func<string, bool> stateMatchesDesired = desired switch
             {
-                while (true)
+                ServiceStatus.Running => s => s == "active",
+                ServiceStatus.Stopped => s => s == "inactive",
+                _ => throw new NotImplementedException($"No handler for {desired}"),
+            };
+
+            while (true)
+            {
+                string[] output = await Process.RunAsync("snap", $"services azure-iot-edge.aziot-edged", token);
+                string state = output.Last().Split(" ", StringSplitOptions.RemoveEmptyEntries)[2];
+                if (stateMatchesDesired(state))
                 {
-                    Func<string, bool> stateMatchesDesired = desired switch
-                    {
-                        ServiceStatus.Running => s => s == "active",
-                        ServiceStatus.Stopped => s => s == "inactive",
-                        _ => throw new NotImplementedException($"No handler for {desired}"),
-                    };
-
-                    string[] output = await Process.RunAsync("snap", $"services {service}", token);
-                    string state = output.Last().Split(" ", StringSplitOptions.RemoveEmptyEntries)[2];
-                    if (stateMatchesDesired(state))
-                    {
-                        break;
-                    }
-
-                    await Task.Delay(250, token).ConfigureAwait(false);
+                    break;
                 }
+
+                await Task.Delay(250, token).ConfigureAwait(false);
             }
         }
     }
