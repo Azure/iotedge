@@ -125,6 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     DaemonConfiguration conf = new DaemonConfiguration("/etc/aziot/config.toml");
                     if (this.isCentOs)
                     {
+                        conf.SetConnectSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
                         conf.SetListenSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
                     }
 
