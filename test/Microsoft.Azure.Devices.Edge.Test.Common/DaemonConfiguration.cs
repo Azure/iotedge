@@ -164,6 +164,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.Document.ReplaceOrAdd("parent_hostname", value);
         }
 
+        public void SetListenSockets(string workloadUri, string managementUri)
+        {
+            this.config.Document.ReplaceOrAdd("listen.workload_uri", workloadUri);
+            this.config.Document.ReplaceOrAdd("listen.management_uri", managementUri);
+        }
+
         public void SetCertificates(CaCertificates certs)
         {
             if (!File.Exists(certs.CertificatePath))

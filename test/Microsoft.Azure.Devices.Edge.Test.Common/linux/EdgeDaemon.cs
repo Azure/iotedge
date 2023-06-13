@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public class EdgeDaemon : IEdgeDaemon
     {
         readonly PackageManagement packageManagement;
+        readonly bool isCentOs;
 
         public static async Task<EdgeDaemon> CreateAsync(CancellationToken token)
         {
@@ -77,12 +78,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }
 
-            return new EdgeDaemon(new PackageManagement(os, version, packageExtension));
+            return new EdgeDaemon(new PackageManagement(os, version, packageExtension), os == "centos");
         }
 
-        EdgeDaemon(PackageManagement packageManagement)
+        EdgeDaemon(PackageManagement packageManagement, bool isCentOs)
         {
             this.packageManagement = packageManagement;
+            this.isCentOs = isCentOs;
         }
 
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
@@ -121,6 +123,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     await this.InternalStopAsync(token);
 
                     DaemonConfiguration conf = new DaemonConfiguration("/etc/aziot/config.toml");
+                    if (this.isCentOs)
+                    {
+                        conf.SetListenSockets("unix:///var/run/iotedge/workload.sock", "unix:///var/run/iotedge/mgmt.sock");
+                    }
+
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
