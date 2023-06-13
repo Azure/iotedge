@@ -125,6 +125,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     DaemonConfiguration conf = new DaemonConfiguration("/etc/aziot/config.toml");
                     if (this.isCentOs)
                     {
+                        // The recommended way to set up [listen] sockets in config.toml is to use the 'fd://...' URL
+                        // scheme, which will make use of systemd socket activation. CentOS 7 supports systemd but does
+                        // not support socket activation, so for that platform use the 'unix://...' scheme.
                         conf.SetConnectSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
                         conf.SetListenSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
                     }
