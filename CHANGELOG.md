@@ -1,3 +1,11 @@
+# 1.4.13 (2023-06-15)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.10 to match the daemon)
+
 # 1.4.12 (2023-06-14)
 
 The following Docker images were updated because their base images changed:
