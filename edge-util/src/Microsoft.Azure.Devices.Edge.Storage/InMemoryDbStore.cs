@@ -122,7 +122,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public Task<ulong> Count() => Task.FromResult((ulong)this.keyValues.Count);
 
-        public Task<ulong> GetCountFromOffset(byte[] offset) => throw new NotImplementedException();
+        public async Task<ulong> GetCountFromStartKey(byte[] startKey)
+        {
+            List<(byte[] key, byte[] value)> snapshot = await this.GetSnapshot(CancellationToken.None);
+            int count = 0;
+            for (int i = 0; i < snapshot.Count; i++)
+            {
+                byte[] key = snapshot[i].key;
+                if (key.SequenceEqual(startKey))
+                {
+                    count = snapshot.Count - i;
+                    break;
+                }
+            }
+            return (ulong)count;
+        }
 
         public void Dispose()
         {

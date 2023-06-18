@@ -105,6 +105,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public Task<ulong> Count() => this.dbStore.Count();
 
-        public Task<ulong> GetCountFromOffset(byte[] offset) => this.dbStore.GetCountFromOffset(offset);
+        public Task<ulong> GetCountFromStartKey(byte[] startKey) => this.dbStore.GetCountFromStartKey(startKey);
     }
 }

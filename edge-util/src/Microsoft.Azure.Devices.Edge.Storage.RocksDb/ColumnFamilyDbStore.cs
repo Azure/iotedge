@@ -143,10 +143,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public Task<ulong> Count() => Task.FromResult((ulong)Math.Max(Interlocked.Read(ref this.count), 0));
 
-        public Task<ulong> GetCountFromOffset(byte[] offset)
+        public Task<ulong> GetCountFromStartKey(byte[] startKey)
         {
             var iterator = this.db.NewIterator(this.Handle);
-            iterator.Seek(offset);
+            iterator.Seek(startKey);
 
             ulong count = 0;
             while (iterator.Valid())
