@@ -55,7 +55,7 @@ pub struct Check {
     docker_server_version: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OutputFormat {
     Json,
     Text,

@@ -87,7 +87,7 @@ impl Default for Listen {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MinTlsVersion {
     Tls10,
     Tls11,

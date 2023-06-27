@@ -45,7 +45,7 @@ impl Source for YamlFileSource {
             YamlFileSource::String(s) => Cow::Borrowed(&**s),
         };
 
-        let docs = YamlLoader::load_from_str(&*contents)
+        let docs = YamlLoader::load_from_str(&contents)
             .map_err(|err| ConfigError::Foreign(Box::new(err)))?;
 
         let mut docs = docs.into_iter();
