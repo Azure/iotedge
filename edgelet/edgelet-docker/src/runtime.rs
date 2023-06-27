@@ -122,12 +122,11 @@ where
                 if image_name_to_id.is_empty() {
                     log::error!("No docker images present on device: {} was just pulled, but not found on device", image);
                 } else {
-                    let image_id = match image_name_to_id.get(config.image()) {
-                        Some(imageid) => imageid,
-                        None => {
-                            log::warn!("Could not retrieve image id. {} was not added to image garbage collection list and will not be garbage collected", image);
-                            ""
-                        }
+                    let image_id = if let Some(imageid) = image_name_to_id.get(config.image()) {
+                        imageid
+                    } else {
+                        log::warn!("Could not retrieve image id. {} was not added to image garbage collection list and will not be garbage collected", image);
+                        ""
                     };
                     if !image_id.is_empty() {
                         self.image_use_data.record_image_use_timestamp(image_id)?;

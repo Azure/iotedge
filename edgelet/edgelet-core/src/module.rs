@@ -15,7 +15,7 @@ use edgelet_settings::module::Settings as ModuleSpec;
 
 use crate::error::Error;
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
@@ -57,7 +57,7 @@ pub enum ModuleAction {
     Remove(String),
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i64>,
@@ -129,7 +129,7 @@ impl ModuleRuntimeState {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LogTail {
     All,
     Num(u64),
@@ -255,7 +255,7 @@ pub trait ModuleRegistry {
     async fn remove(&self, name: &str) -> anyhow::Result<()>;
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct SystemInfo {
     #[serde(rename = "osType")]
     pub kernel: String,
@@ -389,7 +389,7 @@ impl Default for SystemInfo {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 pub struct ProvisioningInfo {
     /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
     pub r#type: String,
@@ -528,7 +528,7 @@ impl fmt::Display for RegistryOperation {
 }
 
 // Useful for error contexts
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RuntimeOperation {
     CreateModule(String),
     GetModule(String),
@@ -609,7 +609,7 @@ mod tests {
 
     #[test]
     fn module_config_empty_name_fails() {
-        let name = "".to_string();
+        let name = String::new();
         ModuleSpec::new(
             name,
             "docker".to_string(),

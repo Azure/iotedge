@@ -231,7 +231,7 @@ impl MgmtModule {
         {
             docker_config.image().to_owned()
         } else {
-            "".to_owned()
+            String::new()
         };
 
         Self { details, image }

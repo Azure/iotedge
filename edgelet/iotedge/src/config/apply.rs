@@ -207,7 +207,7 @@ async fn execute_inner(
         .map_err(|err| format!("{:?}", err))?;
 
     let old_identityd_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
-    if let Ok(old_identity_config) = std::fs::read(&old_identityd_path) {
+    if let Ok(old_identity_config) = std::fs::read(old_identityd_path) {
         let old_identity_config = std::str::from_utf8(&old_identity_config)
             .map_err(|err| format!("error parsing config: {}", err))?;
 
