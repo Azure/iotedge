@@ -6,7 +6,7 @@ trigger:
       - release/*
 pr: none
 
-// Build every Monday @ 8AM PDT so that the latest build is never more than a week old.
+# Build every Monday @ 8AM PDT so that the latest build is never more than a week old.
 schedules:
 - cron: "0 15 * * 1"
   displayName: Weekly build Monday morning
