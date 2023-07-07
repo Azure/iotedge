@@ -17,12 +17,6 @@ schedules:
     include:
     - release/1.4
   always: true
-- cron: "0 0 * * 2"
-  displayName: Weekly run release/1.1
-  branches:
-    include:
-    - release/1.1
-  always: true
 
 variables:
   DisableDockerDetector: true
