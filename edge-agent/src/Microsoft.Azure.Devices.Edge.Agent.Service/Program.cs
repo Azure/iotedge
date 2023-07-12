@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         var loggerFactory = c.Resolve<ILoggerFactory>();
                         InternalLoggerFactory.DefaultFactory = loggerFactory;
 
-                        var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("EdgeHub"));
+                        var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("EdgeAgent"));
                         eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                     });
 
