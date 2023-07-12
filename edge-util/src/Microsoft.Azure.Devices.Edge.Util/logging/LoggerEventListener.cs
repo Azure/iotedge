@@ -13,15 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Logging
     {
         readonly ILogger logger;
 
-        private static readonly string[] eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
-
         protected override void OnEventSourceCreated(EventSource eventSource)
         {
-            if (eventFilter.Any(filter => eventSource.Name.StartsWith(filter, StringComparison.OrdinalIgnoreCase)))
-            {
-                base.OnEventSourceCreated(eventSource);
-                this.EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All);
-            }
+            base.OnEventSourceCreated(eventSource);
+            this.EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All);
         }
 
         public LoggerEventListener(ILogger logger)
