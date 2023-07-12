@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Diagnostics.Tracing;
     using System.IO;
     using System.Linq;
     using System.Net;
