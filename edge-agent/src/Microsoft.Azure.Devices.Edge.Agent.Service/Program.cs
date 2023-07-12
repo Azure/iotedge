@@ -139,6 +139,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 var builder = new ContainerBuilder();
                 builder.RegisterModule(new LoggingModule());
+                builder.RegisterBuildCallback(
+                    c =>
+                    {
+                        // set up loggers for Dotnetty
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
+                        InternalLoggerFactory.DefaultFactory = loggerFactory;
+
+                        var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("EdgeHub"));
+                        eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
+                    });
+
                 string productInfo =
                     versionInfo != VersionInfo.Empty ?
                     $"{Constants.IoTEdgeAgentProductInfoIdentifier}/{versionInfo}" :
