@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Logging;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
