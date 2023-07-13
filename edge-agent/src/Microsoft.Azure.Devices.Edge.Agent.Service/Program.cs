@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
+    using DotNetty.Common.Internal.Logging;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
