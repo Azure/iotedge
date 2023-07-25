@@ -195,8 +195,9 @@ jobs:
     displayName: Ubuntu 22.04 on amd64
 
     pool:
-      name: $(pool.custom.name)
-      demands: ubu2204-e2e-tests
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
 
     variables:
       os: linux
@@ -204,7 +205,6 @@ jobs:
       artifactName: iotedged-ubuntu22.04-amd64
       identityServiceArtifactName: packages_ubuntu-22.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      verbose: true
 
     timeoutInMinutes: 90
 
@@ -218,6 +218,7 @@ jobs:
   - job: ubuntu_2204_arm64v8
 ################################################################################
     displayName: Ubuntu 22.04 on arm64v8
+
     pool:
       name: $(pool.custom.name)
       demands: ubu2204-arm64-e2e-tests
@@ -228,7 +229,6 @@ jobs:
       artifactName: iotedged-ubuntu22.04-aarch64
       identityServiceArtifactName: packages_ubuntu-22.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-      verbose: true
 
     timeoutInMinutes: 90
 
