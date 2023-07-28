@@ -1,3 +1,20 @@
+# 1.4.16 (2023-07-28)
+
+## Edge Hub
+### Bug fixes
+* Ensure database shuts down properly before Edge Hub closes ( [238c121](https://github.com/Azure/iotedge/commit/238c12176512b676dd24cbc6d2b55323faf13efb) )
+
+## aziot-edge
+### Bug fixes
+* Ignore 'systemd daemon-reload' errors when purging debian package ( [291d716](https://github.com/Azure/iotedge/commit/291d716f5f784a80205962804037cbf72fb99acb) )
+* Patch vulnerabilities in cargo dependencies ( [9e71341](https://github.com/Azure/iotedge/commit/9e713419235666f04ee5fa8823386890ef087193) )
+* Make RHEL8 package depend on moby-engine or docker-ce ( [3a2e68e](https://github.com/Azure/iotedge/commit/3a2e68e378301fd132d7057dbdb0de7bcb9b181b) )
+
+## aziot-identity-service
+### Bug fixes
+* Ignore 'systemd daemon-reload' errors when purging debian package ( [7856c23](https://github.com/Azure/iot-identity-service/commit/7856c232a24e7503b32957737b4a88ecabf33063) )
+* Patch vulnerabilities in cargo dependencies ( [67fa660](https://github.com/Azure/iot-identity-service/commit/67fa660f96637b57b35ef6049802b7e2a8d1844d) )
+
 # 1.4.15 (2023-07-11)
 
 The following Docker images were updated because their base images changed:
