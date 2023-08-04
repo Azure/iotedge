@@ -80,6 +80,9 @@ stages:
           StoreAsTar: true
 
     - template: build-api-proxy.yaml
+      parameters:
+        pool.linux.amd64.name: $(pool.linux.name)
+        pool.linux.arm64.name: $(pool.linux.arm.name)
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
 # single artifact from which all Docker images can be built.
