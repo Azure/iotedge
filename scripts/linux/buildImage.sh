@@ -181,8 +181,8 @@ process_args() {
     fi
 
     # The API proxy module has a separate (non-Alpine) Dockerfile for arm32v7
-    if [[ "$APP" == 'api-proxy-module' ]] && [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/arm32v7/Dockerfile" ]]; then
-        echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/arm32v7/Dockerfile'"
+    if [[ "$APP" == 'api-proxy-module' ]] && [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/arm/v7/Dockerfile" ]]; then
+        echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/arm/v7/Dockerfile'"
         print_help_and_exit
     fi
 
@@ -214,14 +214,14 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     IFS=',' read -a PLAT_ARR <<< "$PLATFORMS"
     for PLATFORM in ${PLAT_ARR[@]}
     do
-        CONVERTED_PLATFORM="$(convert_platform $PLATFORM)"
-        PLAT_IMAGE="$IMAGE-$CONVERTED_PLATFORM"
+        PLAT_IMAGE="$IMAGE-$(convert_platform $PLATFORM)"
 
-        API_PROXY_DOCKERFILE="$DOCKERFILE"
         # The Dockerfile at the standard location for api-proxy-module only builds amd64 and arm64v8,
-        # so adjust for location for arm32v7
-        if [[ "$CONVERTED_PLATFORM" == 'linux-arm32v7' ]]; then
-            API_PROXY_DOCKERFILE="$APP_BINARIESDIRECTORY/docker/${CONVERTED_PLATFORM/-/\/}/Dockerfile"
+        # so adjust for location of arm32v7
+        if [[ "$PLATFORM" == 'linux/arm/v7' ]]; then
+            API_PROXY_DOCKERFILE="$APP_BINARIESDIRECTORY/docker/$PLATFORM/Dockerfile"
+        else
+            API_PROXY_DOCKERFILE="$DOCKERFILE"
         fi
 
         if [[ -n "$SOURCE_MAP" ]]; then
