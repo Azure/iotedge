@@ -44,6 +44,20 @@
 # allow_elevated_docker_permissions = false
 
 # ==============================================================================
+# Module identity cache preference
+# ==============================================================================
+#
+# The default behavior is to request module identities from IoT Hub and fall back to a
+# cached backup if the Hub request fails. This keeps identities in sync with IoT Hub,
+# but results in extra requests to Hub that may not be necessary depending on use case.
+#
+# Setting prefer_module_identity_cache to true reverses the behavior so that the cached
+# identities are preferred to IoT Hub requests. Requests to Hub are still made if identities
+# are not found in the cache.
+#
+# prefer_module_identity_cache = false
+
+# ==============================================================================
 # Provisioning
 # ==============================================================================
 
