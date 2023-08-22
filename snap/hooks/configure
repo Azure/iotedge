@@ -29,11 +29,6 @@ if ! snapctl is-connected identity-service; then
 	exit 0
 fi
 
-# and that we have something worth writing
-if test -z "$(snapctl get raw-config)" ; then
-	exit 0
-fi
-
 mkdir -p /etc/aziot/edged/config.d
 
 snapctl get raw-config > /etc/aziot/config.toml
