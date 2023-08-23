@@ -125,12 +125,12 @@ stages:
               *.deb
               *.rpm
             TargetFolder: '$(build.artifactstagingdirectory)'
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: ESRP Binary CodeSigning
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: "aziotedge-pmc-v4-prod"
             FolderPath: '$(build.artifactstagingdirectory)'
-            Pattern: "*.rpm"
+            Pattern: "*.deb, *.rpm"
             SessionTimeout: 20
             inlineOperation: |
               [
@@ -265,12 +265,12 @@ stages:
             PACKAGE_FILTER: $(identityServicePackageFilter)
             DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
             IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: ESRP Binary CodeSigning (IIS)
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: "aziotedge-pmc-v4-prod"
             FolderPath: '$(System.ArtifactsDirectory)/$(artifactName)'
-            Pattern: "*.rpm"
+            Pattern: "*.deb, *.rpm"
             SessionTimeout: 20
             inlineOperation: |
               [
