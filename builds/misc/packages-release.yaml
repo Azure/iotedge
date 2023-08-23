@@ -143,6 +143,10 @@ stages:
                 }
               ]
             signConfigType: inlineSignParams
+        - bash: |
+            cd $(build.artifactstagingdirectory)
+            rm -f ./CodeSignSummary*
+          displayName: Remove CodeSign Summary
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
           displayName: 'SBOM Generation Task'
           inputs:
@@ -283,6 +287,10 @@ stages:
                 }
               ]
             signConfigType: inlineSignParams
+        - bash: |
+            cd "$(System.ArtifactsDirectory)/$(artifactName)"
+            rm -f ./CodeSignSummary*
+          displayName: Remove CodeSign Summary
         - task: PublishBuildArtifacts@1
           displayName: Publish Artifacts
           inputs:
