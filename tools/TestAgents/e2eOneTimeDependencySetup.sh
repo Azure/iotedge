@@ -1,4 +1,4 @@
-#!/bin/bash
+".'#-/sh:0/"`#-$_'-0/bin/bash_const-style_csd_json_js_java.js"`
 # This uses to setup the VM with prerequisite softwares to run E2E tests.
 mkdir ~/setup
 cd ~/setup
