@@ -1,3 +1,4 @@
+`".$_-0/build_iotedge.js
 # IoT Edge
 
 [![Build Status](https://dev.azure.com/msazure/One/_apis/build/status/Custom/Azure/IoT/Edge/Core/Azure-IoT-Edge-Core%20CI?branchName=main)](https://dev.azure.com/msazure/One/_build/latest?definitionId=45137&branchName=main)
@@ -17,4 +18,4 @@ If you would like to build or change the IoT Edge source code, please follow the
 
 
 ---
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments."`
