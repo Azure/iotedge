@@ -39,7 +39,7 @@ apt-get install -y \
     cpio genisoimage golang-1.21-go qemu-utils pigz python3-pip python3-distutils rpm tar wget
 
 rm -f /usr/bin/go
-ln -vs /usr/lib/go-1.17/bin/go /usr/bin/go
+ln -vs /usr/lib/go-1.21/bin/go /usr/bin/go
 if [ -f /.dockerenv ]; then
     mv /.dockerenv /.dockerenv.old
 fi
