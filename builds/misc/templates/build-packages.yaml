@@ -162,11 +162,11 @@ stages:
         displayName: Mariner_Linux
         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
         pool:
-          # We are using Linux image that lives in Windows pool. The Windows pool by default uses Standard_D4s_v3 SKU.
-          # EFLOW requires ~85GB to build the edgelet artifacts.
-          name: $(pool.windows.name)
+          name: $(pool.linux.name)
           demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+          - DiskSizeGiB -equals 100 # EFLOW requires ~85GB to build the edgelet artifacts
+          - WorkFolder -equals /mnt/storage/_work
         strategy:
           matrix:
             CBL-Mariner2.0-amd64:
@@ -250,6 +250,8 @@ stages:
           name: $(pool.linux.arm.name)
           demands:
           - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
+          - DiskSizeGiB -equals 100 # EFLOW requires ~85GB to build the edgelet artifacts
+          - WorkFolder -equals /mnt/storage/_work
         strategy:
           matrix:
             CBL-Mariner2.0-aarch64:
