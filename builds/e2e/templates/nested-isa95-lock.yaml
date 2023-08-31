@@ -23,7 +23,7 @@ steps:
             --resource-group '$(resourceGroup)' \
             --vm-name '${{ parameters.agentName }}' \
             --output tsv \
-            --query '[].id' | jq -r '.[]'
+            --query '[].id'
         )
         echo "$nic_resource"
         echo ''
