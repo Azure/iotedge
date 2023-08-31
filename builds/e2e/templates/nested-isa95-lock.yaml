@@ -26,7 +26,6 @@ steps:
             --query '[].id'
         )
         echo "$nic_resource"
-        echo ''
         network_interface=$(echo "$nic_resource" | sed -n 's/.*\/\(.*\)/\1/p')
         echo "Network Interface: $network_interface"
         echo ''
