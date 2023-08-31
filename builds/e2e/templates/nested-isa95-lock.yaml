@@ -19,7 +19,7 @@ steps:
         echo "Network Interface: $network_interface"
         echo ""
         echo "Get Network Security Group"
-        nicListNsg=$(az network nic list-effective-nsg -g $(ressourceGroup) -n $network_interface  --query 'value[0].networkSecurityGroup')
+        nicListNsg=$(az network nic list-effective-nsg -g $(ressourceGroup) -n $network_interface --query 'value[?contains(keys(association), `networkInterface`)].networkSecurityGroup')
         echo "$nicListNsg"
         tmp=$(echo $nicListNsg | jq -r '.id')
         nsgName=$(echo "$tmp" | sed -n 's/.*\/\(.*\)/\1/p')
