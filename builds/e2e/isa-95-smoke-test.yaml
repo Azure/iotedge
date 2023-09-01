@@ -21,7 +21,7 @@ variables:
   DisableDockerDetector: true
   itProxy: http://10.16.8.4:3128
   otProxy: http://10.16.5.4:3128
-  ressourceGroup: nested-edge-isa95
+  resourceGroup: nested-edge-isa95
   otProxyName: "otproxy"
 
 resources:
