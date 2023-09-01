@@ -232,5 +232,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotNull(createContainerParameters);
             Assert.True(DockerConfig.CompareCreateOptions(expectedCreateOptions, createContainerParameters));
         }
+
+        [Fact]
+        public void TestRestartPolicyDeserialization()
+        {
+            var original = "{\"HostConfig\":{\"RestartPolicy\":{\"Name\":\"unless-stopped\"}}}";
+            var encoded = JsonConvert.DeserializeObject<CreateContainerParameters>(original);
+            var decoded = JsonConvert.SerializeObject(encoded);
+
+            Assert.Equal(original, decoded);
+        }
     }
 }
