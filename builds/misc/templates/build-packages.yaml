@@ -249,7 +249,7 @@ stages:
         pool:
           name: $(pool.linux.arm.name)
           demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
           - DiskSizeGiB -equals 100 # EFLOW requires ~85GB to build the edgelet artifacts
           - WorkFolder -equals /mnt/storage/_work
         strategy:
