@@ -2,34 +2,50 @@ parameters:
   agentName: ''
   lvl: ''
 
-steps: 
+steps:
   - task: Bash@3
     name: isa95_lock_lvl${{ parameters.lvl }}
     displayName: 'Locking network of ${{ parameters.agentName }}'
     inputs:
       targetType: inline
-      script: |     
-        az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+      script: |
+        set -e
 
-        echo "Get Network Interface"
-        tmp=$(az vm nic list --resource-group $(ressourceGroup) --vm-name ${{ parameters.agentName }} --query '[].id' | jq -r '.[]')
-        echo "$tmp"
-        echo ""
-        network_interface=$(echo "$tmp" | sed -n 's/.*\/\(.*\)/\1/p')
+        az login \
+          --service-principal \
+          --password '$(edgebuild-service-principal-secret)' \
+          --username '$(servicePrincipal.clientId)' \
+          --tenant '$(servicePrincipal.tenantId)'
+
+        echo 'Get Network Interface'
+        nic_resource=$(
+          az vm nic list \
+            --resource-group '$(resourceGroup)' \
+            --vm-name '${{ parameters.agentName }}' \
+            --output tsv \
+            --query '[].id'
+        )
+        echo "$nic_resource"
+        network_interface=$(echo "$nic_resource" | sed -n 's/.*\/\(.*\)/\1/p')
         echo "Network Interface: $network_interface"
-        echo ""
-        echo "Get Network Security Group"
-        nicListNsg=$(az network nic list-effective-nsg -g $(ressourceGroup) -n $network_interface  --query 'value[0].networkSecurityGroup')
-        echo "$nicListNsg"
-        tmp=$(echo $nicListNsg | jq -r '.id')
-        nsgName=$(echo "$tmp" | sed -n 's/.*\/\(.*\)/\1/p')
+        echo ''
+        echo 'Get Network Security Group'
+        nsg_resource=$(
+          az network nic list-effective-nsg \
+            --resource-group '$(resourceGroup)' \
+            --name "$network_interface" \
+            --output tsv \
+            --query 'value[?contains(keys(association), `networkInterface`)].networkSecurityGroup | [0].id'
+        )
+        echo "$nsg_resource"
+        nsgName=$(echo "$nsg_resource" | sed -n 's/.*\/\(.*\)/\1/p')
         echo "Network Security Group: $nsgName"
 
-        echo "lock VMs"
+        echo 'lock VMs'
         az network nsg rule create \
-          --resource-group $(ressourceGroup) \
-          --nsg-name $nsgName \
-          --name "Lock_network" \
+          --resource-group '$(resourceGroup)' \
+          --nsg-name "$nsgName" \
+          --name 'Lock_network' \
           --direction Outbound \
           --protocol '*' \
           --priority 250 \
