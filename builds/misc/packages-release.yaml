@@ -516,13 +516,13 @@ stages:
       displayName: Release Artifact Smoke Tests
       strategy:
         matrix:
-          Ubuntu1804-amd64:
+          Ubuntu2204-amd64:
             pool_name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
             agent_demands: 'ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby'
             os: ubuntu22.04
             arch: amd64
             ext: deb
-          Ubuntu1804-arm64:
+          Ubuntu2204-arm64:
             pool_name: 'Azure-IoT-Edge-1ES-Hosted-Linux-Arm64'
             agent_demands: 'ImageOverride -equals agent-aziotedge-ubuntu-22.04-arm64-msmoby'
             os: ubuntu22.04
