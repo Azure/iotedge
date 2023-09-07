@@ -1,6 +1,7 @@
 auto_reprovisioning_mode = "OnErrorOnly"
 imported_master_encryption_key = "/tmp/master-encryption-key"
 hostname = "my-device"
+prefer_module_identity_cache = false
 
 [provisioning]
 source = "manual"

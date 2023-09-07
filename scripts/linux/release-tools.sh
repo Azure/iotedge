@@ -132,7 +132,9 @@ make_project_release_commit_for_core_image_refresh() {
   local tags="[\"${parts[0]}.${parts[1]}\"]"
 
   # determine version of diagnostics image, which must match the edgelet version
-  local diag_version=$(cat edgelet/version.txt)
+  local diag_version=$(
+    cat edgelet/version.txt | grep -Eo '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+'
+  )
 
   # update changelog
   make_core_changelog "$next" "$diag_version" 'CHANGELOG.new.md'
@@ -255,7 +257,9 @@ get_project_release_info() {
   local tags="[\"${parts[0]}.${parts[1]}\"]"
 
   # diagnostics image version must match the edgelet version
-  local diag_version=$(cat edgelet/version.txt)
+  local diag_version=$(
+    cat edgelet/version.txt | grep -Eo '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+'
+  )
 
   # get the changelog for the new release
   local tmpfile=$(mktemp)
@@ -265,7 +269,7 @@ get_project_release_info() {
   # Azure Pipelines doesn't seem to handle multi-line task variables, so encode to one line
   # See https://developercommunity.visualstudio.com/t/multiple-lines-variable-in-build-and-release/365667
   readarray -t lines < <(cat "$tmpfile")
-  local changelog=$(printf '\\x0A%s' "${lines[@]}")
+  local changelog=$(printf '\\x0A%s' "${lines[@]//$'\r'}")
   local changelog=${changelog:4} # Remove leading newline
 
   rm "$tmpfile"
@@ -319,7 +323,7 @@ get_metrics_collector_release_info() {
   # Azure Pipelines doesn't seem to handle multi-line task variables, so encode to one line
   # See https://developercommunity.visualstudio.com/t/multiple-lines-variable-in-build-and-release/365667
   readarray -t lines < <(cat "$tmpfile")
-  local changelog=$(printf '\\x0A%s' "${lines[@]}")
+  local changelog=$(printf '\\x0A%s' "${lines[@]//$'\r'}")
   local changelog=${changelog:4} # Remove leading newline
 
   rm "$tmpfile"
@@ -349,6 +353,7 @@ get_metrics_collector_release_info() {
 #   CORE_VERSION Required. Version of modules (except diagnostics) that are part of this release
 #   DIAG_VERSION Required. Version of diagnostics module that is part of this release
 #   GITHUB_TOKEN Required. The Authorization token passed to GitHub
+#   IS_LTS       Optional. If not given, defaults to 'false'
 #   REPO_NAME    Required. The GitHub product repository, as 'org/repo'
 #
 # Output
@@ -367,20 +372,28 @@ create_github_release_page_in_product_repo() {
   fi
 
   local branch=${BRANCH:-main}
+  local is_lts=${IS_LTS:-false}
+  local name="$CORE_VERSION"
+  if [ "$is_lts" != "false" ]; then
+    name+=" LTS"
+  fi
 
   local body='Only Docker images are updated in this release.'
   body+=$(echo -e " The daemon remains at version $DIAG_VERSION.\n\n")
   body+="$CHANGELOG"
 
-  local data=$(jq -nc --arg version "$CORE_VERSION" --arg branch "$branch" --arg body "$body" '
+  local data=$(jq -nc \
+    --arg version "$CORE_VERSION" \
+    --arg name "$name" \
+    --arg branch "$branch" \
+    --arg body "$body" '
     {
       tag_name: $version,
-      name: $version,
+      name: $name,
       target_commitish: $branch,
       body: $body
-    }
-  ')
-
+    }')
+  
   local response=$(curl \
     -sS \
     -X POST \
@@ -413,6 +426,7 @@ create_github_release_page_in_product_repo() {
 #   BRANCH       Optional. If not given, defaults to current branch (e.g., 'release/1.4')
 #   CORE_VERSION Required. Version of modules (except diagnostics) that are part of this release
 #   GITHUB_TOKEN Required. The Authorization token passed to GitHub
+#   IS_LTS       Optional. If not given, defaults to 'false'
 #   RELEASE_URL  Required. The URL of the already-created Release page in the product repo
 #   REPO_NAME    Required. The GitHub project repository, as 'org/repo'
 #
@@ -426,18 +440,26 @@ create_github_release_page_for_core_images_in_project_repo() {
   fi
 
   local branch=${BRANCH:-$(git branch --show-current)}
+  local is_lts=${IS_LTS:-false}
+  local name="$CORE_VERSION"
+  if [ "$is_lts" != "false" ]; then
+    name+=" LTS"
+  fi
 
   local body='The project source code is linked below.'
   body+=" Head to the [product release page]($RELEASE_URL) for the changelog."
 
-  local data=$(jq -nc --arg version "$CORE_VERSION" --arg branch "$branch" --arg body "$body" '
+  local data=$(jq -nc \
+    --arg version "$CORE_VERSION" \
+    --arg name "$name" \
+    --arg branch "$branch" \
+    --arg body "$body" '
     {
       tag_name: $version,
-      name: $version,
+      name: $name,
       target_commitish: $branch,
       body: $body
-    }
-  ')
+    }')
 
   local response=$(curl \
     -sS \

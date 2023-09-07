@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     version = version.Split('.')[0];
                     packageExtension = SupportedPackageExtension.Rpm;
 
-                    if (version != "8")
+                    if (version != "8" && version != "9")
                     {
                         throw new NotImplementedException($"Daemon is only installed on Red Hat version 8.X, operating system '{os} {version}'");
                     }
