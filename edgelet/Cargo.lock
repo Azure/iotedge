@@ -127,12 +127,12 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "aziot-cert-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-key-common",
  "http",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "hyper",
  "percent-encoding",
 ]
@@ -140,7 +140,7 @@ dependencies = [
 [[package]]
 name = "aziot-cert-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-key-common",
  "serde",
@@ -149,11 +149,11 @@ dependencies = [
 [[package]]
 name = "aziot-certd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "cert-renewal",
  "hex",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
+ "http-common",
  "libc",
  "openssl",
  "serde",
@@ -179,7 +179,7 @@ dependencies = [
  "edgelet-image-cleanup",
  "edgelet-settings",
  "futures-util",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "log",
  "logger",
  "serde",
@@ -192,13 +192,13 @@ dependencies = [
 [[package]]
 name = "aziot-identity-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
  "aziot-identity-common-http",
  "http",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "hyper",
  "percent-encoding",
 ]
@@ -206,10 +206,10 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-key-common",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
+ "http-common",
  "openssl",
  "serde",
 ]
@@ -217,12 +217,12 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
  "aziot-key-common",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "serde",
  "serde_json",
 ]
@@ -230,11 +230,11 @@ dependencies = [
 [[package]]
 name = "aziot-identityd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-identity-common",
  "cert-renewal",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
+ "http-common",
  "libc",
  "openssl",
  "serde",
@@ -245,12 +245,12 @@ dependencies = [
 [[package]]
 name = "aziot-key-client"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
  "http",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "httparse",
  "percent-encoding",
  "serde",
@@ -260,12 +260,12 @@ dependencies = [
 [[package]]
 name = "aziot-key-client-async"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
  "http",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "hyper",
  "percent-encoding",
 ]
@@ -273,7 +273,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "serde",
 ]
@@ -281,17 +281,17 @@ dependencies = [
 [[package]]
 name = "aziot-key-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-key-common",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "serde",
 ]
 
 [[package]]
 name = "aziot-key-openssl-engine"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-key-client",
  "aziot-key-common",
@@ -299,19 +299,19 @@ dependencies = [
  "foreign-types-shared",
  "log",
  "openssl",
- "openssl-build 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-build",
  "openssl-errors",
  "openssl-sys",
- "openssl-sys2 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
- "openssl2 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-sys2",
+ "openssl2",
 ]
 
 [[package]]
 name = "aziot-keyd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
+ "http-common",
  "libc",
  "serde",
 ]
@@ -319,7 +319,7 @@ dependencies = [
 [[package]]
 name = "aziot-keys-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "pkcs11",
  "serde",
@@ -329,25 +329,16 @@ dependencies = [
 [[package]]
 name = "aziot-tpmd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
- "serde",
-]
-
-[[package]]
-name = "aziot-tpmd-config"
-version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f930d8a6e450d2c08cb7f8a3ce5c67a926d4e618"
-dependencies = [
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "serde",
 ]
 
 [[package]]
 name = "aziotctl-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "anyhow",
  "aziot-certd-config",
@@ -357,7 +348,7 @@ dependencies = [
  "aziot-tpmd-config",
  "base64 0.21.2",
  "cert-renewal",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
+ "http-common",
  "log",
  "nix",
  "serde",
@@ -454,7 +445,7 @@ dependencies = [
 [[package]]
 name = "cert-renewal"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "async-trait",
  "chrono",
@@ -552,7 +543,7 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "serde",
  "toml",
@@ -752,7 +743,7 @@ dependencies = [
  "edgelet-utils",
  "futures",
  "hex",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "hyper",
  "log",
  "nix",
@@ -776,7 +767,7 @@ dependencies = [
  "edgelet-settings",
  "edgelet-test-utils",
  "http",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "libc",
  "log",
  "percent-encoding",
@@ -799,7 +790,7 @@ dependencies = [
  "edgelet-test-utils",
  "futures-util",
  "http",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "hyper",
  "libc",
  "log",
@@ -839,7 +830,7 @@ dependencies = [
  "edgelet-test-utils",
  "futures-util",
  "http",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "hyper",
  "libc",
  "log",
@@ -863,7 +854,7 @@ dependencies = [
  "edgelet-core",
  "edgelet-docker",
  "edgelet-settings",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "log",
  "thiserror",
  "tokio",
@@ -878,7 +869,7 @@ dependencies = [
  "chrono",
  "config-common",
  "docker",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "humantime-serde",
  "lazy_static",
  "serde",
@@ -1228,7 +1219,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "async-trait",
  "base64 0.21.2",
@@ -1413,7 +1404,7 @@ dependencies = [
  "aziot-identityd-config",
  "aziot-keyd-config",
  "aziot-keys-common",
- "aziot-tpmd-config 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "aziot-tpmd-config",
  "aziotctl-common",
  "base64 0.21.2",
  "byte-unit",
@@ -1431,7 +1422,7 @@ dependencies = [
  "edgelet-utils",
  "erased-serde",
  "hex",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "hyper",
  "lazy_static",
  "libc",
@@ -1528,7 +1519,7 @@ checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 [[package]]
 name = "logger"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "env_logger",
  "log",
@@ -1675,7 +1666,7 @@ dependencies = [
 [[package]]
 name = "openssl-build"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "cc",
 ]
@@ -1717,32 +1708,23 @@ dependencies = [
 [[package]]
 name = "openssl-sys2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
- "openssl-build 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
- "openssl-sys",
-]
-
-[[package]]
-name = "openssl-sys2"
-version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#f930d8a6e450d2c08cb7f8a3ce5c67a926d4e618"
-dependencies = [
- "openssl-build 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-build",
  "openssl-sys",
 ]
 
 [[package]]
 name = "openssl2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "foreign-types",
  "foreign-types-shared",
  "openssl",
- "openssl-build 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-build",
  "openssl-sys",
- "openssl-sys2 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "openssl-sys2",
 ]
 
 [[package]]
@@ -1795,16 +1777,16 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pkcs11"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "foreign-types-shared",
  "lazy_static",
  "libc",
  "openssl",
- "openssl-build 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
+ "openssl-build",
  "openssl-sys",
- "openssl-sys2 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
- "openssl2 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=feature/snapping)",
+ "openssl-sys2",
+ "openssl2",
  "percent-encoding",
  "pkcs11-sys",
 ]
@@ -1812,7 +1794,7 @@ dependencies = [
 [[package]]
 name = "pkcs11-sys"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 
 [[package]]
 name = "pkg-config"
@@ -2255,7 +2237,7 @@ dependencies = [
 [[package]]
 name = "test-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#60e2b18e9461c63a36328b0f0aa07167d2a34a62"
+source = "git+https://github.com/Azure/iot-identity-service?branch=feature/snapping#32287b8f879cf549746e974b2c31d5e55c19a995"
 dependencies = [
  "aziot-identity-common",
  "aziot-identity-common-http",
@@ -2263,7 +2245,7 @@ dependencies = [
  "aziot-key-common",
  "futures-core",
  "futures-util",
- "http-common 0.1.0 (git+https://github.com/Azure/iot-identity-service?branch=main)",
+ "http-common",
  "hyper",
  "openssl",
  "serde_json",
