@@ -367,7 +367,7 @@ jobs:
     pool:
       name: $(pool.linux.arm.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-mariner-2.0-arm64
+        - ImageOverride -equals agent-aziotedge-mariner-2.0-arm64-msmoby
 
     variables:
       os: linux

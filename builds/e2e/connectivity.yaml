@@ -94,10 +94,10 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
-      aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
+      edgelet.artifact.name: 'iotedged-ubuntu22.04-amd64'
+      aziotis.artifact.name: 'packages_ubuntu-22.04_amd64'
       aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
     steps:
       - task: Bash@3
