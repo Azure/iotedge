@@ -21,14 +21,14 @@ use crate::error::Error;
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
         ServiceDefinition {
-            service: "aziot-edged",
+            service: "snap.azure-iot-edge.aziot-edged.service",
             sockets: &[]
         }
     };
 
     static ref DOCKERPROXY: ServiceDefinition = {
         ServiceDefinition {
-            service: "docker-proxy",
+            service: "snap.azure-iot-edge.docker-proxy.service",
             sockets: &[]
         }
     };

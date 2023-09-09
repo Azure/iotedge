@@ -17,6 +17,13 @@ passthrough:
   system-usernames:
     snap_aziotedge: shared
 
+package-repositories:
+  - type: apt
+    components: [ main ]
+    suites: [ focal ]
+    url: https://packages.microsoft.com/ubuntu/20.04/prod
+    key-id: BC528686B50D79E339D3721CEB3E94ADBE1229CF
+
 parts:
   rust-toolchain:
     plugin: nil
@@ -95,6 +102,10 @@ parts:
     stage-packages: [ socat ]
     organize:
       socat.sh: bin/socat.sh
+  docker-cli:
+    plugin: nil
+    stage-packages:
+      - moby-cli
 
 apps:
   aziot-edged:
