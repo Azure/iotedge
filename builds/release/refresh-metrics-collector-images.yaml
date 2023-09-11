@@ -527,6 +527,10 @@ stages:
         #!/bin/bash
         set -euo pipefail
 
+        # in case commits were made after this pipeline started but before we arrived here, sync to
+        # the tip of the branch
+        git checkout "$PRODUCT_REPO_BRANCH"
+
         # update product-versions.json
         echo "$(jq '
           def product: .channels[] | .products[] | select(

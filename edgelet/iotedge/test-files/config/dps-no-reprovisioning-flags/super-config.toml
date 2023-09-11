@@ -1,5 +1,6 @@
 auto_reprovisioning_mode = "OnErrorOnly"
 hostname = "my-device"
+prefer_module_identity_cache = false
 
 [provisioning]
 source = "dps"
