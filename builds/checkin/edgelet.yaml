@@ -147,7 +147,7 @@ jobs:
       - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: |
-          $CARGO install --locked cargo-tarpaulin
+          $CARGO install --locked --version 0.26.1 cargo-tarpaulin
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |
