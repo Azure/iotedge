@@ -1,3 +1,20 @@
+# 1.4.20 (2023-09-18)
+
+## Edge Agent
+### Bug fixes
+* Fix container restart policy deserialization ( [bd05d4d](https://github.com/Azure/iotedge/commit/bd05d4d8346b9cc3b029c74468a1db3eefa7287c) )
+
+## aziot-edge
+### Bug fixes
+* Add support for 'prefer_module_identity_cache' option ( [9c7dbdd](https://github.com/Azure/iotedge/commit/9c7dbdd4b9aa9eb54394fec3f13bc3ff3fe66d1e) )
+* Fix error in CLI warning message ( [978ccaa](https://github.com/Azure/iotedge/commit/978ccaa43efbddc55f89527934a5afe5227deef8) )
+
+## aziot-identity-service
+### Bug fixes
+* Add support for 'prefer_module_identity_cache' option ( [137258d](https://github.com/Azure/iot-identity-service/commit/137258ddd57bac138b3b0333b2e16a99427a73bf) )
+* Update EL package configuration to fix a conflict with distro's tpm2-tss package ( [d644195](https://github.com/Azure/iot-identity-service/commit/d6441951c477c072cd56bc9e8d487b3e790255dc) )
+* Remove socket path if it is a directory instead of a file ( [ed69cc4](https://github.com/Azure/iot-identity-service/commit/ed69cc4d34d99c3d655b297455329e9a5005b732) )
+
 # 1.4.19 (2023-09-13)
 
 The following Docker images were updated because their base images changed:
