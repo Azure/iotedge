@@ -318,7 +318,7 @@ stages:
             ArtifactName: '$(artifactName)'
           condition: succeededOrFailed()
         - task: AzureCLI@2
-          displayName: Publish Packages
+          displayName: Setup Package Publisher
           inputs:
             azureSubscription: $(az.subscription)
             scriptType: bash

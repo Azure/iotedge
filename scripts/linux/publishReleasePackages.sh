@@ -58,8 +58,10 @@ check_os() {
         OS_NAME="redhat"
         OS_VERSION="9"
     else
-        echo "Unsupported OS: $PACKAGE_OS"
-        exit 1
+        if ! $IS_PMC_SETUP_ONLY ; then
+            echo "Unsupported OS: $PACKAGE_OS"
+            exit 1
+        fi
     fi
 }
 
@@ -75,9 +77,11 @@ check_dir() {
 }
 
 check_server() {
-    if [[ -z $SERVER ]]; then
-        echo "Server Not Provided"
-        exit 1
+    if ! $IS_PMC_SETUP_ONLY ; then
+        if [[ -z $SERVER ]]; then
+            echo "Server Not Provided"
+            exit 1
+        fi
     fi
 
 }
@@ -417,7 +421,7 @@ else
     CERT_FILE="$WDIR/private-key.pem"
     SETTING_FILE="$WDIR/settings.toml"
 
-    if [[ $IS_PMC_SETUP_ONLY ]]; then
+    if $IS_PMC_SETUP_ONLY ; then
         setup_for_microsoft_repo
     else
         publish_to_microsoft_repo
