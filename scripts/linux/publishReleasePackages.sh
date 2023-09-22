@@ -5,6 +5,9 @@
 #AZ CLI LOGIN
 SCRIPT_NAME=$(basename $0)
 SKIP_UPLOAD="false"
+IS_PMC_SETUP_ONLY=false
+DOCKER_CONFIG_DIR="/root/.config/pmc"
+DOCKER_CERT_FILE="/root/.config/pmc/private-key.pem"
 ###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
@@ -114,6 +117,9 @@ process_args() {
         elif [ $save_next_arg -eq 10 ]; then
             PMC_RELEASE="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 11 ]; then
+            IS_PMC_SETUP_ONLY=true
+            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
@@ -127,12 +133,32 @@ process_args() {
             "-b" | "--branch-name") save_next_arg=8 ;;
             "-pro" | "--pmc-repository") save_next_arg=9 ;;
             "-pre" | "--pmc-release") save_next_arg=10 ;;
+            "--setup-pmc-only") save_next_arg=11 ;;
             *) usage ;;
             esac
         fi
     done
 }
 
+#######################################
+# NAME: 
+#    publish_to_microsoft_repo
+#
+# DESCRIPTION:
+#    The function setup the secrets and config file for RepoClient app.
+#######################################
+setup_for_microsoft_repo()
+{
+#Cleanup
+sudo rm -rf $WDIR/private-key.pem || true
+sudo rm -f $SETTING_FILE || true
+
+#Download Secrets - Requires az login and proper subscription to be selected
+az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f $CERT_FILE
+#Download PMC config file and replace the placeholder for cert part
+az keyvault secret download --vault-name iotedge-packages -n pmc-v4-settings -f $SETTING_FILE
+sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
+}
 
 #######################################
 # NAME: 
@@ -162,24 +188,6 @@ process_args() {
 #######################################
 publish_to_microsoft_repo()
 {
-CERT_FILE="$WDIR/private-key.pem"
-SETTING_FILE="$WDIR/settings.toml"
-#CONFIG_DIR="/root/.repoclient/configs"
-DOCKER_CONFIG_DIR="/root/.config/pmc"
-DOCKER_CERT_FILE="/root/.config/pmc/private-key.pem"
-
-#Cleanup
-sudo rm -rf $WDIR/private-key.pem || true
-sudo rm -f $SETTING_FILE || true
-
-#Download Secrets - Requires az login and proper subscription to be selected
-az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f $CERT_FILE
-#Download PMC config file and replace the placeholder for cert part
-az keyvault secret download --vault-name iotedge-packages -n pmc-v4-settings -f $SETTING_FILE
-sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
-echo "PMC settings:"
-cat $SETTING_FILE
-
 #Setup up PMC Command using docker
 docker pull mcr.microsoft.com/pmc/pmc-cli
 PMC_CMD="docker run --volume $WDIR:$DOCKER_CONFIG_DIR --volume $DIR:/packages --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
@@ -406,6 +414,13 @@ if [[ $SERVER == *"github"* ]]; then
     fi
     publish_to_github
 else
-    publish_to_microsoft_repo
+    CERT_FILE="$WDIR/private-key.pem"
+    SETTING_FILE="$WDIR/settings.toml"
+
+    if [[ $IS_PMC_SETUP_ONLY ]]; then
+        setup_for_microsoft_repo
+    else
+        publish_to_microsoft_repo
+    fi
 fi
 
