@@ -177,6 +177,8 @@ az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f 
 #Download PMC config file and replace the placeholder for cert part
 az keyvault secret download --vault-name iotedge-packages -n pmc-v4-settings -f $SETTING_FILE
 sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
+echo "PMC settings:"
+cat $SETTING_FILE
 
 #Setup up PMC Command using docker
 docker pull mcr.microsoft.com/pmc/pmc-cli
