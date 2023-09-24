@@ -5,7 +5,7 @@
 #AZ CLI LOGIN
 SCRIPT_NAME=$(basename $0)
 SKIP_UPLOAD="false"
-IS_PMC_SETUP_ONLY=false
+IS_PMC_SETUP_ONLY="false"
 DOCKER_CONFIG_DIR="/root/.config/pmc"
 DOCKER_CERT_FILE="/root/.config/pmc/private-key.pem"
 ###############################################################################
@@ -58,7 +58,7 @@ check_os() {
         OS_NAME="redhat"
         OS_VERSION="9"
     else
-        if ! $IS_PMC_SETUP_ONLY ; then
+        if [[ $IS_PMC_SETUP_ONLY == "false" ]]; then
             echo "Unsupported OS: $PACKAGE_OS"
             exit 1
         fi
@@ -77,13 +77,12 @@ check_dir() {
 }
 
 check_server() {
-    if ! $IS_PMC_SETUP_ONLY ; then
+    if [[ $IS_PMC_SETUP_ONLY == "false" ]]; then
         if [[ -z $SERVER ]]; then
             echo "Server Not Provided"
             exit 1
         fi
     fi
-
 }
 ###############################################################################
 # Obtain and validate the options supported by this script
@@ -122,7 +121,7 @@ process_args() {
             PMC_RELEASE="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 11 ]; then
-            IS_PMC_SETUP_ONLY=true
+            IS_PMC_SETUP_ONLY="true"
             save_next_arg=0
         else
             case "$arg" in
@@ -421,7 +420,7 @@ else
     CERT_FILE="$WDIR/private-key.pem"
     SETTING_FILE="$WDIR/settings.toml"
 
-    if $IS_PMC_SETUP_ONLY ; then
+    if [[ $IS_PMC_SETUP_ONLY == "true" ]]; then
         setup_for_microsoft_repo
     else
         publish_to_microsoft_repo
