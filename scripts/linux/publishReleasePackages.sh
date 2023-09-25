@@ -58,10 +58,8 @@ check_os() {
         OS_NAME="redhat"
         OS_VERSION="9"
     else
-        if [[ $IS_PMC_SETUP_ONLY == "false" ]]; then
-            echo "Unsupported OS: $PACKAGE_OS"
-            exit 1
-        fi
+        echo "Unsupported OS: $PACKAGE_OS"
+        exit 1
     fi
 }
 
@@ -77,11 +75,9 @@ check_dir() {
 }
 
 check_server() {
-    if [[ $IS_PMC_SETUP_ONLY == "false" ]]; then
-        if [[ -z $SERVER ]]; then
-            echo "Server Not Provided"
-            exit 1
-        fi
+    if [[ -z $SERVER ]]; then
+        echo "Server Not Provided"
+        exit 1
     fi
 }
 ###############################################################################
@@ -394,9 +390,11 @@ publish_to_github()
 ###############################################################################
 
 process_args "$@"
-check_os
-check_dir
-check_server
+if [[ $IS_PMC_SETUP_ONLY == "false" ]] ; then
+    check_os
+    check_dir
+    check_server
+fi
 echo "OS is $OS_NAME"
 echo "Version is $OS_VERSION"
 echo "Work Dir is $WDIR"
