@@ -117,6 +117,7 @@ process_args() {
             PMC_RELEASE="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 11 ]; then
+            DISCARD="$arg"
             IS_PMC_SETUP_ONLY="true"
             save_next_arg=0
         else
