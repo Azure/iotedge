@@ -390,7 +390,9 @@ publish_to_github()
 ###############################################################################
 
 process_args "$@"
+echo "BEARWASHERE: IS_PMC_SETUP_ONLY - $IS_PMC_SETUP_ONLY"
 if [[ $IS_PMC_SETUP_ONLY == "false" ]] ; then
+    echo "BEARWASHERE: IS_PMC_SETUP_ONLY 2 - $IS_PMC_SETUP_ONLY"
     check_os
     check_dir
     check_server
