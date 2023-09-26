@@ -154,7 +154,7 @@ sudo rm -rf $WDIR/private-key.pem || true
 sudo rm -f $SETTING_FILE || true
 
 #Download Secrets - Requires az login and proper subscription to be selected
-az keyvault secret download --vault-name iotedge-packages -n private-kye-pem -f $CERT_FILE
+az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f $CERT_FILE
 #Download PMC config file and replace the placeholder for cert part
 az keyvault secret download --vault-name iotedge-packages -n pmc-v4-settings -f $SETTING_FILE
 sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"

@@ -330,7 +330,7 @@ stages:
             -w "$(System.ArtifactsDirectory)" \
             -d "$(System.ArtifactsDirectory)/$(artifactName)" \
             -s "$(package-server-name)" \
-            --pmc-repository "$(pmcRepoName)" 
+            --pmc-repository "$(pmcRepoName)" \
             --pmc-release "$(pmcRelease)"
           displayName: Publish Packages
 
