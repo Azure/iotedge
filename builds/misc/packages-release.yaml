@@ -324,13 +324,15 @@ stages:
             PathtoPublish: '$(System.ArtifactsDirectory)/$(artifactName)'
             ArtifactName: '$(artifactName)'
           condition: succeededOrFailed()
-        - task: AzureCLI@2
-          displayName: Push Package to PMC
-          inputs:
-            azureSubscription: $(az.subscription.ame)
-            scriptType: bash
-            scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
-            arguments: -p "$(os)" -w "$(System.ArtifactsDirectory)" -d "$(System.ArtifactsDirectory)/$(artifactName)" -s "$(package-server-name)" --pmc-repository "$(pmcRepoName)" --pmc-release "$(pmcRelease)"
+        - script: |
+            $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh \
+            -p "$(os)" \
+            -w "$(System.ArtifactsDirectory)" \
+            -d "$(System.ArtifactsDirectory)/$(artifactName)" \
+            -s "$(package-server-name)" \
+            --pmc-repository "$(pmcRepoName)" \
+            --pmc-release "$(pmcRelease)"
+          displayName: PMC Package Publication
 
 ##############################################################################
   - stage: PublishPackagesGithub
