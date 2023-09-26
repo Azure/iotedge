@@ -269,13 +269,6 @@ stages:
             secretsFilter: >-
               GitHubAccessToken
         - checkout: self
-        - task: AzureCLI@2
-          displayName: Setup Package Publisher
-          inputs:
-            azureSubscription: $(az.subscription)
-            scriptType: bash
-            scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
-            arguments: --setup-pmc-only true -w "$(System.ArtifactsDirectory)" -d "$(System.ArtifactsDirectory)/$(artifactName)"
         - task: DownloadPipelineArtifact@2
           displayName: Download Pipeline Build Packages
           condition: not(eq(variables.excludeEdgelet, true))
@@ -296,6 +289,13 @@ stages:
             PACKAGE_FILTER: $(identityServicePackageFilter)
             DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
             IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+        - task: AzureCLI@2
+          displayName: Setup Package Publisher
+          inputs:
+            azureSubscription: $(az.subscription)
+            scriptType: bash
+            scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
+            arguments: --setup-pmc-only true -w "$(System.ArtifactsDirectory)" -d "$(System.ArtifactsDirectory)/$(artifactName)"
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: ESRP Binary CodeSigning (IIS)
           inputs:
