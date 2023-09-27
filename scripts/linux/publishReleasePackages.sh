@@ -154,7 +154,6 @@ sudo rm -rf $WDIR/private-key.pem || true
 sudo rm -f $SETTING_FILE || true
 
 #Download Secrets - Requires az login and proper subscription to be selected
-# az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f $CERT_FILE
 az keyvault secret download --id 'https://edgereleasekv.vault.azure.net/secrets/iotedge-pmc-client-auth-prod' \
     --subscription IOT_EDGE_DEV1 \
     -o tsv \
