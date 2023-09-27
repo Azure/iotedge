@@ -197,9 +197,12 @@ sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
 publish_to_microsoft_repo()
 {
 #Setup up PMC Command using docker
+echo "Pulling PMC CLI Docker Image..."
 docker pull mcr.microsoft.com/pmc/pmc-cli
 PMC_CMD="docker run --volume $WDIR:$DOCKER_CONFIG_DIR --volume $DIR:/packages --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
+echo ""
 #Upload the packages to a storage
+echo "Running command: $PMC_CMD package upload packages/"
 UPLOAD_OUTPUT=$($PMC_CMD package upload packages/)
 echo "$UPLOAD_OUTPUT"
 OUTPUT_STATUS=$(echo "$UPLOAD_OUTPUT" | jq ".state" | tr -d '"')
@@ -212,13 +215,18 @@ if [[ $OUTPUT_STATUS != "completed" ]]; then
 fi
 
 #Generate Package Id list
+echo ""
 PACKAGE_IDS=$(echo $UPLOAD_OUTPUT | jq '.[]."id"' | tr '\n' ' ' | tr -d '"')
 ID_LIST=""; for ID in $PACKAGE_IDS; do ID_LIST=$ID','$ID_LIST; echo $ID_LIST; done; ID_LIST=${ID_LIST:0:-1}
+echo "Running PMC command for $PMC_REPO_NAME ($PMC_RELEASE) with package IDs: $ID_LIST"
 
 #Associate the uploaded artifacts with the linux repo
 $PMC_CMD repo package update --add-packages $ID_LIST $PMC_REPO_NAME $PMC_RELEASE
 #Trigger linux repo to update and ingress new package association
 $PMC_CMD repo publish "$PMC_REPO_NAME"
+
+echo ""
+echo "Package Upload Complete for"
 #Let's go ahead and print out the two URLs to access PMC repo
 $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 
@@ -403,9 +411,7 @@ check_dir
 echo "Work Dir is $WDIR"
 echo "Package OS DIR is $DIR"
 
-echo "BEARWASHERE: IS_PMC_SETUP_ONLY - $IS_PMC_SETUP_ONLY"
 if [[ $IS_PMC_SETUP_ONLY == "false" ]] ; then
-    echo "BEARWASHERE: IS_PMC_SETUP_ONLY 2 - $IS_PMC_SETUP_ONLY"
     check_os
     check_server
 
