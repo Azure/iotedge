@@ -26,6 +26,7 @@ function usage() {
     echo " -b,  --branch-name            Git Branch Name"
     echo " -pro,--pmc-repository         PMC package repository"
     echo " -pre,--pmc-release            Release for PMC (required for *.deb) {\"buster\", \"bullseye\", \"bionic\", \"focal\", \"jammy\", \"nightly\", \"\" }"
+    echo " --setup-pmc-only              Setup production certificate for PMC publication. No package upload will be done."
     exit 1
 }
 
@@ -142,7 +143,7 @@ process_args() {
 
 #######################################
 # NAME: 
-#    publish_to_microsoft_repo
+#    setup_for_microsoft_repo
 #
 # DESCRIPTION:
 #    The function setup the secrets and config file for RepoClient app.
@@ -154,8 +155,8 @@ sudo rm -rf $WDIR/private-key.pem || true
 sudo rm -f $SETTING_FILE || true
 
 #Download Secrets - Requires az login and proper subscription to be selected
-az keyvault secret download --id 'https://edgereleasekv.vault.azure.net/secrets/iotedge-pmc-client-auth-prod' \
-    --subscription IOT_EDGE_DEV1 \
+az keyvault secret download --vault-name $(kv.name.release) \
+    -n iotedge-pmc-client-auth-prod \
     -o tsv \
     --query 'value' \
     --encoding base64 \
