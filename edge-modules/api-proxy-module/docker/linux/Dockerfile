@@ -1,28 +1,40 @@
-# syntax=docker/dockerfile:1.4
+﻿# syntax=docker/dockerfile:1.4
 
 #-------------------------------------------------------------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
-FROM arm64v8/nginx:1.23
+
+FROM alpine:3.16
+
+ARG TARGETPLATFORM
+ARG TARGETOS
+
 WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y libcap2-bin && \
-    rm -rf /var/lib/apt/lists/*
-RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
+RUN	apk update && \
+    apk add --no-cache libcap
 
 ENV NGINXUSER_ID ${NGINXUSER_ID:-13624}
-RUN usermod -u ${NGINXUSER_ID} nginx
+RUN adduser -Ds /bin/sh -u $NGINXUSER_ID nginx 
+
+RUN chown -R nginx:nginx /app
+
+COPY ./docker/$TARGETPLATFORM/api-proxy-module .
+COPY ./docker/$TARGETOS/templates .
+
+RUN	apk update && \
+    apk add --no-cache nginx && \
+	mkdir -p /run/nginx
+RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
 RUN chown -R nginx:nginx /app && \
+    mkdir /var/cache/nginx && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx
-RUN touch /var/run/nginx.pid && \
-        chown -R nginx:nginx /var/run/nginx.pid
+RUN touch /var/run/nginx/nginx.pid && \
+        chown -R nginx:nginx /var/run/nginx/nginx.pid
 
-COPY ./docker/linux/arm64v8/api-proxy-module .
-COPY ./docker/linux/arm64v8/templates .
 
 USER nginx
 
