@@ -145,6 +145,7 @@ hooks:
   configure:
     plugs:
       - aziotctl-executables
+      - docker
       - hostname-control
       - identity-service
       - log-observe
