@@ -67,14 +67,13 @@ stages:
         product='metrics-collector'
         echo "Filtering on { product: $product, version: $previous_version }..."
 
-        # We won't proceed with the release until *all* the images/architectures we build in this
-        # pipeline are flagged for update, to avoid doing multiple releases in quick succession.
+        # We won't proceed with the release until *all* the images we build in this pipeline are
+        # flagged for update, to avoid doing multiple releases in quick succession.
         continue=$(jq \
           --arg p "$product" \
-          --arg v "$previous_version" \
-          --argjson an '["amd64","arm32v7","arm64v8"]' '
+          --arg v "$previous_version" '
             def filter: [
-              "mcr.microsoft.com/azureiotedge-metrics-collector:\($v)-linux-\($an[])"
+              "mcr.microsoft.com/azureiotedge-metrics-collector:\($v)"
             ];
             [ .[] | select(.product == $p and .version == $v) | .images[] ] | contains(filter)
           ' $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
@@ -527,6 +526,10 @@ stages:
     - script: |
         #!/bin/bash
         set -euo pipefail
+
+        # in case commits were made after this pipeline started but before we arrived here, sync to
+        # the tip of the branch
+        git checkout "$PRODUCT_REPO_BRANCH"
 
         # update product-versions.json
         echo "$(jq '

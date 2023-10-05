@@ -54,6 +54,8 @@ stages:
     jobs:
     - job: BuildDotnetComponents
       displayName: Build Dotnet Components
+      variables:
+        Codeql.Enabled: true
       steps:
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
