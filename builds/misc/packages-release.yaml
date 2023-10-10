@@ -233,7 +233,14 @@ stages:
             PACKAGE_FILTER: $(identityServicePackageFilter)
             DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
             IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        - task: AzureCLI@2
+          displayName: Setup Package Publisher
+          inputs:
+            azureSubscription: $(az.subscription)
+            scriptType: bash
+            scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
+            arguments: --setup-pmc-only true -w "$(System.ArtifactsDirectory)" -d "$(System.ArtifactsDirectory)/$(artifactName)"
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: ESRP Binary CodeSigning (IIS)
           inputs:
             ConnectedServiceName: "Azure IoT Edge Code Sign 2"
@@ -257,19 +264,16 @@ stages:
             PathtoPublish: '$(System.ArtifactsDirectory)/$(artifactName)'
             ArtifactName: '$(artifactName)'
           condition: succeededOrFailed()
-        - task: Docker@2
-          displayName: Docker login msinternal
-          inputs:
-            command: login
-            containerRegistry: iotedge-msinternal-mcr
-        - task: AzureCLI@2
-          displayName: Publish Packages
-          inputs:
-            azureSubscription: $(az.subscription)
-            scriptType: bash
-            scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
-            arguments: -p $(os) -w $(System.ArtifactsDirectory) -d $(System.ArtifactsDirectory)/$(artifactName) -s $(package-server-name)
-            
+        - script: |
+            $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh \
+            -p "$(os)" \
+            -w "$(System.ArtifactsDirectory)" \
+            -d "$(System.ArtifactsDirectory)/$(artifactName)" \
+            -s "$(package-server-name)" \
+            --pmc-repository "$(pmcRepoName)" \
+            --pmc-release "$(pmcRelease)"
+          displayName: PMC Package Publication
+
 ##############################################################################
   - stage: PublishPackagesGithub
 ##############################################################################
