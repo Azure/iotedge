@@ -1,0 +1,24 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+      - release/*
+pr: none
+
+# Build every Monday @ 8AM PDT so that the latest build is never more than a week old.
+schedules:
+- cron: "0 15 * * 1"
+  displayName: Weekly build Monday morning
+  branches:
+    include:
+    - main
+    - release/1.4
+  always: true
+
+variables:
+  DisableDockerDetector: true
+
+stages:
+  - template: templates/build-images.yaml
+  - template: templates/build-packages.yaml

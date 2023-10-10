@@ -14,11 +14,11 @@ pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
-    identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
+    key_client: std::sync::Arc<tokio::sync::Mutex<KeyClient>>,
+    identity_client: std::sync::Arc<tokio::sync::Mutex<IdentityClient>>,
     module_id: String,
     pid: libc::pid_t,
-    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
+    runtime: std::sync::Arc<tokio::sync::Mutex<M>>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -100,7 +100,8 @@ where
             )
             .await
             .map_err(edgelet_http::error::server_error)?;
-        let digest = base64::encode(digest);
+        let engine = base64::engine::general_purpose::STANDARD;
+        let digest = base64::Engine::encode(&engine, digest);
 
         let res = SignResponse { digest };
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
@@ -112,7 +113,7 @@ where
 }
 
 async fn get_module_key(
-    client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
+    client: std::sync::Arc<tokio::sync::Mutex<IdentityClient>>,
     module_id: &str,
 ) -> Result<aziot_key_common::KeyHandle, http_common::server::Error> {
     let identity = {
@@ -174,8 +175,9 @@ mod tests {
         async fn post(
             route: super::Route<edgelet_test_utils::runtime::Runtime>,
         ) -> http_common::server::RouteResponse {
+            let engine = base64::engine::general_purpose::STANDARD;
             let body = super::SignRequest {
-                data: base64::encode("data"),
+                data: base64::Engine::encode(&engine, "data"),
             };
 
             route.post(Some(body)).await
@@ -201,22 +203,24 @@ mod tests {
         assert_eq!(hyper::StatusCode::BAD_REQUEST, response.status_code);
 
         // Response digest is base64-encoded
+        let engine = base64::engine::general_purpose::STANDARD;
+
         let body = super::SignRequest {
-            data: base64::encode("~"),
+            data: base64::Engine::encode(&engine, "~"),
         };
 
         let route = test_route_ok!(TEST_PATH);
         let response = route.post(Some(body)).await.unwrap();
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
         let response: super::SignResponse = serde_json::from_slice(&body).unwrap();
-        base64::decode(response.digest).unwrap();
+        base64::Engine::decode(&engine, response.digest).unwrap();
     }
 
     #[tokio::test]
     async fn get_module_key() {
         // Identity doesn't exist: fail
         let client = super::IdentityClient::default();
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "invalid").await.unwrap_err();
         assert_eq!(
@@ -249,7 +253,7 @@ mod tests {
                 identities.to_owned()
             });
         }
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule")
             .await
@@ -281,7 +285,7 @@ mod tests {
                 identities.to_owned()
             });
         }
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule")
             .await
@@ -316,7 +320,7 @@ mod tests {
                 identities.to_owned()
             });
         }
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule")
             .await
@@ -328,7 +332,7 @@ mod tests {
 
         // Valid identity: succeed
         let client = super::IdentityClient::default();
-        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+        let client = std::sync::Arc::new(tokio::sync::Mutex::new(client));
 
         let response = super::get_module_key(client, "testModule").await.unwrap();
         assert_eq!("testModule-key".to_string(), response.0);

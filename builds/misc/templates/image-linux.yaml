@@ -1,15 +1,17 @@
 parameters:
+  app: ''
+  bin_dir: '$(Build.BinariesDirectory)'
+  displayName: ''
+  download_artifacts: true
   name: ''
-  imageName: ''
-  namespace: 'microsoft'
-  project: ''
-  version: ''
-  buildx_flag: ''
-  bin_dir: ''
+  platforms: 'linux/amd64,linux/arm/v7,linux/arm64'
   use_rocksdb: false
+  version: ''
 
 steps:
   - task: DownloadBuildArtifacts@0
+    displayName: Download artifacts
+    condition: and(succeeded(), ${{ parameters.download_artifacts }})
     inputs:
       buildType: 'current'
       downloadPath: '$(Build.ArtifactStagingDirectory)'
@@ -18,44 +20,34 @@ steps:
       extractTars: true
 
   - task: CopyFiles@2
-    displayName: Copy Artifacts
+    displayName: Copy artifacts
+    condition: and(succeeded(), ${{ parameters.download_artifacts }})
     inputs:
       sourceFolder: '$(Agent.TempDirectory)/extracted_tars/consolidated_artifacts'
       contents: '**'
       targetFolder: '$(Build.BinariesDirectory)/publish'          
 
   - task: CopyFiles@2
-    displayName: Copy RocksDB libs into project
+    displayName: Copy RocksDB libs into app
     condition: and(succeeded(), eq('${{ parameters.use_rocksdb }}', 'true'))
     inputs:
       sourceFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
       contents: '**'
-      targetFolder: '$(Build.BinariesDirectory)/publish/${{ parameters.project }}/librocksdb'          
+      targetFolder: '$(Build.BinariesDirectory)/publish/${{ parameters.app }}/librocksdb'          
 
   - task: Docker@2
-    displayName: Docker login edgebuilds
+    displayName: Docker login
     inputs:
       command: login
-      containerRegistry: iotedge-edgebuilds-acr
-  - task: Docker@2
-    displayName: Docker login edgerelease
-    inputs:
-      command: login
-      containerRegistry: iotedge-release-acr      
-  - task: Bash@3
-    displayName: Build Image - ${{ parameters.name }} - amd64
-    inputs:
-      filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --bin-dir "${{ parameters.bin_dir }}" --source-map /etc/iotedge-source-map.json
-  - task: Bash@3
-    displayName: Build Image - ${{ parameters.name }} - arm32
-    condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
-    inputs:
-      filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch armv7l --bin-dir "${{ parameters.bin_dir }}" --source-map /etc/iotedge-source-map.json
-  - task: Bash@3
-    displayName: Build Image - ${{ parameters.name }} - arm64 
-    condition: and(ne('${{ parameters.name }}', 'Functions Sample'), succeeded())
-    inputs:
-      filePath: scripts/linux/buildImage.sh
-      arguments: -r "$(registry.address)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}" --target-arch aarch64 --bin-dir "${{ parameters.bin_dir }}" --source-map /etc/iotedge-source-map.json
+      containerRegistry: $(service-connection.registry)
+
+  - script: |
+      scripts/linux/buildImage.sh \
+        --app '${{ parameters.app }}' \
+        --bin '${{ parameters.bin_dir }}' \
+        --name '${{ parameters.name }}' \
+        --platforms '${{ parameters.platforms }}' \
+        --registry '$(registry.address)' \
+        --version '${{ parameters.version }}' \
+        --source-map '/etc/iotedge-source-map.json'
+    displayName: Build Image - ${{ parameters.displayName }}

@@ -5,16 +5,16 @@
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
 
-FROM alpine:3.15
+FROM alpine:3.16
 WORKDIR /app
 
 RUN	apk update && \
     apk add --no-cache libcap
 
 ENV NGINXUSER_ID ${NGINXUSER_ID:-13624}
-RUN adduser -Ds /bin/sh -u ${NGINXUSER_ID} nginx 
+RUN adduser -Ds /bin/sh -u ${NGINXUSER_ID} nginx
 
-RUN chown -R nginx:nginx /app   
+RUN chown -R nginx:nginx /app
 
 COPY ./docker/linux/amd64/api-proxy-module .
 COPY ./docker/linux/amd64/templates .
@@ -29,13 +29,13 @@ RUN chown -R nginx:nginx /app && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx
 RUN touch /var/run/nginx/nginx.pid && \
-        chown -R nginx:nginx /var/run/nginx/nginx.pid 
-        
+        chown -R nginx:nginx /var/run/nginx/nginx.pid
 
-USER nginx    
+
+USER nginx
 
 #expose ports
-EXPOSE 443/tcp	
+EXPOSE 443/tcp
 EXPOSE 80/tcp
 #used by registry
 EXPOSE 5000/tcp

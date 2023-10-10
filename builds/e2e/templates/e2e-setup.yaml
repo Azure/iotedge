@@ -14,18 +14,17 @@ steps:
         TestDpsGroupKeySymmetric,
         TestEventHubCompatibleEndpoint,
         TestGitHubAccessToken,
-        TestPreviewEventHubCompatibleEndpoint,
-        TestIotedgedPackageRootSigningCert,
         TestIotHubConnectionString,
+        TestIotHubResourceId,
         TestRootCaCertificate,
         TestRootCaKey,
         TestRootCaPassword,
         TestBlobStoreSas
 
   - bash: | 
-      echo "Built Images Result is $(builtImages)"
-      echo "Built Packages Result is $(builtPackages)"
-      if [[ ! -z $(builtImages) && ( $(builtImages) == 'Succeeded' || $(builtImages) == 'SucceededWithIssues') ]]
+      echo "Built Images Result is '$(builtImages)'"
+      echo "Built Packages Result is '$(builtPackages)'"
+      if [[ '$(builtImages)' == 'TRUE' ]]
       then
         echo "Use Pipeline Image Artifacts"
         echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]TRUE"
@@ -33,7 +32,7 @@ steps:
         echo "Use Build Image Artifacts"
         echo "##vso[task.setvariable variable=UsePipelineImageArtifacts;isOutput=true]FALSE"
       fi
-      if [[ ! -z $(builtPackages) && ( $(builtPackages) == 'Succeeded' || $(builtPackages) == 'SucceededWithIssues') ]]
+      if [[ '$(builtPackages)' == 'TRUE' ]]
       then
         echo "Use Pipeline Package Artifacts"
         echo "##vso[task.setvariable variable=UsePipelinePackageArtifacts;isOutput=true]TRUE"
@@ -65,10 +64,10 @@ steps:
     condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
     inputs:  
       buildType: specific
-      project: $(resources.pipeline.images.projectID)
-      pipeline: $(resources.pipeline.images.pipelineName)
+      project: $(resources.pipeline.ci-build.projectID)
+      pipeline: $(resources.pipeline.ci-build.pipelineName)
       buildVersionToDownload: specific
-      buildId: $(resources.pipeline.images.runID)
+      buildId: $(resources.pipeline.ci-build.runID)
       downloadType: single
       artifactName: $(az.pipeline.images.artifacts)
       allowPartiallySucceededBuilds: true
@@ -79,16 +78,17 @@ steps:
     condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
     inputs:
       buildType: specific
-      project: $(resources.pipeline.packages.projectID)
-      pipeline: $(resources.pipeline.packages.pipelineName)
+      project: $(resources.pipeline.ci-build.projectID)
+      pipeline: $(resources.pipeline.ci-build.pipelineName)
       buildVersionToDownload: specific
-      buildId: $(resources.pipeline.packages.runID)
+      buildId: $(resources.pipeline.ci-build.runID)
       downloadType: single
       artifactName: $(artifactName)
       allowPartiallySucceededBuilds: true
   
   - task: PowerShell@2
     displayName: 'Download aziot-identity-service'
+    condition: not(contains(variables['artifactName'], 'mariner2-aarch64'))
     inputs:
       filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
       workingDirectory: $(Build.SourcesDirectory)
@@ -180,6 +180,8 @@ steps:
         relayerImage = "$imagePrefix-relayer:$imageTag";
         networkControllerImage = "$imagePrefix-network-controller:$imageTag";
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
+        metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag";
+        iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
         metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
         numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
         edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
@@ -228,3 +230,5 @@ steps:
 
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
+    env:
+      IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)

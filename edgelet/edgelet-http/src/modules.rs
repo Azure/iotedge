@@ -40,7 +40,7 @@ pub struct EnvVar {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(rename_all = "camelCase")]
 pub struct ModuleStatus {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -53,7 +53,7 @@ pub struct ModuleStatus {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 #[serde(rename_all = "camelCase")]
 pub struct ExitStatus {
     pub exit_time: String,
@@ -61,7 +61,7 @@ pub struct ExitStatus {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[cfg_attr(test, derive(PartialEq))]
+#[cfg_attr(test, derive(Eq, PartialEq))]
 pub struct RuntimeStatus {
     pub status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -160,12 +160,16 @@ where
 
 impl std::convert::From<edgelet_core::ModuleRuntimeState> for ModuleStatus {
     fn from(state: edgelet_core::ModuleRuntimeState) -> Self {
-        let start_time = state.started_at().map(chrono::DateTime::to_rfc3339);
+        // IoT Hub requires UTC timestamps to end with 'Z'; otherwise, the timestamps
+        // will incorrectly be interpreted as local time.
+        let start_time = state
+            .started_at()
+            .map(|start_time| start_time.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true));
 
         let exit_status = if let (Some(code), Some(time)) = (state.exit_code(), state.finished_at())
         {
             Some(ExitStatus {
-                exit_time: time.to_rfc3339(),
+                exit_time: time.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
                 status_code: code.to_string(),
             })
         } else {
@@ -233,7 +237,7 @@ mod tests {
 
     #[test]
     fn into_module_status() {
-        let timestamp = chrono::NaiveDateTime::from_timestamp(0, 0);
+        let timestamp = chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
         let timestamp =
             chrono::DateTime::<chrono::offset::Utc>::from_utc(timestamp, chrono::offset::Utc);
 
@@ -244,7 +248,7 @@ mod tests {
 
         assert_eq!(
             super::ModuleStatus {
-                start_time: Some(timestamp.to_rfc3339()),
+                start_time: Some(timestamp.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)),
                 exit_status: None,
                 runtime_status: super::RuntimeStatus {
                     status: "running".to_string(),
@@ -263,9 +267,9 @@ mod tests {
 
         assert_eq!(
             super::ModuleStatus {
-                start_time: Some(timestamp.to_rfc3339()),
+                start_time: Some(timestamp.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)),
                 exit_status: Some(super::ExitStatus {
-                    exit_time: timestamp.to_rfc3339(),
+                    exit_time: timestamp.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
                     status_code: "0".to_string(),
                 }),
                 runtime_status: super::RuntimeStatus {
@@ -282,7 +286,7 @@ mod tests {
         Vec<(edgelet_test_utils::runtime::Module, ModuleRuntimeState)>,
         chrono::DateTime<chrono::offset::Utc>,
     ) {
-        let timestamp = chrono::NaiveDateTime::from_timestamp(0, 0);
+        let timestamp = chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
         let timestamp =
             chrono::DateTime::<chrono::offset::Utc>::from_utc(timestamp, chrono::offset::Utc);
 

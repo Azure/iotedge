@@ -1,0 +1,19 @@
+[package]
+authors = ["Azure IoT Edge Devs"]
+edition = "2021"
+name = "edgelet-image-cleanup"
+publish = false
+version = "0.1.0"
+
+[dependencies]
+anyhow = "1"
+chrono = "0.4"
+log = "0.4"
+thiserror = "1"
+tokio = { version = "1", features = ["time"] }
+
+edgelet-docker = { path = "../edgelet-docker" }
+edgelet-core = { path = "../edgelet-core" }
+edgelet-settings = { path = "../edgelet-settings" }
+
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

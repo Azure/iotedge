@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `debian10`, `debian11`, `ubuntu18.04`, or `ubuntu20.04`
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `redhat8`, `redhat9`, `debian10`, `debian11`, `ubuntu18.04`, `ubuntu20.04`, or `ubuntu22.04`.
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -23,14 +23,14 @@ For example:
 git clone --recurse-submodules 'https://github.com/Azure/iotedge'
 cd iotedge/
 
-PACKAGE_OS='debian10' PACKAGE_ARCH='arm32v7' ./edgelet/build/linux/package.sh
+PACKAGE_OS='debian11' PACKAGE_ARCH='arm32v7' ./edgelet/build/linux/package.sh
 ```
 
 The packages are built inside a Docker container, so no build dependencies are installed on the device running the script. However the user running the script does need to have permissions to invoke the `docker` command.
 
 Note that the script must be run on an `amd64` device. The `PACKAGE_ARCH=arm32v7` and `PACKAGE_ARCH=aarch64` builds are done using a cross-compiler.
 
-Once the packages are built, they will be found somewhere under the `edgelet/target/` directory. (The exact path under that directory depends on the combination of `PACKAGE_OS` and `PACKAGE_ARCH`. See `builds/misc/packages.yaml` and `builds/misc/packages.slow.yaml` for the exact paths.)
+Once the packages are built, they will be found somewhere under the `edgelet/target/` directory. (The exact path under that directory depends on the combination of `PACKAGE_OS` and `PACKAGE_ARCH`. See `builds/misc/templates/build-packages.yaml` for the exact paths.)
 
 If you want to run another build for a different combination of `PACKAGE_OS` and `PACKAGE_ARCH`, make sure to clean the repository first with `sudo git clean -xffd` so that artifacts from the previous build don't get reused for the next one.
 
@@ -42,11 +42,6 @@ Note: For the following targets, `qemu-user-static` must be installed on the hos
 If that has not been done, `package.sh` prints an error message explaining how to do that.
 
 This is because these targets do not have functional cross-compilers, so their builds are done as native builds emulated using qemu. Be aware that these builds are much slower - where a native build might take 15m, a qemu build might take 2h30m.
-
-
-### Windows
-
-See "Building daemon binaries" below.
 
 
 ## Building daemon binaries
@@ -76,9 +71,19 @@ In addition, building the daemon binaries also requires these dependencies to be
 ```sh
 yum update
 yum install \
-    cmake curl git make rpm-build \
+    curl git make rpm-build \
     gcc gcc-c++ \
     libcurl-devel libuuid-devel openssl-devel
+```
+
+#### RHEL 8
+
+```sh
+dnf distro-sync -y \
+dnf install -y \
+    curl git make rpm-build \
+    gcc gcc-c++ \
+    libcurl-devel libuuid-devel openssl-devel &&
 ```
 
 #### Debian 10-11
@@ -86,7 +91,7 @@ yum install \
 ```sh
 apt-get update
 apt-get install \
-    binutils build-essential ca-certificates curl cmake debhelper file git make \
+    binutils build-essential ca-certificates curl debhelper file git make \
     gcc g++ pkg-config \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
@@ -95,7 +100,18 @@ apt-get install \
 ```sh
 apt-get update
 apt-get install \
-    binutils build-essential ca-certificates curl cmake debhelper dh-systemd file git make \
+    binutils build-essential ca-certificates curl debhelper dh-systemd file git make \
+    gcc g++ pkg-config \
+    libcurl4-openssl-dev libssl-dev uuid-dev
+```
+
+#### Ubuntu 22.04
+
+```sh
+apt-get update
+# Note: IoT Edge builds require dh-systemd in previous versions of Ubuntu, but no longer as of 22.04
+apt-get install \
+    binutils build-essential ca-certificates curl debhelper file git make \
     gcc g++ pkg-config \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
@@ -106,7 +122,7 @@ apt-get install \
 
     ```sh
     brew update
-    brew install cmake openssl
+    brew install openssl
     ```
 
 1. Set the `OPENSSL_DIR` and `OPENSSL_ROOT_DIR` environment variables to point to the local openssl installation.
@@ -115,36 +131,6 @@ apt-get install \
     export OPENSSL_DIR=/usr/local/opt/openssl
     export OPENSSL_ROOT_DIR=/usr/local/opt/openssl
     ```
-
-#### Windows
-
-1. Install Visual Studio 2017 / 2019, or the Build Tools for Visual Studio 2017 / 2019. Ensure the components for building C / C++ are installed.
-
-1. Install `cmake` from <https://cmake.org/> or with [`choco`](https://chocolatey.org/) or [`scoop`.](https://scoop.sh/) Ensure `cmake` is in `PATH` after installation.
-
-1. Install `vcpkg`
-
-    ```powershell
-    git clone https://github.com/Microsoft/vcpkg
-    cd vcpkg
-    .\bootstrap-vcpkg.bat
-    ```
-
-1. Install openssl
-
-    ```powershell
-    .\vcpkg install openssl:x64-windows
-    ```
-
-1. Set the `OPENSSL_DIR` and `OPENSSL_ROOT_DIR` environment variables to point to the local openssl installation.
-
-    ```powershell
-    # $PWD is the root of the vcpkg repository
-
-    $env:OPENSSL_DIR = "$PWD\installed\x64-windows"
-    $env:OPENSSL_ROOT_DIR = "$PWD\installed\x64-windows"
-    ```
-
 
 ### Build
 

@@ -44,6 +44,20 @@
 # allow_elevated_docker_permissions = false
 
 # ==============================================================================
+# Module identity cache preference
+# ==============================================================================
+#
+# The default behavior is to request module identities from IoT Hub and fall back to a
+# cached backup if the Hub request fails. This keeps identities in sync with IoT Hub,
+# but results in extra requests to Hub that may not be necessary depending on use case.
+#
+# Setting prefer_module_identity_cache to true reverses the behavior so that the cached
+# identities are preferred to IoT Hub requests. Requests to Hub are still made if identities
+# are not found in the cache.
+#
+# prefer_module_identity_cache = false
+
+# ==============================================================================
 # Provisioning
 # ==============================================================================
 
@@ -445,10 +459,32 @@
 # cannot be guaranteed, so if random module restarts are unacceptable for your use
 # case, disable auto renewal.
 #
+# Note that for auto-generated (quickstart) certificates, both the certificate and key
+# must be regenerated on renewal so rotate_key must be true. Another issuance method
+# is required if rotate_key = false.
+#
 # [edge_ca.auto_renew]
 # rotate_key = true
 # threshold = "80%"
 # retry = "4%"
+
+# ==============================================================================
+# Image garbage collection
+# ==============================================================================
+#
+# If you need to override the default image garbage collection configuration,
+# uncomment this section and replace the values in this section with your own.
+#
+# 'enabled' controls whether image garbage collection runs or not.
+# 'cleanup_recurrence' is how frequently you want the image gc to run.
+# 'image_age_cleanup_threshold' is the "age" of unused images, after which they will be cleaned up.
+# 'cleanup_time' in 24-hour HH:MM format is a best efforts dictate of when the cleanup job runs.
+
+# [image_garbage_collection]
+# enabled = true
+# cleanup_recurrence = "1d"
+# image_age_cleanup_threshold = "7d"
+# cleanup_time = "00:00"
 
 # ==============================================================================
 # Moby runtime

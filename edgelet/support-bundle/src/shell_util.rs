@@ -27,10 +27,10 @@ pub async fn write_check(
     }
 
     let mut check = Command::new(iotedge);
-    check.arg("check").args(&["-o", "json"]);
+    check.arg("check").args(["-o", "json"]);
 
     if let Some(host_name) = iothub_hostname {
-        check.args(&["--iothub-hostname", &host_name]);
+        check.args(["--iothub-hostname", &host_name]);
     }
     let check = check.output().await.context(Error::SupportBundle)?;
 
@@ -60,7 +60,7 @@ where
     );
 
     let mut inspect = Command::new("docker");
-    inspect.arg("inspect").arg(&module_name);
+    inspect.arg("inspect").arg(module_name);
     let inspect = inspect.output().await;
 
     let (file_name, output) = if let Ok(result) = inspect {
@@ -96,8 +96,8 @@ where
 
 pub async fn get_docker_networks() -> Result<Vec<String>, Error> {
     let mut inspect = Command::new("docker");
-    inspect.args(&["network", "ls"]);
-    inspect.args(&["--format", "{{.Name}}"]);
+    inspect.args(["network", "ls"]);
+    inspect.args(["--format", "{{.Name}}"]);
     let inspect = inspect.output().await;
 
     let result = if let Ok(result) = inspect {
@@ -134,7 +134,7 @@ where
     );
     let mut inspect = Command::new("docker");
 
-    inspect.args(&["network", "inspect", network_name, "-v"]);
+    inspect.args(["network", "inspect", network_name, "-v"]);
     let inspect = inspect.output().await;
 
     let (file_name, output) = if let Ok(result) = inspect {
@@ -185,23 +185,23 @@ where
         format!("Getting system logs for {}", name).as_str(),
         verbose,
     );
-    let since_time: DateTime<Utc> = DateTime::from_utc(
-        NaiveDateTime::from_timestamp(log_options.since().into(), 0),
-        Utc,
-    );
+    let timestamp = NaiveDateTime::from_timestamp_opt(log_options.since().into(), 0)
+        .ok_or(Error::SupportBundle)?;
+    let since_time: DateTime<Utc> = DateTime::from_utc(timestamp, Utc);
     let until_time: Option<DateTime<Utc>> = log_options
         .until()
-        .map(|until| DateTime::from_utc(NaiveDateTime::from_timestamp(until.into(), 0), Utc));
+        .and_then(|until| NaiveDateTime::from_timestamp_opt(until.into(), 0))
+        .map(|until| DateTime::from_utc(until, Utc));
 
     let command = {
         let mut command = Command::new("journalctl");
         command
             .arg("-a")
-            .args(&["-u", unit])
-            .args(&["-S", &since_time.format("%F %T").to_string()])
+            .args(["-u", unit])
+            .args(["-S", &since_time.format("%F %T").to_string()])
             .arg("--no-pager");
         if let Some(until) = until_time {
-            command.args(&["-U", &until.format("%F %T").to_string()]);
+            command.args(["-U", &until.format("%F %T").to_string()]);
         }
 
         command.output().await

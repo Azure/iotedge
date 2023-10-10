@@ -18,7 +18,7 @@ function usage() {
     echo ""
     echo "options"
     echo " -h,  --help                   Print this help and exit."
-    echo " -p,  --packageos              packageos: ubuntu18.04|ubuntu20.04"
+    echo " -p,  --packageos              Package OS"
     echo " -d,  --dir                    package directory to publish"
     echo " -w,  --wdir                   working directory for secrets.Default is $(pwd)."
     echo " -s,  --server                 server name for package upload"
@@ -42,6 +42,9 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "ubuntu20.04" ]]; then
         OS_NAME="ubuntu"
         OS_VERSION="focal"
+    elif [[ "$PACKAGE_OS" == "ubuntu22.04" ]]; then
+        OS_NAME="ubuntu"
+        OS_VERSION="jammy"
     elif [[ "$PACKAGE_OS" == "debian10" ]]; then
         OS_NAME="debian"
         OS_VERSION="buster"
@@ -54,6 +57,9 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "redhat8" ]]; then
         OS_NAME="redhat"
         OS_VERSION="8"
+    elif [[ "$PACKAGE_OS" == "redhat9" ]]; then
+        OS_NAME="redhat"
+        OS_VERSION="9"
     else
         echo "Unsupported OS: $PACKAGE_OS"
         exit 1
@@ -184,6 +190,8 @@ sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
 #    OS_NAME ____________________ Operating System name         (string)
 #    OS_VERSION _________________ Operating System version      (string)
 #    PACKAGE_DIR ________________ Path to artifact directory    (string)
+#    SERVER _____________________ Server name for package upload(string)
+#    WDIR _______________________ Working directory for secrets (string)
 #
 # OUTPUTS:
 #    Uploaded linux artifacts in packages.microsoft.com

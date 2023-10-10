@@ -7,6 +7,8 @@
 %define iotedge_confdir %{aziot_confdir}/edged
 %define iotedge_agent_user edgeagentuser
 %define iotedge_agent_uid 13622
+%define iotedge_hub_user edgehubuser
+%define iotedge_hub_uid 13623
 %global debug_package %{nil}
 
 Name:           aziot-edge
@@ -20,6 +22,7 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
+Requires:       (moby-engine or docker-ce)
 Requires:       aziot-identity-service = 1.4.0~dev-1%{?dist}
 Source0:        aziot-edge-%{version}.tar.gz
 
@@ -60,19 +63,6 @@ make \
 rm -rf $RPM_BUILD_ROOT
 
 %pre
-# Check for container runtime
-if ! /usr/bin/getent group docker >/dev/null; then
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    echo ""
-    echo " ERROR: No container runtime detected."
-    echo ""
-    echo " Please install a container runtime and run this install again."
-    echo ""
-    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-
-    exit 1
-fi
-
 # Create iotedge group
 if ! /usr/bin/getent group iotedge >/dev/null; then
     %{_sbindir}/groupadd -r %{iotedge_group}
@@ -80,22 +70,17 @@ fi
 
 # Create iotedge user
 if ! /usr/bin/getent passwd iotedge >/dev/null; then
-    %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" -s /bin/nologin -d %{iotedge_home} %{iotedge_user}
-fi
-
-# Add iotedge user to moby-engine group
-if /usr/bin/getent group docker >/dev/null; then
-    %{_sbindir}/usermod -aG docker %{iotedge_user}
-fi
-
-# Add iotedge user to systemd-journal group so it can get system logs
-if /usr/bin/getent group systemd-journal >/dev/null; then
-    %{_sbindir}/usermod -aG systemd-journal %{iotedge_user}
+    %{_sbindir}/useradd -r -g %{iotedge_group} -c "iotedge user" -s /sbin/nologin -d %{iotedge_home} %{iotedge_user}
 fi
 
 # Create an edgeagentuser and add it to iotedge group
 if ! /usr/bin/getent passwd %{iotedge_agent_user} >/dev/null; then
-    %{_sbindir}/useradd -g %{iotedge_group} -c "edgeAgent user" -ms /bin/nologin -u %{iotedge_agent_uid} %{iotedge_agent_user}
+    %{_sbindir}/useradd -r -g %{iotedge_group} -c "edgeAgent user" -s /sbin/nologin -u %{iotedge_agent_uid} %{iotedge_agent_user} || true
+fi
+
+# Create an edgehubuser
+if ! getent passwd edgehubuser >/dev/null; then
+    %{_sbindir}/useradd -r -c "edgeHub user" -s /sbin/nologin -u %{iotedge_hub_uid} %{iotedge_hub_user} || true
 fi
 
 # Add iotedge user to aziot-identity-service groups
@@ -109,8 +94,31 @@ if /usr/bin/getent group aziotid >/dev/null; then
     %{_sbindir}/usermod -aG aziotid %{iotedge_user}
 fi
 exit 0
-
 %post
+# Check for container runtime
+if ! /usr/bin/getent group docker >/dev/null; then
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo ""
+    echo " ERROR: No container runtime detected."
+    echo ""
+    echo " Please install a container runtime and run this install again."
+    echo ""
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+
+    exit 1
+fi
+
+# Add iotedge user to moby-engine group
+if /usr/bin/getent group docker >/dev/null; then
+    %{_sbindir}/usermod -aG docker %{iotedge_user}
+fi
+
+# Add iotedge user to systemd-journal group so it can get system logs
+if /usr/bin/getent group systemd-journal >/dev/null; then
+    %{_sbindir}/usermod -aG systemd-journal %{iotedge_user}
+fi
+
+
 if [ ! -f '/etc/aziot/config.toml' ]; then
     echo "==============================================================================="
     echo ""

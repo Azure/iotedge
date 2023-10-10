@@ -68,7 +68,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
                         "sudo systemctl daemon-reload"
                     },
-                    _ => throw new NotImplementedException($"RPM packaging is set up only for Centos and RHEL, current OS '.{this.os}'"),
+                    "mariner" => new[]
+                    {
+                        "set -e",
+                        $"sudo dnf -y install {string.Join(' ', packages)}",
+                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
+                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                        "sudo systemctl daemon-reload"
+                    },
+                    _ => throw new NotImplementedException($"RPM packaging is set up only for Centos, Mariner, and RHEL, current OS '.{this.os}'"),
                 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
             };
@@ -79,8 +88,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // we really support only two options for now.
             string repository = this.os.ToLower() switch
             {
-                "ubuntu" => $"https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list",
-                "debian" => $"https://packages.microsoft.com/config/debian/stretch/multiarch/prod.list",
+                "ubuntu" => this.version switch
+                {
+                    "18.04" => "https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list",
+                    _ => $"https://packages.microsoft.com/config/ubuntu/{this.version}/prod.list"
+                },
+                "debian" => "https://packages.microsoft.com/config/debian/stretch/multiarch/prod.list",
                 _ => throw new NotImplementedException($"Don't know how to install daemon for '{this.os}'"),
             };
 

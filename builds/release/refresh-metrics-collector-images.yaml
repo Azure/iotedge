@@ -1,0 +1,560 @@
+pr: none
+trigger: none
+
+resources:
+  pipelines:
+  - pipeline: detect-image-updates
+    source: 'Detect Image Updates'
+    trigger:
+      branches:
+        include:
+        - main
+  repositories:
+  - repository: product
+    type: github
+    endpoint: Azure/azure-iotedge
+    name: Azure/azure-iotedge
+
+variables:
+  DisableDockerDetector: true
+
+stages:
+################################################################################
+- stage: PrepareRelease
+################################################################################
+  displayName: Prepare for release
+  dependsOn: []
+
+  # The project repo must meet some prerequisites before the release pipeline can continue:
+  #  1. edge-modules/metrics-collector/CHANGELOG.md and
+  #     edge-modules/metrics-collector/src/config/versionInfo.json must be updated
+  #  2. A release commit (usually including the changes in the previous step) must be pushed
+  #  3. The release commit must be tagged with the version (e.g., metrics-collector-1.1.0)
+  #
+  # This stage ensures the above requirements are fulfilled by running one of two mutually-exclusive
+  # jobs depending on how the run was triggered. If it was triggered automatically when the
+  # detect-image-updates pipeline completed, then the PipelineTrigger job runs and makes all
+  # necessary file updates, commits, and tags to prepare for the release. If the pipeline was
+  # triggered manually, then the ManualTrigger job runs. It assumes the prerequisites have already
+  # been met, and checks to ensure it has everything it needs to continue.
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+  jobs:
+  - job: PipelineTrigger
+    displayName: Trigger on base image updates
+    condition: eq(variables['Build.Reason'], 'ResourceTrigger')
+
+    steps:
+    - checkout: self
+      fetchDepth: 0
+
+    - download: detect-image-updates
+      displayName: Download image list from triggering pipeline
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        echo 'Updates:'
+        cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
+
+        . scripts/linux/release-tools.sh
+        previous_version=$(TAG_PREFIX='metrics-collector-' get_nearest_version)
+        product='metrics-collector'
+        echo "Filtering on { product: $product, version: $previous_version }..."
+
+        # We won't proceed with the release until *all* the images we build in this pipeline are
+        # flagged for update, to avoid doing multiple releases in quick succession.
+        continue=$(jq \
+          --arg p "$product" \
+          --arg v "$previous_version" '
+            def filter: [
+              "mcr.microsoft.com/azureiotedge-metrics-collector:\($v)"
+            ];
+            [ .[] | select(.product == $p and .version == $v) | .images[] ] | contains(filter)
+          ' $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
+        )
+
+        echo "Continue with release? $continue"
+        echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
+      displayName: Filter image list for Metrics Collector images
+      name: filter
+
+    - task: AzureKeyVault@1
+      displayName: Get secrets
+      condition: and(succeeded(), eq(variables['filter.continue'], 'true'))
+      inputs:
+        azureSubscription: $(az.subscription)
+        keyVaultName: $(kv.name)
+        secretsFilter: TestGitHubAccessToken
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        . scripts/linux/release-tools.sh
+
+        GIT_EMAIL='$(service-account.email)' \
+        BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}" \
+        make_project_release_commit_for_metrics_collector_image_refresh
+        get_metrics_collector_release_info
+        echo 'Metrics Collector release info:'
+        echo "$OUTPUTS" | jq '.'
+
+        changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
+        next=$(echo "$OUTPUTS" | jq -rc '.version')
+        prev=$(echo "$OUTPUTS" | jq -rc '.previous_version')
+        tags=$(echo "$OUTPUTS" | jq -rc '.tags')
+        tags=$(echo "$tags" | jq -c '. + ["latest"] | unique')
+
+        echo "##vso[task.setvariable variable=changelog;isOutput=true]$changelog"
+        echo "##vso[task.setvariable variable=version;isOutput=true]$next"
+        echo "##vso[task.setvariable variable=previous_version;isOutput=true]$prev"
+        echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
+      displayName: Create a release commit
+      name: commit
+      condition: and(succeeded(), eq(variables['filter.continue'], 'true'))
+      env:
+        GITHUB_TOKEN: "$(TestGitHubAccessToken)"
+
+  - job: ManualTrigger
+    displayName: Manually trigger pipeline to update images
+    condition: eq(variables['Build.Reason'], 'Manual')
+
+    steps:
+    - checkout: self
+      fetchDepth: 0
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+        
+        # this script assumes the following steps have already been taken:
+        # - a release commit has been pushed to the project repo, and is reachable from this run's
+        #   source commit
+        # - the release commit was tagged with the new version
+        # - the project repo's edge-modules/metrics-collector/CHANGELOG.md has been updated with
+        #   information about the new release
+
+        . scripts/linux/release-tools.sh
+        get_metrics_collector_release_info
+        echo 'Metrics Collector release info:'
+        echo "$OUTPUTS" | jq '.'
+
+        changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
+        next=$(echo "$OUTPUTS" | jq -rc '.version')
+        prev=$(echo "$OUTPUTS" | jq -rc '.previous_version')
+        tags=$(echo "$OUTPUTS" | jq -rc '.tags')
+        tags=$(echo "$tags" | jq -c '. + ["latest"] | unique')
+
+        echo "##vso[task.setvariable variable=changelog;isOutput=true]$changelog"
+        echo "##vso[task.setvariable variable=version;isOutput=true]$next"
+        echo "##vso[task.setvariable variable=previous_version;isOutput=true]$prev"
+        echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
+      displayName: Determine versions
+      name: commit
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        # If Metrics Collector has already been published to mcr.microsoft.com at the given version,
+        # we'll assume there's a mistake (e.g., forgot to create and/or tag a new release commit)
+        # and abort the release.
+        image='mcr.microsoft.com/azureiotedge-metrics-collector:$(commit.version)'
+        if docker buildx imagetools inspect "$image" >/dev/null 2>&1; then
+          echo "Error: $image already exists but shouldn't"
+          exit 1
+        fi
+
+        # Create a filter.continue task variable to match the PipelineTrigger job, but hard-code it
+        # to true so the pipeline will always run subsequent stages in the manual case.
+        echo "##vso[task.setvariable variable=continue;isOutput=true]true"
+      displayName: Continue if the proposed version was not already released
+      name: filter
+
+################################################################################
+- stage: Build
+################################################################################
+  displayName: Build Metrics Collector
+  dependsOn: PrepareRelease
+
+  condition: |
+    and(
+      succeeded(),
+      or(
+        eq(dependencies.PrepareRelease.outputs['PipelineTrigger.filter.continue'], 'true'),
+        eq(dependencies.PrepareRelease.outputs['ManualTrigger.filter.continue'], 'true')
+      )
+    )
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+  variables:
+    ${{ if eq(variables['Build.Reason'], 'Manual') }}:
+      version: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.version'] ]
+      tags: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.tags'] ]
+    ${{ else }}:
+      version: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.version'] ]
+      tags: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.tags'] ]
+
+  jobs:
+  - job: BuildDotnetComponents
+    displayName: .NET components
+
+    steps:
+    - checkout: self
+      fetchDepth: 0
+
+    - script: |
+        git checkout metrics-collector-$(version)
+      displayName: Check out the new release commit
+
+    - script: |
+        dotnet publish edge-modules/metrics-collector/src/Microsoft.Azure.Devices.Edge.Azure.Monitor.csproj \
+          -o '$(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor' \
+          -c Release
+      displayName: Build
+
+    # The code sign task requires .NET Core 2.1.
+    # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
+    - template: ../templates/force-dotnet21.yaml
+
+    # Code Sign
+    - template: templates/dotnet-code-sign.yaml
+      parameters:
+        name: Sign Metrics Collector
+        path: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
+        pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
+
+    # We're done with code signing, so remove dotnet version override
+    - template: ../templates/restore-default-dotnet.yaml
+
+    - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+      displayName: Generate SBOM
+      inputs:
+        BuildDropPath: '$(Build.BinariesDirectory)/publish'
+
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Metrics Collector
+        name: azureiotedge-metrics-collector
+        app: Microsoft.Azure.Devices.Edge.Azure.Monitor
+        version: $(version)
+        download_artifacts: false
+
+################################################################################
+- stage: Test
+################################################################################
+  displayName: Test Metrics Collector
+  condition: succeeded('Build')
+
+  dependsOn:
+  - PrepareRelease
+  - Build
+
+  variables:
+    ${{ if eq(variables['Build.Reason'], 'Manual') }}:
+      version: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.version'] ]
+    ${{ else }}:
+      version: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.version'] ]
+
+  jobs:
+  - job: test
+    displayName: Test Linux
+
+    variables:
+      os: linux
+      verbose: false
+
+    strategy:
+      matrix:
+        arm32v7:
+          pool: $(pool.linux.arm.name)
+          # Since this pipeline is about testing the Metrics Collector Docker image for release
+          # and not our host components, we'll run the arm32v7 Docker image on an arm64v8 host
+          # OS, with arm64v8 host components, for speed and convenience.
+          agent: agent-aziotedge-ubuntu-20.04-arm64-docker
+          arch: arm32v7
+        arm64v8:
+          pool: $(pool.linux.arm.name)
+          agent: agent-aziotedge-ubuntu-20.04-arm64-docker
+          arch: arm64v8
+        amd64:
+          pool: $(pool.linux.name)
+          agent: agent-aziotedge-ubuntu-20.04-msmoby
+          arch: amd64
+
+    pool:
+      name: $(pool)
+      demands:
+      - ImageOverride -equals $(agent)
+
+    steps:
+    - checkout: self
+      fetchDepth: 0
+
+    - task: AzureKeyVault@1
+      displayName: Get secrets
+      inputs:
+        azureSubscription: $(az.subscription)
+        keyVaultName: $(kv.name)
+        secretsFilter: >-
+          ReleaseContainerRegistryPassword,
+          TestEventHubCompatibleEndpoint,
+          TestIotHubConnectionString,
+          TestIotHubResourceId,
+          TestRootCaCertificate,
+          TestRootCaKey,
+          TestRootCaPassword
+
+    - pwsh: |
+        $certsDir = '$(System.ArtifactsDirectory)/certs'
+        New-Item "$certsDir" -ItemType Directory -Force | Out-Null
+        $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+        $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+        Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
+      displayName: Install CA keys
+      env:
+        ROOT_CERT: $(TestRootCaCertificate)
+        ROOT_KEY: $(TestRootCaKey)
+    
+    - pwsh: |
+        $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+        dotnet build -c Release $testDir
+    
+        $binDir = Convert-Path "$testDir/bin/Release/net6.0"
+        Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+      displayName: Build tests
+      env:
+        http_proxy: $(Agent.ProxyUrl)
+        https_proxy: $(Agent.ProxyUrl)
+
+    - pwsh: |
+        $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
+        $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+        $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+        $runtimeVersion = (
+          (
+            (Invoke-WebRequest https://aka.ms/latest-aziot-edge).Content | ConvertFrom-Json
+          )."aziot-edge" | Select-String -Pattern '([0-9]+\.[0-9]+)\.[0-9]+'
+        ).Matches[0].Groups[1].Value
+        $edgeAgentImage = "mcr.microsoft.com/azureiotedge-agent:$runtimeVersion";
+        $edgeHubImage = "mcr.microsoft.com/azureiotedge-hub:$runtimeVersion";
+        $metricsCollectorImage = "$(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-$(os)-$(arch)"
+
+        echo "Edge Agent image: $edgeAgentImage"
+        echo "Edge Hub image: $edgeHubImage"
+        echo "Metrics Collector image: $metricsCollectorImage"
+
+        $context = @{
+          nestededge = 'false';
+          isa95Tag = 'false';
+          edgeAgentImage = "$edgeAgentImage";
+          edgeHubImage = "$edgeHubImage";
+          metricsCollectorImage = "$metricsCollectorImage";
+          iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
+          registries = @(
+            @{
+              address = '$(registry.address)';
+              username = '$(registry.username)';
+            }
+          );
+          caCertScriptPath = "$caCertScriptPath";
+          rootCaCertificatePath = "$rootCaCertificatePath";
+          rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
+          logFile = Join-Path '$(binDir)' 'testoutput.log';
+          verbose = '$(verbose)';
+          getSupportBundle = 'true';
+          teardownTimeoutMinutes = 10;
+        }
+    
+        if ('$(arch)' -eq 'arm32v7')
+        {
+          $context['optimizeForPerformance'] = 'false'
+          $context['setupTimeoutMinutes'] = 10
+          $context['teardownTimeoutMinutes'] = 10
+          $context['testTimeoutMinutes'] = 10
+        }
+    
+        if ($env:AGENT_PROXYURL)
+        {
+          $context['testRunnerProxy'] = $env:AGENT_PROXYURL
+          $context['edgeProxy'] = $env:AGENT_PROXYURL
+        }
+        
+        $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
+        Get-Content -Path '$(binDir)/context.json'
+      displayName: Create test arguments file (context.json)
+      env:
+        IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
+
+    - script: |
+        sudo --preserve-env dotnet test '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll' \
+          --no-build \
+          --logger 'trx' \
+          --filter 'MetricsCollector'
+      displayName: Run tests
+      env:
+        E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
+        E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+        E2E_REGISTRIES__0__PASSWORD: $(ReleaseContainerRegistryPassword)
+        E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
+
+    - task: PublishTestResults@2
+      displayName: Publish test results
+      inputs:
+        testRunner: vstest
+        testResultsFiles: '**/*.trx'
+        searchFolder: $(Build.SourcesDirectory)/TestResults
+        testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
+        buildPlatform: $(arch)
+      condition: succeededOrFailed()
+
+    - pwsh: |
+        $logDir = '$(Build.ArtifactStagingDirectory)/logs'
+        New-Item $logDir -ItemType Directory -Force | Out-Null
+        Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
+        Copy-Item "$(Build.SourcesDirectory)/TestResults" "$logDir/" -Recurse
+        # The setup fixtures run outside the scope of any test, so their logs (*-[test|device]-*.log)
+        # aren't included in the TRX. Copy them manually here.
+        Copy-Item '$(binDir)/context.json' "$logDir/"
+        Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
+        Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
+        Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+        Copy-Item "$(binDir)/supportbundle*" "$logDir/"
+        $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+        Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
+      displayName: Collect Logs
+      condition: always()
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish logs
+      inputs:
+        PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
+        ArtifactName: logs-end-to-end-$(artifactSuffix)
+      condition: always()
+
+################################################################################
+- stage: Publish
+################################################################################
+  displayName: Publish Metrics Collector
+  condition: succeeded('Test')
+
+  dependsOn:
+  - PrepareRelease
+  - Test
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+  variables:
+    ${{ if eq(variables['Build.Reason'], 'Manual') }}:
+      changelog: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.changelog'] ]
+      tags: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.tags'] ]
+      version: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.version'] ]
+      version.previous: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.previous_version'] ]
+    ${{ else }}:
+      changelog: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.changelog'] ]
+      tags: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.tags'] ]
+      version: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.version'] ]
+      version.previous: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.previous_version'] ]
+
+  jobs:
+  - job: publish
+    displayName: Publish Linux
+
+    steps:
+    - checkout: self
+      fetchDepth: 0
+    - checkout: product
+      fetchDepth: 0
+
+    - task: Docker@2
+      displayName: Docker login
+      inputs:
+        command: login
+        containerRegistry: $(service-connection.registry)
+
+    - script: |
+        scripts/linux/copy-multi-platform-image.sh \
+          --registry '$(registry.address)' \
+          --repo-src 'microsoft/azureiotedge-metrics-collector' \
+          --repo-dst 'public/azureiotedge-metrics-collector' \
+          --tag '$(version)' \
+          --tags-add '$(tags)'
+      displayName: Publish Metrics Collector images
+      workingDirectory: iotedge
+
+    - task: AzureKeyVault@1
+      displayName: Get secrets
+      inputs:
+        azureSubscription: $(az.subscription)
+        keyVaultName: $(kv.name)
+        secretsFilter: TestGitHubAccessToken
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        COMMITISH="${BUILD_SOURCEBRANCH#refs/heads/}"
+        COMMITISH="${BUILD_SOURCEBRANCH#refs/tags/}"
+
+        # deserialize the changelog
+        printf -v CHANGELOG '$(changelog)'
+        # Remove 1st line (header) because GitHub Release page has its own header
+        CHANGELOG="$(echo "$CHANGELOG" | tail -n +2 -)"
+
+        . scripts/linux/release-tools.sh
+        create_github_release_page_for_metrics_collector_in_project_repo
+      displayName: Create GitHub release page in project repo
+      env:
+        VERSION: $(version)
+        GITHUB_TOKEN: $(TestGitHubAccessToken)
+        REPO_NAME: $(repo.project.name)
+      workingDirectory: iotedge
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        # in case commits were made after this pipeline started but before we arrived here, sync to
+        # the tip of the branch
+        git checkout "$PRODUCT_REPO_BRANCH"
+
+        # update product-versions.json
+        echo "$(jq '
+          def product: .channels[] | .products[] | select(
+            .id=="metrics-collector" and .version=="$(version.previous)"
+          );
+          def metrics_collector: product | .components[] | select(
+            .name=="azureiotedge-metrics-collector"
+          );
+          (metrics_collector).version |= "$(version)"
+            | (product).version |= "$(version)"
+        ' product-versions.json )" > product-versions.json
+        git add product-versions.json
+
+        # configure git
+        git config user.email '$(service-account.email)'
+        git config user.name 'IoT Edge Bot'
+        origin_url="$(git config --get remote.origin.url)"
+        origin_url="${origin_url/#https:\/\//https:\/\/$GITHUB_TOKEN@}" # add token to URL
+
+        # commit changes and push
+        git commit -m 'Bump Metrics Collector in product-versions.json'
+        git push "$origin_url" "HEAD:$PRODUCT_REPO_BRANCH"
+      displayName: Update product-versions.json in product repo
+      env:
+        GITHUB_TOKEN: $(TestGitHubAccessToken)
+        PRODUCT_REPO_BRANCH: main
+      workingDirectory: azure-iotedge

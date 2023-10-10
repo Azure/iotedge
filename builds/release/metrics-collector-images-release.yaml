@@ -1,0 +1,293 @@
+trigger: none
+pr: none
+
+variables:
+  DisableDockerDetector: true
+  NugetSecurityAnalysisWarningLevel: warn
+  verbose: true
+
+jobs:
+################################################################################
+- job: build
+################################################################################
+  displayName: Build Metrics Collector
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+  steps:
+
+  - checkout: self
+    fetchDepth: 0
+
+  - script: |
+      dotnet publish edge-modules/metrics-collector/src/Microsoft.Azure.Devices.Edge.Azure.Monitor.csproj \
+        -o '$(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor' \
+        -c Release
+    displayName: Build
+
+  # The code sign task requires .NET Core 2.1.
+  # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
+  - template: ../templates/force-dotnet21.yaml
+  # Code Sign
+  - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+    displayName: "Metrics Collector Code Sign"
+    inputs:
+      ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+      FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
+      Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
+      SessionTimeout: 20
+      inlineOperation: |
+          [
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolSign",
+                "parameters": [
+                {
+                    "parameterName": "OpusName",
+                    "parameterValue": "Microsoft"
+                },
+                {
+                    "parameterName": "OpusInfo",
+                    "parameterValue": "http://www.microsoft.com"
+                },
+                {
+                    "parameterName": "Append",
+                    "parameterValue": "/as"
+                },
+                {
+                    "parameterName": "FileDigest",
+                    "parameterValue": "/fd \"SHA256\""
+                },
+                {
+                    "parameterName": "PageHash",
+                    "parameterValue": "/NPH"
+                },
+                {
+                    "parameterName": "TimeStamp",
+                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            },
+            {
+                "keyCode": "CP-230012",
+                "operationSetCode": "SigntoolVerify",
+                "parameters": [
+                {
+                    "parameterName": "VerifyAll",
+                    "parameterValue": "/all"
+                }
+                ],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            }
+          ]
+      signConfigType: inlineSignParams
+  # We're done with code signing, so remove dotnet version override
+  - template: ../templates/restore-default-dotnet.yaml
+
+  - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+    displayName: Generate SBOM
+    inputs:
+        BuildDropPath: '$(Build.BinariesDirectory)/publish'
+
+  - template: ../misc/templates/image-linux.yaml
+    parameters:
+      displayName: Metrics Collector
+      name: azureiotedge-metrics-collector
+      app: Microsoft.Azure.Devices.Edge.Azure.Monitor
+      download_artifacts: false
+      version: $(version)
+
+  - script: |
+      echo '$(version)' > $(Build.ArtifactStagingDirectory)/version.txt
+      echo '$(tags)' > $(Build.ArtifactStagingDirectory)/tags.txt
+    displayName: Save version as artifact
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish version artifact
+    inputs:
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: version
+
+################################################################################
+- job: test
+################################################################################
+  displayName: Test Linux
+  dependsOn: build
+
+  variables:
+    os: linux
+
+  strategy:
+    matrix:
+      arm32v7:
+        pool: $(pool.linux.arm.name)
+        # Since this pipeline is about testing the Metrics Collector Docker image for release
+        # and not our host components, we'll run the arm32v7 Docker image on an arm64v8 host
+        # OS, with arm64v8 host components, for speed and convenience.
+        agent: agent-aziotedge-ubuntu-20.04-arm64-docker
+        arch: arm32v7
+      arm64v8:
+        pool: $(pool.linux.arm.name)
+        agent: agent-aziotedge-ubuntu-20.04-arm64-docker
+        arch: arm64v8
+      amd64:
+        pool: $(pool.linux.name)
+        agent: agent-aziotedge-ubuntu-20.04-msmoby
+        arch: amd64
+
+  pool:
+    name: $(pool)
+    demands:
+    - ImageOverride -equals $(agent)
+
+  steps:
+    
+  - checkout: self
+    fetchDepth: 0
+
+  - task: AzureKeyVault@1
+    displayName: Get secrets
+    inputs:
+      azureSubscription: $(az.subscription)
+      keyVaultName: $(kv.name)
+      secretsFilter: >-
+        ReleaseContainerRegistryPassword,
+        TestEventHubCompatibleEndpoint,
+        TestIotHubConnectionString,
+        TestIotHubResourceId,
+        TestRootCaCertificate,
+        TestRootCaKey,
+        TestRootCaPassword
+
+  - pwsh: |
+      $certsDir = '$(System.ArtifactsDirectory)/certs'
+      New-Item "$certsDir" -ItemType Directory -Force | Out-Null
+      $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+      $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+      Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
+    displayName: Install CA keys
+    env:
+      ROOT_CERT: $(TestRootCaCertificate)
+      ROOT_KEY: $(TestRootCaKey)
+  
+  - pwsh: |
+      $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+      dotnet build -c Release $testDir
+  
+      $binDir = Convert-Path "$testDir/bin/Release/net6.0"
+      Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+    displayName: Build tests
+    env:
+      http_proxy: $(Agent.ProxyUrl)
+      https_proxy: $(Agent.ProxyUrl)
+  
+  - pwsh: |
+      $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
+      $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+      $runtimeVersion = (
+        (
+          (Invoke-WebRequest https://aka.ms/latest-aziot-edge).Content | ConvertFrom-Json
+        )."aziot-edge" | Select-String -Pattern '([0-9]+\.[0-9]+)\.[0-9]+'
+      ).Matches[0].Groups[1].Value
+      $edgeAgentImage = "mcr.microsoft.com/azureiotedge-agent:$runtimeVersion";
+      $edgeHubImage = "mcr.microsoft.com/azureiotedge-hub:$runtimeVersion";
+      $metricsCollectorImage = "$(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-$(os)-$(arch)"
+
+      echo "Edge Agent image: $edgeAgentImage"
+      echo "Edge Hub image: $edgeHubImage"
+      echo "Metrics Collector image: $metricsCollectorImage"
+  
+      $context = @{
+        nestededge = 'false';
+        isa95Tag = 'false';
+        edgeAgentImage = "$edgeAgentImage";
+        edgeHubImage = "$edgeHubImage";
+        metricsCollectorImage = "$metricsCollectorImage";
+        iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
+        registries = @(
+          @{
+            address = '$(registry.address)';
+            username = '$(registry.username)';
+          }
+        );
+        caCertScriptPath = "$caCertScriptPath";
+        rootCaCertificatePath = "$rootCaCertificatePath";
+        rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
+        logFile = Join-Path '$(binDir)' 'testoutput.log';
+        verbose = '$(verbose)';
+        getSupportBundle = 'true';
+        teardownTimeoutMinutes = 10;
+      }
+  
+      if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
+      {
+        $context['optimizeForPerformance'] = 'false'
+        $context['setupTimeoutMinutes'] = 10
+        $context['teardownTimeoutMinutes'] = 10
+        $context['testTimeoutMinutes'] = 10
+      }
+  
+      if ($env:AGENT_PROXYURL)
+      {
+        $context['testRunnerProxy'] = $env:AGENT_PROXYURL
+        $context['edgeProxy'] = $env:AGENT_PROXYURL
+      }
+      
+      $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
+      Get-Content -Path '$(binDir)/context.json'
+    displayName: Create test arguments file (context.json)
+    env:
+      IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
+
+  - script: |
+      sudo --preserve-env dotnet test '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll' \
+        --no-build \
+        --logger 'trx' \
+        --filter 'MetricsCollector'
+    displayName: Run tests
+    env:
+      E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
+      E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+      E2E_REGISTRIES__0__PASSWORD: $(ReleaseContainerRegistryPassword)
+      E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
+
+  - task: PublishTestResults@2
+    displayName: Publish test results
+    inputs:
+      testRunner: vstest
+      testResultsFiles: '**/*.trx'
+      searchFolder: $(Build.SourcesDirectory)/TestResults
+      testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
+      buildPlatform: $(arch)
+    condition: succeededOrFailed()
+
+  - pwsh: |
+      $logDir = '$(Build.ArtifactStagingDirectory)/logs'
+      New-Item $logDir -ItemType Directory -Force | Out-Null
+      Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
+      Copy-Item "$(Build.SourcesDirectory)/TestResults" "$logDir/" -Recurse
+      # The setup fixtures run outside the scope of any test, so their logs (*-[test|device]-*.log)
+      # aren't included in the TRX. Copy them manually here.
+      Copy-Item '$(binDir)/context.json' "$logDir/"
+      Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
+      Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
+      Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+      Copy-Item "$(binDir)/supportbundle*" "$logDir/"
+      $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+      Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
+    displayName: Collect Logs
+    condition: always()
+
+  - task: PublishBuildArtifacts@1
+    displayName: Publish logs
+    inputs:
+      PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
+      ArtifactName: logs-end-to-end-$(artifactSuffix)
+    condition: always()

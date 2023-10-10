@@ -4,7 +4,7 @@
 # This script builds a static binary of the api-proxy-module
 ###############################################################################
 
-set -e
+set -euo pipefail
 
 ###############################################################################
 # Define Environment Variables
@@ -16,9 +16,9 @@ TARGET=
 SCRIPT_NAME=$(basename "$0")
 PROJECT=
 DOCKERFILE=
-DOCKER_IMAGENAME=
-BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH}
-PUBLISH_DIR=${BUILD_BINARIESDIRECTORY}/publish
+BUILD_BINARIESDIRECTORY=
+PUBLISH_DIR=
+BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
 API_PROXY_DIR=${BUILD_REPOSITORY_LOCALPATH}/edge-modules/api-proxy-module
 BUILD_CONFIGURATION="release"
 BUILD_CONFIG_OPTION=
@@ -28,16 +28,12 @@ BUILD_CONFIG_OPTION=
 ###############################################################################
 check_arch()
 {
-    if [[ "$ARCH" == "x86_64" ]]; then
-        ARCH="amd64"
-    elif [[ "$ARCH" == "armv7l" ]]; then
-        ARCH="arm32v7"
-    elif [[ "$ARCH" == "aarch64" ]]; then
-        ARCH="arm64v8"
-    else
-        echo "Unsupported architecture $ARCH"
-        exit 1
-    fi
+    case "$ARCH" in
+        'amd64'|'x86_64')  ARCH='amd64' ;;
+        'arm32v7'|'armv7l') ARCH='arm32v7' ;;
+        'arm64v8'|'aarch64') ARCH='arm64v8' ;;
+        *) echo "Unsupported architecture '$ARCH'" && exit 1 ;;
+    esac
 }
 
 ###############################################################################
@@ -46,11 +42,13 @@ check_arch()
 function usage()
 {
     echo "$SCRIPT_NAME [options]"
-    echo ""
-    echo "options"
-    echo " -h,  --help                   Print this help and exit."
-    echo " -i,  --image                  Image name"
-    echo " -t,  --target-arch            Target architecture: amd64|arm32v7|aarch64"
+    echo ''
+    echo 'options'
+    echo ' -h,  --help              Print this help and exit.'
+    echo ' -t,  --target-arch       Target architecture: amd64|arm32v7|aarch64'
+    echo ' -P,  --project           Project name'
+    echo ' -c,  --configuration     release or debug'
+    echo ' --bin-dir                Output directory'
     exit 1;
 }
 
@@ -65,8 +63,8 @@ print_args()
     echo "Project:      $API_PROXY_DIR"
     echo "Arch:         $ARCH"
     echo "Target:       $TARGET"
-    echo "Image:        $DOCKER_IMAGENAME"
     echo "Dockerfile:   $DOCKERFILE"
+    echo "Output:       $PUBLISH_DIR"
     echo
 }
 
@@ -87,12 +85,9 @@ process_args()
             PROJECT="$arg"
             save_next_arg=0
         elif [[ ${save_next_arg} -eq 3 ]]; then
-            DOCKER_IMAGENAME="$arg"
-            save_next_arg=0
-        elif [[ ${save_next_arg} -eq 4 ]]; then
             BUILD_CONFIGURATION="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 5 ]]; then
+        elif [[ ${save_next_arg} -eq 4 ]]; then
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
         else
@@ -100,9 +95,8 @@ process_args()
                 "-h" | "--help" ) usage;;
                 "-t" | "--target-arch" ) save_next_arg=1;;
                 "-P" | "--project" ) save_next_arg=2;;
-                "-i" | "--image-name" ) save_next_arg=3;;
-                "-c" | "--configuration" ) save_next_arg=4;;
-                "--bin-dir" ) save_next_arg=5;;
+                "-c" | "--configuration" ) save_next_arg=3;;
+                "--bin-dir" ) save_next_arg=4;;
                 * ) usage;;
             esac
         fi
@@ -114,10 +108,8 @@ process_args()
         arm64v8) TARGET="aarch64-unknown-linux-gnu";;
     esac
 
-    if [[ -z ${DOCKER_IMAGENAME} ]]; then
-        echo "Docker image name parameter invalid"
-        print_help_and_exit
-    fi
+    BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH}
+    PUBLISH_DIR=${BUILD_BINARIESDIRECTORY}/publish
 
     if [[ ! -d ${BUILD_BINARIESDIRECTORY} ]]; then
         mkdir "${BUILD_BINARIESDIRECTORY}"
@@ -163,7 +155,7 @@ build_project()
 
     execute cd "$API_PROXY_DIR"
     # prepare docker folder
-    local EXE_DOCKER_DIR="$PUBLISH_DIR/$DOCKER_IMAGENAME/docker/linux/$ARCH"
+    local EXE_DOCKER_DIR="$PUBLISH_DIR/$PROJECT/docker/linux/$ARCH"
     execute mkdir -p "$EXE_DOCKER_DIR"
 
     # copy Dockerfile to publish folder for given arch

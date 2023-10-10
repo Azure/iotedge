@@ -13,6 +13,9 @@ pub enum Error {
     #[error("Invalid value for --tail parameter")]
     BadTailParameter,
 
+    #[error("Invalid value for --until parameter")]
+    BadUntilParameter,
+
     #[error("")]
     Diagnostics,
 
@@ -61,6 +64,7 @@ pub enum Error {
 
 #[derive(Clone, Copy, Debug)]
 pub enum FetchLatestVersionsReason {
+    RequestTimeout,
     CreateClient,
     GetResponse,
     InvalidOrMissingLocationHeader,
@@ -72,6 +76,7 @@ impl fmt::Display for FetchLatestVersionsReason {
         match self {
             FetchLatestVersionsReason::CreateClient => write!(f, "could not create HTTP client"),
             FetchLatestVersionsReason::GetResponse => write!(f, "could not send HTTP request"),
+            FetchLatestVersionsReason::RequestTimeout => write!(f, "HTTP request timed out"),
             FetchLatestVersionsReason::InvalidOrMissingLocationHeader => write!(
                 f,
                 "redirect response has invalid or missing location header"

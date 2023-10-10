@@ -19,9 +19,9 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo "--registry-address              Path where to put librocksdb folder containing built artifact."
-    echo "--version                       Tag for built edge hub image."
-    echo " -h, --help                     Print this help and exit."
+    echo "--registry-address    Docker registry where image will be published."
+    echo "--version             Tag for built edge hub image."
+    echo " -h, --help           Print this help and exit."
     exit 1
 }
 
@@ -55,6 +55,17 @@ function process_args() {
 
 process_args "$@"
 
-scripts/linux/buildBranch.sh --no-rocksdb-bin
-scripts/linux/buildRocksDb.sh --output-dir "$(pwd)/target/publish/Microsoft.Azure.Devices.Edge.Hub.Service" --postfix amd64 --build-number debug --arch amd64
-scripts/linux/buildImage.sh -r "$REGISTRY_ADDRESS" -i azureiotedge-hub -n microsoft -P Microsoft.Azure.Devices.Edge.Hub.Service -v "$VERSION" --bin-dir target
+scripts/linux/buildBranch.sh --no-rocksdb-bin --skip-quickstart
+
+scripts/linux/buildRocksDb.sh \
+    --output-dir target/publish/Microsoft.Azure.Devices.Edge.Hub.Service \
+    --build-number debug \
+    --arch amd64
+
+scripts/linux/buildImage.sh \
+    --app Microsoft.Azure.Devices.Edge.Hub.Service \
+    --bin target \
+    --name azureiotedge-hub \
+    --platforms linux/amd64 \
+    --registry "$REGISTRY_ADDRESS" \
+    --version "$VERSION"

@@ -1,8 +1,12 @@
+use std::time::Duration;
+
 use anyhow::{anyhow, Context};
 use regex::Regex;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 use crate::error::{Error, FetchLatestVersionsReason};
+
+const AKA_MS_HTTP_REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
 
 #[derive(Default, serde::Serialize)]
 pub(crate) struct AziotEdgedVersion {
@@ -53,12 +57,21 @@ impl AziotEdgedVersion {
                 req
             };
 
-            let res = client
-                .request(req)
-                .await
-                .context(Error::FetchLatestVersions(
-                    FetchLatestVersionsReason::GetResponse,
-                ))?;
+            let res = tokio::time::timeout(AKA_MS_HTTP_REQUEST_TIMEOUT, client.request(req)).await;
+            let res = match res {
+                Ok(Ok(res)) => res,
+                Ok(Err(e)) => {
+                    return Err(e).context(Error::FetchLatestVersions(
+                        FetchLatestVersionsReason::GetResponse,
+                    ));
+                }
+                Err(e) => {
+                    return Err(e).context(Error::FetchLatestVersions(
+                        FetchLatestVersionsReason::RequestTimeout,
+                    ));
+                }
+            };
+
             match res.status() {
                 status_code if status_code.is_redirection() => {
                     uri = res
@@ -131,7 +144,7 @@ impl AziotEdgedVersion {
             return Err(anyhow!(
                 "aziot-edged returned {}, stderr = {}",
                 output.status,
-                String::from_utf8_lossy(&*output.stderr),
+                String::from_utf8_lossy(&output.stderr),
             )
             .context("Could not spawn aziot-edged process"));
         }

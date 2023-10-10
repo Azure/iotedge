@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 
+use edgelet_settings::base::image;
 use url::Url;
 
 use aziotctl_common::config as common_config;
@@ -36,6 +37,12 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_info: Option<Url>,
 
+    #[serde(
+        default,
+        skip_serializing_if = "edgelet_settings::IotedgeMaxRequests::is_default"
+    )]
+    pub iotedge_max_requests: edgelet_settings::IotedgeMaxRequests,
+
     #[serde(flatten)]
     pub aziot: aziotctl_common::config::super_config::Config,
 
@@ -55,6 +62,9 @@ pub struct Config {
 
     #[serde(default)]
     pub moby_runtime: MobyRuntime,
+
+    #[serde(default, skip_serializing_if = "image::ImagePruneSettings::is_default")]
+    pub image_garbage_collection: image::ImagePruneSettings,
 }
 
 pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig> {
@@ -63,7 +73,7 @@ pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerC
         /* type */ "docker".to_owned(),
         /* config */
         edgelet_settings::DockerConfig::new(
-            /* image */ "mcr.microsoft.com/azureiotedge-agent:1.2".to_owned(),
+            /* image */ "mcr.microsoft.com/azureiotedge-agent:1.4".to_owned(),
             /* create_options */ docker::models::ContainerCreateBody::new(),
             /* digest */ None,
             /* auth */ None,

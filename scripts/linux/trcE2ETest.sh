@@ -55,6 +55,7 @@ function usage() {
     echo " -clientModuleTransportType               Value for contrained long haul specifying transport type for all client modules."
     echo " -trackingId                              Tracking id used to tag test events. Needed if running nested tests and test events are sent to TRC from L4 node. Otherwise generated."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
+    echo ' -packageType                             Package type to be used [deb, rpm]'
     exit 1;
 }
 
@@ -90,9 +91,9 @@ function get_artifact_file() {
 
     local filter
     case "$fileType" in
-        'aziot_edge' ) filter='aziot-edge_*.deb';;
-        'aziot_is' ) filter='aziot-identity-service_*.deb';;
-        'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
+        'aziot_edge' ) filter="aziot-edge*.$PACKAGE_TYPE";;
+        'aziot_is' ) filter="aziot-identity-service*.$PACKAGE_TYPE";;
+        'quickstart' ) filter="core-linux/IotEdgeQuickstart.linux*.tar.gz";;
         *) print_error "Unknown file type: $fileType"; exit 1;;
     esac
 
@@ -287,7 +288,7 @@ function print_deployment_logs() {
     journalctl -u docker --since "$test_start_time" --no-pager || true
 
     print_highlighted_message '========== Logs from iotedge system =========='
-    iotedge system logs -- --since "$test_start_time" --no-pager || true
+    iotedge system logs -- --since "$test_start_time" --no-pager
 
     print_highlighted_message '========== Logs from edgeAgent =========='
     docker logs edgeAgent || true
@@ -296,11 +297,33 @@ function print_deployment_logs() {
 
 function get_support_bundle_logs(){
 
-    print_highlighted_message "Getting Support Bundle Logs"
+    print_highlighted_message "Getting Support Bundle Logs WITH TIMEOUT"
     mkdir -p $working_folder/support
     time=$(echo $test_start_time | sed 's/ /T/' | sed 's/$/Z/')
-    iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time"
-    print_highlighted_message "Finished getting support Bundle Logs"
+
+    MAX_RETRIES=10
+    RETRY_COUNT=0
+    DID_SUCCEED=false
+
+    while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ] && [ "$DID_SUCCEED" = false ]; do
+        DID_TIMEOUT=false
+        timeout 180 iotedge support-bundle -o $working_folder/support/iotedge_support_bundle.zip --since "$time" || DID_TIMEOUT=true
+
+        if [ "$DID_TIMEOUT" = true ]; then
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+
+            if [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; then
+                print_highlighted_message "Support Bundle timed out. Trying again."
+            else
+                print_highlighted_message "Support Bundle timed out after $MAX_RETRIES retries. Exiting."
+                exit 1
+            fi
+        else
+            DID_SUCCEED=true
+        fi
+    done
+
+    print_highlighted_message "Finished getting support Bundle Logs at $(date)"
 }
 
 function print_test_run_logs() {
@@ -308,6 +331,7 @@ function print_test_run_logs() {
 
     print_highlighted_message "test run exit code=$ret"
     print_highlighted_message 'Print logs'
+
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
 }
@@ -461,6 +485,9 @@ function process_args() {
         elif [ $saveNextArg -eq 48 ]; then
             TOPOLOGY="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 49 ]; then
+            PACKAGE_TYPE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -512,6 +539,7 @@ function process_args() {
                 '-clientModuleTransportType' ) saveNextArg=46;;
                 '-trackingId' ) saveNextArg=47;;
                 '-topology' ) saveNextArg=48;;
+                '-packageType' ) saveNextArg=49;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -812,6 +840,7 @@ function run_longhaul_test() {
             --device_ca_cert "$DEVICE_CA_CERT" \
             --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
+            $PACKAGE_TYPE_ARG \
             $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     fi
@@ -837,11 +866,13 @@ function configure_longhaul_settings() {
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
 
     if [ "$image_architecture_label" = 'amd64' ]; then
+        log_upload_enabled=true
         log_rotation_max_file="125"
         log_rotation_max_file_edgehub="400"
     fi
     if [ "$image_architecture_label" = 'arm32v7' ] ||
         [ "$image_architecture_label" = 'arm64v8' ]; then
+        log_upload_enabled=false
         log_rotation_max_file="7"
         log_rotation_max_file_edgehub="30"
 
@@ -885,6 +916,8 @@ function configure_connectivity_settings() {
     CHECK_TRC_DELAY="${TEST_START_DELAY:-00:30:00}"
 
     TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
+
+    log_upload_enabled=false
 }
 
 LONGHAUL_TEST_NAME="LongHaul"
@@ -915,9 +948,15 @@ NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
 
+if [ -z $PACKAGE_TYPE ]; then
+    echo 'Package type not specifed default to .deb'
+    PACKAGE_TYPE=deb
+fi
+
+PACKAGE_TYPE_ARG=--package-type="$PACKAGE_TYPE"
+
 if [ "$image_architecture_label" = 'amd64' ]; then
     optimize_for_performance=true
-    log_upload_enabled=true
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:01"
     TWIN_UPDATE_FREQUENCY="00:00:15"
@@ -926,7 +965,6 @@ fi
 if [ "$image_architecture_label" = 'arm32v7' ] ||
     [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
-    log_upload_enabled=false
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:10"
     TWIN_UPDATE_FREQUENCY="00:01:00"

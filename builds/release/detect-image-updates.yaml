@@ -1,0 +1,144 @@
+trigger: none
+pr: none
+
+schedules:
+# Twice daily (7AM/PM PST)
+- cron: "0 3,15 * * *"
+  displayName: Twice daily check (8AM/PM PDT)
+  branches:
+    include:
+    - main
+    - release/*
+  always: true
+
+resources:
+  repositories:
+  - repository: product
+    type: github
+    endpoint: Azure/azure-iotedge
+    name: Azure/azure-iotedge
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  DisableDockerDetector: true
+
+pool:
+  name: $(pool.linux.name)
+  demands:
+  - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+steps:
+- checkout: product
+  fetchDepth: 0
+
+- script: |
+    #!/bin/bash
+    set -euo pipefail
+
+    branch="${BUILD_SOURCEBRANCH#refs/heads/}"
+    echo "Filtering product-versions.json for images on branch '$branch'"
+
+    # transform product-versions.json into a list of images for each product in this branch
+    images_json=$(cat product-versions.json | jq --arg registry "$REGISTRY" --arg branch "$branch" '
+      [
+        .channels[] | .products[] | {
+          product: .id, version, images: [
+            .components[]
+              | select(has("type") and .type == "dockerImage" and .repo == "Azure/iotedge" and .branch == $branch)
+              | "\($registry)/\(.name):\(.version)"
+          ]
+        }
+      ] | unique | map(select(.images | length != 0))
+    ')
+
+    # $images_json contains something like:
+    # [
+    #   {
+    #     "product": "aziot-edge",
+    #     "version": "1.4.9",
+    #     "images": [
+    #       "mcr.microsoft.com/azureiotedge-agent:1.4.9",
+    #       "mcr.microsoft.com/azureiotedge-hub:1.4.9",
+    #       "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.4.9",
+    #       "mcr.microsoft.com/azureiotedge-diagnostics:1.4.9"
+    #     ]
+    #   },
+    #   {
+    #     "product": "api-proxy",
+    #     "version": "1.1.3",
+    #     "images": [
+    #       "mcr.microsoft.com/azureiotedge-api-proxy:1.1.3"
+    #     ]
+    #   }
+    # ]
+
+    images=( $(echo "$images_json" | jq -r '[ .[].images ] | flatten | join("\n")') )
+    echo "Found ${#images[@]} images"
+
+    # $images contains something like:
+    # mcr.microsoft.com/azureiotedge-agent:1.4.9
+    # mcr.microsoft.com/azureiotedge-hub:1.4.9
+    # mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.4.9
+    # mcr.microsoft.com/azureiotedge-diagnostics:1.4.9
+    # mcr.microsoft.com/azureiotedge-api-proxy:1.1.3
+
+    # use build metadata present in each published image to determine if it is out of date
+    remove=( )
+    for image in ${images[@]}
+    do
+      echo "image: $image"
+
+      # This command assumes that $image is a manifest list, i.e., a mutli-platform image.
+      base_images=( $(
+        docker buildx imagetools inspect --format "{{json .Provenance}}" $image | jq -r '
+          . as $doc | [
+            keys[] | $doc[.] | [
+              .SLSA // halt | .materials[] | select(.uri | startswith("pkg:docker/docker/dockerfile") | not)
+            ] | if length == 1 then first else (
+              "Error: inspect command found more than one base image in provenance materials\n\(.)" | halt_error
+            ) end | "\(.uri | sub("pkg:docker/(?<i>.+)@(?<t>.+)\\?.+"; "\(.i):\(.t)")),sha256:\(.digest.sha256)"
+          ] | unique | .[]
+        '
+      ) )
+
+      # $base_images contains entries in the form of:
+      # mcr.microsoft.com/dotnet/runtime@6.0-alpine,sha256:b7a9b8fbdb096327a1e05cda40d40afbec54b96e1a6a1bb7577e67344f9d99e4
+
+      for base_info in ${base_images[@]}; do
+        IFS=',' read base_image current_digest <<< "$base_info"
+        latest_digest="$(docker buildx imagetools inspect $base_image --format '{{json .Manifest}}' | jq -r '.digest')"
+
+        echo -e "  base:\t\t$base_image\n  current:\t$current_digest\n  latest:\t$latest_digest"
+        if [ -n "$current_digest" ] && [ "$current_digest" != "$latest_digest" ]
+        then
+          echo "  ## NEEDS UPDATE ##"
+        else
+          remove+=( "$image" )
+        fi
+      done
+    done
+
+    # filter up-to-date images out of the list
+    remove_json=$(printf '%s\n' "${remove[@]}" | jq -R '.' | jq -s '. | unique')
+    images_json=$(echo "$images_json" | jq --argjson remove "$remove_json" '
+      [ .[] | { product, version, images: (.images - $remove) } | select(.images | length != 0) ]
+    ')
+
+    if [ $(echo "$images_json" | jq '. | length != 0') == 'true' ]
+    then
+      echo 'Found images that need to be updated:'
+      echo "$images_json" | jq '.'
+    else
+      echo 'All images are up to date. Nothing to do...'
+    fi
+
+    echo "$images_json" > $(Build.ArtifactStagingDirectory)/updates.json
+  displayName: Detect base image updates
+  env:
+    REGISTRY: mcr.microsoft.com
+
+- task: PublishBuildArtifacts@1
+  displayName: Save list of images to update
+  inputs:
+    pathtoPublish: '$(Build.ArtifactStagingDirectory)/updates.json'
+    artifactName: image-updates

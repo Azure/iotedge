@@ -1,6 +1,6 @@
 use serde::{Serialize, Serializer};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MessageTestResult {
     tracking_id: String,
     batch_id: String,

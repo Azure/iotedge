@@ -3,7 +3,7 @@ set -e
 
 case "$1" in
     purge)
-        systemctl daemon-reload
+        systemctl daemon-reload 2>/dev/null || true
         killall -SIGKILL -u iotedge || true
 
         if [ -d /etc/aziot ]; then
@@ -18,8 +18,12 @@ case "$1" in
             gpasswd -d "$u" iotedge
         done
 
+        # Remove iotedge users.
         /usr/sbin/userdel iotedge
         rm -rf /var/lib/aziot/edged
+
+        /usr/sbin/userdel edgeagentuser
+        /usr/sbin/userdel edgehubuser
 
         if [ -d /var/lib/aziot ] && [ -z "$(ls -A /var/lib/aziot)" ]; then
             rm -rf /var/lib/aziot

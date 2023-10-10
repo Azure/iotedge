@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use anyhow::Context;
 use hyper::Uri;
@@ -60,8 +60,22 @@ impl ModuleRuntime for MgmtClient {
     type Module = MgmtModule;
     type ModuleRegistry = Self;
 
-    async fn restart(&self, id: &str) -> anyhow::Result<()> {
-        let path = format!("/modules/{}/restart?api-version={}", id, API_VERSION);
+    async fn start(&self, id: &str) -> anyhow::Result<()> {
+        let path = format!("/modules/{}/start?api-version={}", id, API_VERSION);
+        let uri = self.get_uri(&path)?;
+
+        let request: HttpRequest<(), _> = HttpRequest::post(self.connector.clone(), &uri, None);
+
+        request
+            .no_content_response()
+            .await
+            .context(Error::ModuleRuntime)?;
+
+        Ok(())
+    }
+
+    async fn stop(&self, id: &str, _wait_before_kill: Option<Duration>) -> anyhow::Result<()> {
+        let path = format!("/modules/{}/stop?api-version={}", id, API_VERSION);
         let uri = self.get_uri(&path)?;
 
         let request: HttpRequest<(), _> = HttpRequest::post(self.connector.clone(), &uri, None);
@@ -103,6 +117,10 @@ impl ModuleRuntime for MgmtClient {
         Ok(modules)
     }
 
+    async fn list_images(&self) -> anyhow::Result<HashMap<String, String>> {
+        unimplemented!()
+    }
+
     async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body> {
         let uri = {
             let mut query = ::url::form_urlencoded::Serializer::new(String::new());
@@ -142,10 +160,7 @@ impl ModuleRuntime for MgmtClient {
     async fn get(&self, _id: &str) -> anyhow::Result<(Self::Module, ModuleRuntimeState)> {
         unimplemented!()
     }
-    async fn start(&self, _id: &str) -> anyhow::Result<()> {
-        unimplemented!()
-    }
-    async fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> anyhow::Result<()> {
+    async fn restart(&self, _id: &str) -> anyhow::Result<()> {
         unimplemented!()
     }
     async fn remove(&self, _id: &str) -> anyhow::Result<()> {
@@ -216,7 +231,7 @@ impl MgmtModule {
         {
             docker_config.image().to_owned()
         } else {
-            "".to_owned()
+            String::new()
         };
 
         Self { details, image }

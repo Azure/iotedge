@@ -1,0 +1,589 @@
+pr: none
+trigger: none
+
+resources:
+  pipelines:
+  - pipeline: detect-image-updates
+    source: 'Detect Image Updates'
+    trigger:
+      branches:
+        include:
+        - release/1.4
+  repositories:
+  - repository: product
+    type: github
+    endpoint: Azure/azure-iotedge
+    name: Azure/azure-iotedge
+
+variables:
+  DisableDockerDetector: true
+
+stages:
+################################################################################
+- stage: PrepareRelease
+################################################################################
+  displayName: Prepare for release
+  dependsOn: []
+
+  # The project repo must meet some prerequisites before the release pipeline can continue:
+  #  1. CHANGELOG.md and versionInfo.json must be updated
+  #  2. A release commit (usually including the changes in the previous step) must be pushed
+  #  3. The release commit must be tagged with the version
+  #
+  # This stage ensures the above requirements are fulfilled by running one of two mutually-exclusive
+  # jobs depending on how the run was triggered. If it was triggered automatically when the
+  # detect-image-updates pipeline completed, then the PipelineTrigger job runs and makes all
+  # necessary file updates, commits, and tags to prepare for the release. If the pipeline was
+  # triggered manually, then the ManualTrigger job runs. It assumes the prerequisites have already
+  # been met, and checks to ensure it has everything it needs to continue.
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+  jobs:
+  - job: PipelineTrigger
+    displayName: Trigger on base image updates
+    condition: eq(variables['Build.Reason'], 'ResourceTrigger')
+
+    steps:
+    - checkout: self
+      fetchDepth: 0
+
+    - download: detect-image-updates
+      displayName: Download image list from triggering pipeline
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        echo 'Updates:'
+        cat $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
+
+        . scripts/linux/release-tools.sh
+        prev_core_version=$(get_nearest_version)
+        prev_diag_version=$(
+          cat edgelet/version.txt | grep -Eo '^[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+'
+        )
+        product='aziot-edge'
+        echo "Filtering on { product: $product, version: $prev_core_version }..."
+
+        # The images we build from this pipeline all target .NET Alpine base images, but some are
+        # 'dotnet/aspnet' and some are 'dotnet/runtime'. If this pipeline happens to run, e.g.,
+        # after dotnet/runtime gets updated but before dotnet/aspnet gets updated, then we'll end up
+        # releasing twice in quick succession. To mitigate this problem, we'll wait until *all* the
+        # images we build in this pipeline are flagged for update.
+        continue=$(jq \
+          --arg p "$product" \
+          --arg cv "$prev_core_version" \
+          --arg dv "$prev_diag_version" \
+          --argjson cn '["agent","hub","simulated-temperature-sensor"]' \
+          --argjson dn '["diagnostics"]' '
+            def filter: [
+              "mcr.microsoft.com/azureiotedge-\("\($cn[]):\($cv)", "\($dn[]):\($dv)")"
+            ];
+            [ .[] | select(.product == $p and .version == $cv) | .images[] ] | contains(filter)
+          ' $(Pipeline.Workspace)/detect-image-updates/image-updates/updates.json
+        )
+
+        echo "Continue with release? $continue"
+        echo "##vso[task.setvariable variable=continue;isOutput=true]$continue"
+      displayName: Filter image list for core images
+      name: filter
+
+    - task: AzureKeyVault@1
+      displayName: Get secrets
+      condition: and(succeeded(), eq(variables['filter.continue'], 'true'))
+      inputs:
+        azureSubscription: $(az.subscription)
+        keyVaultName: $(kv.name)
+        secretsFilter: TestGitHubAccessToken
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        . scripts/linux/release-tools.sh
+
+        GIT_EMAIL='$(service-account.email)' \
+        BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}" \
+        make_project_release_commit_for_core_image_refresh
+        get_project_release_info
+        echo 'Core image release info:'
+        echo "$OUTPUTS" | jq '.'
+
+        changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
+        next=$(echo "$OUTPUTS" | jq -rc '.version')
+        prev=$(echo "$OUTPUTS" | jq -rc '.previous_version')
+        diag_version=$(echo "$OUTPUTS" | jq -rc '.diagnostics_version')
+        tags=$(echo "$OUTPUTS" | jq -rc '.tags')
+
+        echo "##vso[task.setvariable variable=changelog;isOutput=true]$changelog"
+        echo "##vso[task.setvariable variable=version;isOutput=true]$next"
+        echo "##vso[task.setvariable variable=previous_version;isOutput=true]$prev"
+        echo "##vso[task.setvariable variable=diagnostics_version;isOutput=true]$diag_version"
+        echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
+      displayName: Create a release commit
+      name: commit
+      condition: and(succeeded(), eq(variables['filter.continue'], 'true'))
+      env:
+        GITHUB_TOKEN: "$(TestGitHubAccessToken)"
+
+  - job: ManualTrigger
+    displayName: Manually trigger pipeline to update images
+    condition: eq(variables['Build.Reason'], 'Manual')
+
+    steps:
+    - checkout: self
+      fetchDepth: 0
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+        
+        # this script assumes the following steps have already been taken:
+        # - a release commit has been pushed to the project repo, and is reachable from this run's
+        #   source commit
+        # - the release commit was tagged with the new version
+        # - the project repo's CHANGELOG.md has been updated with information about the new release
+
+        . scripts/linux/release-tools.sh
+        get_project_release_info
+        echo 'Core image release info:'
+        echo "$OUTPUTS" | jq '.'
+
+        changelog=$(echo "$OUTPUTS" | jq -rc '.changelog')
+        next=$(echo "$OUTPUTS" | jq -rc '.version')
+        prev=$(echo "$OUTPUTS" | jq -rc '.previous_version')
+        diag_version=$(echo "$OUTPUTS" | jq -rc '.diagnostics_version')
+        tags=$(echo "$OUTPUTS" | jq -rc '.tags')
+
+        echo "##vso[task.setvariable variable=changelog;isOutput=true]$changelog"
+        echo "##vso[task.setvariable variable=version;isOutput=true]$next"
+        echo "##vso[task.setvariable variable=previous_version;isOutput=true]$prev"
+        echo "##vso[task.setvariable variable=diagnostics_version;isOutput=true]$diag_version"
+        echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
+      displayName: Determine versions
+      name: commit
+
+    - script: |
+        #!/bin/bash
+        set -euo pipefail
+
+        # If Edge Agent has already been published to mcr.microsoft.com at the given version, we'll
+        # assume there's a mistake (e.g., forgot to create and/or tag a new release commit) and
+        # abort the release.
+        image='mcr.microsoft.com/azureiotedge-agent:$(commit.version)'
+        if docker buildx imagetools inspect "$image" >/dev/null 2>&1; then
+          echo "Error: $image already exists but shouldn't"
+          exit 1
+        fi
+
+        # Create a filter.continue task variable to match the PipelineTrigger job, but hard-code it
+        # to true so the pipeline will always run subsequent stages in the manual case.
+        echo "##vso[task.setvariable variable=continue;isOutput=true]true"
+      displayName: Continue if the proposed version was not already released
+      name: filter
+
+################################################################################
+- stage: BuildExecutables
+################################################################################
+  displayName: Build executables
+  dependsOn: PrepareRelease
+
+  condition: |
+    and(
+      succeeded(),
+      or(
+        eq(dependencies.PrepareRelease.outputs['PipelineTrigger.filter.continue'], 'true'),
+        eq(dependencies.PrepareRelease.outputs['ManualTrigger.filter.continue'], 'true')
+      )
+    )
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+  variables:
+    ${{ if eq(variables['Build.Reason'], 'Manual') }}:
+      version: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.version'] ]
+    ${{ else }}:
+      version: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.version'] ]
+
+  jobs:
+  - template: ../misc/templates/build-rocksdb.yaml
+
+  - job: BuildDotnetComponents
+    displayName: .NET components
+
+    steps:
+    # Build
+    - checkout: self
+      fetchDepth: 0
+
+    - script: |
+        git checkout $(version)
+      displayName: Check out the new release commit
+
+    - script: |
+        scripts/linux/buildBranch.sh -c Release --skip-quickstart
+      displayName: Build .NET artifacts
+
+    - task: DotNetCoreCLI@2
+      displayName: Build Functions Binding nuget package
+      env:
+        version: $(version)
+      inputs:
+        buildProperties: OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
+        command: pack
+        nobuild: true
+        packDirectory: $(Build.BinariesDirectory)/publish/
+        packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
+        versionEnvVar: version
+        versioningScheme: byEnvVar
+
+    # The code sign task requires .NET Core 2.1.
+    # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
+    - template: ../templates/force-dotnet21.yaml
+
+    # Code Sign
+    - template: templates/dotnet-code-sign.yaml
+      parameters:
+        name: Sign Edge Agent
+        path: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Agent.Service
+        pattern: Microsoft.Azure.Devices.Edge.*.dll
+
+    - template: templates/dotnet-code-sign.yaml
+      parameters:
+        name: Sign Edge Hub
+        path: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service
+        pattern: "Microsoft.Azure.Devices.Edge.*.dll,Microsoft.Azure.Devices.Routing.*.dll"
+
+    - template: templates/dotnet-code-sign.yaml
+      parameters:
+        name: Sign Temp Sensor
+        path: $(Build.BinariesDirectory)/publish/SimulatedTemperatureSensor
+        pattern: "Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll"
+
+    - template: templates/dotnet-code-sign.yaml
+      parameters:
+        name: Sign Functions Binding
+        path: $(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
+        pattern: Microsoft.Azure.WebJobs.Extensions*.dll
+
+    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+      displayName: Sign Functions Binding nuget package
+      inputs:
+        ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+        FolderPath: $(Build.BinariesDirectory)/publish
+        Pattern: Microsoft.Azure.WebJobs.Extensions*.nupkg
+        inlineOperation: |
+          [
+            {
+                "keyCode": "CP-401405",
+                "operationSetCode": "NuGetSign",
+                "parameters": [],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            },
+            {
+                "keyCode": "CP-401405",
+                "operationSetCode": "NuGetVerify",
+                "parameters": [],
+                "toolName": "sign",
+                "toolVersion": "1.0"
+            }
+          ]
+        signConfigType: inlineSignParams
+
+    # We're done with code signing, so remove dotnet version override
+    - template: ../templates/restore-default-dotnet.yaml
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish .NET Artifacts
+      inputs:
+        PathtoPublish: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'dotnet_artifacts'
+        StoreAsTar: true
+
+  - job: ConsolidateArtifacts
+    displayName: Consolidate artifacts
+
+    dependsOn:
+    - BuildRocksDB
+    - BuildDotnetComponents
+
+    steps:
+    - checkout: none
+
+    - task: DownloadBuildArtifacts@0
+      displayName: Download artifacts
+      inputs:
+        buildType: 'current'
+        downloadPath: '$(Build.ArtifactStagingDirectory)'
+        downloadType: specific
+        extractTars: true
+
+    - task: CopyFiles@2
+      displayName: Copy .NET artifacts
+      inputs:
+        sourceFolder: '$(Agent.TempDirectory)/extracted_tars/dotnet_artifacts'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish'
+
+    - task: CopyFiles@2
+      displayName: Copy rocksdb artifacts
+      inputs:
+        sourceFolder: '$(Build.ArtifactStagingDirectory)/librocksdb'
+        contents: '**'
+        targetFolder: '$(Build.BinariesDirectory)/publish/librocksdb'
+
+    - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+      displayName: Generate SBOM
+      inputs:
+        BuildDropPath: '$(Build.BinariesDirectory)/publish'
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish artifacts
+      inputs:
+        pathToPublish: '$(Build.BinariesDirectory)/publish'
+        artifactName: 'consolidated_artifacts'
+        StoreAsTar: true
+
+################################################################################
+- stage: BuildImages
+################################################################################
+  displayName: Build images
+  condition: succeeded('BuildExecutables')
+
+  dependsOn:
+  - PrepareRelease
+  - BuildExecutables
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+  variables:
+    ${{ if eq(variables['Build.Reason'], 'Manual') }}:
+      version: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.version'] ]
+      diagnostics_version: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.diagnostics_version'] ]
+      tags: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.tags'] ]
+    ${{ else }}:
+      version: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.version'] ]
+      diagnostics_version: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.diagnostics_version'] ]
+      tags: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.tags'] ]
+
+  jobs:
+  - job: EdgeAgent
+    displayName: Edge Agent
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: azureiotedge-agent
+        displayName: Edge Agent
+        app: Microsoft.Azure.Devices.Edge.Agent.Service
+        version: $(version)
+        use_rocksdb: true
+
+  - job: EdgeHub
+    displayName: Edge Hub
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: azureiotedge-hub
+        displayName: Edge Hub
+        app: Microsoft.Azure.Devices.Edge.Hub.Service
+        version: $(version)
+        use_rocksdb: true
+
+  - job: TemperatureSensor
+    displayName: Temperature sensor
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: azureiotedge-simulated-temperature-sensor
+        displayName: Temperature Sensor
+        app: SimulatedTemperatureSensor
+        version: $(version)
+
+  - job: Diagnostics
+    displayName: Diagnostics
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        name: azureiotedge-diagnostics
+        displayName: Diagnostics Module
+        app: IotedgeDiagnosticsDotnet
+        version: $(diagnostics_version)
+
+  # for E2E tests
+  - job: MetricsCollector
+    displayName: Metrics collector
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Metrics Collector
+        name: azureiotedge-metrics-collector
+        app: Microsoft.Azure.Devices.Edge.Azure.Monitor
+        version: $(Build.BuildNumber)
+
+  - job: MetricsValidator
+    displayName: Metrics validator
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Metrics Validator
+        name: azureiotedge-metrics-validator
+        app: MetricsValidator
+        version: $(Build.BuildNumber)
+
+  - job: DirectMethodSender
+    displayName: Direct method sender
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Direct Method Sender
+        name: azureiotedge-direct-method-sender
+        app: DirectMethodSender
+        version: $(Build.BuildNumber)
+
+  - job: DirectMethodReceiver
+    displayName: Direct method receiver
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Direct Method Receiver
+        name: azureiotedge-direct-method-receiver
+        app: DirectMethodReceiver
+        version: $(Build.BuildNumber)
+
+  - job: NumberLogger
+    displayName: Number logger
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Number Logger
+        name: azureiotedge-number-logger
+        app: NumberLogger
+        version: $(Build.BuildNumber)
+
+  - job: TemperatureFilter
+    displayName: Temperature filter
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Temperature Filter
+        name: azureiotedge-temperature-filter
+        app: TemperatureFilter
+        version: $(Build.BuildNumber)
+
+  - job: LoadGen
+    displayName: Load gen
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Load Gen
+        name: azureiotedge-load-gen
+        app: load-gen
+        version: $(Build.BuildNumber)
+
+  - job: TestResultCoordinator
+    displayName: Test result coordinator
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: TestResultCoordinator
+        name: azureiotedge-test-result-coordinator
+        app: TestResultCoordinator
+        version: $(Build.BuildNumber)
+        use_rocksdb: true
+
+  - job: Relayer
+    displayName: Relayer
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Relayer
+        name: azureiotedge-relayer
+        app: Relayer
+        version: $(Build.BuildNumber)
+
+  # Functions Sample - Only supported on amd64
+  - job: FunctionsSample
+    displayName: Functions sample
+    steps:
+    - template: ../misc/templates/image-linux.yaml
+      parameters:
+        displayName: Functions Sample
+        name: azureiotedge-functions-filter
+        app: EdgeHubTriggerCSharp
+        platforms: linux/amd64
+        version: $(Build.BuildNumber)
+
+################################################################################
+- stage: TestImages
+################################################################################
+  displayName: Test images
+  condition: succeeded('BuildImages')
+
+  dependsOn:
+  - PrepareRelease
+  - BuildImages
+
+  variables:
+    ${{ if eq(variables['Build.Reason'], 'Manual') }}:
+      version: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.version'] ]
+      diagnostics_version: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.diagnostics_version'] ]
+    ${{ else }}:
+      version: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.version'] ]
+      diagnostics_version: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.diagnostics_version'] ]
+
+  jobs:
+  - template: templates/test-core-images.yaml
+    parameters:
+      az.subscription: $(az.subscription)
+      dps.idScope: $(dps.idScope)
+      kv.name: $(kv.name)
+      pool.linux.arm.name: $(pool.linux.arm.name)
+      pool.linux.name: $(pool.linux.name)
+      registry.address: $(registry.address)
+      registry.username: $(registry.username)
+      version.core: $(version)
+      version.diagnostics: $(diagnostics_version)
+
+################################################################################
+- stage: PublishImages
+################################################################################
+  displayName: Publish images
+  condition: succeeded('TestImages')
+
+  dependsOn:
+  - PrepareRelease
+  - TestImages
+
+  variables:
+    ${{ if eq(variables['Build.Reason'], 'Manual') }}:
+      changelog: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.changelog'] ]
+      tags: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.tags'] ]
+      version.core: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.version'] ]
+      version.core.previous: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.previous_version'] ]
+      version.diagnostics: $[ stageDependencies.PrepareRelease.ManualTrigger.outputs['commit.diagnostics_version'] ]
+    ${{ else }}:
+      changelog: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.changelog'] ]
+      tags: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.tags'] ]
+      version.core: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.version'] ]
+      version.core.previous: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.previous_version'] ]
+      version.diagnostics: $[ stageDependencies.PrepareRelease.PipelineTrigger.outputs['commit.diagnostics_version'] ]
+
+  jobs:
+  - template: templates/publish-core-images.yaml
+    parameters:
+      changelog: $(changelog)
+      tags: $(tags)
+      version.core: $(version.core)
+      version.core.previous: $(version.core.previous)
+      version.diagnostics: $(version.diagnostics)

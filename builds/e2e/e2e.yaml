@@ -3,15 +3,8 @@ pr: none
 
 resources:
   pipelines:
-  - pipeline: images
-    source: 'Azure-IoT-Edge-Core Build Images'
-    branch: 'main'
-    trigger:
-      branches:
-      - main
-      - release/*
-  - pipeline: packages
-    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+  - pipeline: ci-build
+    source: 'Azure-IoT-Edge-Core CI Build'
     branch: 'main'
     trigger:
       branches:
@@ -127,7 +120,6 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
-
 ################################################################################
   - job: ubuntu_2004_msmoby
 ################################################################################
@@ -198,6 +190,55 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
+  - job: ubuntu_2204
+################################################################################
+    displayName: Ubuntu 22.04 on amd64
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu22.04-amd64
+      identityServiceArtifactName: packages_ubuntu-22.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: ubuntu_2204_arm64v8
+################################################################################
+    displayName: Ubuntu 22.04 on arm64v8
+
+    pool:
+      name: $(pool.custom.name)
+      demands: ubu2204-arm64-e2e-tests
+
+    variables:
+      os: linux
+      arch: arm64v8
+      artifactName: iotedged-ubuntu22.04-aarch64
+      identityServiceArtifactName: packages_ubuntu-22.04_aarch64
+      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
   - job: centos7_amd64
 ################################################################################
     displayName: CentOs7 amd64
@@ -240,7 +281,28 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
-      
+
+  ################################################################################
+  - job: redhat9_amd64
+  ################################################################################
+    displayName: RedHat9 amd64
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-rhel-9-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-redhat9-amd64
+      identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
+      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
 ################################################################################
   - job: linux_amd64_proxy
 ################################################################################
@@ -273,3 +335,47 @@ jobs:
     - template: templates/e2e-run.yaml
       parameters:
         test_type: http_proxy
+
+################################################################################
+  - job: mariner2_amd64
+################################################################################
+    displayName: Mariner 2.0 amd64
+    condition: eq(variables['run.EFLOW.amd64'], true)
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-mariner-2.0-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner2-amd64
+      identityServiceArtifactName: packages_mariner-2_amd64
+      identityServicePackageFilter: aziot-identity-service-*.cm2.x86_64.rpm
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: mariner2_arm64
+################################################################################
+    displayName: Mariner 2.0 arm64
+    condition: eq(variables['run.EFLOW.arm64'], true)
+    pool:
+      name: $(pool.linux.arm.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-mariner-2.0-arm64-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner2-aarch64
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml

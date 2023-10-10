@@ -1,0 +1,170 @@
+parameters:
+  changelog: ''
+  tags: ''
+  version.core: ''
+  version.core.previous: ''
+  version.diagnostics: ''
+
+jobs:
+- job: publish_images
+  displayName: Publish Images
+
+  pool:
+    name: $(pool.linux.name)
+    demands:
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+  steps:
+  - checkout: self
+    fetchDepth: 0
+  - checkout: product
+    fetchDepth: 0
+
+  - task: Docker@2
+    displayName: Docker login
+    inputs:
+      command: login
+      containerRegistry: $(service-connection.registry)
+
+  - script: |
+      scripts/linux/copy-multi-platform-image.sh \
+        --registry '$(registry.address)' \
+        --repo-src 'microsoft/azureiotedge-agent' \
+        --repo-dst 'public/azureiotedge-agent' \
+        --tag '${{ parameters['version.core'] }}' \
+        --tags-add '${{ parameters.tags }}'
+    displayName: Publish Edge Agent images
+    workingDirectory: iotedge
+
+  - script: |
+      scripts/linux/copy-multi-platform-image.sh \
+        --registry '$(registry.address)' \
+        --repo-src 'microsoft/azureiotedge-hub' \
+        --repo-dst 'public/azureiotedge-hub' \
+        --tag '${{ parameters['version.core'] }}' \
+        --tags-add '${{ parameters.tags }}'
+    displayName: Publish Edge Hub images
+    workingDirectory: iotedge
+
+  - script: |
+      temp_sensor_tags=$(echo '${{ parameters.tags }}' | jq -c '. + ["latest"]')
+
+      scripts/linux/copy-multi-platform-image.sh \
+        --registry '$(registry.address)' \
+        --repo-src 'microsoft/azureiotedge-simulated-temperature-sensor' \
+        --repo-dst 'public/azureiotedge-simulated-temperature-sensor' \
+        --tag '${{ parameters['version.core'] }}' \
+        --tags-add "$temp_sensor_tags"
+    displayName: Publish Simulated Temperature Sensor images
+    workingDirectory: iotedge
+
+  - script: |
+      scripts/linux/copy-multi-platform-image.sh \
+        --registry '$(registry.address)' \
+        --repo-src 'microsoft/azureiotedge-diagnostics' \
+        --repo-dst 'unlisted/azureiotedge-diagnostics' \
+        --tag '${{ parameters['version.diagnostics'] }}' \
+        --tags-add '${{ parameters.tags }}'
+    displayName: Publish Diagnostics images
+    workingDirectory: iotedge
+
+  - task: AzureKeyVault@1
+    displayName: Get secrets
+    inputs:
+      azureSubscription: $(az.subscription)
+      keyVaultName: $(kv.name)
+      secretsFilter: TestGitHubAccessToken
+
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      # in case commits were made after this pipeline started but before we arrived here, sync to
+      # the tip of the branch
+      git checkout "$PRODUCT_REPO_BRANCH"
+
+      # update product-versions.json
+      echo "$(jq '
+        def product: .channels[] | .products[] | select(
+          .id=="aziot-edge" and .version=="${{ parameters['version.core.previous'] }}"
+        );
+        def core_components: product | .components[] | select(
+          .name=="azureiotedge-agent"
+            or .name=="azureiotedge-hub"
+            or .name=="azureiotedge-simulated-temperature-sensor"
+        );
+        def diagnostics_component: product | .components[] | select(
+          .name=="azureiotedge-diagnostics"
+        );
+        (core_components).version |= "${{ parameters['version.core'] }}"
+          | (diagnostics_component).version |= "${{ parameters['version.diagnostics'] }}"
+          | (product).version |= "${{ parameters['version.core'] }}"
+      ' product-versions.json )" > product-versions.json
+      git add product-versions.json
+
+      # determine whether this is an LTS release, and save that info for later
+      is_lts="$(jq '
+        [
+          .channels[] | .products[] | select(
+            .id=="aziot-edge" and .version=="${{ parameters['version.core'] }}"
+          ) | .name | contains("LTS")
+        ] | any
+      ' product-versions.json)"
+      echo "##vso[task.setvariable variable=is_lts]$is_lts"
+
+      # configure git
+      git config user.email '$(service-account.email)'
+      git config user.name 'IoT Edge Bot'
+      origin_url="$(git config --get remote.origin.url)"
+      origin_url="${origin_url/#https:\/\//https:\/\/$GITHUB_TOKEN@}" # add token to URL
+
+      # commit changes, tag, and push
+      git commit -m 'Prepare for release ${{ parameters['version.core'] }}'
+      git tag '${{ parameters['version.core'] }}'
+      git push "$origin_url" "HEAD:$PRODUCT_REPO_BRANCH"
+      git push "$origin_url" '${{ parameters['version.core'] }}'
+    displayName: Create release commit in product repo
+    env:
+      GITHUB_TOKEN: $(TestGitHubAccessToken)
+      PRODUCT_REPO_BRANCH: main
+    workingDirectory: azure-iotedge
+
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      # deserialize the changelog
+      printf -v CHANGELOG '${{ parameters.changelog }}'
+      # Remove 1st line (header) because GitHub Release page has its own header
+      CHANGELOG="$(echo "$CHANGELOG" | tail -n +2 -)"
+
+      . scripts/linux/release-tools.sh
+      create_github_release_page_in_product_repo
+
+      echo "##vso[task.setvariable variable=release_url]$RELEASE_URL"
+    displayName: Create GitHub release page in product repo
+    env:
+      BRANCH: main
+      CORE_VERSION: ${{ parameters['version.core'] }}
+      DIAG_VERSION: ${{ parameters['version.diagnostics'] }}
+      GITHUB_TOKEN: $(TestGitHubAccessToken)
+      IS_LTS: $(is_lts)
+      REPO_NAME: $(repo.product.name)
+    workingDirectory: iotedge
+
+  - script: |
+      #!/bin/bash
+      set -euo pipefail
+
+      BRANCH="${BUILD_SOURCEBRANCH#refs/heads/}"
+
+      . scripts/linux/release-tools.sh
+      create_github_release_page_for_core_images_in_project_repo
+    displayName: Create GitHub release page in project repo
+    env:
+      CORE_VERSION: ${{ parameters['version.core'] }} 
+      GITHUB_TOKEN: $(TestGitHubAccessToken)
+      IS_LTS: $(is_lts)
+      RELEASE_URL: $(release_url)
+      REPO_NAME: $(repo.project.name)
+    workingDirectory: iotedge

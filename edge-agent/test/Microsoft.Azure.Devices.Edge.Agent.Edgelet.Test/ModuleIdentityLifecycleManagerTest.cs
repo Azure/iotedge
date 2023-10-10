@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             // Assert
             Assert.True(modulesIdentities.Count() == 1);
             Assert.True(modulesIdentities.TryGetValue(Name, out IModuleIdentity moduleIdentity));
-            Assert.Equal(moduleIdentity.ModuleId, Name);
+            Assert.Equal(Name, moduleIdentity.ModuleId);
             Assert.IsType<IdentityProviderServiceCredentials>(moduleIdentity.Credentials);
             Assert.Equal(EdgeletUri.ToString(), ((IdentityProviderServiceCredentials)moduleIdentity.Credentials).ProviderUri);
             Assert.Equal(Option.None<string>(), ((IdentityProviderServiceCredentials)moduleIdentity.Credentials).Version);

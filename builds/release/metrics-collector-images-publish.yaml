@@ -1,0 +1,79 @@
+trigger: none
+pr: none
+
+variables:
+  DisableDockerDetector: true
+  NugetSecurityAnalysisWarningLevel: warn
+
+resources:
+  pipelines:
+  - pipeline: stage-metrics-collector
+    source: 'Metrics Collector - Stage Images'
+    trigger: true
+
+pool:
+  name: $(pool.linux.name)
+  demands:
+  - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby    
+
+jobs:
+################################################################################
+- job: version_from_pipeline
+################################################################################
+  displayName: Get version from triggering pipeline
+  condition: |
+    and(
+      eq(variables['Build.Reason'],'ResourceTrigger'),
+      eq(variables['Resources.TriggeringCategory'],'pipeline'),
+      eq(variables['Resources.TriggeringAlias'],'stage-metrics-collector')
+    )            
+  steps:
+  - checkout: none
+  - download: stage-metrics-collector
+    artifact: version
+  - script: |
+      version=$(cat '$(Pipeline.Workspace)/stage-metrics-collector/version/version.txt')
+      echo "Version from triggering pipeline is $version"
+      echo "##vso[task.setvariable variable=version;isOutput=true]$version"
+
+      tags=$(cat '$(Pipeline.Workspace)/stage-metrics-collector/version/tags.txt')
+      tags=$(echo "$tags" | jq -c '. + ["latest"] | unique')
+      echo "Tags are $tags"
+      echo "##vso[task.setvariable variable=tags;isOutput=true]$tags"
+    displayName: Set version
+    name: set
+
+################################################################################
+- deployment: publish
+################################################################################
+  displayName: Publish Metrics Collector
+  dependsOn: version_from_pipeline
+  condition: or(eq(dependencies.version_from_pipeline.result,'Skipped'),succeeded())
+  variables:
+    ${{ if eq(variables['Build.Reason'],'ResourceTrigger') }}:
+      version: $[ dependencies.version_from_pipeline.outputs['set.version'] ]
+      tags: $[ dependencies.version_from_pipeline.outputs['set.tags'] ]
+  workspace:
+    clean: all
+  environment: $(deployment.environment)
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - checkout: self
+          fetchDepth: 0
+
+        - task: Docker@2
+          displayName: Docker login
+          inputs:
+            command: login
+            containerRegistry: $(service-connection.registry)
+
+        - script: |
+            scripts/linux/copy-multi-platform-image.sh \
+              --registry '$(registry.address)' \
+              --repo-src 'microsoft/azureiotedge-metrics-collector' \
+              --repo-dst 'public/azureiotedge-metrics-collector' \
+              --tag '$(version)' \
+              --tags-add '$(tags)'
+          displayName: Publish Metrics Collector images
