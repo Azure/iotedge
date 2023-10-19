@@ -16,5 +16,5 @@ stages:
     jobs:
     - job: bs
       steps:
-      -script: |
+      - script: |
         echo "WTF? Change"
