@@ -173,7 +173,7 @@ stages:
               arch: amd64
               os: mariner
               os_version: 2
-              mariner_release: 2.0-stable
+              mariner_release: 2.0.20231004-2.0
               target.iotedged: builds/mariner2/out/RPMS
               target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
         steps:
