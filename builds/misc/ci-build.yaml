@@ -12,3 +12,9 @@ variables:
 stages:
   - template: templates/build-images.yaml
   - template: templates/build-packages.yaml
+  - stage: lies
+  jobs:
+  - job: bs
+    steps:
+      -script: |
+        echo "WTF? Change"
