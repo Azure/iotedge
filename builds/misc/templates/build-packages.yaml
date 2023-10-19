@@ -177,6 +177,9 @@ stages:
               target.iotedged: builds/mariner2/out/RPMS
               target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
         steps:
+          - checkout: self
+            clean: true
+            displayName: Git clean checkout
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
               VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
