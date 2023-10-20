@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Collections.Immutable;
     using System.IO;
     using System.Linq;
+    using System.Security.Authentication;
     using System.Threading;
     using System.Threading.Tasks;
     using App.Metrics;
