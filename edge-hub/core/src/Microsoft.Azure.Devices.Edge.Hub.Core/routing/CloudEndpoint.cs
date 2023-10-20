@@ -70,7 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 typeof(IOException),
                 typeof(IotHubException),
                 typeof(EdgeHubCloudSDKException),
-                typeof(UnauthorizedException) // This indicates the SAS token has expired, and will get a new one.
+                typeof(UnauthorizedException), // This indicates the SAS token has expired, and will get a new one.
+                typeof(AuthenticationException)
             };
 
             readonly CloudEndpoint cloudEndpoint;
