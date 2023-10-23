@@ -219,7 +219,7 @@ stages:
                 -e "VERSION=$VERSION" \
                 --privileged \
                 "ubuntu:22.04" \
-                '/src/edgelet/build/linux/package-mariner.sh'
+                '/src/edgelet/build/linux/package-mariner-1.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging
             inputs:
@@ -335,7 +335,7 @@ stages:
                 -e "VERSION=$VERSION" \
                 --privileged \
                 "ubuntu:22.04" \
-                '/src/edgelet/build/linux/package-mariner.sh'
+                '/src/edgelet/build/linux/package-mariner-1.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging
             inputs:
