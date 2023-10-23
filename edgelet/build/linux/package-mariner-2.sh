@@ -28,16 +28,16 @@ EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
 MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/${MarinerIdentity}"
 REVISION="${REVISION:-1}"
 
-apt-get update -y
-apt-get upgrade -y
+apt-get update -y && \
+apt-get upgrade -y && \
 #apt-get install -y software-properties-common
 #add-apt-repository -y ppa:longsleep/golang-backports
 
-echo "BEARWASHERE - Sleep 10"
-sleep 10
+echo "BEARWASHERE - Sleep 10" && \
+sleep 10 && \
 
-apt-get update -y
-apt-get install -y \
+apt-get update -y && \
+apt-get install -y
     cmake curl gcc g++ git jq make pkg-config \
     libclang1 libssl-dev llvm-dev \
     cpio genisoimage golang-1.20-go qemu-utils pigz python3-pip python3-distutils rpm tar wget \
