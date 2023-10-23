@@ -32,6 +32,10 @@ apt-get update -y
 apt-get upgrade -y
 apt-get install -y software-properties-common
 add-apt-repository -y ppa:longsleep/golang-backports
+
+echo "BEARWASHERE - Sleep 10"
+sleep 10
+
 apt-get update -y
 apt-get install -y \
     cmake curl gcc g++ git jq make pkg-config \
