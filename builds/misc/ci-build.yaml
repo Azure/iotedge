@@ -11,4 +11,4 @@ variables:
 
 stages:
   - template: templates/build-images.yaml
-  - template: templates/build-packages-5.yaml
+  - template: templates/build-packages.yaml
