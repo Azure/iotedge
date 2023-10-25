@@ -12,7 +12,7 @@ mod workload_manager;
 use std::sync::atomic;
 
 use edgelet_core::{module::ModuleAction, ModuleRuntime, WatchdogAction};
-use edgelet_docker::{ImagePruneData, MakeModuleRuntime};
+use edgelet_docker::{ImageGarbageCollectionData, MakeModuleRuntime};
 use edgelet_image_cleanup::image_gc;
 use edgelet_settings::RuntimeSettings;
 
@@ -97,7 +97,7 @@ async fn run() -> Result<(), EdgedError> {
 
     let gc_settings = settings.image_garbage_collection().clone();
 
-    let image_use_data = ImagePruneData::new(&gc_dir, gc_settings.clone())
+    let image_use_data = ImageGarbageCollectionData::new(&gc_dir, gc_settings.clone())
         .map_err(|err| EdgedError::from_err("Failed to set up image garbage collection", err))?;
 
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(

@@ -127,7 +127,7 @@ impl crate::RuntimeSettings for Settings {
         self.base.additional_info()
     }
 
-    fn image_garbage_collection(&self) -> &crate::base::image::ImagePruneSettings {
+    fn image_garbage_collection(&self) -> &crate::base::image_gc_settings::Settings {
         self.base.image_garbage_collection()
     }
 }

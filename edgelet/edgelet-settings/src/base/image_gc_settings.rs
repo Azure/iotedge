@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// This struct is a wrapper for options that allow a user to override the defaults of
 /// the image gabage collection job and customize their settings.
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
-pub struct ImagePruneSettings {
+pub struct Settings {
     #[serde(
         default = "default_cleanup_recurrence",
         deserialize_with = "validate_recurrence",
@@ -28,14 +28,14 @@ pub struct ImagePruneSettings {
     enabled: bool,
 }
 
-impl ImagePruneSettings {
+impl Settings {
     pub fn new(
         cleanup_recurrence: Duration,
         image_age_cleanup_threshold: Duration,
         cleanup_time: u64,
         enabled: bool,
-    ) -> ImagePruneSettings {
-        ImagePruneSettings {
+    ) -> Settings {
+        Settings {
             cleanup_recurrence,
             image_age_cleanup_threshold,
             cleanup_time,
@@ -128,9 +128,9 @@ mod hhmm_as_minutes {
     }
 }
 
-impl Default for ImagePruneSettings {
+impl Default for Settings {
     fn default() -> Self {
-        ImagePruneSettings {
+        Settings {
             cleanup_recurrence: default_cleanup_recurrence(),
             image_age_cleanup_threshold: default_image_age_cleanup_threshold(),
             cleanup_time: 0,

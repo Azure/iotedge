@@ -4,8 +4,8 @@ use std::{collections::HashSet, time::Duration};
 
 use chrono::Timelike;
 use edgelet_core::{ModuleRegistry, ModuleRuntime};
-use edgelet_docker::ImagePruneData;
-use edgelet_settings::base::image::ImagePruneSettings;
+use edgelet_docker::ImageGarbageCollectionData;
+use edgelet_settings::base::image_gc_settings::Settings;
 
 use crate::error::ImageCleanupError;
 
@@ -22,9 +22,9 @@ const TOTAL_MINS_IN_DAY: u64 = 1440;
 ///   Finally, it puts itself back to sleep till it's time for the next run.
 pub async fn image_garbage_collect(
     edge_agent_bootstrap: String,
-    settings: ImagePruneSettings,
+    settings: Settings,
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
-    image_use_data: ImagePruneData,
+    image_use_data: ImageGarbageCollectionData,
 ) -> Result<(), ImageCleanupError> {
     log::info!("Starting image garbage collection task...");
 
@@ -79,7 +79,7 @@ pub async fn image_garbage_collect(
 
 async fn remove_unused_images(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
-    image_use_data: ImagePruneData,
+    image_use_data: ImageGarbageCollectionData,
     bootstrap_image_id_option: Option<String>,
 ) -> Result<(), ImageCleanupError> {
     log::info!("Image Garbage Collection starting scheduled run");

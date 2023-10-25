@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use edgelet_settings::base::image;
+use edgelet_settings::base::image_gc_settings;
 use url::Url;
 
 use aziotctl_common::config as common_config;
@@ -63,8 +63,11 @@ pub struct Config {
     #[serde(default)]
     pub moby_runtime: MobyRuntime,
 
-    #[serde(default, skip_serializing_if = "image::ImagePruneSettings::is_default")]
-    pub image_garbage_collection: image::ImagePruneSettings,
+    #[serde(
+        default,
+        skip_serializing_if = "image_gc_settings::Settings::is_default"
+    )]
+    pub image_garbage_collection: image_gc_settings::Settings,
 }
 
 pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerConfig> {

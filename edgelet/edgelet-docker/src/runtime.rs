@@ -25,7 +25,7 @@ use http_common::Connector;
 
 use crate::error::Error;
 use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
-use crate::{ImagePruneData, MakeModuleRuntime};
+use crate::{ImageGarbageCollectionData, MakeModuleRuntime};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -41,7 +41,7 @@ pub struct DockerModuleRuntime<C> {
     create_socket_channel: UnboundedSender<ModuleAction>,
     allow_elevated_docker_permissions: bool,
     additional_info: BTreeMap<String, String>,
-    image_use_data: ImagePruneData,
+    image_use_data: ImageGarbageCollectionData,
 }
 
 fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
@@ -166,7 +166,7 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
     async fn make_runtime(
         settings: &Settings,
         create_socket_channel: UnboundedSender<ModuleAction>,
-        image_use_data: ImagePruneData,
+        image_use_data: ImageGarbageCollectionData,
     ) -> anyhow::Result<Self::ModuleRuntime> {
         log::info!("Initializing module runtime...");
 

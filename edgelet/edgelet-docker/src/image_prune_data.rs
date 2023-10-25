@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::time::UNIX_EPOCH;
 use std::{collections::HashMap, collections::HashSet, fs, time::Duration};
 
-use edgelet_settings::base::image::ImagePruneSettings;
+use edgelet_settings::base::image_gc_settings::Settings;
 
 use crate::Error;
 
@@ -17,7 +17,7 @@ const TMP_FILENAME: &str = "image_use_tmp";
 struct ImagePruneInner {
     image_use_filepath: String,
     tmp_filepath: String,
-    settings: ImagePruneSettings,
+    settings: Settings,
 }
 
 /// <summary>
@@ -25,12 +25,12 @@ struct ImagePruneInner {
 /// feature. As such, this struct does not hold any user data, but simply holds information
 /// needed to collect/process state that (eventually) enables unused image garbage collection.
 #[derive(Debug, Clone)]
-pub struct ImagePruneData {
+pub struct ImageGarbageCollectionData {
     inner: Arc<Mutex<ImagePruneInner>>,
 }
 
-impl ImagePruneData {
-    pub fn new(homedir: &Path, settings: ImagePruneSettings) -> Result<Self, Error> {
+impl ImageGarbageCollectionData {
+    pub fn new(homedir: &Path, settings: Settings) -> Result<Self, Error> {
         let fp: PathBuf = homedir.join(IMAGE_USE_FILENAME);
         let tmp_fp: PathBuf = homedir.join(TMP_FILENAME);
 
@@ -283,7 +283,7 @@ mod tests {
     };
 
     use chrono::{Timelike, Utc};
-    use edgelet_settings::base::image::ImagePruneSettings;
+    use edgelet_settings::base::image_gc_settings::Settings;
     use nix::libc::sleep;
     use serial_test::serial;
 
@@ -291,7 +291,7 @@ mod tests {
         image_prune_data::{
             get_images_with_timestamp, process_state, IMAGE_USE_FILENAME, TMP_FILENAME,
         },
-        ImagePruneData,
+        ImageGarbageCollectionData,
     };
 
     use super::write_images_with_timestamp;
@@ -311,13 +311,13 @@ mod tests {
         }
         std::fs::create_dir(Path::new(&test_file_dir)).unwrap();
 
-        let settings = ImagePruneSettings::new(
+        let settings = Settings::new(
             Duration::from_secs(30),
             Duration::from_secs(10),
             curr_time,
             false,
         );
-        let image_use_data = ImagePruneData::new(&test_file_dir, settings).unwrap();
+        let image_use_data = ImageGarbageCollectionData::new(&test_file_dir, settings).unwrap();
 
         // write new image
         image_use_data
@@ -427,13 +427,13 @@ mod tests {
         );
 
         let curr_time = (Utc::now().hour() * 60 + Utc::now().minute()).into();
-        let settings = ImagePruneSettings::new(
+        let settings = Settings::new(
             Duration::from_secs(30),
             Duration::from_secs(5),
             curr_time,
             true,
         );
-        let image_use_data = ImagePruneData::new(&test_file_dir, settings).unwrap();
+        let image_use_data = ImageGarbageCollectionData::new(&test_file_dir, settings).unwrap();
 
         let mut in_use_image_ids: HashSet<String> = HashSet::new();
         in_use_image_ids.insert(
