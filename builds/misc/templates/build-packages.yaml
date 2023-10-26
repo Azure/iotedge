@@ -215,7 +215,7 @@ stages:
                 -e "MARINER_ARCH=$MARINER_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
-                "ubuntu:20.04" \
+                "ubuntu:22.04" \
                 '/src/edgelet/build/linux/package-mariner.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging
@@ -316,7 +316,7 @@ stages:
                 -e "PACKAGE_VERSION=$packageVersion" \
                 -e "PACKAGE_RELEASE=1" \
                 --privileged \
-                "ubuntu:20.04" \
+                "ubuntu:22.04" \
                 '/src/ci/package.sh'
               popd
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
@@ -331,7 +331,7 @@ stages:
                 -e "MARINER_ARCH=$MARINER_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
-                "ubuntu:20.04" \
+                "ubuntu:22.04" \
                 '/src/edgelet/build/linux/package-mariner.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging
