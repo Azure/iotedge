@@ -47,7 +47,7 @@ impl std::str::FromStr for ModuleStatus {
     type Err = serde_json::Error;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        serde_json::from_str(&format!("\"{}\"", value))
+        serde_json::from_str(&format!("\"{value}\""))
     }
 }
 
@@ -145,7 +145,7 @@ impl fmt::Display for LogTail {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::All => write!(formatter, "all"),
-            Self::Num(n) => write!(formatter, "{}", n),
+            Self::Num(n) => write!(formatter, "{n}"),
         }
     }
 }
@@ -521,8 +521,8 @@ pub enum RegistryOperation {
 impl fmt::Display for RegistryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RegistryOperation::PullImage(name) => write!(f, "pull image {:?}", name),
-            RegistryOperation::RemoveImage(name) => write!(f, "remove image {:?}", name),
+            RegistryOperation::PullImage(name) => write!(f, "pull image {name:?}"),
+            RegistryOperation::RemoveImage(name) => write!(f, "remove image {name:?}"),
         }
     }
 }
@@ -549,23 +549,23 @@ pub enum RuntimeOperation {
 impl fmt::Display for RuntimeOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RuntimeOperation::CreateModule(name) => write!(f, "create module {:?}", name),
-            RuntimeOperation::GetModule(name) => write!(f, "get module {:?}", name),
+            RuntimeOperation::CreateModule(name) => write!(f, "create module {name:?}"),
+            RuntimeOperation::GetModule(name) => write!(f, "get module {name:?}"),
             RuntimeOperation::GetModuleLogs(name) => {
-                write!(f, "get logs for module {:?}", name)
+                write!(f, "get logs for module {name:?}")
             }
             RuntimeOperation::GetSupportBundle => write!(f, "get support bundle"),
             RuntimeOperation::Init => write!(f, "initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "list modules"),
             RuntimeOperation::ListImages => write!(f, "list images"),
-            RuntimeOperation::RemoveModule(name) => write!(f, "remove module {:?}", name),
-            RuntimeOperation::RestartModule(name) => write!(f, "restart module {:?}", name),
-            RuntimeOperation::StartModule(name) => write!(f, "start module {:?}", name),
-            RuntimeOperation::StopModule(name) => write!(f, "stop module {:?}", name),
+            RuntimeOperation::RemoveModule(name) => write!(f, "remove module {name:?}"),
+            RuntimeOperation::RestartModule(name) => write!(f, "restart module {name:?}"),
+            RuntimeOperation::StartModule(name) => write!(f, "start module {name:?}"),
+            RuntimeOperation::StopModule(name) => write!(f, "stop module {name:?}"),
             RuntimeOperation::SystemInfo => write!(f, "query system info"),
             RuntimeOperation::SystemResources => write!(f, "query system resources"),
             RuntimeOperation::TopModule(name) => {
-                write!(f, "top module {:?}", name)
+                write!(f, "top module {name:?}")
             }
         }
     }

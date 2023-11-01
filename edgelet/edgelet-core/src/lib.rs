@@ -35,7 +35,7 @@ lazy_static! {
         option_env!("VERSION").unwrap_or_else(|| include_str!("../../version.txt").trim());
     static ref VERSION_WITH_SOURCE_VERSION: String = option_env!("VERSION")
         .map(|version| option_env!("BUILD_SOURCEVERSION")
-            .map(|sha| format!("{} ({})", version, sha))
+            .map(|sha| format!("{version} ({sha})"))
             .unwrap_or_else(|| version.to_string()))
         .unwrap_or_else(|| include_str!("../../version.txt").trim().to_string());
 }

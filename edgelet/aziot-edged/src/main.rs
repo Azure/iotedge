@@ -32,13 +32,13 @@ async fn main() {
         .expect("cannot fail to initialize global logger from the process entrypoint");
 
     log::info!("Starting Azure IoT Edge Daemon");
-    log::info!("Version - {}", version);
+    log::info!("Version - {version}");
 
     if let Err(err) = run().await {
         if err.exit_code() == EdgedError::reprovisioned().exit_code() {
-            log::info!("{}", err);
+            log::info!("{err}");
         } else {
-            log::error!("{}", err);
+            log::error!("{err}");
         }
 
         std::process::exit(err.into());

@@ -171,7 +171,7 @@ fn get_images_with_timestamp(
     let contents = match fs::read_to_string(image_use_filepath) {
         Ok(ct) => ct,
         Err(e) => {
-            let msg = format!("Could not read image persistence data: {}", e);
+            let msg = format!("Could not read image persistence data: {e}");
             log::error!("{msg}");
             return Err(Error::FileOperation(msg));
         }
@@ -204,8 +204,8 @@ fn write_images_with_timestamp(
     let mut file = std::fs::File::create(temp_file.clone()).map_err(Error::CreateFile)?;
 
     for (key, value) in state_to_persist {
-        let image_details = format!("{} {}\n", key, value.as_secs());
-        let res = write!(file, "{}", image_details);
+        let image_details = format!("{key} {}\n", value.as_secs());
+        let res = write!(file, "{image_details}",);
         if res.is_err() {
             let msg = format!(
                 "Could not write image:{} with timestamp:{} to store",

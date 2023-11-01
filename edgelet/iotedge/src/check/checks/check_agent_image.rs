@@ -95,7 +95,7 @@ impl CheckAgentImage {
             )
             .await
             .map_err(|(_, err)| err)
-            .context(format!("Failed to login to {}", server_address))?;
+            .context(format!("Failed to login to {server_address}"))?;
         }
 
         super::docker(docker_host_arg, vec!["pull", &agent_image])
