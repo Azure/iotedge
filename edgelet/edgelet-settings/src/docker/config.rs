@@ -111,10 +111,7 @@ impl DockerConfig {
             self.image = format!("{parent_hostname}{rest}");
         }
 
-        let auth = match &self.auth {
-            Some(auth) => auth,
-            _ => return,
-        };
+        let Some(auth) = &self.auth else { return };
 
         if let Some(serveraddress) = auth.serveraddress() {
             if let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD) {

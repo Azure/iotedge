@@ -151,8 +151,7 @@ where
                 ))),
 
                 Err(err) => Err(serde::de::Error::custom(format!(
-                    "Could not parse value as a file path or a file:// URI: {}",
-                    err,
+                    "Could not parse value as a file path or a file:// URI: {err}"
                 ))),
             }
         }

@@ -5,6 +5,7 @@
 #![allow(
     clippy::box_default,
     clippy::default_trait_access,
+    clippy::derivable_impls,
     clippy::let_and_return,
     clippy::let_unit_value,
     clippy::missing_errors_doc,

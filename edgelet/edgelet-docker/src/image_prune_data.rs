@@ -54,6 +54,7 @@ impl ImagePruneData {
     /// This method takes the `image_id` and adds (if the image is new) OR updates the last-used timestamp associated
     /// with this `image_id`. This state is maintained for use during image garbage collection.
     /// This method is (currently) called whenever a new image is pulled, a container is created, or when a container is removed.
+    #[allow(clippy::missing_panics_doc)]
     pub fn record_image_use_timestamp(&self, image_id: &str) -> Result<(), Error> {
         let guard = self
             .inner
@@ -217,11 +218,10 @@ fn write_images_with_timestamp(
     }
 
     match fs::rename(temp_file, image_use_filepath) {
-        Ok(_) => {}
+        Ok(()) => {}
         Err(err) => {
             return Err(Error::FileOperation(format!(
-                "Could not update garbage collection data {}",
-                err
+                "Could not update garbage collection data {err}"
             )))
         }
     };

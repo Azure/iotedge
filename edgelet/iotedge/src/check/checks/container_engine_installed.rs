@@ -26,9 +26,7 @@ impl Checker for ContainerEngineInstalled {
 
 impl ContainerEngineInstalled {
     async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        let settings = if let Some(settings) = &check.settings {
-            settings
-        } else {
+        let Some(settings) = &check.settings else {
             return Ok(CheckResult::Skipped);
         };
 
@@ -61,9 +59,8 @@ impl ContainerEngineInstalled {
             Ok(output) => output,
             Err((message, err)) => {
                 let mut error_message = format!(
-                    "Could not communicate with container engine at {}.\n\
+                    "Could not communicate with container engine at {uri}.\n\
                      Please check your moby-engine installation and ensure the service is running.",
-                    uri,
                 );
 
                 if let Some(message) = message {

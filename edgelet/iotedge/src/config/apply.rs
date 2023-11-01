@@ -492,7 +492,7 @@ async fn execute_inner(
         }
         let path = additional_info
             .to_file_path()
-            .map_err(|_| "additional_info is an invalid URI")?;
+            .map_err(|()| "additional_info is an invalid URI")?;
         let lossy = path.to_string_lossy();
         let bytes = std::fs::read(&path)
             .map_err(|e| format!("failed to read additional_info from {lossy}: {e:?}"))?;

@@ -133,8 +133,7 @@ impl Check {
                         vec![CheckerMetaSerializable {
                             id: "(aziot-identity-service-error)".into(),
                             description: format!(
-                                "(aziot-identity-service checks unavailable - could not communicate with '{}' binary)",
-                                aziot_bin
+                                "(aziot-identity-service checks unavailable - could not communicate with \'{aziot_bin}\' binary)"
                             ),
                         }]
                     ));
@@ -602,8 +601,7 @@ impl Check {
             stdout.write_warning(|stdout| {
                 write!(
                     stdout,
-                    "{} check(s) were skipped due to errors from other checks.",
-                    num_skipped,
+                    "{num_skipped} check(s) were skipped due to errors from other checks."
                 )?;
                 if self.verbose {
                     writeln!(stdout)?;
@@ -689,9 +687,8 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
         if let Some(PROXY_KEY) = parts.next() {
             svc_proxy = parts.next().map(String::from);
 
-            let mut s = match svc_proxy {
-                Some(svc_proxy) => svc_proxy,
-                _ => return svc_proxy,
+            let Some(mut s) = svc_proxy else {
+                return svc_proxy;
             };
 
             // Remove newline

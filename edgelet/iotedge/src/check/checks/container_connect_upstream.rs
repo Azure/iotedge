@@ -81,15 +81,11 @@ impl Checker for ContainerConnectUpstream {
 
 impl ContainerConnectUpstream {
     async fn inner_execute(&mut self, check: &mut Check) -> CheckResult {
-        let settings = if let Some(settings) = &check.settings {
-            settings
-        } else {
+        let Some(settings) = &check.settings else {
             return CheckResult::Skipped;
         };
 
-        let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-            docker_host_arg
-        } else {
+        let Some(docker_host_arg) = &check.docker_host_arg else {
             return CheckResult::Skipped;
         };
 

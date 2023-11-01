@@ -321,8 +321,7 @@ impl SystemInfo {
 
         remove_assign!(server_version);
 
-        self.additional_properties
-            .extend(additional_info.into_iter());
+        self.additional_properties.extend(additional_info);
 
         self
     }

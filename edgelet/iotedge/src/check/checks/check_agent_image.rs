@@ -27,9 +27,7 @@ impl Checker for CheckAgentImage {
 impl CheckAgentImage {
     #[allow(clippy::unused_self)]
     async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        let settings = if let Some(settings) = &mut check.settings {
-            settings
-        } else {
+        let Some(settings) = &mut check.settings else {
             return Ok(CheckResult::Skipped);
         };
 
@@ -43,9 +41,7 @@ impl CheckAgentImage {
             return Ok(CheckResult::Skipped);
         };
 
-        let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-            docker_host_arg
-        } else {
+        let Some(docker_host_arg) = &check.docker_host_arg else {
             return Ok(CheckResult::Skipped);
         };
 

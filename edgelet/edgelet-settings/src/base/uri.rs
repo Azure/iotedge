@@ -87,17 +87,12 @@ impl Default for Listen {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum MinTlsVersion {
+    #[default]
     Tls10,
     Tls11,
     Tls12,
-}
-
-impl Default for MinTlsVersion {
-    fn default() -> Self {
-        MinTlsVersion::Tls10
-    }
 }
 
 impl std::fmt::Display for MinTlsVersion {

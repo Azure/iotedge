@@ -118,18 +118,13 @@ impl<ModuleConfig> Settings<ModuleConfig> {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ImagePullPolicy {
     #[serde(rename = "on-create")]
+    #[default]
     OnCreate,
     Never,
-}
-
-impl Default for ImagePullPolicy {
-    fn default() -> Self {
-        ImagePullPolicy::OnCreate
-    }
 }
 
 impl std::str::FromStr for ImagePullPolicy {
