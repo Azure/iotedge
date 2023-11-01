@@ -21,7 +21,7 @@ impl Error {
 
     pub fn from_err(message: impl std::fmt::Display, err: impl std::fmt::Display) -> Self {
         Error {
-            message: format!("{}: {}", message, err),
+            message: format!("{message}: {err}"),
             exit_code: 1,
         }
     }
@@ -30,7 +30,7 @@ impl Error {
     #[allow(clippy::needless_pass_by_value)]
     pub fn settings_err(err: Box<dyn std::error::Error>) -> Self {
         Error {
-            message: format!("Failed to load settings: {}", err),
+            message: format!("Failed to load settings: {err}"),
 
             // A specific exit code when settings could not be read.
             // This prevents systemd from restarting edged until the user fixes the settings.

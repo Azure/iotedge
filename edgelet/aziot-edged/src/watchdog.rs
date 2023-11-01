@@ -296,7 +296,7 @@ fn agent_env(
 
         let path = path.to_str().expect("invalid path");
 
-        format!("unix://{}", path)
+        format!("unix://{path}")
     };
 
     env.insert("IOTEDGE_WORKLOADURI".to_string(), workload_uri);

@@ -51,7 +51,7 @@ where
     let output = process.output().await.map_err(|err| {
         (
             None,
-            anyhow::Error::from(err).context(format!("could not run {:?}", process)),
+            anyhow::Error::from(err).context(format!("could not run {process:?}")),
         )
     })?;
 

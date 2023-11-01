@@ -91,7 +91,7 @@ impl ModuleSpec {
         }
 
         let config = serde_json::from_value(self.config.settings)
-            .map_err(|err| format!("invalid Docker config: {}", err))?;
+            .map_err(|err| format!("invalid Docker config: {err}"))?;
 
         let image_pull_policy = match self.image_pull_policy {
             Some(policy) => std::str::FromStr::from_str(&policy)

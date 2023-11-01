@@ -139,7 +139,7 @@ impl std::str::FromStr for ImagePullPolicy {
         match s.to_lowercase().as_str() {
             "on-create" => Ok(ImagePullPolicy::OnCreate),
             "never" => Ok(ImagePullPolicy::Never),
-            _ => Err(format!("Unsupported image pull policy {}", s)),
+            _ => Err(format!("Unsupported image pull policy {s}")),
         }
     }
 }

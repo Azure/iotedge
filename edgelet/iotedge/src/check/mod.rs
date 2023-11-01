@@ -206,7 +206,7 @@ impl Check {
     fn output_section(&self, section_name: &str) {
         if self.output_format == OutputFormat::Text {
             println!();
-            println!("{}", section_name);
+            println!("{section_name}");
             println!("{}", "-".repeat(section_name.len()));
         }
     }
@@ -259,7 +259,7 @@ impl Check {
                         );
 
                         stdout.write_success(|stdout| {
-                            writeln!(stdout, "\u{221a} {} - OK", check_name)?;
+                            writeln!(stdout, "\u{221a} {check_name} - OK")?;
                             Ok(())
                         });
                     }
@@ -278,7 +278,7 @@ impl Check {
                         );
 
                         stdout.write_warning(|stdout| {
-                            writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
+                            writeln!(stdout, "\u{203c} {check_name} - Warning")?;
 
                             let message = warning.to_string();
 
@@ -322,7 +322,7 @@ impl Check {
 
                         if verbose {
                             stdout.write_warning(|stdout| {
-                                writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
+                                writeln!(stdout, "\u{203c} {check_name} - Warning")?;
                                 writeln!(stdout, "    skipping because of previous failures")?;
                                 Ok(())
                             });
@@ -342,8 +342,8 @@ impl Check {
 
                         if verbose {
                             stdout.write_success(|stdout| {
-                                writeln!(stdout, "\u{221a} {} - OK", check_name)?;
-                                writeln!(stdout, "    skipping because of {}", reason)?;
+                                writeln!(stdout, "\u{221a} {check_name} - OK")?;
+                                writeln!(stdout, "    skipping because of {reason}")?;
                                 Ok(())
                             });
                         }
@@ -363,7 +363,7 @@ impl Check {
                         );
 
                         stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
+                            writeln!(stdout, "\u{00d7} {check_name} - Error")?;
 
                             let message = err.to_string();
 
@@ -398,7 +398,7 @@ impl Check {
                         );
 
                         stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
+                            writeln!(stdout, "\u{00d7} {check_name} - Error")?;
 
                             let message = err.to_string();
 
@@ -485,7 +485,7 @@ impl Check {
                         let val = val.context(Error::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
-                                self.output_section(&format!("{} (aziot-identity-service)", name));
+                                self.output_section(&format!("{name} (aziot-identity-service)"));
                             }
                             CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
@@ -570,13 +570,13 @@ impl Check {
         }
 
         stdout.write_success(|stdout| {
-            writeln!(stdout, "{} check(s) succeeded.", num_successful)?;
+            writeln!(stdout, "{num_successful} check(s) succeeded.")?;
             Ok(())
         });
 
         if num_warnings > 0 {
             stdout.write_warning(|stdout| {
-                write!(stdout, "{} check(s) raised warnings.", num_warnings)?;
+                write!(stdout, "{num_warnings} check(s) raised warnings.")?;
                 if self.verbose {
                     writeln!(stdout)?;
                 } else {
@@ -627,7 +627,7 @@ impl Check {
             };
 
             if let Err(err) = serde_json::to_writer(std::io::stdout(), &check_results) {
-                eprintln!("Could not write JSON output: {}", err,);
+                eprintln!("Could not write JSON output: {err}",);
                 return Err(Error::Diagnostics.into());
             }
 
@@ -663,11 +663,11 @@ fn write_lines<'a>(
     mut lines: impl Iterator<Item = &'a str>,
 ) -> std::io::Result<()> {
     if let Some(line) = lines.next() {
-        writeln!(writer, "{}{}", first_line_indent, line)?;
+        writeln!(writer, "{first_line_indent}{line}")?;
     }
 
     for line in lines {
-        writeln!(writer, "{}{}", other_lines_indent, line)?;
+        writeln!(writer, "{other_lines_indent}{line}")?;
     }
 
     Ok(())

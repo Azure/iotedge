@@ -118,7 +118,7 @@ impl std::str::FromStr for MinTlsVersion {
             "tls" | "tls1" | "tls10" | "tls1.0" | "tls1_0" | "tlsv10" => Ok(MinTlsVersion::Tls10),
             "tls11" | "tls1.1" | "tls1_1" | "tlsv11" => Ok(MinTlsVersion::Tls11),
             "tls12" | "tls1.2" | "tls1_2" | "tlsv12" => Ok(MinTlsVersion::Tls12),
-            _ => Err(format!("Unsupported TLS protocol version: {}", s)),
+            _ => Err(format!("Unsupported TLS protocol version: {s}")),
         }
     }
 }

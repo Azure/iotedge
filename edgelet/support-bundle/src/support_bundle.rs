@@ -97,7 +97,7 @@ where
     for module_name in get_modules(runtime, include_ms_only).await {
         // Write module logs
         zip_writer
-            .start_file(format!("logs/{}_log.txt", module_name), file_options)
+            .start_file(format!("logs/{module_name}_log.txt"), file_options)
             .context(Error::SupportBundle)?;
         write_logs(runtime, &module_name, &log_options, &mut zip_writer).await?;
 
