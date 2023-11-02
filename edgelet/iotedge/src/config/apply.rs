@@ -672,7 +672,7 @@ mod tests {
 
             let test_name = case_directory.file_name().unwrap().to_str().unwrap();
 
-            println!(".\n.\n=========\n.\nRunning test {}", test_name);
+            println!(".\n.\n=========\n.\nRunning test {test_name}");
 
             let super_config_file = case_directory.join("super-config.toml");
             let expected_keyd_config = std::fs::read(case_directory.join("keyd.toml")).unwrap();

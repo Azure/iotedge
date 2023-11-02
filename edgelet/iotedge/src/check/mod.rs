@@ -799,7 +799,7 @@ mod tests {
 
         let settings = match Settings::new() {
             Ok(settings) => settings,
-            Err(err) => panic!("Unable to create settings object, error {:?}", err),
+            Err(err) => panic!("Unable to create settings object, error {err:?}"),
         };
 
         check.settings = Some(settings);
@@ -826,13 +826,13 @@ mod tests {
             ExpectedCheckResult::Success => {
                 match ProxySettings::default().execute(&mut check).await {
                     CheckResult::Ok => (),
-                    check_result => panic!("proxy settings check returned {:?}", check_result),
+                    check_result => panic!("proxy settings check returned {check_result:?}"),
                 }
             }
             ExpectedCheckResult::Warning => {
                 match ProxySettings::default().execute(&mut check).await {
                     CheckResult::Warning(_) => (),
-                    check_result => panic!("proxy settings check returned {:?}", check_result),
+                    check_result => panic!("proxy settings check returned {check_result:?}"),
                 }
             }
         }
@@ -872,7 +872,7 @@ mod tests {
 
             match WellFormedConfig::default().execute(&mut check).await {
                 CheckResult::Ok => (),
-                check_result => panic!("parsing {} returned {:?}", filename, check_result),
+                check_result => panic!("parsing {filename} returned {check_result:?}"),
             }
         }
     }
@@ -909,7 +909,7 @@ mod tests {
 
         match WellFormedConfig::default().execute(&mut check).await {
             CheckResult::Failed(_) => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+            check_result => panic!("parsing {filename} returned {check_result:?}"),
         }
     }
 
@@ -934,8 +934,7 @@ mod tests {
         assert_eq!(
                     proxy_uri.unwrap(),
                     env_proxy_uri1.to_string(),
-                    "proxy _uri fetched from the environment var \"https_proxy\" did not match expected value: '{};",
-                    env_proxy_uri1
+                    "proxy _uri fetched from the environment var \"https_proxy\" did not match expected value: '{env_proxy_uri1};"
                 );
 
         // Setup the HTTPS_PROXY environment var
@@ -950,8 +949,7 @@ mod tests {
         assert_eq!(
             proxy_uri.unwrap(),
             env_proxy_uri2.to_string(),
-            "proxy _uri fetched from the environment var \"HTTPS_PROXY\" did not match expected value: '{};",
-            env_proxy_uri2
+            "proxy _uri fetched from the environment var \"HTTPS_PROXY\" did not match expected value: '{env_proxy_uri2};"
         );
 
         // Point to a test config
@@ -975,8 +973,7 @@ mod tests {
         assert_eq!(
             proxy_uri.unwrap(),
             config_proxy_uri.to_string(),
-            "proxy_uri fetched from the config did not match expected value: '{}'",
-            config_proxy_uri,
+            "proxy_uri fetched from the config did not match expected value: \'{config_proxy_uri}\'",
         );
 
         // Get proxy-uri by passing in the uri as the parameter
@@ -990,8 +987,7 @@ mod tests {
         assert_eq!(
             proxy_uri.unwrap(),
             parm_proxy_uri.to_string(),
-            "proxy_uri fetched from the config did not match expected value: '{}'",
-            parm_proxy_uri,
+            "proxy_uri fetched from the config did not match expected value: \'{parm_proxy_uri}\'",
         );
 
         // clean up the env

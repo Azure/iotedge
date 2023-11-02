@@ -623,7 +623,7 @@ mod tests {
 
             let test_name = case_directory.file_name().unwrap().to_str().unwrap();
 
-            println!(".\n.\n=========\n.\nRunning test {}", test_name);
+            println!(".\n.\n=========\n.\nRunning test {test_name}");
 
             let old_config_file = case_directory.join("old-config.yaml");
             if !old_config_file.exists() {
