@@ -194,7 +194,7 @@ mod tests {
         let actual = MinTlsVersion::from_str(value);
         assert_eq!(
             actual,
-            Err(format!("Unsupported TLS protocol version: {}", value))
+            Err(format!("Unsupported TLS protocol version: {value}"))
         );
     }
 }
