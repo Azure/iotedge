@@ -3,7 +3,6 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
-    clippy::box_default,
     clippy::default_trait_access,
     clippy::let_and_return,
     clippy::let_unit_value,
