@@ -27,13 +27,10 @@ impl Checker for ParentHostname {
 impl ParentHostname {
     #[allow(clippy::unnecessary_wraps)]
     fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        let config_parent_hostname =
-            if let Some(config_parent_hostname) = check.parent_hostname.as_ref() {
-                config_parent_hostname
-            } else {
-                // No parent hostname is a valid config.
-                return Ok(CheckResult::Ignored);
-            };
+        let Some(config_parent_hostname) = check.parent_hostname.as_ref() else {
+            // No parent hostname is a valid config.
+            return Ok(CheckResult::Ignored);
+        };
 
         self.config_parent_hostname = Some(config_parent_hostname.clone());
 

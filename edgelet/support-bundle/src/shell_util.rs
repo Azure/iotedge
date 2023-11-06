@@ -54,10 +54,7 @@ pub async fn write_inspect<W>(
 where
     W: Write + Seek,
 {
-    print_verbose(
-        &format!("Running docker inspect for {}", module_name),
-        verbose,
-    );
+    print_verbose(format!("Running docker inspect for {module_name}"), verbose);
 
     let mut inspect = Command::new("docker");
     inspect.arg("inspect").arg(module_name);
@@ -65,18 +62,17 @@ where
 
     let (file_name, output) = if let Ok(result) = inspect {
         if result.status.success() {
-            (format!("inspect/{}.json", module_name), result.stdout)
+            (format!("inspect/{module_name}.json"), result.stdout)
         } else {
-            (format!("inspect/{}_err.json", module_name), result.stderr)
+            (format!("inspect/{module_name}_err.json"), result.stderr)
         }
     } else {
         let err_message = inspect.err().unwrap().to_string();
         println!(
-            "Could not reach docker. Including error in bundle.\nError message: {}",
-            err_message
+            "Could not reach docker. Including error in bundle.\nError message: {err_message}"
         );
         (
-            format!("inspect/{}_err_docker.txt", module_name),
+            format!("inspect/{module_name}_err_docker.txt"),
             err_message.as_bytes().to_vec(),
         )
     };
@@ -89,7 +85,7 @@ where
         .write_all(&output)
         .context(Error::SupportBundle)?;
 
-    print_verbose(&format!("Got docker inspect for {}", module_name), verbose);
+    print_verbose(format!("Got docker inspect for {module_name}"), verbose);
 
     Ok(())
 }
@@ -129,7 +125,7 @@ where
     W: Write + Seek,
 {
     print_verbose(
-        &format!("Running docker network inspect for {}", network_name),
+        format!("Running docker network inspect for {network_name}"),
         verbose,
     );
     let mut inspect = Command::new("docker");
@@ -139,18 +135,17 @@ where
 
     let (file_name, output) = if let Ok(result) = inspect {
         if result.status.success() {
-            (format!("network/{}.json", network_name), result.stdout)
+            (format!("network/{network_name}.json"), result.stdout)
         } else {
-            (format!("network/{}_err.json", network_name), result.stderr)
+            (format!("network/{network_name}_err.json"), result.stderr)
         }
     } else {
         let err_message = inspect.err().unwrap().to_string();
         println!(
-            "Could not reach docker. Including error in bundle.\nError message: {}",
-            err_message
+            "Could not reach docker. Including error in bundle.\nError message: {err_message}",
         );
         (
-            format!("network/{}_err_docker.txt", network_name),
+            format!("network/{network_name}_err_docker.txt"),
             err_message.as_bytes().to_vec(),
         )
     };
@@ -164,7 +159,7 @@ where
         .context(Error::SupportBundle)?;
 
     print_verbose(
-        &format!("Got docker network inspect for {}", network_name),
+        format!("Got docker network inspect for {network_name}"),
         verbose,
     );
     Ok(())
@@ -181,10 +176,7 @@ pub async fn write_system_log<W>(
 where
     W: Write + Seek,
 {
-    print_verbose(
-        format!("Getting system logs for {}", name).as_str(),
-        verbose,
-    );
+    print_verbose(format!("Getting system logs for {name}").as_str(), verbose);
     let timestamp = NaiveDateTime::from_timestamp_opt(log_options.since().into(), 0)
         .ok_or(Error::SupportBundle)?;
     let since_time: DateTime<Utc> = DateTime::from_utc(timestamp, Utc);
@@ -209,18 +201,17 @@ where
 
     let (file_name, output) = if let Ok(result) = command {
         if result.status.success() {
-            (format!("logs/{}.txt", name), result.stdout)
+            (format!("logs/{name}.txt"), result.stdout)
         } else {
-            (format!("logs/{}_err.txt", name), result.stderr)
+            (format!("logs/{name}_err.txt"), result.stderr)
         }
     } else {
         let err_message = command.err().unwrap().to_string();
         println!(
-            "Could not find system logs for {}. Including error in bundle.\nError message: {}",
-            name, err_message
+            "Could not find system logs for {name}. Including error in bundle.\nError message: {err_message}"
         );
         (
-            format!("logs/{}_err.txt", name),
+            format!("logs/{name}_err.txt"),
             err_message.as_bytes().to_vec(),
         )
     };
@@ -233,7 +224,7 @@ where
         .write_all(&output)
         .context(Error::SupportBundle)?;
 
-    print_verbose(format!("Got logs for {}", name).as_str(), verbose);
+    print_verbose(format!("Got logs for {name}").as_str(), verbose);
     Ok(())
 }
 
@@ -242,6 +233,6 @@ where
     S: std::fmt::Display,
 {
     if verbose {
-        println!("{}", message);
+        println!("{message}");
     }
 }

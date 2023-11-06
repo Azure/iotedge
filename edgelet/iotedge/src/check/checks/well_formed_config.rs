@@ -37,7 +37,7 @@ impl WellFormedConfig {
                 ));
             } else if err.kind() != std::io::ErrorKind::NotFound {
                 return Err(anyhow::Error::from(err)
-                    .context(format!("Could not open file {}", CONFIG_FILE_DEFAULT)));
+                    .context(format!("Could not open file {CONFIG_FILE_DEFAULT}")));
             }
         }
 
@@ -48,8 +48,8 @@ impl WellFormedConfig {
                     format!("\
                         The IoT Edge configuration is not well-formed.\n\
                         Note: In case of syntax errors, the error may not be exactly at the reported line number and position.\n\
-                        {}
-                    ", err)
+                        {err}
+                    ")
                 } else {
                     "The IoT Edge daemon's configuration file is not well-formed.".to_string()
                 };
@@ -62,7 +62,7 @@ impl WellFormedConfig {
                 .diagnostics_image_name
                 .strip_prefix(UPSTREAM_PARENT_KEYWORD)
             {
-                check.diagnostics_image_name = format!("{}{}", parent_hostname, image_tail);
+                check.diagnostics_image_name = format!("{parent_hostname}{image_tail}");
             }
         }
 

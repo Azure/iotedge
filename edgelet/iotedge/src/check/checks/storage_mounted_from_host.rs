@@ -76,9 +76,7 @@ async fn storage_mounted_from_host<'a>(
             .expect("This hard-coded regex is expected to be valid.");
     }
 
-    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-        docker_host_arg
-    } else {
+    let Some(docker_host_arg) = &check.docker_host_arg else {
         return Ok(CheckResult::Skipped);
     };
 
@@ -149,5 +147,5 @@ async fn inspect_container(
                     .context("Could not parse result of docker inspect")?;
             Ok(inspect_result)
         })
-        .with_context(|| format!("Could not check current state of {} container", name))
+        .with_context(|| format!("Could not check current state of {name} container"))
 }

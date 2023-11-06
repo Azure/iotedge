@@ -82,7 +82,7 @@ impl fmt::Display for FetchLatestVersionsReason {
                 "redirect response has invalid or missing location header"
             ),
             FetchLatestVersionsReason::ResponseStatusCode(status_code) => {
-                write!(f, "response failed with status code {}", status_code)
+                write!(f, "response failed with status code {status_code}")
             }
         }
     }
