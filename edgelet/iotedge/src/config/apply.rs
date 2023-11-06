@@ -492,7 +492,7 @@ async fn execute_inner(
         }
         let path = additional_info
             .to_file_path()
-            .map_err(|_| "additional_info is an invalid URI")?;
+            .map_err(|()| "additional_info is an invalid URI")?;
         let lossy = path.to_string_lossy();
         let bytes = std::fs::read(&path)
             .map_err(|e| format!("failed to read additional_info from {lossy}: {e:?}"))?;
@@ -672,7 +672,7 @@ mod tests {
 
             let test_name = case_directory.file_name().unwrap().to_str().unwrap();
 
-            println!(".\n.\n=========\n.\nRunning test {}", test_name);
+            println!(".\n.\n=========\n.\nRunning test {test_name}");
 
             let super_config_file = case_directory.join("super-config.toml");
             let expected_keyd_config = std::fs::read(case_directory.join("keyd.toml")).unwrap();

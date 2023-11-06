@@ -69,8 +69,7 @@ where
     } else {
         let err_message = inspect.err().unwrap().to_string();
         println!(
-            "Could not reach docker. Including error in bundle.\nError message: {}",
-            err_message
+            "Could not reach docker. Including error in bundle.\nError message: {err_message}"
         );
         (
             format!("inspect/{module_name}_err_docker.txt"),
@@ -143,8 +142,7 @@ where
     } else {
         let err_message = inspect.err().unwrap().to_string();
         println!(
-            "Could not reach docker. Including error in bundle.\nError message: {}",
-            err_message
+            "Could not reach docker. Including error in bundle.\nError message: {err_message}",
         );
         (
             format!("network/{network_name}_err_docker.txt"),
@@ -210,8 +208,7 @@ where
     } else {
         let err_message = command.err().unwrap().to_string();
         println!(
-            "Could not find system logs for {}. Including error in bundle.\nError message: {}",
-            name, err_message
+            "Could not find system logs for {name}. Including error in bundle.\nError message: {err_message}"
         );
         (
             format!("logs/{name}_err.txt"),

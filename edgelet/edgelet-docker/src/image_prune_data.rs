@@ -217,11 +217,10 @@ fn write_images_with_timestamp(
     }
 
     match fs::rename(temp_file, image_use_filepath) {
-        Ok(_) => {}
+        Ok(()) => {}
         Err(err) => {
             return Err(Error::FileOperation(format!(
-                "Could not update garbage collection data {}",
-                err
+                "Could not update garbage collection data {err}"
             )))
         }
     };

@@ -117,9 +117,7 @@ where
 
     // Finilize buffer and set cursur to 0 for reading.
     let mut buffer = zip_writer.finish().context(Error::SupportBundle)?;
-    let len = buffer
-        .seek(SeekFrom::Current(0))
-        .context(Error::SupportBundle)?;
+    let len = buffer.stream_position().context(Error::SupportBundle)?;
     buffer
         .seek(SeekFrom::Start(0))
         .context(Error::SupportBundle)?;

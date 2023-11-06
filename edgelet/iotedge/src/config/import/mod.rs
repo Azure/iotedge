@@ -113,8 +113,7 @@ fn execute_inner(
         Err(err) => match err.kind() {
             std::io::ErrorKind::NotFound => {
                 return Err(format!(
-                    "there is no old config at {} available to migrate",
-                    old_config_file_display
+                    "there is no old config at {old_config_file_display} available to migrate"
                 )
                 .into())
             }
@@ -488,10 +487,7 @@ fn execute_inner(
             } = listen;
 
             let management_uri = map_listen_uri(management_uri).map_err(|management_uri| {
-                format!(
-                    "unexpected value of listen.management_uri {}",
-                    management_uri
-                )
+                format!("unexpected value of listen.management_uri {management_uri}",)
             })?;
             let workload_uri = map_listen_uri(workload_uri).map_err(|workload_uri| {
                 format!("unexpected value of listen.workload_uri {workload_uri}")
@@ -627,7 +623,7 @@ mod tests {
 
             let test_name = case_directory.file_name().unwrap().to_str().unwrap();
 
-            println!(".\n.\n=========\n.\nRunning test {}", test_name);
+            println!(".\n.\n=========\n.\nRunning test {test_name}");
 
             let old_config_file = case_directory.join("old-config.yaml");
             if !old_config_file.exists() {
