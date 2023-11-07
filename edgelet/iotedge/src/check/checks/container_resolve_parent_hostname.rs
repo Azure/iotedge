@@ -28,9 +28,7 @@ impl Checker for ContainerResolveParentHostname {
 impl ContainerResolveParentHostname {
     #[allow(clippy::unused_self)]
     async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        let settings = if let Some(settings) = &check.settings {
-            settings
-        } else {
+        let Some(settings) = &check.settings else {
             return Ok(CheckResult::Skipped);
         };
 
@@ -57,9 +55,7 @@ impl ContainerResolveParentHostname {
             check.diagnostics_image_name.clone()
         };
 
-        let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-            docker_host_arg
-        } else {
+        let Some(docker_host_arg) = &check.docker_host_arg else {
             return Ok(CheckResult::Skipped);
         };
 
@@ -75,7 +71,7 @@ impl ContainerResolveParentHostname {
             .for_each(|extra_hosts| {
                 extra_hosts
                     .iter()
-                    .for_each(|host| args.push(format!("--add-host={}", host)));
+                    .for_each(|host| args.push(format!("--add-host={host}")));
             });
 
         args.extend(vec![
@@ -91,8 +87,7 @@ impl ContainerResolveParentHostname {
             .await
             .map_err(|(_, err)| err)
             .context(format!(
-                "Failed to resolve parent hostname {}",
-                parent_hostname
+                "Failed to resolve parent hostname {parent_hostname}"
             ))?;
 
         Ok(CheckResult::Ok)

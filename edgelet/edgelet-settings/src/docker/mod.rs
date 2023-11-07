@@ -251,7 +251,7 @@ mod tests {
                     .with_subnet("2001:4898:e0:3b1:1::/80".to_string());
                 let expected_ipam_config: Vec<network::IpamConfig> = vec![ipam_1, ipam_2];
 
-                for ipam_config in ipam_config.iter() {
+                for ipam_config in ipam_config {
                     assert!(expected_ipam_config.contains(ipam_config));
                 }
             }
