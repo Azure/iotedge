@@ -51,7 +51,7 @@ where
     let output = process.output().await.map_err(|err| {
         (
             None,
-            anyhow::Error::from(err).context(format!("could not run {:?}", process)),
+            anyhow::Error::from(err).context(format!("could not run {process:?}")),
         )
     })?;
 
@@ -71,21 +71,21 @@ pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
         (
             "Configuration checks",
             vec![
-                Box::new(WellFormedConfig::default()),
-                Box::new(UpToDateConfig::default()),
-                Box::new(ContainerEngineInstalled::default()),
-                Box::new(ParentHostname::default()),
-                Box::new(ContainerResolveParentHostname::default()),
-                Box::new(ConnectManagementUri::default()),
-                Box::new(AziotEdgedVersion::default()),
-                Box::new(ContainerLocalTime::default()),
-                Box::new(ContainerEngineDns::default()),
-                Box::new(ContainerEngineIPv6::default()),
-                Box::new(ContainerEngineLogrotate::default()),
-                Box::new(EdgeAgentStorageMounted::default()),
-                Box::new(EdgeHubStorageMounted::default()),
-                Box::new(CheckAgentImage::default()),
-                Box::new(ProxySettings::default()),
+                Box::<WellFormedConfig>::default(),
+                Box::<UpToDateConfig>::default(),
+                Box::<ContainerEngineInstalled>::default(),
+                Box::<ParentHostname>::default(),
+                Box::<ContainerResolveParentHostname>::default(),
+                Box::<ConnectManagementUri>::default(),
+                Box::<AziotEdgedVersion>::default(),
+                Box::<ContainerLocalTime>::default(),
+                Box::<ContainerEngineDns>::default(),
+                Box::<ContainerEngineIPv6>::default(),
+                Box::<ContainerEngineLogrotate>::default(),
+                Box::<EdgeAgentStorageMounted>::default(),
+                Box::<EdgeHubStorageMounted>::default(),
+                Box::<CheckAgentImage>::default(),
+                Box::<ProxySettings>::default(),
             ],
         ),
         ("Connectivity checks", {

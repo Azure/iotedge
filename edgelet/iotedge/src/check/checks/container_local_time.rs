@@ -29,9 +29,7 @@ impl Checker for ContainerLocalTime {
 
 impl ContainerLocalTime {
     async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-            docker_host_arg
-        } else {
+        let Some(docker_host_arg) = &check.docker_host_arg else {
             return Ok(CheckResult::Skipped);
         };
 
