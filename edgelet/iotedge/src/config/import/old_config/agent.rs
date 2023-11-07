@@ -40,16 +40,11 @@ pub(crate) struct DockerConfig {
     pub(crate) auth: Option<AuthConfig>,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum ImagePullPolicy {
     #[serde(rename = "on-create")]
+    #[default]
     OnCreate,
     Never,
-}
-
-impl Default for ImagePullPolicy {
-    fn default() -> Self {
-        ImagePullPolicy::OnCreate
-    }
 }
