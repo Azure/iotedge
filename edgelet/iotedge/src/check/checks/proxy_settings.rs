@@ -20,9 +20,7 @@ impl Checker for ProxySettings {
 
 impl ProxySettings {
     fn inner_execute(check: &mut Check) -> CheckResult {
-        let settings = if let Some(settings) = &mut check.settings {
-            settings
-        } else {
+        let Some(settings) = &mut check.settings else {
             return CheckResult::Skipped;
         };
 

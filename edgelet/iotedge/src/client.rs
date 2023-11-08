@@ -45,7 +45,7 @@ impl MgmtClient {
     }
 
     fn get_uri(&self, path: &str) -> anyhow::Result<String> {
-        let host_str = format!("unix://{}:0{}", self.host, path);
+        let host_str = format!("unix://{}:0{path}", self.host);
         let uri: std::result::Result<Uri, _> = host_str.parse();
         let uri = uri.context(Error::ModuleRuntime)?;
         let uri = uri.to_string();
@@ -61,7 +61,7 @@ impl ModuleRuntime for MgmtClient {
     type ModuleRegistry = Self;
 
     async fn start(&self, id: &str) -> anyhow::Result<()> {
-        let path = format!("/modules/{}/start?api-version={}", id, API_VERSION);
+        let path = format!("/modules/{id}/start?api-version={API_VERSION}");
         let uri = self.get_uri(&path)?;
 
         let request: HttpRequest<(), _> = HttpRequest::post(self.connector.clone(), &uri, None);
@@ -75,7 +75,7 @@ impl ModuleRuntime for MgmtClient {
     }
 
     async fn stop(&self, id: &str, _wait_before_kill: Option<Duration>) -> anyhow::Result<()> {
-        let path = format!("/modules/{}/stop?api-version={}", id, API_VERSION);
+        let path = format!("/modules/{id}/stop?api-version={API_VERSION}");
         let uri = self.get_uri(&path)?;
 
         let request: HttpRequest<(), _> = HttpRequest::post(self.connector.clone(), &uri, None);
@@ -89,7 +89,7 @@ impl ModuleRuntime for MgmtClient {
     }
 
     async fn list(&self) -> anyhow::Result<Vec<Self::Module>> {
-        let path = format!("/modules?api-version={}", API_VERSION);
+        let path = format!("/modules?api-version={API_VERSION}");
         let uri = self.get_uri(&path)?;
 
         let request: HttpRequest<(), _> = HttpRequest::get(self.connector.clone(), &uri);
@@ -134,7 +134,7 @@ impl ModuleRuntime for MgmtClient {
                 query.append_pair("until", &until.to_string());
             }
             let query = query.finish();
-            let path = format!("/modules/{}/logs?{}", id, query);
+            let path = format!("/modules/{id}/logs?{query}");
             self.get_uri(&path)?
         };
 
@@ -150,7 +150,7 @@ impl ModuleRuntime for MgmtClient {
         if status.is_success() {
             Ok(body)
         } else {
-            Err(Error::Misc(format!("Bad status code when calling logs: {}", status)).into())
+            Err(Error::Misc(format!("Bad status code when calling logs: {status}")).into())
         }
     }
 

@@ -87,7 +87,7 @@ where
 
     if (recurrence.as_nanos() % MIN_CLEANUP_RECURRENCE) != 0 {
         return Err(<D::Error as serde::de::Error>::invalid_value(
-            serde::de::Unexpected::Other(&format!("{:?}", recurrence)),
+            serde::de::Unexpected::Other(&format!("{recurrence:?}")),
             &"duration that is a multiple of days",
         ));
     }

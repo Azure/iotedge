@@ -32,13 +32,13 @@ async fn main() {
         .expect("cannot fail to initialize global logger from the process entrypoint");
 
     log::info!("Starting Azure IoT Edge Daemon");
-    log::info!("Version - {}", version);
+    log::info!("Version - {version}");
 
     if let Err(err) = run().await {
         if err.exit_code() == EdgedError::reprovisioned().exit_code() {
-            log::info!("{}", err);
+            log::info!("{err}");
         } else {
-            log::error!("{}", err);
+            log::error!("{err}");
         }
 
         std::process::exit(err.into());
@@ -47,8 +47,7 @@ async fn main() {
 
 #[allow(clippy::too_many_lines)]
 async fn run() -> Result<(), EdgedError> {
-    let settings =
-        edgelet_settings::docker::Settings::new().map_err(|err| EdgedError::settings_err(err))?;
+    let settings = edgelet_settings::docker::Settings::new().map_err(EdgedError::settings_err)?;
 
     let cache_dir = std::path::Path::new(&settings.homedir()).join("cache");
     std::fs::create_dir_all(cache_dir.clone()).map_err(|err| {

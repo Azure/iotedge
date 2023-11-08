@@ -81,15 +81,11 @@ impl Checker for ContainerConnectUpstream {
 
 impl ContainerConnectUpstream {
     async fn inner_execute(&mut self, check: &mut Check) -> CheckResult {
-        let settings = if let Some(settings) = &check.settings {
-            settings
-        } else {
+        let Some(settings) = &check.settings else {
             return CheckResult::Skipped;
         };
 
-        let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-            docker_host_arg
-        } else {
+        let Some(docker_host_arg) = &check.docker_host_arg else {
             return CheckResult::Skipped;
         };
 
@@ -133,7 +129,7 @@ impl ContainerConnectUpstream {
 
         let workload_uri = settings.connect().workload_uri().to_string();
         let workload_uri_path = settings.connect().workload_uri().path().to_string();
-        let map_volume = format!("{}:{}", workload_uri_path, workload_uri_path);
+        let map_volume = format!("{workload_uri_path}:{workload_uri_path}");
 
         let network_name = settings.moby_runtime().network().name();
         self.network_name = Some(network_name.to_owned());
@@ -228,7 +224,7 @@ async fn get_env_from_container(
     env_var_name: &str,
 ) -> Option<UpstreamProtocol> {
     let shell_var = to_shell_var(env_var_name);
-    let command = format!("echo {}", shell_var);
+    let command = format!("echo {shell_var}");
     super::docker(docker_host_arg, &["exec", name, "/bin/sh", "-c", &command])
         .await
         .map_err(|(_, err)| err)
