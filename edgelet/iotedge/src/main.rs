@@ -30,7 +30,7 @@ async fn main() {
         eprintln!("{}", chain.next().unwrap());
 
         for cause in chain {
-            eprintln!("\tcaused by: {}", cause);
+            eprintln!("\tcaused by: {cause}");
         }
 
         eprintln!();
@@ -498,7 +498,7 @@ async fn run() -> anyhow::Result<()> {
                     Ok(())
                 }
                 (command, _) => {
-                    eprintln!("Unknown config subcommand: {}", command);
+                    eprintln!("Unknown config subcommand: {command}");
                     std::process::exit(1);
                 }
             }
@@ -564,7 +564,7 @@ async fn run() -> anyhow::Result<()> {
             ),
             ("reprovision", _) => System::reprovision().await,
             (command, _) => {
-                eprintln!("Unknown system subcommand: {}", command);
+                eprintln!("Unknown system subcommand: {command}");
                 std::process::exit(1);
             }
         })
@@ -618,7 +618,7 @@ async fn run() -> anyhow::Result<()> {
             Ok(())
         }
         (command, _) => {
-            eprintln!("unknown command: {}", command);
+            eprintln!("unknown command: {command}");
             Ok(())
         }
     }

@@ -14,16 +14,11 @@ impl Settings {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub enum MaxRetries {
+    #[default]
     Infinite,
     Num(u32),
-}
-
-impl Default for MaxRetries {
-    fn default() -> Self {
-        MaxRetries::Infinite
-    }
 }
 
 impl std::cmp::PartialEq<u32> for MaxRetries {

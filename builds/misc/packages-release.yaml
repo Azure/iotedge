@@ -125,12 +125,12 @@ stages:
               *.deb
               *.rpm
             TargetFolder: '$(build.artifactstagingdirectory)'
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: ESRP Binary CodeSigning
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: "aziotedge-pmc-v4-prod"
             FolderPath: '$(build.artifactstagingdirectory)'
-            Pattern: "*.rpm"
+            Pattern: "*.deb, *.rpm"
             SessionTimeout: 20
             inlineOperation: |
               [
@@ -143,6 +143,10 @@ stages:
                 }
               ]
             signConfigType: inlineSignParams
+        - bash: |
+            cd $(build.artifactstagingdirectory)
+            rm -f ./CodeSignSummary*
+          displayName: Remove CodeSign Summary
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
           displayName: 'SBOM Generation Task'
           inputs:
@@ -275,9 +279,9 @@ stages:
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: ESRP Binary CodeSigning (IIS)
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: "aziotedge-pmc-v4-prod"
             FolderPath: '$(System.ArtifactsDirectory)/$(artifactName)'
-            Pattern: "*.rpm"
+            Pattern: "*.deb, *.rpm"
             SessionTimeout: 20
             inlineOperation: |
               [
@@ -290,6 +294,10 @@ stages:
                 }
               ]
             signConfigType: inlineSignParams
+        - bash: |
+            cd "$(System.ArtifactsDirectory)/$(artifactName)"
+            rm -f ./CodeSignSummary*
+          displayName: Remove CodeSign Summary
         - task: PublishBuildArtifacts@1
           displayName: Publish Artifacts
           inputs:
