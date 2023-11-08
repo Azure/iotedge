@@ -5,6 +5,9 @@
 #AZ CLI LOGIN
 SCRIPT_NAME=$(basename $0)
 SKIP_UPLOAD="false"
+IS_PMC_SETUP_ONLY="false"
+DOCKER_CONFIG_DIR="/root/.config/pmc"
+DOCKER_CERT_FILE="/root/.config/pmc/private-key.pem"
 ###############################################################################
 # Print usage information pertaining to this script and exit
 ###############################################################################
@@ -23,6 +26,7 @@ function usage() {
     echo " -b,  --branch-name            Git Branch Name"
     echo " -pro,--pmc-repository         PMC package repository"
     echo " -pre,--pmc-release            Release for PMC (required for *.deb) {\"buster\", \"bullseye\", \"bionic\", \"focal\", \"jammy\", \"nightly\", \"\" }"
+    echo " --setup-pmc-only              Setup production certificate for PMC publication. No package upload will be done."
     exit 1
 }
 
@@ -76,7 +80,6 @@ check_server() {
         echo "Server Not Provided"
         exit 1
     fi
-
 }
 ###############################################################################
 # Obtain and validate the options supported by this script
@@ -114,6 +117,10 @@ process_args() {
         elif [ $save_next_arg -eq 10 ]; then
             PMC_RELEASE="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 11 ]; then
+            DISCARD="$arg"
+            IS_PMC_SETUP_ONLY="true"
+            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
@@ -127,12 +134,39 @@ process_args() {
             "-b" | "--branch-name") save_next_arg=8 ;;
             "-pro" | "--pmc-repository") save_next_arg=9 ;;
             "-pre" | "--pmc-release") save_next_arg=10 ;;
+            "--setup-pmc-only") save_next_arg=11 ;;
             *) usage ;;
             esac
         fi
     done
 }
 
+#######################################
+# NAME: 
+#    setup_for_microsoft_repo
+#
+# DESCRIPTION:
+#    The function setup the secrets and config file for RepoClient app.
+#######################################
+setup_for_microsoft_repo()
+{
+#Cleanup
+sudo rm -rf $WDIR/private-key.pem || true
+sudo rm -f $SETTING_FILE || true
+
+#Download Secrets - Requires az login and proper subscription to be selected
+az keyvault secret download --vault-name $(kv.name.release) \
+    -n iotedge-pmc-client-auth-prod \
+    -o tsv \
+    --query 'value' \
+    --encoding base64 \
+    -f ./iotedge-pmc-client-auth-prod.pfx
+openssl pkcs12 -in ./iotedge-pmc-client-auth-prod.pfx -out $CERT_FILE -nodes -passout pass:"" -passin pass:""
+
+#Download PMC config file and replace the placeholder for cert part
+az keyvault secret download --vault-name iotedge-packages -n pmc-v4-settings -f $SETTING_FILE
+sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
+}
 
 #######################################
 # NAME: 
@@ -162,26 +196,13 @@ process_args() {
 #######################################
 publish_to_microsoft_repo()
 {
-CERT_FILE="$WDIR/private-key.pem"
-SETTING_FILE="$WDIR/settings.toml"
-#CONFIG_DIR="/root/.repoclient/configs"
-DOCKER_CONFIG_DIR="/root/.config/pmc"
-DOCKER_CERT_FILE="/root/.config/pmc/private-key.pem"
-
-#Cleanup
-sudo rm -rf $WDIR/private-key.pem || true
-sudo rm -f $SETTING_FILE || true
-
-#Download Secrets - Requires az login and proper subscription to be selected
-az keyvault secret download --vault-name iotedge-packages -n private-key-pem -f $CERT_FILE
-#Download PMC config file and replace the placeholder for cert part
-az keyvault secret download --vault-name iotedge-packages -n pmc-v4-settings -f $SETTING_FILE
-sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
-
 #Setup up PMC Command using docker
+echo "Pulling PMC CLI Docker Image..."
 docker pull mcr.microsoft.com/pmc/pmc-cli
 PMC_CMD="docker run --volume $WDIR:$DOCKER_CONFIG_DIR --volume $DIR:/packages --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
+echo ""
 #Upload the packages to a storage
+echo "Running command: $PMC_CMD package upload packages/"
 UPLOAD_OUTPUT=$($PMC_CMD package upload packages/)
 echo "$UPLOAD_OUTPUT"
 OUTPUT_STATUS=$(echo "$UPLOAD_OUTPUT" | jq ".state" | tr -d '"')
@@ -194,13 +215,18 @@ if [[ $OUTPUT_STATUS != "completed" ]]; then
 fi
 
 #Generate Package Id list
+echo ""
 PACKAGE_IDS=$(echo $UPLOAD_OUTPUT | jq '.[]."id"' | tr '\n' ' ' | tr -d '"')
 ID_LIST=""; for ID in $PACKAGE_IDS; do ID_LIST=$ID','$ID_LIST; echo $ID_LIST; done; ID_LIST=${ID_LIST:0:-1}
+echo "Running PMC command for $PMC_REPO_NAME ($PMC_RELEASE) with package IDs: $ID_LIST"
 
 #Associate the uploaded artifacts with the linux repo
 $PMC_CMD repo package update --add-packages $ID_LIST $PMC_REPO_NAME $PMC_RELEASE
 #Trigger linux repo to update and ingress new package association
 $PMC_CMD repo publish "$PMC_REPO_NAME"
+
+echo ""
+echo "Package Upload Complete for"
 #Let's go ahead and print out the two URLs to access PMC repo
 $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 
@@ -381,17 +407,20 @@ publish_to_github()
 ###############################################################################
 
 process_args "$@"
-check_os
 check_dir
-check_server
-echo "OS is $OS_NAME"
-echo "Version is $OS_VERSION"
 echo "Work Dir is $WDIR"
 echo "Package OS DIR is $DIR"
 
+if [[ $IS_PMC_SETUP_ONLY == "false" ]] ; then
+    check_os
+    check_server
+
+    echo "OS is $OS_NAME"
+    echo "Version is $OS_VERSION"
+fi
+
 #Debug View of Package Dir Path
 ls -al $DIR 
-
 
 if [[ $SERVER == *"github"* ]]; then
     if [[ -z $GITHUB_PAT ]]; then
@@ -404,6 +433,13 @@ if [[ $SERVER == *"github"* ]]; then
     fi
     publish_to_github
 else
-    publish_to_microsoft_repo
+    CERT_FILE="$WDIR/private-key.pem"
+    SETTING_FILE="$WDIR/settings.toml"
+
+    if [[ $IS_PMC_SETUP_ONLY == "true" ]]; then
+        setup_for_microsoft_repo
+    else
+        publish_to_microsoft_repo
+    fi
 fi
 
