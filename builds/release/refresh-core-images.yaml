@@ -273,10 +273,10 @@ stages:
         path: $(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
         pattern: Microsoft.Azure.WebJobs.Extensions*.dll
 
-    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
       displayName: Sign Functions Binding nuget package
       inputs:
-        ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+        ConnectedServiceName: "aziotedge-pmc-v4-prod"
         FolderPath: $(Build.BinariesDirectory)/publish
         Pattern: Microsoft.Azure.WebJobs.Extensions*.nupkg
         inlineOperation: |
