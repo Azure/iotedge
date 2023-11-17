@@ -28,10 +28,6 @@ jobs:
         -c Release
     displayName: Build
 
-  # The code sign task requires .NET Core 2.1.
-  # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
-  - template: ../templates/force-dotnet21.yaml
-  # Code Sign
   - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
     displayName: "Metrics Collector Code Sign"
     inputs:
@@ -87,8 +83,6 @@ jobs:
             }
           ]
       signConfigType: inlineSignParams
-  # We're done with code signing, so remove dotnet version override
-  - template: ../templates/restore-default-dotnet.yaml
 
   - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
     displayName: Generate SBOM
