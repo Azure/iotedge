@@ -35,9 +35,6 @@ stages:
             packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
             versionEnvVar: version
             versioningScheme: byEnvVar
-        # The code sign task requires .NET Core 2.1.
-        # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
-        - template: ../templates/force-dotnet21.yaml
         # Code Sign
         - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: "Edge Agent Code Sign"
@@ -187,8 +184,6 @@ stages:
                   }
                 ]
             signConfigType: inlineSignParams
-        # We're done with code signing, so remove dotnet version override
-        - template: ../templates/restore-default-dotnet.yaml
         - bash: |
             mkdir $(Build.ArtifactStagingDirectory)/publish-linux && \
             mv $(Build.BinariesDirectory)/publish/{CACertificates,scripts,*.nupkg} \
