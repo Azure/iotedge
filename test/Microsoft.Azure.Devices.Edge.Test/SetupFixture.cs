@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.UninstallAsync(token);
 
                     // Delete directories used by previous installs.
-                    string[] directories = { "/run/aziot", "/var/lib/aziot" };
+                    string[] directories = { "/run/aziot", "/var/lib/aziot", "/etc/aziot" };
 
                     foreach (string directory in directories)
                     {
