@@ -32,9 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return daemonLog;
         }
 
-        public async Task<IEdgeDaemon> CreateEdgeDaemonAsync(
-            Option<string> _,
-            CancellationToken token) => await EdgeDaemon.CreateAsync(token);
+        public async Task<IEdgeDaemon> CreateEdgeDaemonAsync(CancellationToken token) =>
+            await EdgeDaemon.CreateAsync(token);
 
         public async Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
@@ -74,24 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             var chmod = System.Diagnostics.Process.Start("chmod", $"{permissions} {path}");
             chmod.WaitForExit();
             chmod.Close();
-        }
-
-        public uint GetUid(string user)
-        {
-            var id = new System.Diagnostics.Process();
-
-            id.StartInfo.FileName = "id";
-            id.StartInfo.Arguments = $"-u {user}";
-            id.StartInfo.RedirectStandardOutput = true;
-
-            id.Start();
-            StreamReader reader = id.StandardOutput;
-            string uid = reader.ReadToEnd().Trim();
-
-            id.WaitForExit();
-            id.Close();
-
-            return System.Convert.ToUInt32(uid, 10);
         }
     }
 }

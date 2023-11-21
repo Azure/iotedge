@@ -91,7 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.DiagnosticsImage = Option.Maybe(Get("diagnosticsImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
             Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.EventHubEndpoint), $"EVENT_HUB_ENDPOINT is missing from environment or context.json.");
-            this.InstallerPath = Option.Maybe(Get("installerPath"));
             this.LogFile = Option.Maybe(Get("logFile"));
             this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
             this.MethodSenderImage = Option.Maybe(Get("methodSenderImage"));
@@ -148,8 +147,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Option<string> DiagnosticsImage { get; }
 
         public string EventHubEndpoint { get; }
-
-        public Option<string> InstallerPath { get; }
 
         public Option<string> LogFile { get; }
 
