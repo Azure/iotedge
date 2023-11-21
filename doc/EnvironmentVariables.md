@@ -1,3 +1,9 @@
+# Edge Agent and Edge Hub Environment Variables
+
+Use the following environment variables to configure the Edge Agent and Edge Hub services. These variables are used in the [deployment manifest](https://learn.microsoft.com/en-us/azure/iot-edge/module-composition) to configure the Edge Agent and Edge Hub modules. 
+
+You can set Edge Agent and Edge Hub environment variables in the Azure portal. In the details page for your IoT Edge device, select **Set Modules**. In the **IoT Edge Modules** section, select **Runtime Settings**. Choose the **Edge Agent** or **Edge Hub** tab for the module's environment variable you want to set. Add the variable detail in the **Environment Variables** section. Apply and create the deployment for the device.
+
 ## EdgeAgent
 | Variable                             | Description                                                                                                                     | Value Range                                   | Default Value              |
 |--------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|----------------------------|

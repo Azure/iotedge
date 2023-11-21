@@ -2,13 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
-    using NUnit.Framework;
-    using Serilog;
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
@@ -50,16 +46,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(this.device.Id, token);
 
                     await this.ConfigureDaemonAsync(
-                        config =>
+                        async config =>
                         {
                             testCerts.AddCertsToConfig(config);
 
-                            config.SetManualSasProvisioning(this.IotHub.Hostname, Context.Current.ParentHostname, this.device.Id, this.device.SharedAccessKey);
+                            config.SetManualSasProvisioning(
+                                this.IotHub.Hostname,
+                                Context.Current.ParentHostname,
+                                this.device.Id,
+                                this.device.SharedAccessKey);
 
-                            config.Update();
-                            return Task.FromResult((
-                                "with connection string for device '{Identity}'",
-                                new object[] { this.device.Id }));
+                            await config.UpdateAsync(token);
+                            return ("with connection string for device '{Identity}'", new object[] { this.device.Id });
                         },
                         this.device,
                         startTime,

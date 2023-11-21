@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token);
 
-        Task<IEdgeDaemon> CreateEdgeDaemonAsync(Option<string> installerPath, CancellationToken token);
+        Task<IEdgeDaemon> CreateEdgeDaemonAsync(CancellationToken token);
 
         // After calling this function, the following files will be available under {scriptPath}:
         //  certs/iot-device-{deviceId}-full-chain.cert.pem
@@ -38,7 +38,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs);
 
         void SetOwner(string filePath, string owner, string permissions);
-
-        uint GetUid(string user);
     }
 }
