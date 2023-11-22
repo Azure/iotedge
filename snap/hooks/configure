@@ -29,29 +29,20 @@ if ! snapctl is-connected identity-service; then
 	exit 0
 fi
 
-# and that we have something worth writing
-if test -z "$(snapctl get raw-config)" ; then
-	exit 0
-fi
-
 mkdir -p /etc/aziot/edged/config.d
 
+snapctl get raw-config > /etc/aziot/config.toml
+
 {
-	# put opinionated top level kvps here
 	toml_kvp "hostname" "$(get_hostname)"
-	toml_kvp "homedir" "$SNAP_COMMON/var/lib/aziot/edged"
+} | tee /etc/aziot/keyd/config.d/01-snap.toml /etc/aziot/certd/config.d/01-snap.toml /etc/aziot/identityd/config.d/01-snap.toml /etc/aziot/tpmd/config.d/01-snap.toml
 
-	snapctl get raw-config
+{
+	toml_kvp "hostname" "$(get_hostname)"
 
-	# put opinionated sections here
 	toml_new_section "agent"
 	toml_kvp "name" "edgeAgent"
 	toml_kvp "type" "docker"
-
-	toml_new_section "agent.config"
-
-	# Always use prod version of agent for now. Revisit this eventually
-	toml_kvp "image" "mcr.microsoft.com/azureiotedge-agent:${SNAP_VERSION%%~dev}"
 
 	toml_new_section "agent.env"
 	toml_kvp "EDGEAGENTUSER_ID" "0"
@@ -67,7 +58,7 @@ mkdir -p /etc/aziot/edged/config.d
 	toml_new_section "moby_runtime"
 	toml_kvp "uri" "unix://$SNAP_COMMON/docker-proxy.sock"
 	toml_kvp "network" "azure-iot-edge"
-} > /etc/aziot/config.toml
+} > /etc/aziot/edged/config.d/01-snap.toml
 
 $SNAP/usr/bin/iotedge config apply
 

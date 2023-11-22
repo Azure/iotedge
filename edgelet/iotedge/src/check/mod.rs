@@ -133,8 +133,7 @@ impl Check {
                         vec![CheckerMetaSerializable {
                             id: "(aziot-identity-service-error)".into(),
                             description: format!(
-                                "(aziot-identity-service checks unavailable - could not communicate with '{}' binary)",
-                                aziot_bin
+                                "(aziot-identity-service checks unavailable - could not communicate with \'{aziot_bin}\' binary)"
                             ),
                         }]
                     ));
@@ -206,7 +205,7 @@ impl Check {
     fn output_section(&self, section_name: &str) {
         if self.output_format == OutputFormat::Text {
             println!();
-            println!("{}", section_name);
+            println!("{section_name}");
             println!("{}", "-".repeat(section_name.len()));
         }
     }
@@ -259,7 +258,7 @@ impl Check {
                         );
 
                         stdout.write_success(|stdout| {
-                            writeln!(stdout, "\u{221a} {} - OK", check_name)?;
+                            writeln!(stdout, "\u{221a} {check_name} - OK")?;
                             Ok(())
                         });
                     }
@@ -278,7 +277,7 @@ impl Check {
                         );
 
                         stdout.write_warning(|stdout| {
-                            writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
+                            writeln!(stdout, "\u{203c} {check_name} - Warning")?;
 
                             let message = warning.to_string();
 
@@ -322,7 +321,7 @@ impl Check {
 
                         if verbose {
                             stdout.write_warning(|stdout| {
-                                writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
+                                writeln!(stdout, "\u{203c} {check_name} - Warning")?;
                                 writeln!(stdout, "    skipping because of previous failures")?;
                                 Ok(())
                             });
@@ -342,8 +341,8 @@ impl Check {
 
                         if verbose {
                             stdout.write_success(|stdout| {
-                                writeln!(stdout, "\u{221a} {} - OK", check_name)?;
-                                writeln!(stdout, "    skipping because of {}", reason)?;
+                                writeln!(stdout, "\u{221a} {check_name} - OK")?;
+                                writeln!(stdout, "    skipping because of {reason}")?;
                                 Ok(())
                             });
                         }
@@ -363,7 +362,7 @@ impl Check {
                         );
 
                         stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
+                            writeln!(stdout, "\u{00d7} {check_name} - Error")?;
 
                             let message = err.to_string();
 
@@ -398,7 +397,7 @@ impl Check {
                         );
 
                         stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
+                            writeln!(stdout, "\u{00d7} {check_name} - Error")?;
 
                             let message = err.to_string();
 
@@ -485,7 +484,7 @@ impl Check {
                         let val = val.context(Error::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
-                                self.output_section(&format!("{} (aziot-identity-service)", name));
+                                self.output_section(&format!("{name} (aziot-identity-service)"));
                             }
                             CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
@@ -570,13 +569,13 @@ impl Check {
         }
 
         stdout.write_success(|stdout| {
-            writeln!(stdout, "{} check(s) succeeded.", num_successful)?;
+            writeln!(stdout, "{num_successful} check(s) succeeded.")?;
             Ok(())
         });
 
         if num_warnings > 0 {
             stdout.write_warning(|stdout| {
-                write!(stdout, "{} check(s) raised warnings.", num_warnings)?;
+                write!(stdout, "{num_warnings} check(s) raised warnings.")?;
                 if self.verbose {
                     writeln!(stdout)?;
                 } else {
@@ -602,8 +601,7 @@ impl Check {
             stdout.write_warning(|stdout| {
                 write!(
                     stdout,
-                    "{} check(s) were skipped due to errors from other checks.",
-                    num_skipped,
+                    "{num_skipped} check(s) were skipped due to errors from other checks."
                 )?;
                 if self.verbose {
                     writeln!(stdout)?;
@@ -627,7 +625,7 @@ impl Check {
             };
 
             if let Err(err) = serde_json::to_writer(std::io::stdout(), &check_results) {
-                eprintln!("Could not write JSON output: {}", err,);
+                eprintln!("Could not write JSON output: {err}",);
                 return Err(Error::Diagnostics.into());
             }
 
@@ -663,11 +661,11 @@ fn write_lines<'a>(
     mut lines: impl Iterator<Item = &'a str>,
 ) -> std::io::Result<()> {
     if let Some(line) = lines.next() {
-        writeln!(writer, "{}{}", first_line_indent, line)?;
+        writeln!(writer, "{first_line_indent}{line}")?;
     }
 
     for line in lines {
-        writeln!(writer, "{}{}", other_lines_indent, line)?;
+        writeln!(writer, "{other_lines_indent}{line}")?;
     }
 
     Ok(())
@@ -689,9 +687,8 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
         if let Some(PROXY_KEY) = parts.next() {
             svc_proxy = parts.next().map(String::from);
 
-            let mut s = match svc_proxy {
-                Some(svc_proxy) => svc_proxy,
-                _ => return svc_proxy,
+            let Some(mut s) = svc_proxy else {
+                return svc_proxy;
             };
 
             // Remove newline
@@ -802,7 +799,7 @@ mod tests {
 
         let settings = match Settings::new() {
             Ok(settings) => settings,
-            Err(err) => panic!("Unable to create settings object, error {:?}", err),
+            Err(err) => panic!("Unable to create settings object, error {err:?}"),
         };
 
         check.settings = Some(settings);
@@ -829,13 +826,13 @@ mod tests {
             ExpectedCheckResult::Success => {
                 match ProxySettings::default().execute(&mut check).await {
                     CheckResult::Ok => (),
-                    check_result => panic!("proxy settings check returned {:?}", check_result),
+                    check_result => panic!("proxy settings check returned {check_result:?}"),
                 }
             }
             ExpectedCheckResult::Warning => {
                 match ProxySettings::default().execute(&mut check).await {
                     CheckResult::Warning(_) => (),
-                    check_result => panic!("proxy settings check returned {:?}", check_result),
+                    check_result => panic!("proxy settings check returned {check_result:?}"),
                 }
             }
         }
@@ -875,7 +872,7 @@ mod tests {
 
             match WellFormedConfig::default().execute(&mut check).await {
                 CheckResult::Ok => (),
-                check_result => panic!("parsing {} returned {:?}", filename, check_result),
+                check_result => panic!("parsing {filename} returned {check_result:?}"),
             }
         }
     }
@@ -912,7 +909,7 @@ mod tests {
 
         match WellFormedConfig::default().execute(&mut check).await {
             CheckResult::Failed(_) => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+            check_result => panic!("parsing {filename} returned {check_result:?}"),
         }
     }
 
@@ -937,8 +934,7 @@ mod tests {
         assert_eq!(
                     proxy_uri.unwrap(),
                     env_proxy_uri1.to_string(),
-                    "proxy _uri fetched from the environment var \"https_proxy\" did not match expected value: '{};",
-                    env_proxy_uri1
+                    "proxy _uri fetched from the environment var \"https_proxy\" did not match expected value: '{env_proxy_uri1};"
                 );
 
         // Setup the HTTPS_PROXY environment var
@@ -953,8 +949,7 @@ mod tests {
         assert_eq!(
             proxy_uri.unwrap(),
             env_proxy_uri2.to_string(),
-            "proxy _uri fetched from the environment var \"HTTPS_PROXY\" did not match expected value: '{};",
-            env_proxy_uri2
+            "proxy _uri fetched from the environment var \"HTTPS_PROXY\" did not match expected value: '{env_proxy_uri2};"
         );
 
         // Point to a test config
@@ -978,8 +973,7 @@ mod tests {
         assert_eq!(
             proxy_uri.unwrap(),
             config_proxy_uri.to_string(),
-            "proxy_uri fetched from the config did not match expected value: '{}'",
-            config_proxy_uri,
+            "proxy_uri fetched from the config did not match expected value: \'{config_proxy_uri}\'",
         );
 
         // Get proxy-uri by passing in the uri as the parameter
@@ -993,8 +987,7 @@ mod tests {
         assert_eq!(
             proxy_uri.unwrap(),
             parm_proxy_uri.to_string(),
-            "proxy_uri fetched from the config did not match expected value: '{}'",
-            parm_proxy_uri,
+            "proxy_uri fetched from the config did not match expected value: \'{parm_proxy_uri}\'",
         );
 
         // clean up the env

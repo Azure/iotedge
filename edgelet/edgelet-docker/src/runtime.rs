@@ -64,7 +64,7 @@ fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> 
     // finally build a new Vec<String>; we alloc new strings here
     merged_env
         .iter()
-        .map(|(key, value)| format!("{}={}", key, value))
+        .map(|(key, value)| format!("{key}={value}"))
         .collect()
 }
 
@@ -97,7 +97,7 @@ where
                     Error::RegistryOperation(RegistryOperation::PullImage(image.clone()))
                 })?;
                 let engine = base64::engine::general_purpose::URL_SAFE;
-                base64::Engine::encode(&engine, &json)
+                base64::Engine::encode(&engine, json)
             }
             None => String::new(),
         };
@@ -208,7 +208,7 @@ pub fn init_client(docker_url: &Url) -> anyhow::Result<DockerApiClient<Connector
         uri_composer: Box::new(|base_path, path| {
             // https://docs.rs/hyperlocal/0.6.0/src/hyperlocal/lib.rs.html#59
             let host = hex::encode(base_path.as_bytes());
-            let host_str = format!("unix://{}:0{}", host, path);
+            let host_str = format!("unix://{host}:0{path}");
             Ok(host_str.parse()?)
         }),
         ..Default::default()
@@ -225,7 +225,7 @@ async fn create_network_if_missing(
     let network_id = settings.moby_runtime().network().name();
     log::info!("Using runtime network id {}", network_id);
 
-    let filter = format!(r#"{{"name":{{"{}":true}}}}"#, network_id);
+    let filter = format!(r#"{{"name":{{"{network_id}":true}}}}"#);
     let existing_iotedge_networks = client
         .network_list(&filter)
         .await
@@ -570,7 +570,7 @@ where
         let total_memory = {
             let mut system_resources = self.system_resources.as_ref().lock().await;
             system_resources.refresh_memory();
-            system_resources.total_memory() * 1024
+            total_memory_bytes(&system_resources)
         };
 
         let mut system_info = CoreSystemInfo::default();
@@ -609,8 +609,8 @@ where
             .as_secs();
 
         let used_cpu = system_resources.global_cpu_info().cpu_usage();
-        let total_memory = system_resources.total_memory() * 1024;
-        let used_memory = system_resources.used_memory() * 1024;
+        let total_memory = total_memory_bytes(&system_resources);
+        let used_memory = used_memory_bytes(&system_resources);
 
         let disks = system_resources
             .disks()
@@ -845,6 +845,14 @@ where
     }
 }
 
+fn total_memory_bytes(system_resources: &System) -> u64 {
+    system_resources.total_memory()
+}
+
+fn used_memory_bytes(system_resources: &System) -> u64 {
+    system_resources.used_memory()
+}
+
 fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> Result<Vec<i32>, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -927,7 +935,7 @@ fn drop_unsafe_privileges(
         // Don't drop caps that the user added explicitly
         if let Some(cap_add) = config.cap_add() {
             caps_to_drop.retain(|cap_drop| {
-                !(cap_add.contains(cap_drop) || cap_add.contains(&format!("CAP_{}", cap_drop)))
+                !(cap_add.contains(cap_drop) || cap_add.contains(&format!("CAP_{cap_drop}")))
             });
         }
         // Add customer specified cap_drops
@@ -945,6 +953,8 @@ fn drop_unsafe_privileges(
 
 #[cfg(test)]
 mod tests {
+    use std::process::{Command, Stdio};
+
     use super::*;
 
     #[test]
@@ -1074,5 +1084,42 @@ mod tests {
             create_options.host_config().unwrap().cap_drop(),
             Some(&vec!["SETUID".to_owned()])
         );
+    }
+
+    // Compare the total memory returned by the 'total_memory_bytes()' helper method
+    // to the value in /proc/meminfo
+    #[test]
+    fn test_total_memory_bytes() {
+        // Use 'total_memory_bytes()' helper method to get total memory
+        let system_resources = System::new_all();
+        let total_memory_bytes = total_memory_bytes(&system_resources);
+
+        // Get expected total memory directly from /proc/meminfo
+        let cat_proc_meminfo = Command::new("cat")
+            .arg("/proc/meminfo")
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to execute 'cat /proc/meminfo'");
+        let grep_memtotal = Command::new("grep")
+            .arg("-i")
+            .arg("memtotal")
+            .stdin(Stdio::from(cat_proc_meminfo.stdout.unwrap()))
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to execute 'grep -i memtotal'");
+        let grep_value = Command::new("grep")
+            .arg("-o")
+            .arg("[0-9]*")
+            .stdin(Stdio::from(grep_memtotal.stdout.unwrap()))
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to execute 'grep -o [0-9]*'");
+        let output = grep_value.wait_with_output().unwrap();
+        let expected_total_memory_kilobytes_str = str::from_utf8(&output.stdout).unwrap().trim();
+        let expected_total_memory_bytes =
+            expected_total_memory_kilobytes_str.parse::<u64>().unwrap() * 1024;
+
+        // Compare
+        assert_eq!(total_memory_bytes, expected_total_memory_bytes);
     }
 }

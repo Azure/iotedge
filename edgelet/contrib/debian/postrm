@@ -3,7 +3,7 @@ set -e
 
 case "$1" in
     purge)
-        systemctl daemon-reload
+        systemctl daemon-reload 2>/dev/null || true
         killall -SIGKILL -u iotedge || true
 
         if [ -d /etc/aziot ]; then

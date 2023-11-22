@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
     using System.ComponentModel;
-    using System.IO;
     using System.Linq;
     using System.Net;
     using System.Threading;
@@ -16,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         readonly PackageManagement packageManagement;
         readonly Option<string> packagesPath;
         readonly IServiceManager serviceManager;
+        readonly bool isCentOs;
 
         public static async Task<EdgeDaemon> CreateAsync(Option<string> packagesPath, CancellationToken token)
         {
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     version = version.Split('.')[0];
                     packageExtension = SupportedPackageExtension.Rpm;
 
-                    if (version != "8")
+                    if (version != "8" && version != "9")
                     {
                         throw new NotImplementedException($"Operating system '{os} {version}' not supported");
                     }
@@ -90,16 +90,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"Snap package was detected but isn't supported on operating system '{os} {version}'");
             }
 
-            return new EdgeDaemon(packagesPath, new PackageManagement(os, version, packageExtension));
+            return new EdgeDaemon(packagesPath, new PackageManagement(os, version, packageExtension), os == "centos");
         }
 
-        EdgeDaemon(Option<string> packagesPath, PackageManagement packageManagement)
+        EdgeDaemon(Option<string> packagesPath, PackageManagement packageManagement, bool isCentOs)
         {
             this.packagesPath = packagesPath;
             this.packageManagement = packageManagement;
             this.serviceManager = packageManagement.PackageExtension == SupportedPackageExtension.Snap
                 ? new SnapServiceManager()
                 : new SystemdServiceManager();
+            this.isCentOs = isCentOs;
         }
 
         public async Task InstallAsync(Option<Uri> proxy, CancellationToken token)
@@ -141,6 +142,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     await this.InternalStopAsync(token);
 
                     var conf = new DaemonConfiguration(this.serviceManager.ConfigurationPath());
+                    if (this.isCentOs)
+                    {
+                        // The recommended way to set up [listen] sockets in config.toml is to use the 'fd://...' URL
+                        // scheme, which will make use of systemd socket activation. CentOS 7 supports systemd but does
+                        // not support socket activation, so for that platform use the 'unix://...' scheme.
+                        conf.SetConnectSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
+                        conf.SetListenSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
+                    }
+
                     (string msg, object[] props) = await config(conf);
                     message += $" {msg}";
                     properties = properties.Concat(props).ToArray();

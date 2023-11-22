@@ -4,7 +4,6 @@ pr: none
 variables:
   DisableDockerDetector: true
   NugetSecurityAnalysisWarningLevel: warn
-  Build.Configuration: release
   verbose: true
 
 jobs:
@@ -27,69 +26,39 @@ jobs:
       dotnet publish edge-modules/metrics-collector/src/Microsoft.Azure.Devices.Edge.Azure.Monitor.csproj \
         -o '$(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor' \
         -c Release
-    displayName: Build ($(Build.Configuration))
+    displayName: Build
 
-  # The code sign task requires .NET Core 2.1.
-  # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
-  - template: ../templates/force-dotnet21.yaml
-  # Code Sign
-  - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+  - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
     displayName: "Metrics Collector Code Sign"
     inputs:
-      ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+      ConnectedServiceName: "aziotedge-pmc-v4-prod"
       FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
       Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
       SessionTimeout: 20
       inlineOperation: |
-          [
-            {
-                "keyCode": "CP-230012",
-                "operationSetCode": "SigntoolSign",
-                "parameters": [
-                {
-                    "parameterName": "OpusName",
-                    "parameterValue": "Microsoft"
-                },
-                {
-                    "parameterName": "OpusInfo",
-                    "parameterValue": "http://www.microsoft.com"
-                },
-                {
-                    "parameterName": "Append",
-                    "parameterValue": "/as"
-                },
-                {
-                    "parameterName": "FileDigest",
-                    "parameterValue": "/fd \"SHA256\""
-                },
-                {
-                    "parameterName": "PageHash",
-                    "parameterValue": "/NPH"
-                },
-                {
-                    "parameterName": "TimeStamp",
-                    "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                }
-                ],
-                "toolName": "sign",
-                "toolVersion": "1.0"
-            },
-            {
-                "keyCode": "CP-230012",
-                "operationSetCode": "SigntoolVerify",
-                "parameters": [
-                {
-                    "parameterName": "VerifyAll",
-                    "parameterValue": "/all"
-                }
-                ],
-                "toolName": "sign",
-                "toolVersion": "1.0"
+        [
+          {
+            "KeyCode": "CP-230012",
+            "OperationCode": "SigntoolSign",
+            "ToolName": "sign",
+            "ToolVersion": "1.0",
+            "Parameters": {
+              "OpusName": "Microsoft",
+              "OpusInfo": "https://www.microsoft.com",
+              "FileDigest": "/fd SHA256",
+              "PageHash": "/NPH",
+              "TimeStamp": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
             }
-          ]
+          },
+          {
+            "KeyCode": "CP-230012",
+            "OperationCode": "SigntoolVerify",
+            "ToolName": "sign",
+            "ToolVersion": "1.0",
+            "Parameters": {}
+          }
+        ]
       signConfigType: inlineSignParams
-  # We're done with code signing, so remove dotnet version override
-  - template: ../templates/restore-default-dotnet.yaml
 
   - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
     displayName: Generate SBOM
@@ -98,21 +67,12 @@ jobs:
 
   - template: ../misc/templates/image-linux.yaml
     parameters:
-      name: Metrics Collector
-      imageName: azureiotedge-metrics-collector
-      project: Microsoft.Azure.Devices.Edge.Azure.Monitor
-      version: $(version)
+      displayName: Metrics Collector
+      name: azureiotedge-metrics-collector
+      app: Microsoft.Azure.Devices.Edge.Azure.Monitor
       download_artifacts: false
+      version: $(version)
 
-  - script: |
-      scripts/linux/buildManifest.sh \
-        -r '$(registry.address)' \
-        -i 'azureiotedge-metrics-collector' \
-        -v '$(version)' \
-        -n 'microsoft' \
-        --tags '$(tags)'
-    displayName: Build Manifest
-  
   - script: |
       echo '$(version)' > $(Build.ArtifactStagingDirectory)/version.txt
       echo '$(tags)' > $(Build.ArtifactStagingDirectory)/tags.txt
@@ -188,9 +148,9 @@ jobs:
   
   - pwsh: |
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-      dotnet build -c $(Build.Configuration) $testDir
+      dotnet build -c Release $testDir
   
-      $binDir = Convert-Path "$testDir/bin/$(Build.Configuration)/net6.0"
+      $binDir = Convert-Path "$testDir/bin/Release/net6.0"
       Write-Output "##vso[task.setvariable variable=binDir]$binDir"
     displayName: Build tests
     env:
@@ -201,7 +161,11 @@ jobs:
       $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
       $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
-      $runtimeVersion=$(cat versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K\d+\.\d+')
+      $runtimeVersion = (
+        (
+          (Invoke-WebRequest https://aka.ms/latest-aziot-edge).Content | ConvertFrom-Json
+        )."aziot-edge" | Select-String -Pattern '([0-9]+\.[0-9]+)\.[0-9]+'
+      ).Matches[0].Groups[1].Value
       $edgeAgentImage = "mcr.microsoft.com/azureiotedge-agent:$runtimeVersion";
       $edgeHubImage = "mcr.microsoft.com/azureiotedge-hub:$runtimeVersion";
       $metricsCollectorImage = "$(registry.address)/microsoft/azureiotedge-metrics-collector:$(version)-$(os)-$(arch)"

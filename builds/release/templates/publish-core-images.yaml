@@ -24,72 +24,48 @@ jobs:
     displayName: Docker login
     inputs:
       command: login
-      containerRegistry: $(service-connection.registry.release)
+      containerRegistry: $(service-connection.registry)
 
   - script: |
-      #!/bin/bash
-      set -euo pipefail
-
-      images=(
-        'public agent ${{ parameters['version.core'] }}' \
-        'public hub ${{ parameters['version.core'] }}' \
-        'public simulated-temperature-sensor ${{ parameters['version.core'] }}' \
-        'unlisted diagnostics ${{ parameters['version.diagnostics'] }}' \
-      )
-
-      for image_parts in "${images[@]}"
-      do
-        read ns mod ver <<< "$image_parts"
-        for arch in 'amd64' 'arm32v7' 'arm64v8'
-        do
-          from="$(registry.address)/microsoft/azureiotedge-$mod:$ver-linux-$arch"
-          to="$(registry.address)/$ns/azureiotedge-$mod:$ver-linux-$arch"
-          echo $"\n$from --> $to"
-          scripts/linux/moveImage.sh --from "$from" --to "$to"
-        done
-      done
-    displayName: Publish core images
+      scripts/linux/copy-multi-platform-image.sh \
+        --registry '$(registry.address)' \
+        --repo-src 'microsoft/azureiotedge-agent' \
+        --repo-dst 'public/azureiotedge-agent' \
+        --tag '${{ parameters['version.core'] }}' \
+        --tags-add '${{ parameters.tags }}'
+    displayName: Publish Edge Agent images
     workingDirectory: iotedge
 
   - script: |
-      scripts/linux/buildManifest.sh \
-        -r '$(registry.address)' \
-        -i 'azureiotedge-agent' \
-        -v '${{ parameters['version.core'] }}' \
-        -n 'public' \
-        --tags '${{ parameters.tags }}'
-    displayName: Publish Edge Agent manifest
+      scripts/linux/copy-multi-platform-image.sh \
+        --registry '$(registry.address)' \
+        --repo-src 'microsoft/azureiotedge-hub' \
+        --repo-dst 'public/azureiotedge-hub' \
+        --tag '${{ parameters['version.core'] }}' \
+        --tags-add '${{ parameters.tags }}'
+    displayName: Publish Edge Hub images
     workingDirectory: iotedge
 
   - script: |
-      scripts/linux/buildManifest.sh \
-        -r '$(registry.address)' \
-        -i 'azureiotedge-hub' \
-        -v '${{ parameters['version.core'] }}' \
-        -n 'public' \
-        --tags '${{ parameters.tags }}'
-    displayName: Publish Edge Hub manifest
+      temp_sensor_tags=$(echo '${{ parameters.tags }}' | jq -c '. + ["latest"]')
+
+      scripts/linux/copy-multi-platform-image.sh \
+        --registry '$(registry.address)' \
+        --repo-src 'microsoft/azureiotedge-simulated-temperature-sensor' \
+        --repo-dst 'public/azureiotedge-simulated-temperature-sensor' \
+        --tag '${{ parameters['version.core'] }}' \
+        --tags-add "$temp_sensor_tags"
+    displayName: Publish Simulated Temperature Sensor images
     workingDirectory: iotedge
 
   - script: |
-      tempsensor_tags=$(echo '${{ parameters.tags }}' | jq -c '. + ["latest"]')
-      scripts/linux/buildManifest.sh \
-        -r '$(registry.address)' \
-        -i 'azureiotedge-simulated-temperature-sensor' \
-        -v '${{ parameters['version.core'] }}' \
-        -n 'public' \
-        --tags "$tempsensor_tags"
-    displayName: Publish Temperature Sensor manifest
-    workingDirectory: iotedge
-
-  - script: |
-      scripts/linux/buildManifest.sh \
-        -r '$(registry.address)' \
-        -i 'azureiotedge-diagnostics' \
-        -v '${{ parameters['version.diagnostics'] }}' \
-        -n 'unlisted' \
-        --tags '${{ parameters.tags }}'
-    displayName: Publish Diagnostics manifest
+      scripts/linux/copy-multi-platform-image.sh \
+        --registry '$(registry.address)' \
+        --repo-src 'microsoft/azureiotedge-diagnostics' \
+        --repo-dst 'unlisted/azureiotedge-diagnostics' \
+        --tag '${{ parameters['version.diagnostics'] }}' \
+        --tags-add '${{ parameters.tags }}'
+    displayName: Publish Diagnostics images
     workingDirectory: iotedge
 
   - task: AzureKeyVault@1
@@ -102,6 +78,10 @@ jobs:
   - script: |
       #!/bin/bash
       set -euo pipefail
+
+      # in case commits were made after this pipeline started but before we arrived here, sync to
+      # the tip of the branch
+      git checkout "$PRODUCT_REPO_BRANCH"
 
       # update product-versions.json
       echo "$(jq '
@@ -121,6 +101,16 @@ jobs:
           | (product).version |= "${{ parameters['version.core'] }}"
       ' product-versions.json )" > product-versions.json
       git add product-versions.json
+
+      # determine whether this is an LTS release, and save that info for later
+      is_lts="$(jq '
+        [
+          .channels[] | .products[] | select(
+            .id=="aziot-edge" and .version=="${{ parameters['version.core'] }}"
+          ) | .name | contains("LTS")
+        ] | any
+      ' product-versions.json)"
+      echo "##vso[task.setvariable variable=is_lts]$is_lts"
 
       # configure git
       git config user.email '$(service-account.email)'
@@ -154,10 +144,11 @@ jobs:
       echo "##vso[task.setvariable variable=release_url]$RELEASE_URL"
     displayName: Create GitHub release page in product repo
     env:
+      BRANCH: main
       CORE_VERSION: ${{ parameters['version.core'] }}
       DIAG_VERSION: ${{ parameters['version.diagnostics'] }}
       GITHUB_TOKEN: $(TestGitHubAccessToken)
-      BRANCH: main
+      IS_LTS: $(is_lts)
       REPO_NAME: $(repo.product.name)
     workingDirectory: iotedge
 
@@ -173,6 +164,7 @@ jobs:
     env:
       CORE_VERSION: ${{ parameters['version.core'] }} 
       GITHUB_TOKEN: $(TestGitHubAccessToken)
+      IS_LTS: $(is_lts)
       RELEASE_URL: $(release_url)
       REPO_NAME: $(repo.project.name)
     workingDirectory: iotedge

@@ -42,61 +42,51 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
             let aziotks_user = nix::unistd::User::from_name(aziotks_username)
                 .map_err(|err| {
                     format!(
-                        "could not query {} user information: {}",
-                        aziotks_username, err
+                        "could not query {aziotks_username} user information: {err}"
                     )
                 })?
                 .ok_or(format!(
-                    "could not query {} user information",
-                    aziotks_username
+                    "could not query {aziotks_username} user information"
                 ))?;
 
             let aziotcs_user = nix::unistd::User::from_name(aziotcs_username)
                 .map_err(|err| {
                     format!(
-                        "could not query {} user information: {}",
-                        aziotcs_username, err
+                        "could not query {aziotcs_username} user information: {err}"
                     )
                 })?
                 .ok_or(format!(
-                    "could not query {} user information",
-                    aziotcs_username
+                    "could not query {aziotcs_username} user information"
                 ))?;
 
             let aziotid_user = nix::unistd::User::from_name(aziotid_username)
                 .map_err(|err| {
                     format!(
-                        "could not query {} user information: {}",
-                        aziotid_username, err
+                        "could not query {aziotid_username} user information: {err}"
                     )
                 })?
                 .ok_or(format!(
-                    "could not query {} user information",
-                    aziotid_username
+                    "could not query {aziotid_username} user information"
                 ))?;
 
             let aziottpm_user = nix::unistd::User::from_name(aziottpm_username)
                 .map_err(|err| {
                     format!(
-                        "could not query {} user information: {}",
-                        aziottpm_username, err
+                        "could not query {aziottpm_username} user information: {err}"
                     )
                 })?
                 .ok_or(format!(
-                    "could not query {} user information",
-                    aziottpm_username
+                    "could not query {aziottpm_username} user information"
                 ))?;
 
             let iotedge_user = nix::unistd::User::from_name(iotedge_username)
                 .map_err(|err| {
                     format!(
-                        "could not query {} user information: {}",
-                        iotedge_username, err
+                        "could not query {iotedge_username} user information: {err}"
                     )
                 })?
                 .ok_or(format!(
-                    "could not query {} user information",
-                    iotedge_username
+                    "could not query {iotedge_username} user information"
                 ))?;
 
             (
@@ -108,7 +98,7 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
             )
         } else if cfg!(debug_assertions) {
             let current_user = nix::unistd::User::from_uid(nix::unistd::Uid::current())
-                .map_err(|err| format!("could not query current user information: {}", err))?
+                .map_err(|err| format!("could not query current user information: {err}"))?
                 .ok_or("could not query current user information")?;
             (
                 current_user.clone(),
@@ -135,28 +125,28 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
         println!("Note: Symmetric key will be written to /var/secrets/aziot/keyd/device-id");
 
         common_config::create_dir_all("/var/secrets/aziot/keyd", &aziotks_user, 0o0700)
-            .map_err(|err| format!("{:?}", err))?;
+            .map_err(|err| format!("{err:?}"))?;
         common_config::write_file(
             "/var/secrets/aziot/keyd/device-id",
             &preloaded_device_id_pk_bytes,
             &aziotks_user,
             0o0600,
         )
-        .map_err(|err| format!("{:?}", err))?;
+        .map_err(|err| format!("{err:?}"))?;
     }
 
     if let Some(preloaded_master_encryption_key_bytes) = preloaded_master_encryption_key_bytes {
         println!("Note: Imported master encryption key will be written to /var/secrets/aziot/keyd/imported-master-encryption-key");
 
         common_config::create_dir_all("/var/secrets/aziot/keyd", &aziotks_user, 0o0700)
-            .map_err(|err| format!("{:?}", err))?;
+            .map_err(|err| format!("{err:?}"))?;
         common_config::write_file(
             "/var/secrets/aziot/keyd/imported-master-encryption-key",
             &preloaded_master_encryption_key_bytes,
             &aziotks_user,
             0o0600,
         )
-        .map_err(|err| format!("{:?}", err))?;
+        .map_err(|err| format!("{err:?}"))?;
     }
 
     common_config::write_file(
@@ -165,7 +155,7 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
         &aziotks_user,
         0o0600,
     )
-    .map_err(|err| format!("{:?}", err))?;
+    .map_err(|err| format!("{err:?}"))?;
 
     common_config::write_file(
         "/etc/aziot/certd/config.d/00-super.toml",
@@ -173,7 +163,7 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
         &aziotcs_user,
         0o0600,
     )
-    .map_err(|err| format!("{:?}", err))?;
+    .map_err(|err| format!("{err:?}"))?;
 
     common_config::write_file(
         "/etc/aziot/identityd/config.d/00-super.toml",
@@ -181,7 +171,7 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
         &aziotid_user,
         0o0600,
     )
-    .map_err(|err| format!("{:?}", err))?;
+    .map_err(|err| format!("{err:?}"))?;
 
     common_config::write_file(
         "/etc/aziot/tpmd/config.d/00-super.toml",
@@ -189,7 +179,7 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
         &aziottpm_user,
         0o0600,
     )
-    .map_err(|err| format!("{:?}", err))?;
+    .map_err(|err| format!("{err:?}"))?;
 
     common_config::write_file(
         "/etc/aziot/edged/config.d/00-super.toml",
@@ -197,12 +187,12 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
         &iotedge_user,
         0o0600,
     )
-    .map_err(|err| format!("{:?}", err))?;
+    .map_err(|err| format!("{err:?}"))?;
 
     println!("Azure IoT Edge has been configured successfully!");
     println!();
     println!("Restarting service for configuration to take effect...");
-    crate::System::system_restart().map_err(|err| format!("{}", err))?;
+    crate::System::system_restart().map_err(|err| format!("{err}"))?;
     println!("Done.");
 
     Ok(())
@@ -226,9 +216,9 @@ async fn execute_inner(
     iotedge_uid: nix::unistd::Uid,
 ) -> Result<RunOutput, std::borrow::Cow<'static, str>> {
     let config = std::fs::read(config)
-        .map_err(|err| format!("could not read config file {}: {}", config.display(), err))?;
+        .map_err(|err| format!("could not read config file {}: {err}", config.display()))?;
     let config =
-        std::str::from_utf8(&config).map_err(|err| format!("error parsing config: {}", err))?;
+        std::str::from_utf8(&config).map_err(|err| format!("error parsing config: {err}"))?;
 
     let super_config::Config {
         trust_bundle_cert,
@@ -247,7 +237,7 @@ async fn execute_inner(
         edge_ca,
         moby_runtime,
         image_garbage_collection,
-    } = toml::from_str(config).map_err(|err| format!("could not parse config file: {}", err))?;
+    } = toml::from_str(config).map_err(|err| format!("could not parse config file: {err}"))?;
 
     let aziotctl_common::config::apply::RunOutput {
         mut certd_config,
@@ -256,12 +246,12 @@ async fn execute_inner(
         tpmd_config,
         preloaded_device_id_pk_bytes,
     } = aziotctl_common::config::apply::run(aziot, aziotcs_uid, aziotid_uid)
-        .map_err(|err| format!("{:?}", err))?;
+        .map_err(|err| format!("{err:?}"))?;
 
     let old_identityd_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
     if let Ok(old_identity_config) = std::fs::read(old_identityd_path) {
         let old_identity_config = std::str::from_utf8(&old_identity_config)
-            .map_err(|err| format!("error parsing config: {}", err))?;
+            .map_err(|err| format!("error parsing config: {err}"))?;
 
         if let Ok(aziot_identityd_config::Settings { hostname, .. }) =
             toml::from_str(old_identity_config)
@@ -272,12 +262,12 @@ async fn execute_inner(
 
             let client = DockerApiClient::new(
                 Connector::new(uri)
-                    .map_err(|err| format!("Failed to make docker client: {}", err))?,
+                    .map_err(|err| format!("Failed to make docker client: {err}"))?,
             );
 
             let mut filters = HashMap::new();
             filters.insert("label", LABELS);
-            let filters = serde_json::to_string(&filters).map_err(|err| format!("{:?}", err))?;
+            let filters = serde_json::to_string(&filters).map_err(|err| format!("{err:?}"))?;
 
             let containers = client
                 .container_list(
@@ -287,10 +277,10 @@ async fn execute_inner(
                     &filters,
                 )
                 .await
-                .map_err(|err| format!("{:?}", err))?;
+                .map_err(|err| format!("{err:?}"))?;
             if &hostname != new_hostname && !containers.is_empty() {
-                return Err(format!("Cannot apply config because the hostname in the config {} is different from the previous hostname {}. To update the hostname, run the following command which deletes all modules and reapplies the configuration. Or, revert the hostname change in the config.toml file.
-                    sudo iotedge system stop && sudo docker rm -f $(docker ps -aq) && sudo iotedge config apply.
+                return Err(format!("Cannot apply config because the hostname in the config {} is different from the previous hostname {}. To update the hostname, run the following command which deletes all IoT Edge modules and reapplies the configuration. Or, revert the hostname change in the config.toml file.
+                    sudo iotedge system stop && sudo docker rm -f $(sudo docker ps -aq -f \"label=net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent\") && sudo iotedge config apply
                 Warning: Data stored in the modules is lost when above command is executed.", &hostname, &new_hostname).into());
             }
         } else {
@@ -540,17 +530,17 @@ async fn execute_inner(
     let additional_info = if let Some(additional_info) = additional_info {
         let scheme = additional_info.scheme();
         if scheme != "file" {
-            return Err(format!("unsupported additional_info scheme: {}", scheme).into());
+            return Err(format!("unsupported additional_info scheme: {scheme}").into());
         }
         let path = additional_info
             .to_file_path()
-            .map_err(|_| "additional_info is an invalid URI")?;
+            .map_err(|()| "additional_info is an invalid URI")?;
         let lossy = path.to_string_lossy();
         let bytes = std::fs::read(&path)
-            .map_err(|e| format!("failed to read additional_info from {}: {:?}", lossy, e))?;
+            .map_err(|e| format!("failed to read additional_info from {lossy}: {e:?}"))?;
         let bytes = std::str::from_utf8(&bytes)
-            .map_err(|e| format!("failed to parse additional_info: {}", e))?;
-        toml::de::from_str(bytes).map_err(|e| format!("invalid toml at {}: {:?}", lossy, e))?
+            .map_err(|e| format!("failed to parse additional_info: {e}"))?;
+        toml::de::from_str(bytes).map_err(|e| format!("invalid toml at {lossy}: {e:?}"))?
     } else {
         std::collections::BTreeMap::new()
     };
@@ -606,7 +596,7 @@ async fn execute_inner(
                                             Default::default();
 
                                         for (hostname, cert_uri) in ca_certs {
-                                            let cert_id = format!("content-trust-{}", hostname);
+                                            let cert_id = format!("content-trust-{hostname}");
                                             certd_config.preloaded_certs.insert(
                                                 cert_id.clone(),
                                                 aziot_certd_config::PreloadedCert::Uri(cert_uri),
@@ -636,31 +626,31 @@ async fn execute_inner(
     let mut keyd_config_out = header.clone();
     keyd_config_out.push_str(
         &toml::to_string(&keyd_config)
-            .map_err(|err| format!("could not serialize aziot-keyd config: {}", err))?,
+            .map_err(|err| format!("could not serialize aziot-keyd config: {err}"))?,
     );
 
     let mut certd_config_out = header.clone();
     certd_config_out.push_str(
         &toml::to_string(&certd_config)
-            .map_err(|err| format!("could not serialize aziot-certd config: {}", err))?,
+            .map_err(|err| format!("could not serialize aziot-certd config: {err}"))?,
     );
 
     let mut identityd_config_out = header.clone();
     identityd_config_out.push_str(
         &toml::to_string(&identityd_config)
-            .map_err(|err| format!("could not serialize aziot-identityd config: {}", err))?,
+            .map_err(|err| format!("could not serialize aziot-identityd config: {err}"))?,
     );
 
     let mut tpmd_config_out = header.clone();
     tpmd_config_out.push_str(
         &toml::to_string(&tpmd_config)
-            .map_err(|err| format!("could not serialize aziot-tpmd config: {}", err))?,
+            .map_err(|err| format!("could not serialize aziot-tpmd config: {err}"))?,
     );
 
     let mut edged_config_out = header;
     edged_config_out.push_str(
         &toml::to_string(&edged_config)
-            .map_err(|err| format!("could not serialize aziot-edged config: {}", err))?,
+            .map_err(|err| format!("could not serialize aziot-edged config: {err}"))?,
     );
 
     Ok(RunOutput {
@@ -724,7 +714,7 @@ mod tests {
 
             let test_name = case_directory.file_name().unwrap().to_str().unwrap();
 
-            println!(".\n.\n=========\n.\nRunning test {}", test_name);
+            println!(".\n.\n=========\n.\nRunning test {test_name}");
 
             let super_config_file = case_directory.join("super-config.toml");
             let expected_keyd_config = std::fs::read(case_directory.join("keyd.toml")).unwrap();
@@ -744,7 +734,7 @@ mod tests {
                 match std::fs::read(case_directory.join("device-id")) {
                     Ok(contents) => Some(contents),
                     Err(err) if err.kind() == std::io::ErrorKind::NotFound => None,
-                    Err(err) => panic!("could not read device-id file: {}", err),
+                    Err(err) => panic!("could not read device-id file: {err}"),
                 };
 
             let expected_preloaded_master_encryption_key_bytes = {
@@ -754,7 +744,7 @@ mod tests {
                             Ok(()) => (),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
                             Err(err) => {
-                                panic!("could not create temp master-encryption-key file: {}", err);
+                                panic!("could not create temp master-encryption-key file: {err}");
                             }
                         }
                         Some(contents)
@@ -764,12 +754,12 @@ mod tests {
                             Ok(()) => (),
                             Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
                             Err(err) => {
-                                panic!("could not delete temp master-encryption-key file: {}", err);
+                                panic!("could not delete temp master-encryption-key file: {err}");
                             }
                         }
                         None
                     }
-                    Err(err) => panic!("could not read master-encryption-key file: {}", err),
+                    Err(err) => panic!("could not read master-encryption-key file: {err}"),
                 }
             };
 

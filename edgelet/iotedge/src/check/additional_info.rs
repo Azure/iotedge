@@ -190,8 +190,8 @@ impl DiskInfo {
 #[cfg(unix)]
 fn pretty_kbyte(bytes: u64) -> String {
     #[allow(clippy::cast_precision_loss)]
-    match Byte::from_unit(bytes as f64, ByteUnit::KiB) {
+    match Byte::from_unit(bytes as f64, ByteUnit::B) {
         Ok(b) => b.get_appropriate_unit(true).format(2),
-        Err(err) => format!("could not parse bytes value: {:?}", err),
+        Err(err) => format!("could not parse bytes value: {err:?}"),
     }
 }

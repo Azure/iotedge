@@ -1,3 +1,9 @@
+# Edge Agent and Edge Hub Environment Variables
+
+Use the following environment variables to configure the Edge Agent and Edge Hub services. These variables are used in the [deployment manifest](https://learn.microsoft.com/en-us/azure/iot-edge/module-composition) to configure the Edge Agent and Edge Hub modules. 
+
+You can set Edge Agent and Edge Hub environment variables in the Azure portal. In the details page for your IoT Edge device, select **Set Modules**. In the **IoT Edge Modules** section, select **Runtime Settings**. Choose the **Edge Agent** or **Edge Hub** tab for the module's environment variable you want to set. Add the variable detail in the **Environment Variables** section. Apply and create the deployment for the device.
+
 ## EdgeAgent
 | Variable                             | Description                                                                                                                     | Value Range                                   | Default Value              |
 |--------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|----------------------------|
@@ -92,6 +98,9 @@
 | UseServerHeartbeat                        | Sets the client-side heartbeat interval to 60sec for upstream AMQP connections                                                                     | bool                                                                  | true                          |
 | UsePersistentStorage                      | If set, will enable directly persisting messages / twins into the local database before forwarding/processing                                      | bool                                                                  | true                          |
 | EnableNonPersistentStorageBackup          | If messages / twins are not directly persisted, this will backup twins and any unprocessed messages on shutdown so Edge can resume on next startup | bool                                                                  | false                         |
+| ServerCertificateRenewAfterInMs          | Maximum time duration after which the EdgeHub server certificate will be renewed, irrespective of certificate expiry time | int32                                                                  | int32.max                         |
+| MaxCheckCertExpiryInMs          | Maximum time duration after which EdgeHub server certificate expiry should be checked, irrespective of certificate expiry time | int32                                                                  | n/a                         |
+
 
 ### <a id="cloudauthnote">Cloud AuthenticationMode not supported in production</a>
 

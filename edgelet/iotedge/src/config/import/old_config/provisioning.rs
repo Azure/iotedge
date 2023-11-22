@@ -91,17 +91,11 @@ impl std::str::FromStr for ManualDeviceConnectionString {
         const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
 
         fn missing_parameter(parameter_name: &str) -> String {
-            format!(
-                "the connection string is missing required parameter {}",
-                parameter_name
-            )
+            format!("the connection string is missing required parameter {parameter_name}")
         }
 
         fn malformed_parameter(parameter_name: &str, err: impl std::fmt::Display) -> String {
-            format!(
-                "the connection string parameter is malformed {}: {}",
-                parameter_name, err
-            )
+            format!("the connection string parameter is malformed {parameter_name}: {err}")
         }
 
         let device_id_regex =
