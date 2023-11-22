@@ -37,8 +37,8 @@ where
         // To properly restart, both the stop and start APIs must be called.
         if let Err(err) = self.runtime.stop(&self.id, None).await {
             output.push_str(&format!(
-                "warn: {} was not stopped gracefully: {}\n",
-                self.id, err
+                "warn: {} was not stopped gracefully: {err}\n",
+                self.id
             ));
         }
 
@@ -47,7 +47,7 @@ where
 
         let write = self.output.clone();
         let mut w = write.lock().unwrap();
-        write!(w, "{}", output).context(Error::WriteToStdout)?;
+        write!(w, "{output}").context(Error::WriteToStdout)?;
 
         Ok(())
     }

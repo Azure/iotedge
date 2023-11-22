@@ -1,16 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Copy, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub enum AutoReprovisioningMode {
+    #[default]
     Dynamic,
     AlwaysOnStartup,
     OnErrorOnly,
-}
-
-impl Default for AutoReprovisioningMode {
-    fn default() -> Self {
-        AutoReprovisioningMode::Dynamic
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]

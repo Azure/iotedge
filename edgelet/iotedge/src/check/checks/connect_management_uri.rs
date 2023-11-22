@@ -32,15 +32,11 @@ impl Checker for ConnectManagementUri {
 
 impl ConnectManagementUri {
     async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        let settings = if let Some(settings) = &check.settings {
-            settings
-        } else {
+        let Some(settings) = &check.settings else {
             return Ok(CheckResult::Skipped);
         };
 
-        let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
-            docker_host_arg
-        } else {
+        let Some(docker_host_arg) = &check.docker_host_arg else {
             return Ok(CheckResult::Skipped);
         };
 
@@ -59,8 +55,8 @@ impl ConnectManagementUri {
         let connect_management_uri = settings.connect().management_uri();
         let listen_management_uri = settings.listen().management_uri();
 
-        self.connect_management_uri = Some(format!("{}", connect_management_uri));
-        self.listen_management_uri = Some(format!("{}", listen_management_uri));
+        self.connect_management_uri = Some(format!("{connect_management_uri}"));
+        self.listen_management_uri = Some(format!("{listen_management_uri}"));
 
         let mut args: Vec<Cow<'_, OsStr>> = vec![
             Cow::Borrowed(OsStr::new("run")),
@@ -69,7 +65,7 @@ impl ConnectManagementUri {
 
         for (name, value) in settings.agent().env() {
             args.push(Cow::Borrowed(OsStr::new("-e")));
-            args.push(Cow::Owned(format!("{}={}", name, value).into()));
+            args.push(Cow::Owned(format!("{name}={value}").into()));
         }
 
         match (connect_management_uri.scheme(), listen_management_uri.scheme()) {
@@ -86,7 +82,7 @@ impl ConnectManagementUri {
                 socket_path.to_str()
                 .ok_or_else(|| anyhow!("Could not parse connect.management_uri: file path is not valid utf-8"))?;
 
-            args.push(Cow::Owned(format!("{}:{}", socket_path, socket_path).into()));
+            args.push(Cow::Owned(format!("{socket_path}:{socket_path}").into()));
         },
 
         (scheme1, scheme2) if scheme1 != scheme2 => return Err(anyhow!(

@@ -50,17 +50,12 @@ pub(crate) struct Listen {
     pub(crate) min_tls_version: Protocol,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub(crate) enum Protocol {
+    #[default]
     Tls10,
     Tls11,
     Tls12,
-}
-
-impl Default for Protocol {
-    fn default() -> Self {
-        Protocol::Tls10
-    }
 }
 
 impl<'de> serde::Deserialize<'de> for Protocol {
@@ -151,8 +146,7 @@ where
                 ))),
 
                 Err(err) => Err(serde::de::Error::custom(format!(
-                    "Could not parse value as a file path or a file:// URI: {}",
-                    err,
+                    "Could not parse value as a file path or a file:// URI: {err}"
                 ))),
             }
         }
@@ -167,17 +161,12 @@ pub(crate) struct WatchdogSettings {
     pub(crate) max_retries: RetryLimit,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Default)]
 #[serde(untagged)]
 pub(crate) enum RetryLimit {
+    #[default]
     Infinite,
     Num(u32),
-}
-
-impl Default for RetryLimit {
-    fn default() -> Self {
-        RetryLimit::Infinite
-    }
 }
 
 pub(crate) const DEFAULT_MGMT_SOCKET_UNIT: &str = "iotedge.mgmt.socket";

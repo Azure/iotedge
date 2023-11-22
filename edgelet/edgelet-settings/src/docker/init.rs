@@ -41,7 +41,7 @@ fn agent_vol_mount(
         path.push(format!("{}.sock", settings.agent().name()));
 
         let path = path.to_str().ok_or("invalid workload socket path")?;
-        url::Url::parse(&format!("unix://{}", path)).expect("workload uri should be valid")
+        url::Url::parse(&format!("unix://{path}")).expect("workload uri should be valid")
     };
 
     // If the url is a domain socket URL, then vol mount it into the container.
@@ -56,7 +56,7 @@ fn agent_vol_mount(
             let listen_path = std::path::Path::new(listen_uri.path()).to_path_buf();
             let listen_path = listen_path.to_string_lossy();
 
-            let bind = format!("{}:{}", listen_path, connect_path);
+            let bind = format!("{listen_path}:{connect_path}");
             if !binds.contains(&bind) {
                 binds.push(bind);
             }

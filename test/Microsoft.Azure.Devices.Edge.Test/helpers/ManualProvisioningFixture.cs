@@ -33,9 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected async Task BeforeAllTestsAsync()
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
-            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(
-                Context.Current.InstallerPath,
-                cts.Token);
+            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(cts.Token);
         }
 
         protected async Task ConfigureDaemonAsync(

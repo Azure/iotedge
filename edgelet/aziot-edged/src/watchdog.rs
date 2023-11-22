@@ -146,9 +146,7 @@ async fn restart_modules(
     }
 
     // List and stop modules.
-    let modules = if let Ok(modules) = runtime.list().await {
-        modules
-    } else {
+    let Ok(modules) = runtime.list().await else {
         log::warn!("Failed to list modules");
 
         return;
@@ -296,7 +294,7 @@ fn agent_env(
 
         let path = path.to_str().expect("invalid path");
 
-        format!("unix://{}", path)
+        format!("unix://{path}")
     };
 
     env.insert("IOTEDGE_WORKLOADURI".to_string(), workload_uri);
