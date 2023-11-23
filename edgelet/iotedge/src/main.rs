@@ -46,8 +46,8 @@ async fn run() -> anyhow::Result<()> {
     let default_mgmt_uri = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI")
         .unwrap_or("unix:///var/run/iotedge/mgmt.sock");
 
-    let default_edged_path = option_env!("PATH_TO_AZIOT_EDGED")
-        .unwrap_or("/usr/libexec/aziot/aziot-edged");
+    let default_edged_path =
+        option_env!("PATH_TO_AZIOT_EDGED").unwrap_or("/usr/libexec/aziot/aziot-edged");
 
     let default_diagnostics_image_name = format!(
         "/azureiotedge-diagnostics:{}",
