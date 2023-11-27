@@ -162,11 +162,11 @@ stages:
         displayName: Mariner_Linux
         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
         pool:
-          # We are using Linux image that lives in Windows pool. The Windows pool by default uses Standard_D4s_v3 SKU.
-          # EFLOW requires ~85GB to build the edgelet artifacts.
-          name: $(pool.windows.name)
+          name: $(pool.linux.name)
           demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker-large-disk
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+          - DiskSizeGiB -equals 100 # EFLOW requires ~85GB to build the edgelet artifacts
+          - WorkFolder -equals /mnt/storage/_work
         strategy:
           matrix:
             CBL-Mariner2.0-amd64:
@@ -215,7 +215,7 @@ stages:
                 -e "MARINER_ARCH=$MARINER_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
-                "ubuntu:20.04" \
+                "ubuntu:22.04" \
                 '/src/edgelet/build/linux/package-mariner.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging
@@ -249,7 +249,9 @@ stages:
         pool:
           name: $(pool.linux.arm.name)
           demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64
+          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
+          - DiskSizeGiB -equals 100 # EFLOW requires ~85GB to build the edgelet artifacts
+          - WorkFolder -equals /mnt/storage/_work
         strategy:
           matrix:
             CBL-Mariner2.0-aarch64:
@@ -304,7 +306,7 @@ stages:
           # build iot-identity-service here since they cannot build native aarch64 packages
           - bash: |
               set -ex
-              git clone --recurse-submodules https://github.com/Azure/iot-identity-service.git
+              git clone --recurse-submodules --branch release/1.4 https://github.com/Azure/iot-identity-service.git
               pushd iot-identity-service
               packageVersion=$(git tag | grep 1.4.[0-9]*$ | sort --version-sort -r | head -1)
               sudo docker run --rm \
@@ -314,7 +316,7 @@ stages:
                 -e "PACKAGE_VERSION=$packageVersion" \
                 -e "PACKAGE_RELEASE=1" \
                 --privileged \
-                "ubuntu:20.04" \
+                "ubuntu:22.04" \
                 '/src/ci/package.sh'
               popd
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
@@ -329,7 +331,7 @@ stages:
                 -e "MARINER_ARCH=$MARINER_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
-                "ubuntu:20.04" \
+                "ubuntu:22.04" \
                 '/src/edgelet/build/linux/package-mariner.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging

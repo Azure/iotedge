@@ -50,14 +50,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             (TestCertificates testCerts, _) = await TestCertificates.GenerateCertsAsync(registrationId, token);
 
             await this.daemon.ConfigureAsync(
-                config =>
+                async config =>
                 {
                     testCerts.AddCertsToConfig(config);
                     config.SetDpsSymmetricKey(idScope, registrationId, deviceKey);
-                    config.Update();
-                    return Task.FromResult((
-                        "with DPS symmetric key attestation for '{Identity}'",
-                        new object[] { registrationId }));
+                    await config.UpdateAsync(token);
+                    return ("with DPS symmetric key attestation for '{Identity}'", new object[] { registrationId });
                 },
                 token);
 
@@ -114,14 +112,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
 
             await this.daemon.ConfigureAsync(
-                config =>
+                async config =>
                 {
                     testCerts.AddCertsToConfig(config);
-                    config.SetDpsX509(idScope, registrationId, certPath, keyPath);
-                    config.Update();
-                    return Task.FromResult((
-                        "with DPS X509 attestation for '{Identity}'",
-                        new object[] { registrationId }));
+                    config.SetDpsX509(idScope, certPath, keyPath);
+                    await config.UpdateAsync(token);
+                    return ("with DPS X509 attestation for '{Identity}'", new object[] { registrationId });
                 },
                 token);
 

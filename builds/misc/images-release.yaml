@@ -35,234 +35,135 @@ stages:
             packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
             versionEnvVar: version
             versioningScheme: byEnvVar
-        # The code sign task requires .NET Core 2.1.
-        # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
-        - template: ../templates/force-dotnet21.yaml
         # Code Sign
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: "Edge Agent Code Sign"
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: "aziotedge-pmc-v4-prod"
             FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Agent.Service
             Pattern: Microsoft.Azure.Devices.Edge.*.dll
             SessionTimeout: 20
             inlineOperation: |
-                [
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolSign",
-                      "parameters": [
-                      {
-                          "parameterName": "OpusName",
-                          "parameterValue": "Microsoft"
-                      },
-                      {
-                          "parameterName": "OpusInfo",
-                          "parameterValue": "http://www.microsoft.com"
-                      },
-                      {
-                          "parameterName": "Append",
-                          "parameterValue": "/as"
-                      },
-                      {
-                          "parameterName": "FileDigest",
-                          "parameterValue": "/fd \"SHA256\""
-                      },
-                      {
-                          "parameterName": "PageHash",
-                          "parameterValue": "/NPH"
-                      },
-                      {
-                          "parameterName": "TimeStamp",
-                          "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
-                  },
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolVerify",
-                      "parameters": [
-                      {
-                          "parameterName": "VerifyAll",
-                          "parameterValue": "/all"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
+              [
+                {
+                  "KeyCode": "CP-230012",
+                  "OperationCode": "SigntoolSign",
+                  "ToolName": "sign",
+                  "ToolVersion": "1.0",
+                  "Parameters": {
+                  "OpusName": "Microsoft",
+                  "OpusInfo": "https://www.microsoft.com",
+                  "FileDigest": "/fd SHA256",
+                  "PageHash": "/NPH",
+                  "TimeStamp": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
                   }
-                ]
+                },
+                {
+                  "KeyCode": "CP-230012",
+                  "OperationCode": "SigntoolVerify",
+                  "ToolName": "sign",
+                  "ToolVersion": "1.0",
+                  "Parameters": {}
+                }
+              ]
             signConfigType: inlineSignParams
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: "Edge Hub Code Sign"
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: "aziotedge-pmc-v4-prod"
             FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Hub.Service
             Pattern: "Microsoft.Azure.Devices.Edge.*.dll,Microsoft.Azure.Devices.Routing.*.dll"
             SessionTimeout: 20
             inlineOperation: |
-                [
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolSign",
-                      "parameters": [
-                      {
-                          "parameterName": "OpusName",
-                          "parameterValue": "Microsoft"
-                      },
-                      {
-                          "parameterName": "OpusInfo",
-                          "parameterValue": "http://www.microsoft.com"
-                      },
-                      {
-                          "parameterName": "Append",
-                          "parameterValue": "/as"
-                      },
-                      {
-                          "parameterName": "FileDigest",
-                          "parameterValue": "/fd \"SHA256\""
-                      },
-                      {
-                          "parameterName": "PageHash",
-                          "parameterValue": "/NPH"
-                      },
-                      {
-                          "parameterName": "TimeStamp",
-                          "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
-                  },
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolVerify",
-                      "parameters": [
-                      {
-                          "parameterName": "VerifyAll",
-                          "parameterValue": "/all"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
+              [
+                {
+                  "KeyCode": "CP-230012",
+                  "OperationCode": "SigntoolSign",
+                  "ToolName": "sign",
+                  "ToolVersion": "1.0",
+                  "Parameters": {
+                  "OpusName": "Microsoft",
+                  "OpusInfo": "https://www.microsoft.com",
+                  "FileDigest": "/fd SHA256",
+                  "PageHash": "/NPH",
+                  "TimeStamp": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
                   }
-                ]
+                },
+                {
+                  "KeyCode": "CP-230012",
+                  "OperationCode": "SigntoolVerify",
+                  "ToolName": "sign",
+                  "ToolVersion": "1.0",
+                  "Parameters": {}
+                }
+              ]
             signConfigType: inlineSignParams
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: "Temp Sensor Code Sign"
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: "aziotedge-pmc-v4-prod"
             FolderPath: $(Build.BinariesDirectory)/publish/SimulatedTemperatureSensor
             Pattern: "Microsoft.Azure.Devices.Edge.*.dll,SimulatedTemperatureSensor.dll"
             SessionTimeout: 20
             inlineOperation: |
-                [
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolSign",
-                      "parameters": [
-                      {
-                          "parameterName": "OpusName",
-                          "parameterValue": "Microsoft"
-                      },
-                      {
-                          "parameterName": "OpusInfo",
-                          "parameterValue": "http://www.microsoft.com"
-                      },
-                      {
-                          "parameterName": "Append",
-                          "parameterValue": "/as"
-                      },
-                      {
-                          "parameterName": "FileDigest",
-                          "parameterValue": "/fd \"SHA256\""
-                      },
-                      {
-                          "parameterName": "PageHash",
-                          "parameterValue": "/NPH"
-                      },
-                      {
-                          "parameterName": "TimeStamp",
-                          "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
-                  },
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolVerify",
-                      "parameters": [
-                      {
-                          "parameterName": "VerifyAll",
-                          "parameterValue": "/all"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
+              [
+                {
+                  "KeyCode": "CP-230012",
+                  "OperationCode": "SigntoolSign",
+                  "ToolName": "sign",
+                  "ToolVersion": "1.0",
+                  "Parameters": {
+                  "OpusName": "Microsoft",
+                  "OpusInfo": "https://www.microsoft.com",
+                  "FileDigest": "/fd SHA256",
+                  "PageHash": "/NPH",
+                  "TimeStamp": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
                   }
-                ]
+                },
+                {
+                  "KeyCode": "CP-230012",
+                  "OperationCode": "SigntoolVerify",
+                  "ToolName": "sign",
+                  "ToolVersion": "1.0",
+                  "Parameters": {}
+                }
+              ]
             signConfigType: inlineSignParams
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: "Functions Binding Code Sign"
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: "aziotedge-pmc-v4-prod"
             FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
             Pattern: Microsoft.Azure.WebJobs.Extensions*.dll
             SessionTimeout: 20
             inlineOperation: |
-                [
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolSign",
-                      "parameters": [
-                      {
-                          "parameterName": "OpusName",
-                          "parameterValue": "Microsoft"
-                      },
-                      {
-                          "parameterName": "OpusInfo",
-                          "parameterValue": "http://www.microsoft.com"
-                      },
-                      {
-                          "parameterName": "Append",
-                          "parameterValue": "/as"
-                      },
-                      {
-                          "parameterName": "FileDigest",
-                          "parameterValue": "/fd \"SHA256\""
-                      },
-                      {
-                          "parameterName": "PageHash",
-                          "parameterValue": "/NPH"
-                      },
-                      {
-                          "parameterName": "TimeStamp",
-                          "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
-                  },
-                  {
-                      "keyCode": "CP-230012",
-                      "operationSetCode": "SigntoolVerify",
-                      "parameters": [
-                      {
-                          "parameterName": "VerifyAll",
-                          "parameterValue": "/all"
-                      }
-                      ],
-                      "toolName": "sign",
-                      "toolVersion": "1.0"
+              [
+                {
+                  "KeyCode": "CP-230012",
+                  "OperationCode": "SigntoolSign",
+                  "ToolName": "sign",
+                  "ToolVersion": "1.0",
+                  "Parameters": {
+                  "OpusName": "Microsoft",
+                  "OpusInfo": "https://www.microsoft.com",
+                  "FileDigest": "/fd SHA256",
+                  "PageHash": "/NPH",
+                  "TimeStamp": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
                   }
-                ]
+                },
+                {
+                  "KeyCode": "CP-230012",
+                  "OperationCode": "SigntoolVerify",
+                  "ToolName": "sign",
+                  "ToolVersion": "1.0",
+                  "Parameters": {}
+                }
+              ]
             signConfigType: inlineSignParams
-        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
           displayName: "Functions Binding nuget package Sign"
           inputs:
-            ConnectedServiceName: "Azure IoT Edge Code Sign 2"
+            ConnectedServiceName: "aziotedge-pmc-v4-prod"
             FolderPath: $(Build.BinariesDirectory)/publish
             Pattern: Microsoft.Azure.WebJobs.Extensions*.nupkg
             inlineOperation: |
@@ -283,8 +184,6 @@ stages:
                   }
                 ]
             signConfigType: inlineSignParams
-        # We're done with code signing, so remove dotnet version override
-        - template: ../templates/restore-default-dotnet.yaml
         - bash: |
             mkdir $(Build.ArtifactStagingDirectory)/publish-linux && \
             mv $(Build.BinariesDirectory)/publish/{CACertificates,scripts,*.nupkg} \

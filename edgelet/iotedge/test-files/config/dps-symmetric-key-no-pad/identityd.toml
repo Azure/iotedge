@@ -3,6 +3,7 @@
 
 hostname = "my-device"
 homedir = "/var/lib/aziot/identityd"
+prefer_module_identity_cache = false
 
 [provisioning]
 source = "dps"

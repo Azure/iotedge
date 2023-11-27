@@ -207,7 +207,7 @@ async fn execute_inner(
         .map_err(|err| format!("{:?}", err))?;
 
     let old_identityd_path = Path::new("/etc/aziot/identityd/config.d/00-super.toml");
-    if let Ok(old_identity_config) = std::fs::read(&old_identityd_path) {
+    if let Ok(old_identity_config) = std::fs::read(old_identityd_path) {
         let old_identity_config = std::str::from_utf8(&old_identity_config)
             .map_err(|err| format!("error parsing config: {}", err))?;
 
@@ -238,7 +238,7 @@ async fn execute_inner(
                 .map_err(|err| format!("{:?}", err))?;
             if &hostname != new_hostname && !containers.is_empty() {
                 return Err(format!("Cannot apply config because the hostname in the config {} is different from the previous hostname {}. To update the hostname, run the following command which deletes all IoT Edge modules and reapplies the configuration. Or, revert the hostname change in the config.toml file.
-                    sudo iotedge system stop && sudo docker rm -f $(sudo docker ps -aq -f \"label=net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent\")) && sudo iotedge config apply.
+                    sudo iotedge system stop && sudo docker rm -f $(sudo docker ps -aq -f \"label=net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent\") && sudo iotedge config apply
                 Warning: Data stored in the modules is lost when above command is executed.", &hostname, &new_hostname).into());
             }
         } else {

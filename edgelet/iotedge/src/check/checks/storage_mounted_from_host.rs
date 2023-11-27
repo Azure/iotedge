@@ -99,7 +99,7 @@ async fn storage_mounted_from_host<'a>(
         // and needs to be in the context of the container user instead of the host running `iotedge check`.
         .unwrap_or("/tmp");
 
-    let storage_directory = Path::new(&*temp_dir).join(storage_directory_name);
+    let storage_directory = Path::new(&temp_dir).join(storage_directory_name);
     *storage_directory_out = Some(storage_directory.clone());
 
     let mounted_directories = inspect_result

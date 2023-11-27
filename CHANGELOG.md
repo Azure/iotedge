@@ -1,3 +1,117 @@
+# 1.4.25 (2023-11-15)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.20 to match the daemon)
+
+# 1.4.24 (2023-10-25)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.20 to match the daemon)
+
+# 1.4.23 (2023-10-13)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.20 to match the daemon)
+
+# 1.4.22 (2023-10-11)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.20 to match the daemon)
+
+# 1.4.21 (2023-09-29)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.20 to match the daemon)
+
+# 1.4.20 (2023-09-18)
+
+## Edge Agent
+### Bug fixes
+* Fix container restart policy deserialization ( [bd05d4d](https://github.com/Azure/iotedge/commit/bd05d4d8346b9cc3b029c74468a1db3eefa7287c) )
+
+## aziot-edge
+### Bug fixes
+* Add support for 'prefer_module_identity_cache' option ( [9c7dbdd](https://github.com/Azure/iotedge/commit/9c7dbdd4b9aa9eb54394fec3f13bc3ff3fe66d1e) )
+* Fix error in CLI warning message ( [978ccaa](https://github.com/Azure/iotedge/commit/978ccaa43efbddc55f89527934a5afe5227deef8) )
+
+## aziot-identity-service
+### Bug fixes
+* Add support for 'prefer_module_identity_cache' option ( [137258d](https://github.com/Azure/iot-identity-service/commit/137258ddd57bac138b3b0333b2e16a99427a73bf) )
+* Update EL package configuration to fix a conflict with distro's tpm2-tss package ( [d644195](https://github.com/Azure/iot-identity-service/commit/d6441951c477c072cd56bc9e8d487b3e790255dc) )
+* Remove socket path if it is a directory instead of a file ( [ed69cc4](https://github.com/Azure/iot-identity-service/commit/ed69cc4d34d99c3d655b297455329e9a5005b732) )
+
+# 1.4.19 (2023-09-13)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.16 to match the daemon)
+
+# 1.4.18 (2023-08-09)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.16 to match the daemon)
+
+# 1.4.17 (2023-08-08)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.16 to match the daemon)
+
+# 1.4.16 (2023-07-28)
+
+## Edge Hub
+### Bug fixes
+* Ensure database shuts down properly before Edge Hub closes ( [238c121](https://github.com/Azure/iotedge/commit/238c12176512b676dd24cbc6d2b55323faf13efb) )
+
+## aziot-edge
+### Bug fixes
+* Ignore 'systemd daemon-reload' errors when purging debian package ( [291d716](https://github.com/Azure/iotedge/commit/291d716f5f784a80205962804037cbf72fb99acb) )
+* Patch vulnerabilities in cargo dependencies ( [9e71341](https://github.com/Azure/iotedge/commit/9e713419235666f04ee5fa8823386890ef087193) )
+* Make RHEL8 package depend on moby-engine or docker-ce ( [3a2e68e](https://github.com/Azure/iotedge/commit/3a2e68e378301fd132d7057dbdb0de7bcb9b181b) )
+
+## aziot-identity-service
+### Bug fixes
+* Ignore 'systemd daemon-reload' errors when purging debian package ( [7856c23](https://github.com/Azure/iot-identity-service/commit/7856c232a24e7503b32957737b4a88ecabf33063) )
+* Patch vulnerabilities in cargo dependencies ( [67fa660](https://github.com/Azure/iot-identity-service/commit/67fa660f96637b57b35ef6049802b7e2a8d1844d) )
+
+# 1.4.15 (2023-07-11)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.10 to match the daemon)
+
+# 1.4.14 (2023-06-23)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.10 to match the daemon)
+
 # 1.4.13 (2023-06-15)
 
 The following Docker images were updated because their base images changed:
