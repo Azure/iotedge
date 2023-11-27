@@ -45,6 +45,9 @@ async fn run() -> anyhow::Result<()> {
     let default_mgmt_uri = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI")
         .unwrap_or("unix:///var/run/iotedge/mgmt.sock");
 
+    let default_edged_path =
+        option_env!("PATH_TO_AZIOT_EDGED").unwrap_or("/usr/libexec/aziot/aziot-edged");
+
     let default_diagnostics_image_name = format!(
         "/azureiotedge-diagnostics:{}",
         edgelet_core::version().replace('~', "-")
@@ -117,7 +120,7 @@ async fn run() -> anyhow::Result<()> {
                         .value_name("PATH_TO_AZIOT_EDGED")
                         .help("Sets the path of the aziot-edged binary.")
                         .takes_value(true)
-                        .default_value("/usr/libexec/aziot/aziot-edged"),
+                        .default_value(default_edged_path),
                 )
                 .arg(
                     Arg::with_name("iothub-hostname")
