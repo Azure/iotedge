@@ -18,6 +18,7 @@ schedules:
   always: true
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
   itProxy: http://10.16.8.4:3128
   otProxy: http://10.16.5.4:3128
