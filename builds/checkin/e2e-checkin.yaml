@@ -14,6 +14,7 @@ pr:
       - release/1.1-k8s-preview
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
 
 resources:
