@@ -16,6 +16,7 @@ resources:
     name: Azure/azure-iotedge
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
 
 stages:
