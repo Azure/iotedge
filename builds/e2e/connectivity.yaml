@@ -25,6 +25,7 @@ schedules:
   always: true
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
   images.artifact.name.linux: 'core-linux'
 
