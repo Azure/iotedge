@@ -34,10 +34,7 @@ function usage() {
 # Functions
 ###############################################################################
 check_os() {
-    if [[ "$PACKAGE_OS" == "ubuntu18.04" ]]; then
-        OS_NAME="ubuntu"
-        OS_VERSION="bionic"
-    elif [[ "$PACKAGE_OS" == "ubuntu20.04" ]]; then
+    if [[ "$PACKAGE_OS" == "ubuntu20.04" ]]; then
         OS_NAME="ubuntu"
         OS_VERSION="focal"
     elif [[ "$PACKAGE_OS" == "ubuntu22.04" ]]; then

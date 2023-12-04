@@ -72,9 +72,9 @@ function get_iotedge_quickstart_artifact_file() {
 function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu20.04-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-aarch64"
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu20.04-aarch64"
     else
         path="$E2E_TEST_DIR/artifacts/iotedged-debian11-arm32v7"
     fi
