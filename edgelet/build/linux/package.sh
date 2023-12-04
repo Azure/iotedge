@@ -77,10 +77,6 @@ case "$PACKAGE_OS" in
         DOCKER_IMAGE='debian:11-slim'
         ;;
 
-    'ubuntu18.04')
-        DOCKER_IMAGE='ubuntu:18.04'
-        ;;
-
     'ubuntu20.04')
         DOCKER_IMAGE='ubuntu:20.04'
         ;;
@@ -202,11 +198,11 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu18.04.amd64|ubuntu20.04.amd64|ubuntu22.04.amd64)
+    ubuntu20.04.amd64|ubuntu22.04.amd64)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
             libcurl4-openssl-dev libssl-dev pkg-config uuid-dev'
         case "$PACKAGE_OS" in
-            ubuntu18.04|ubuntu20.04)
+            ubuntu20.04)
                 transitional_packages='dh-systemd'
                 ;;
             *)
@@ -222,12 +218,12 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         "
         ;;
 
-    ubuntu18.04.arm32v7|ubuntu20.04.arm32v7|ubuntu22.04.arm32v7)
+    ubuntu20.04.arm32v7|ubuntu22.04.arm32v7)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
             gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libcurl4-openssl-dev:armhf \
             libssl-dev:armhf uuid-dev:armhf'
         case "$PACKAGE_OS" in
-            ubuntu18.04|ubuntu20.04)
+            ubuntu20.04)
                 transitional_packages='dh-systemd'
                 ;;
             *)
@@ -259,12 +255,12 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         "
         ;;
 
-    ubuntu18.04.aarch64|ubuntu20.04.aarch64|ubuntu22.04.aarch64)
+    ubuntu20.04.aarch64|ubuntu22.04.aarch64)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc \
             g++ gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libcurl4-openssl-dev:arm64 \
             libssl-dev:arm64 uuid-dev:arm64'
         case "$PACKAGE_OS" in
-            ubuntu18.04|ubuntu20.04)
+            ubuntu20.04)
                 transitional_packages='dh-systemd'
                 ;;
             *)
