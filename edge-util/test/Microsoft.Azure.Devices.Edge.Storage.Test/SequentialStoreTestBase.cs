@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             // Try to get the batch, should return empty batch.
             ulong count = await sequentialStore.GetCountFromOffset(startOffset);
-            Assert.Equal((ulong)0, count);
+            Assert.Equal(0UL, count);
 
             // Add 100 elements
             for (int i = 0; i < 100; i++)
@@ -222,13 +222,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             }
 
             count = await sequentialStore.GetCountFromOffset(startOffset);
-            Assert.Equal((ulong)100, count);
+            Assert.Equal(100UL, count);
 
             count = await sequentialStore.GetCountFromOffset(startOffset + 50);
-            Assert.Equal((ulong)50, count);
+            Assert.Equal(50UL, count);
 
             count = await sequentialStore.GetCountFromOffset(startOffset + 100);
-            Assert.Equal((ulong)0, count);
+            Assert.Equal(0UL, count);
         }
 
         protected abstract IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName);
