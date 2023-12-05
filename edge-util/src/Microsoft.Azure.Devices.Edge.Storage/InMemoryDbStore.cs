@@ -135,6 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     break;
                 }
             }
+
             return (ulong)count;
         }
 
