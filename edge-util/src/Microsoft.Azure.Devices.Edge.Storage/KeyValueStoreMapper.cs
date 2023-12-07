@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public Task<ulong> Count() => this.underlyingStore.Count();
 
-        public Task<ulong> GetCountFromOffset(TK offset) => this.underlyingStore.GetCountFromOffset(this.keyMapper.From(offset));
+        public Task<ulong> GetCountFromStartKey(TK startKey) => this.underlyingStore.GetCountFromStartKey(this.keyMapper.From(startKey));
 
         Task IterateBatch(Option<TK> startKey, int batchSize, Func<TK, TV, Task> callback, CancellationToken cancellationToken)
         {

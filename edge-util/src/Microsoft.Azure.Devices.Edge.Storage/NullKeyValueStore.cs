@@ -46,6 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public Task<ulong> Count() => Task.FromResult(0UL);
 
-        public Task<ulong> GetCountFromOffset(TK offset) => Task.FromResult(0UL);
+        public Task<ulong> GetCountFromStartKey(TK startKey) => Task.FromResult(0UL);
     }
 }
