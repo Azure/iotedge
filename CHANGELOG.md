@@ -1,3 +1,23 @@
+# 1.4.27 (2023-12-07)
+
+## Edge Hub
+### Bug fixes
+* Add support for GetCountFromStartKey for InMemoryDbStore ( [f1a9da3](https://github.com/Azure/iotedge/commit/f1a9da3b088ca39953265ce7e2b76d7b08cf5829) )
+
+## aziot-edge
+### Bug fixes
+* Parse default edged path from environment variable by @ef4203 ( [1f048bf](https://github.com/Azure/iotedge/commit/1f048bfa7d983d3e80072ba7a4e7429a77c110d8) )
+* Remove Ubuntu 18.04 support ( [765ec2d](https://github.com/Azure/iotedge/commit/765ec2d71a66b458e1fa5d446617ff5d5cca40df) )
+
+## aziot-identity-service
+### Bug fixes
+* Remove Ubuntu 18.04 support ( [ea88b83](https://github.com/Azure/iot-identity-service/commit/ea88b834555ec1c5414d29e9238e04e8ca8d3184) )
+* Fix nullptr deref when decoding EST PKCS#7 response ( [3fd2073](https://github.com/Azure/iot-identity-service/commit/3fd2073c6fe58b009ef9a3b73d14103b55f283a5) )
+* Only create PKCS#11 AES keys if AES-GCM is supported ( [79aae50](https://github.com/Azure/iot-identity-service/commit/79aae5062f0057df7871fb2897451e9b58daf0ec) )
+
+## Other fixes
+* Upgrade Functions sample to remove dependency on .NET Core 3.1 ( [c38aa54](https://github.com/Azure/iotedge/commit/c38aa547542d7b9af099050ee19bf8f384a1bb5a) )
+
 # 1.4.26 (2023-12-01)
 
 The following Docker images were updated because their base images changed:
