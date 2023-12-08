@@ -216,7 +216,7 @@ mod tests {
         let settings = Settings::new().unwrap();
         assert_eq!(
             settings.listen().min_tls_version(),
-            crate::uri::MinTlsVersion::Tls10
+            crate::uri::MinTlsVersion::Tls12
         );
     }
 

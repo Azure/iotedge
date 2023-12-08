@@ -90,17 +90,15 @@ impl Default for Listen {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum MinTlsVersion {
     #[default]
-    Tls10,
-    Tls11,
     Tls12,
+    Tls13,
 }
 
 impl std::fmt::Display for MinTlsVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            MinTlsVersion::Tls10 => write!(f, "TLS 1.0"),
-            MinTlsVersion::Tls11 => write!(f, "TLS 1.1"),
             MinTlsVersion::Tls12 => write!(f, "TLS 1.2"),
+            MinTlsVersion::Tls13 => write!(f, "TLS 1.3"),
         }
     }
 }
@@ -110,9 +108,8 @@ impl std::str::FromStr for MinTlsVersion {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_ref() {
-            "tls" | "tls1" | "tls10" | "tls1.0" | "tls1_0" | "tlsv10" => Ok(MinTlsVersion::Tls10),
-            "tls11" | "tls1.1" | "tls1_1" | "tlsv11" => Ok(MinTlsVersion::Tls11),
             "tls12" | "tls1.2" | "tls1_2" | "tlsv12" => Ok(MinTlsVersion::Tls12),
+            "tls13" | "tls1.3" | "tls1_3" | "tlsv13" => Ok(MinTlsVersion::Tls13),
             _ => Err(format!("Unsupported TLS protocol version: {s}")),
         }
     }
@@ -129,7 +126,7 @@ impl<'de> serde::Deserialize<'de> for MinTlsVersion {
             type Value = MinTlsVersion;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(formatter, r#"one of "tls1.0", "tls1.1", "tls1.2""#)
+                write!(formatter, r#"one of "tls1.2", "tls1.3""#)
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
@@ -152,9 +149,8 @@ impl serde::ser::Serialize for MinTlsVersion {
         S: serde::ser::Serializer,
     {
         serializer.serialize_str(match self {
-            MinTlsVersion::Tls10 => "tls1.0",
-            MinTlsVersion::Tls11 => "tls1.1",
             MinTlsVersion::Tls12 => "tls1.2",
+            MinTlsVersion::Tls13 => "tls1.3",
         })
     }
 }
@@ -165,23 +161,16 @@ mod tests {
     use std::str::FromStr;
     use test_case::test_case;
 
-    #[test_case("tls", MinTlsVersion::Tls10; "when tls provided")]
-    #[test_case("tls1", MinTlsVersion::Tls10; "when tls1 with dot provided")]
-    #[test_case("tls10", MinTlsVersion::Tls10; "when tls10 provided")]
-    #[test_case("tls1.0", MinTlsVersion::Tls10; "when tls10 with dot provided")]
-    #[test_case("tls1_0", MinTlsVersion::Tls10; "when tls10 with underscore provided")]
-    #[test_case("Tlsv10" , MinTlsVersion::Tls10; "when Tlsv10 provided")]
-    #[test_case("TLS10", MinTlsVersion::Tls10; "when uppercase TLS10 Provided")]
-    #[test_case("tls11", MinTlsVersion::Tls11; "when tls11 provided")]
-    #[test_case("tls1.1", MinTlsVersion::Tls11; "when tls11 with dot provided")]
-    #[test_case("tls1_1", MinTlsVersion::Tls11; "when tls11 with underscore provided")]
-    #[test_case("Tlsv11" , MinTlsVersion::Tls11; "when Tlsv11 provided")]
-    #[test_case("TLS11", MinTlsVersion::Tls11; "when uppercase TLS11 Provided")]
     #[test_case("tls12", MinTlsVersion::Tls12; "when tls12 provided")]
     #[test_case("tls1.2", MinTlsVersion::Tls12; "when tls12 with dot provided")]
     #[test_case("tls1_2", MinTlsVersion::Tls12; "when tls12 with underscore provided")]
     #[test_case("Tlsv12" , MinTlsVersion::Tls12; "when Tlsv12 provided")]
     #[test_case("TLS12", MinTlsVersion::Tls12; "when uppercase TLS12 Provided")]
+    #[test_case("tls13", MinTlsVersion::Tls13; "when tls13 provided")]
+    #[test_case("tls1.3", MinTlsVersion::Tls13; "when tls13 with dot provided")]
+    #[test_case("tls1_3", MinTlsVersion::Tls13; "when tls13 with underscore provided")]
+    #[test_case("Tlsv13" , MinTlsVersion::Tls13; "when Tlsv13 provided")]
+    #[test_case("TLS13", MinTlsVersion::Tls13; "when uppercase TLS13 Provided")]
     fn parse_min_tls_version(value: &str, expected: MinTlsVersion) {
         let actual = MinTlsVersion::from_str(value);
         assert_eq!(actual, Ok(expected));

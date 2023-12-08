@@ -483,7 +483,6 @@ fn execute_inner(
             let old_config::Listen {
                 management_uri,
                 workload_uri,
-                min_tls_version,
             } = listen;
 
             let management_uri = map_listen_uri(management_uri).map_err(|management_uri| {
@@ -496,11 +495,7 @@ fn execute_inner(
             edgelet_settings::uri::Listen {
                 management_uri,
                 workload_uri,
-                min_tls_version: match min_tls_version {
-                    old_config::Protocol::Tls10 => edgelet_settings::uri::MinTlsVersion::Tls10,
-                    old_config::Protocol::Tls11 => edgelet_settings::uri::MinTlsVersion::Tls11,
-                    old_config::Protocol::Tls12 => edgelet_settings::uri::MinTlsVersion::Tls12,
-                },
+                min_tls_version: edgelet_settings::uri::MinTlsVersion::Tls12,
             }
         },
 

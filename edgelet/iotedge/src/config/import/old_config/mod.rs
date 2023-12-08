@@ -46,15 +46,13 @@ pub(crate) struct Connect {
 pub(crate) struct Listen {
     pub(crate) management_uri: Url,
     pub(crate) workload_uri: Url,
-    #[serde(default = "Protocol::default")]
-    pub(crate) min_tls_version: Protocol,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) enum Protocol {
-    #[default]
     Tls10,
     Tls11,
+    #[default]
     Tls12,
 }
 
