@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     public class ProtocolHeadFixture : IDisposable
     {
-        const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
+        const SslProtocols DefaultSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13;
 
         readonly SslProtocols sslProtocols;
         IProtocolHead protocolHead;

@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public SslProtocolsTest()
         {
-            this.protocolHead = EdgeHubFixtureCollection.GetFixture(SslProtocols.Tls12);
+            this.protocolHead = EdgeHubFixtureCollection.GetFixture(SslProtocols.Tls13);
         }
 
         public async void Dispose() => await (this.protocolHead?.CloseAsync() ?? Task.CompletedTask);
@@ -29,22 +29,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             int httpsPort = 443;
             int amqpsPort = 5671;
             int mqttPort = 8883;
-            SslProtocols validProtocol = SslProtocols.Tls12;
-            SslProtocols invalidProtocol1 = SslProtocols.Tls;
-            SslProtocols invalidProtocol2 = SslProtocols.Tls11;
+            SslProtocols validProtocol = SslProtocols.Tls13;
+            SslProtocols invalidProtocol = SslProtocols.Tls12;
             Option<Type> expectedException = Option.Some(typeof(AuthenticationException));
 
             TestConnection(httpsPort, validProtocol, Option.None<Type>());
             TestConnection(amqpsPort, validProtocol, Option.None<Type>());
             TestConnection(mqttPort, validProtocol, Option.None<Type>());
 
-            TestConnection(httpsPort, invalidProtocol1, expectedException);
-            TestConnection(amqpsPort, invalidProtocol1, expectedException);
-            TestConnection(mqttPort, invalidProtocol1, expectedException);
-
-            TestConnection(httpsPort, invalidProtocol2, expectedException);
-            TestConnection(amqpsPort, invalidProtocol2, expectedException);
-            TestConnection(mqttPort, invalidProtocol2, expectedException);
+            TestConnection(httpsPort, invalidProtocol, expectedException);
+            TestConnection(amqpsPort, invalidProtocol, expectedException);
+            TestConnection(mqttPort, invalidProtocol, expectedException);
         }
 
         static void TestConnection(int port, SslProtocols protocol, Option<Type> expectedException)

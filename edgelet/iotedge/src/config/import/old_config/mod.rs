@@ -48,50 +48,6 @@ pub(crate) struct Listen {
     pub(crate) workload_uri: Url,
 }
 
-#[derive(Clone, Copy, Debug, Default)]
-pub(crate) enum Protocol {
-    Tls10,
-    Tls11,
-    #[default]
-    Tls12,
-}
-
-impl<'de> serde::Deserialize<'de> for Protocol {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct Visitor;
-
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = Protocol;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(formatter, r#"one of "tls1.0", "tls1.1", "tls1.2""#)
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                match &*v.to_lowercase() {
-                    "tls" | "tls1" | "tls10" | "tls1.0" | "tls1_0" | "tlsv10" => {
-                        Ok(Protocol::Tls10)
-                    }
-                    "tls11" | "tls1.1" | "tls1_1" | "tlsv11" => Ok(Protocol::Tls11),
-                    "tls12" | "tls1.2" | "tls1_2" | "tlsv12" => Ok(Protocol::Tls12),
-                    _ => Err(serde::de::Error::invalid_value(
-                        serde::de::Unexpected::Str(v),
-                        &self,
-                    )),
-                }
-            }
-        }
-
-        deserializer.deserialize_str(Visitor)
-    }
-}
-
 #[derive(Debug, serde::Deserialize)]
 pub(crate) struct Certificates {
     #[serde(flatten)]

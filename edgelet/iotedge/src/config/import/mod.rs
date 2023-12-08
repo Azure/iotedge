@@ -493,8 +493,8 @@ fn execute_inner(
             })?;
 
             edgelet_settings::uri::Listen {
-                management_uri,
                 workload_uri,
+                management_uri,
             }
         },
 

@@ -17,15 +17,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [InlineData("Tls1.2", SslProtocols.None, SslProtocols.Tls12)]
         [InlineData("Tls12", SslProtocols.None, SslProtocols.Tls12)]
         [InlineData("Tls12, Tls1.2", SslProtocols.None, SslProtocols.Tls12)]
-        [InlineData("Tls11, Tls12", SslProtocols.None, SslProtocols.Tls11 | SslProtocols.Tls12)]
-        [InlineData("Tls1.1, Tls1.2, foo, Tls", SslProtocols.Tls12, SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls)]
-        [InlineData("Tls, Tls1.1, Tls1.2", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
-        [InlineData("tls, tls11, tls12", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
-        [InlineData("Tls, Tls11, Tls12", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
-        [InlineData("tls1_0, tls1_1, tls1_2", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
-        [InlineData("Tls1_0, Tls1_1, Tls1_2", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
-        [InlineData("tlsv10, tlsv11, tlsv12", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
-        [InlineData("Tlsv10, Tlsv11, Tlsv12", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
+        [InlineData("Tls12, Tls13", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
+        [InlineData("Tls1.2, foo, Tls1.3", SslProtocols.Tls12, SslProtocols.Tls12 | SslProtocols.Tls13)]
+        [InlineData("Tls1.2, Tls1.3", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
+        [InlineData("tls12, tls13", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
+        [InlineData("Tls12, Tls13", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
+        [InlineData("tls1_2, tls1_3", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
+        [InlineData("Tls1_2, Tls1_3", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
+        [InlineData("tlsv12, tlsv13", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
+        [InlineData("Tlsv12, Tlsv13", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
         [InlineData("TLS12", SslProtocols.None, SslProtocols.Tls12)]
         public void ParseTest(string input, SslProtocols defaultSslProtocols, SslProtocols expectedSslProtocols)
         {
@@ -34,10 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Theory]
-        [InlineData(SslProtocols.Tls, "Tls")]
-        [InlineData(SslProtocols.Tls11, "Tls11")]
         [InlineData(SslProtocols.Tls12, "Tls12")]
-        [InlineData(SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12, "Tls, Tls11, Tls12")]
+        [InlineData(SslProtocols.Tls13, "Tls13")]
+        [InlineData(SslProtocols.Tls12 | SslProtocols.Tls13, "Tls12, Tls13")]
         public void PrintTest(SslProtocols sslProtocols, string expectedString)
         {
             Assert.Equal(expectedString, sslProtocols.Print());
