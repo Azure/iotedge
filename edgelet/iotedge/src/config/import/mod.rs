@@ -495,7 +495,6 @@ fn execute_inner(
             edgelet_settings::uri::Listen {
                 management_uri,
                 workload_uri,
-                min_tls_version: edgelet_settings::uri::MinTlsVersion::Tls12,
             }
         },
 

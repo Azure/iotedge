@@ -207,20 +207,6 @@ mod tests {
     }
 
     #[test]
-    fn min_tls_version_default() {
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
-
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
-
-        let settings = Settings::new().unwrap();
-        assert_eq!(
-            settings.listen().min_tls_version(),
-            crate::uri::MinTlsVersion::Tls12
-        );
-    }
-
-    #[test]
     fn network_settings() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
