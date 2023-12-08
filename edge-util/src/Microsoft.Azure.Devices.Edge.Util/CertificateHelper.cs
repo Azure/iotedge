@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static string GetSha256Thumbprint(X509Certificate2 cert)
         {
             Preconditions.CheckNotNull(cert);
-            using (var sha256 = new SHA256Managed())
+            using (var sha256 = SHA256.Create())
             {
                 byte[] hash = sha256.ComputeHash(cert.RawData);
                 return ToHexString(hash);
