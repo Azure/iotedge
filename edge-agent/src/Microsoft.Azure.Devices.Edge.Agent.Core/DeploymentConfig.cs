@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 hashCode = (hashCode * 397) ^ (this.Runtime != null ? this.Runtime.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.SystemModules != null ? this.SystemModules.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Modules != null ? this.Modules.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.Integrity != null ? this.Integrity.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Integrity.GetHashCode());
                 return hashCode;
             }
         }

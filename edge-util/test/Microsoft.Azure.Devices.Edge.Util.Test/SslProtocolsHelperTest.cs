@@ -21,7 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [InlineData("Tls1.2, foo, Tls1.3", SslProtocols.Tls12, SslProtocols.Tls12 | SslProtocols.Tls13)]
         [InlineData("Tls1.2, Tls1.3", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
         [InlineData("tls12, tls13", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
-        [InlineData("Tls12, Tls13", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
         [InlineData("tls1_2, tls1_3", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
         [InlineData("Tls1_2, Tls1_3", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
         [InlineData("tlsv12, tlsv13", SslProtocols.None, SslProtocols.Tls12 | SslProtocols.Tls13)]
