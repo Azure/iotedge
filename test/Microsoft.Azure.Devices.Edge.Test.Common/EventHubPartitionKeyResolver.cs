@@ -41,11 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 uint hash1;
                 uint hash2;
 
-#if NETSTANDARD1_3
-            string upper = data.ToUpper();
-#else
                 string upper = data.ToUpper(CultureInfo.InvariantCulture);
-#endif
                 PerfectHash.ComputeHash(ASCIIEncoding.ASCII.GetBytes(upper), seed1: 0, seed2: 0, hash1: out hash1, hash2: out hash2);
                 long hashedValue = ((long)hash1 << 32) | (long)hash2;
 
@@ -57,11 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 uint hash1;
                 uint hash2;
 
-#if NETSTANDARD1_3
-            string upper = data.ToUpper();
-#else
                 string upper = data.ToUpper(CultureInfo.InvariantCulture);
-#endif
                 PerfectHash.ComputeHash(ASCIIEncoding.ASCII.GetBytes(upper), seed1: 0, seed2: 0, hash1: out hash1, hash2: out hash2);
                 long hashedValue = hash1 ^ hash2;
 
