@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             public static void ExceptionInHandleException(ModuleClient moduleClient, Exception ex, Exception e)
             {
-                Log.LogWarning((int)EventIds.ExceptionInHandleException, "Encountered error - {e} while trying to handle error {ex.Message}");
+                Log.LogWarning((int)EventIds.ExceptionInHandleException, e, "Encountered error - {e} while trying to handle error {ex.Message}");
             }
 
             public static void ErrorClosingClient(Exception ex)

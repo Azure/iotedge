@@ -585,7 +585,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 this.deploymentMetrics.ReportTwinSignatureResult(false);
                 Events.ExtractAgentTwinAndVerifyFailed(ex);
-                throw ex;
+                throw;
             }
         }
 
