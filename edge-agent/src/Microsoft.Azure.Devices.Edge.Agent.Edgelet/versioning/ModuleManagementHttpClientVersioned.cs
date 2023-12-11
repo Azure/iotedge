@@ -98,8 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');
                 var logsUrl = new StringBuilder();
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
-                since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
-                until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
+                since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeDataString(s)}"));
+                until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeDataString(u)}"));
                 includeTimestamp.ForEach(b => logsUrl.AppendFormat($"&{LogsIncludeTimestampParameter}={b.ToString().ToLower()}"));
 
                 if (!(tail.HasValue && since.HasValue && until.HasValue))

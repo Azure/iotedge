@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\..\..\..\netstandardVersion.props" />
+  <Import Project="..\..\..\..\netcoreappVersion.props" />
 
   <PropertyGroup>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-  <!-- on windows, if you've done an flat download(xcopy install) of openjdk without really installing it or adding it to your path add a props file 
+  <!-- on windows, if you've done an flat download(xcopy install) of openjdk without really installing it or adding it to your path add a props file
   to %localappdata%\Microsoft\MSBuild\(toolversion)\Imports\Microsoft.Common.props\ImportBefore\OpenJDK.props> that defines
   the JDK paths with trailing slashes. otherwise everything works the way it always has
   -->
@@ -108,6 +108,6 @@
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <Import Project="..\..\..\..\stylecop.props" />
 </Project>

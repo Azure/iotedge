@@ -10,29 +10,22 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         public static bool VerifySignature(string payload, string header, byte[] signatureBytes, X509Certificate2 signerCert, string algorithmScheme, HashAlgorithmName hashAlgorithm)
         {
-            try
-            {
-                byte[] canonicalizedFinalData = GetCanonicalizedInputBytes(payload, header);
+            byte[] canonicalizedFinalData = GetCanonicalizedInputBytes(payload, header);
 
-                if (algorithmScheme == "ES")
-                {
-                    ECDsa eCDsa = signerCert.GetECDsaPublicKey();
-                    return eCDsa.VerifyData(canonicalizedFinalData, signatureBytes, hashAlgorithm);
-                }
-                else if (algorithmScheme == "RS")
-                {
-                    RSA rsa = signerCert.GetRSAPublicKey();
-                    RSASignaturePadding rsaSignaturePadding = RSASignaturePadding.Pkcs1;
-                    return rsa.VerifyData(canonicalizedFinalData, signatureBytes, hashAlgorithm, rsaSignaturePadding);
-                }
-                else
-                {
-                    throw new TwinSignatureAlgorithmException("DSA Algorithm Type not supported");
-                }
-            }
-            catch (Exception ex)
+            if (algorithmScheme == "ES")
             {
-                throw ex;
+                ECDsa eCDsa = signerCert.GetECDsaPublicKey();
+                return eCDsa.VerifyData(canonicalizedFinalData, signatureBytes, hashAlgorithm);
+            }
+            else if (algorithmScheme == "RS")
+            {
+                RSA rsa = signerCert.GetRSAPublicKey();
+                RSASignaturePadding rsaSignaturePadding = RSASignaturePadding.Pkcs1;
+                return rsa.VerifyData(canonicalizedFinalData, signatureBytes, hashAlgorithm, rsaSignaturePadding);
+            }
+            else
+            {
+                throw new TwinSignatureAlgorithmException("DSA Algorithm Type not supported");
             }
         }
 

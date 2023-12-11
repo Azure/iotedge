@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\..\..\netstandardVersion.props" />
-  
+  <Import Project="..\..\..\netcoreappVersion.props" />
+
 </Project>

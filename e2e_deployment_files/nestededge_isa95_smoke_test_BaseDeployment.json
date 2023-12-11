@@ -40,7 +40,7 @@
                 "value": "<proxyAddress>"
               },
               "SslProtocols": {
-                "value": "tls1.2"
+                "value": "tls1.2,tls1.3"
               }
             },
             "status": "running",

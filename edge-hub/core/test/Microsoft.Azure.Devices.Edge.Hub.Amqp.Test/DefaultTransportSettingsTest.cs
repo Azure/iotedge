@@ -25,20 +25,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var credentialsProvider = Mock.Of<IClientCredentialsFactory>();
             var autheticator = Mock.Of<IAuthenticator>();
 
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(null, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(string.Empty, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings("    ", HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, null, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, string.Empty, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, "   ", Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, -1, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, 70000, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentNullException>(() => new DefaultTransportSettings(Scheme, HostName, Port, null, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentNullException>(() => new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, null, credentialsProvider, SslProtocols.Tls12));
-            Assert.Throws<ArgumentNullException>(() => new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, null, SslProtocols.Tls12));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(null, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(string.Empty, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings("    ", HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, null, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, string.Empty, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentException>(() => new DefaultTransportSettings(Scheme, "   ", Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, -1, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DefaultTransportSettings(Scheme, HostName, 70000, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentNullException>(() => new DefaultTransportSettings(Scheme, HostName, Port, null, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentNullException>(() => new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, null, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.Throws<ArgumentNullException>(() => new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, null, SslProtocols.Tls12 | SslProtocols.Tls13));
 
-            Assert.NotNull(new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
-            Assert.NotNull(new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, !clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12));
+            Assert.NotNull(new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
+            Assert.NotNull(new DefaultTransportSettings(Scheme, HostName, Port, tlsCertificate, !clientCertsAllowed, autheticator, credentialsProvider, SslProtocols.Tls12 | SslProtocols.Tls13));
         }
     }
 }

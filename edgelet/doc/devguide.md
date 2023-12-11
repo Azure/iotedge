@@ -153,7 +153,7 @@ In order to locally run aziot-edged, there is a dependency on running Azure IoT 
 3. Make directories and chown them to your user
     ```sh
     mkdir -p /run/aziot /var/lib/aziot/{keyd,certd,identityd,edged} /var/lib/iotedge /etc/aziot/{keyd,certd,identityd,tpmd,edged}/config.d
-    
+
     chown -hR $USER /run/aziot /var/lib/aziot/ /var/lib/iotedge /etc/aziot/
     ```
 4. Copy Provisioning File and Fill out the provisioning parameters. Example : For Provisioning via Symmetric Keys Use [these instructions](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu)
@@ -172,7 +172,6 @@ In order to locally run aziot-edged, there is a dependency on running Azure IoT 
     [listen]
     workload_uri = "unix:///var/run/iotedge/workload.sock"
     management_uri = "unix:///var/run/iotedge/management.sock"
-    min_tls_version = "tls1.0"
     ```
    This is because when running locally or without systemd, LISTEN_FDNAMES environment variable is not passed to aziot-edged and hence we explicitly need to specify the listen sockets.
 
@@ -210,11 +209,11 @@ cargo test --all
 
 ### Run Code Coverage Checks
 
-In order to run Code Coverage Checks locally do the following 
+In order to run Code Coverage Checks locally do the following
 ```sh
 
 #Run From the Edgelet Directory
-cd edgelet 
+cd edgelet
 
 #One Time Setup Only.
 cargo install cargo-tarpaulin
@@ -234,7 +233,7 @@ You should see an output like this
 || support-bundle/src/runtime_util.rs: 0/18
 || support-bundle/src/shell_util.rs: 0/117
 || support-bundle/src/support_bundle.rs: 0/50
-|| 
+||
 46.28% coverage, 2993/6467 lines covered
 ```
 
