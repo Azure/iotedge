@@ -152,7 +152,7 @@ sudo rm -rf $WDIR/private-key.pem || true
 sudo rm -f $SETTING_FILE || true
 
 #Download Secrets - Requires az login and proper subscription to be selected
-az keyvault secret download --vault-name $(kv.name.release) \
+az keyvault secret download --vault-name $KV_NAME_RELEASE \
     -n iotedge-pmc-client-auth-prod \
     -o tsv \
     --query 'value' \
