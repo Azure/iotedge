@@ -30,7 +30,7 @@ async fn main() {
         eprintln!("{}", chain.next().unwrap());
 
         for cause in chain {
-            eprintln!("\tcaused by: {}", cause);
+            eprintln!("\tcaused by: {cause}");
         }
 
         eprintln!();
@@ -45,6 +45,9 @@ async fn run() -> anyhow::Result<()> {
 
     let default_mgmt_uri = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI")
         .unwrap_or("unix:///var/run/iotedge/mgmt.sock");
+
+    let default_edged_path =
+        option_env!("PATH_TO_AZIOT_EDGED").unwrap_or("/usr/libexec/aziot/aziot-edged");
 
     let default_diagnostics_image_name = format!(
         "/azureiotedge-diagnostics:{}",
@@ -120,7 +123,7 @@ async fn run() -> anyhow::Result<()> {
                         .help("Sets the path of the aziot-edged binary.")
                         .num_args(1)
                         .value_parser(clap::value_parser!(PathBuf))
-                        .default_value("/usr/libexec/aziot/aziot-edged"),
+                        .default_value(default_edged_path),
                 )
                 .arg(
                     Arg::new("iothub-hostname")
@@ -498,7 +501,7 @@ async fn run() -> anyhow::Result<()> {
                     Ok(())
                 }
                 (command, _) => {
-                    eprintln!("Unknown config subcommand: {}", command);
+                    eprintln!("Unknown config subcommand: {command}");
                     std::process::exit(1);
                 }
             }
@@ -564,7 +567,7 @@ async fn run() -> anyhow::Result<()> {
             ),
             ("reprovision", _) => System::reprovision().await,
             (command, _) => {
-                eprintln!("Unknown system subcommand: {}", command);
+                eprintln!("Unknown system subcommand: {command}");
                 std::process::exit(1);
             }
         })
@@ -618,7 +621,7 @@ async fn run() -> anyhow::Result<()> {
             Ok(())
         }
         (command, _) => {
-            eprintln!("unknown command: {}", command);
+            eprintln!("unknown command: {command}");
             Ok(())
         }
     }

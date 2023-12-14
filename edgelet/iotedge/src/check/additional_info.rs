@@ -37,10 +37,10 @@ impl AdditionalInfo {
 /// ---------------------+---------------------+------------
 ///  CentOS 7            | centos              | 7
 ///  RedHat EL 8         | rhel                | 8.5
-///  Debian 10            | debian              | 10
-///  Debian 11            | debian              | 11
+///  Debian 10           | debian              | 10
+///  Debian 11           | debian              | 11
 ///  openSUSE Tumbleweed | opensuse-tumbleweed | 20190325
-///  Ubuntu 18.04        | ubuntu              | 18.04
+///  Ubuntu 22.04        | ubuntu              | 22.04
 /// ```
 ///
 /// Ref: <https://www.freedesktop.org/software/systemd/man/os-release.html>
@@ -192,6 +192,6 @@ fn pretty_kbyte(bytes: u64) -> String {
     #[allow(clippy::cast_precision_loss)]
     match Byte::from_unit(bytes as f64, ByteUnit::B) {
         Ok(b) => b.get_appropriate_unit(true).format(2),
-        Err(err) => format!("could not parse bytes value: {:?}", err),
+        Err(err) => format!("could not parse bytes value: {err:?}"),
     }
 }

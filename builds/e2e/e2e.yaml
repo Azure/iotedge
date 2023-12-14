@@ -12,11 +12,12 @@ resources:
       - release/*
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
   # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
-  # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
-  # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
-  # variations in Ubuntu 20.04. In these instances the platforms/environments are so similar that we
+  # environments that are very similar to other platforms/environments in our matrix, Ubuntu 20.04
+  # with the 'docker-ce' package vs. Ubuntu 20.04 with the 'iotedge-moby' package vs. the same
+  # variations in Ubuntu 22.04. In these instances the platforms/environments are so similar that we
   # don't reasonably expect to encounter differences--if we do, it would likely manifest during
   # installation, or in running a very basic test. We don't need to repeat the entire test suite.
   # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
@@ -72,52 +73,6 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
-
-################################################################################
-  - job: ubuntu_1804_msmoby
-################################################################################
-    displayName: Ubuntu 18.04 with iotedge-moby
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-
-    timeoutInMinutes: 90
-
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
-
-################################################################################
-  - job: ubuntu_1804_docker
-################################################################################
-
-    displayName: Ubuntu 18.04 with Docker (minimal)
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      minimal: true
-
-    steps:
-    - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -315,8 +270,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      artifactName: iotedged-ubuntu20.04-amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true

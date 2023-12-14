@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             // request-line   = method SP request-target SP HTTP-version CRLF
             builder.Append(request.Method);
             builder.Append(SP);
-            builder.Append(request.RequestUri.IsAbsoluteUri ? request.RequestUri.PathAndQuery : Uri.EscapeUriString(request.RequestUri.ToString()));
+            builder.Append(request.RequestUri.IsAbsoluteUri ? request.RequestUri.PathAndQuery : Uri.EscapeDataString(request.RequestUri.ToString()));
             builder.Append(SP);
             builder.Append($"{Protocol}{ProtocolVersionSeparator}");
             builder.Append(new Version(1, 1).ToString(2));

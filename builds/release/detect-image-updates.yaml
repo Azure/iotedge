@@ -19,8 +19,9 @@ resources:
     name: Azure/azure-iotedge
 
 variables:
-  NugetSecurityAnalysisWarningLevel: warn
+  Codeql.Enabled: false
   DisableDockerDetector: true
+  NugetSecurityAnalysisWarningLevel: warn
 
 pool:
   name: $(pool.linux.name)

@@ -46,57 +46,6 @@ pub(crate) struct Connect {
 pub(crate) struct Listen {
     pub(crate) management_uri: Url,
     pub(crate) workload_uri: Url,
-    #[serde(default = "Protocol::default")]
-    pub(crate) min_tls_version: Protocol,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub(crate) enum Protocol {
-    Tls10,
-    Tls11,
-    Tls12,
-}
-
-impl Default for Protocol {
-    fn default() -> Self {
-        Protocol::Tls10
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for Protocol {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct Visitor;
-
-        impl<'de> serde::de::Visitor<'de> for Visitor {
-            type Value = Protocol;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(formatter, r#"one of "tls1.0", "tls1.1", "tls1.2""#)
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                match &*v.to_lowercase() {
-                    "tls" | "tls1" | "tls10" | "tls1.0" | "tls1_0" | "tlsv10" => {
-                        Ok(Protocol::Tls10)
-                    }
-                    "tls11" | "tls1.1" | "tls1_1" | "tlsv11" => Ok(Protocol::Tls11),
-                    "tls12" | "tls1.2" | "tls1_2" | "tlsv12" => Ok(Protocol::Tls12),
-                    _ => Err(serde::de::Error::invalid_value(
-                        serde::de::Unexpected::Str(v),
-                        &self,
-                    )),
-                }
-            }
-        }
-
-        deserializer.deserialize_str(Visitor)
-    }
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -151,8 +100,7 @@ where
                 ))),
 
                 Err(err) => Err(serde::de::Error::custom(format!(
-                    "Could not parse value as a file path or a file:// URI: {}",
-                    err,
+                    "Could not parse value as a file path or a file:// URI: {err}"
                 ))),
             }
         }
@@ -167,17 +115,12 @@ pub(crate) struct WatchdogSettings {
     pub(crate) max_retries: RetryLimit,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Default)]
 #[serde(untagged)]
 pub(crate) enum RetryLimit {
+    #[default]
     Infinite,
     Num(u32),
-}
-
-impl Default for RetryLimit {
-    fn default() -> Self {
-        RetryLimit::Infinite
-    }
 }
 
 pub(crate) const DEFAULT_MGMT_SOCKET_UNIT: &str = "iotedge.mgmt.socket";

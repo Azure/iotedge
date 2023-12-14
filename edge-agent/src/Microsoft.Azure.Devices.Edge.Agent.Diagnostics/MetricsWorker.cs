@@ -162,12 +162,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                         return false;
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
                     // If unexpected error publishing metrics, delete stored ones to prevent storage buildup.
                     Log.LogError($"Unexpected error publishing metrics. Deleting stored metrics.");
                     await this.storage.RemoveAllReturnedMetricsAsync();
-                    throw ex;
+                    throw;
                 }
             }
         }

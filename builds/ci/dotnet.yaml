@@ -6,6 +6,7 @@ trigger:
       - release/*
 pr: none
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
   build.configuration: Release
   test.filter: Category=Integration&Category!=Stress

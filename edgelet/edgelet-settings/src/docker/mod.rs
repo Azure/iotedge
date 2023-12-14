@@ -207,20 +207,6 @@ mod tests {
     }
 
     #[test]
-    fn min_tls_version_default() {
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
-
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
-
-        let settings = Settings::new().unwrap();
-        assert_eq!(
-            settings.listen().min_tls_version(),
-            crate::uri::MinTlsVersion::Tls10
-        );
-    }
-
-    #[test]
     fn network_settings() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
@@ -251,7 +237,7 @@ mod tests {
                     .with_subnet("2001:4898:e0:3b1:1::/80".to_string());
                 let expected_ipam_config: Vec<network::IpamConfig> = vec![ipam_1, ipam_2];
 
-                for ipam_config in ipam_config.iter() {
+                for ipam_config in ipam_config {
                     assert!(expected_ipam_config.contains(ipam_config));
                 }
             }

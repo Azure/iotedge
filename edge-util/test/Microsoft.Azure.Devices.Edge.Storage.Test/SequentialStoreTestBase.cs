@@ -201,6 +201,36 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             }
         }
 
+        [Theory]
+        [MemberData(nameof(GetDefaultHeadOffset))]
+        public async Task GetCountFromOffsetBatch(Option<long> defaultHeadOffset)
+        {
+            // Arrange
+            string entityId = $"getCountFromOffset{Guid.NewGuid().ToString()}";
+            long startOffset = defaultHeadOffset.GetOrElse(0);
+            ISequentialStore<Item> sequentialStore = await this.GetSequentialStore(entityId, defaultHeadOffset);
+
+            // Try to get the batch, should return empty batch.
+            ulong count = await sequentialStore.GetCountFromOffset(startOffset);
+            Assert.Equal(0UL, count);
+
+            // Add 100 elements
+            for (int i = 0; i < 100; i++)
+            {
+                long offset = await sequentialStore.Append(new Item { Prop1 = i });
+                Assert.Equal(i + startOffset, offset);
+            }
+
+            count = await sequentialStore.GetCountFromOffset(startOffset);
+            Assert.Equal(100UL, count);
+
+            count = await sequentialStore.GetCountFromOffset(startOffset + 50);
+            Assert.Equal(50UL, count);
+
+            count = await sequentialStore.GetCountFromOffset(startOffset + 100);
+            Assert.Equal(0UL, count);
+        }
+
         protected abstract IEntityStore<byte[], TV> GetEntityStore<TV>(string entityName);
 
         public static IEnumerable<object[]> GetDefaultHeadOffset()

@@ -64,7 +64,7 @@ fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> 
     // finally build a new Vec<String>; we alloc new strings here
     merged_env
         .iter()
-        .map(|(key, value)| format!("{}={}", key, value))
+        .map(|(key, value)| format!("{key}={value}"))
         .collect()
 }
 
@@ -97,7 +97,7 @@ where
                     Error::RegistryOperation(RegistryOperation::PullImage(image.clone()))
                 })?;
                 let engine = base64::engine::general_purpose::URL_SAFE;
-                base64::Engine::encode(&engine, &json)
+                base64::Engine::encode(&engine, json)
             }
             None => String::new(),
         };
@@ -208,7 +208,7 @@ pub fn init_client(docker_url: &Url) -> anyhow::Result<DockerApiClient<Connector
         uri_composer: Box::new(|base_path, path| {
             // https://docs.rs/hyperlocal/0.6.0/src/hyperlocal/lib.rs.html#59
             let host = hex::encode(base_path.as_bytes());
-            let host_str = format!("unix://{}:0{}", host, path);
+            let host_str = format!("unix://{host}:0{path}");
             Ok(host_str.parse()?)
         }),
         ..Default::default()
@@ -225,7 +225,7 @@ async fn create_network_if_missing(
     let network_id = settings.moby_runtime().network().name();
     log::info!("Using runtime network id {}", network_id);
 
-    let filter = format!(r#"{{"name":{{"{}":true}}}}"#, network_id);
+    let filter = format!(r#"{{"name":{{"{network_id}":true}}}}"#);
     let existing_iotedge_networks = client
         .network_list(&filter)
         .await
@@ -935,7 +935,7 @@ fn drop_unsafe_privileges(
         // Don't drop caps that the user added explicitly
         if let Some(cap_add) = config.cap_add() {
             caps_to_drop.retain(|cap_drop| {
-                !(cap_add.contains(cap_drop) || cap_add.contains(&format!("CAP_{}", cap_drop)))
+                !(cap_add.contains(cap_drop) || cap_add.contains(&format!("CAP_{cap_drop}")))
             });
         }
         // Add customer specified cap_drops

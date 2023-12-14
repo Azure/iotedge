@@ -90,18 +90,6 @@ stages:
               arch: aarch64
               target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
-            Ubuntu1804-amd64:
-              os: ubuntu18.04
-              arch: amd64
-              target.iotedged: edgelet/target/release
-            Ubuntu1804-arm32v7:
-              os: ubuntu18.04
-              arch: arm32v7
-              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-            Ubuntu1804-aarch64:
-              os: ubuntu18.04
-              arch: aarch64
-              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
             Ubuntu2004-amd64:
               arch: amd64
               os: ubuntu20.04
@@ -215,7 +203,7 @@ stages:
                 -e "MARINER_ARCH=$MARINER_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
-                "ubuntu:20.04" \
+                "ubuntu:22.04" \
                 '/src/edgelet/build/linux/package-mariner.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging
@@ -316,7 +304,7 @@ stages:
                 -e "PACKAGE_VERSION=$packageVersion" \
                 -e "PACKAGE_RELEASE=1" \
                 --privileged \
-                "ubuntu:20.04" \
+                "ubuntu:22.04" \
                 '/src/ci/package.sh'
               popd
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
@@ -331,7 +319,7 @@ stages:
                 -e "MARINER_ARCH=$MARINER_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
-                "ubuntu:20.04" \
+                "ubuntu:22.04" \
                 '/src/edgelet/build/linux/package-mariner.sh'
           - task: CopyFiles@2
             displayName: Copy iotedged build logs to artifact staging

@@ -36,13 +36,13 @@ pub fn execute(
         let current_uid = nix::unistd::Uid::current();
         if current_uid.is_root() {
             let root_user = nix::unistd::User::from_uid(current_uid)
-                .map_err(|err| format!("could not query root user information: {}", err))?
+                .map_err(|err| format!("could not query root user information: {err}"))?
                 .ok_or("could not query root user information")?;
 
             root_user
         } else if cfg!(debug_assertions) {
             let current_user = nix::unistd::User::from_uid(nix::unistd::Uid::current())
-                .map_err(|err| format!("could not query current user information: {}", err))?
+                .map_err(|err| format!("could not query current user information: {err}"))?
                 .ok_or("could not query current user information")?;
             current_user
         } else {
@@ -85,7 +85,7 @@ To reconfigure IoT Edge, run:
     let config = execute_inner(old_config_file, old_master_encryption_key_path)?;
 
     common_config::write_file(new_config_file, config.as_bytes(), &root_user, 0o0600)
-        .map_err(|err| format!("{:?}", err))?;
+        .map_err(|err| format!("{err:?}"))?;
 
     println!("Azure IoT Edge has been configured successfully!");
     println!(
@@ -113,12 +113,11 @@ fn execute_inner(
         Err(err) => match err.kind() {
             std::io::ErrorKind::NotFound => {
                 return Err(format!(
-                    "there is no old config at {} available to migrate",
-                    old_config_file_display
+                    "there is no old config at {old_config_file_display} available to migrate"
                 )
                 .into())
             }
-            _ => return Err(format!("could not open {}: {}", old_config_file_display, err).into()),
+            _ => return Err(format!("could not open {old_config_file_display}: {err}").into()),
         },
     };
 
@@ -133,7 +132,7 @@ fn execute_inner(
         match old_config.and_then(config::Config::try_deserialize) {
             Ok(old_config) => old_config,
             Err(err) => {
-                return Err(format!("could not parse {}: {}", old_config_file_display, err).into())
+                return Err(format!("could not parse {old_config_file_display}: {err}").into())
             }
         }
     };
@@ -208,7 +207,7 @@ fn execute_inner(
                                         let identity_pk: aziot_keys_common::PreloadedKeyLocation =
                                         identity_pk.to_string()
                                         .parse()
-                                        .map_err(|err| format!("could not parse provisioning.authentication.identity_pk: {}", err))?;
+                                        .map_err(|err| format!("could not parse provisioning.authentication.identity_pk: {err}"))?;
                                         identity_pk
                                     },
                                 },
@@ -271,7 +270,7 @@ fn execute_inner(
                                     let identity_pk: aziot_keys_common::PreloadedKeyLocation =
                                         identity_pk.to_string()
                                         .parse()
-                                        .map_err(|err| format!("could not parse provisioning.attestation.identity_pk: {}", err))?;
+                                        .map_err(|err| format!("could not parse provisioning.attestation.identity_pk: {err}"))?;
                                     identity_pk
                                 },
                             },
@@ -484,27 +483,18 @@ fn execute_inner(
             let old_config::Listen {
                 management_uri,
                 workload_uri,
-                min_tls_version,
             } = listen;
 
             let management_uri = map_listen_uri(management_uri).map_err(|management_uri| {
-                format!(
-                    "unexpected value of listen.management_uri {}",
-                    management_uri
-                )
+                format!("unexpected value of listen.management_uri {management_uri}",)
             })?;
             let workload_uri = map_listen_uri(workload_uri).map_err(|workload_uri| {
-                format!("unexpected value of listen.workload_uri {}", workload_uri)
+                format!("unexpected value of listen.workload_uri {workload_uri}")
             })?;
 
             edgelet_settings::uri::Listen {
-                management_uri,
                 workload_uri,
-                min_tls_version: match min_tls_version {
-                    old_config::Protocol::Tls10 => edgelet_settings::uri::MinTlsVersion::Tls10,
-                    old_config::Protocol::Tls11 => edgelet_settings::uri::MinTlsVersion::Tls11,
-                    old_config::Protocol::Tls12 => edgelet_settings::uri::MinTlsVersion::Tls12,
-                },
+                management_uri,
             }
         },
 
@@ -606,7 +596,7 @@ fn execute_inner(
     };
 
     let config =
-        toml::to_string(&config).map_err(|err| format!("could not serialize config: {}", err))?;
+        toml::to_string(&config).map_err(|err| format!("could not serialize config: {err}"))?;
 
     Ok(config)
 }
@@ -627,7 +617,7 @@ mod tests {
 
             let test_name = case_directory.file_name().unwrap().to_str().unwrap();
 
-            println!(".\n.\n=========\n.\nRunning test {}", test_name);
+            println!(".\n.\n=========\n.\nRunning test {test_name}");
 
             let old_config_file = case_directory.join("old-config.yaml");
             if !old_config_file.exists() {

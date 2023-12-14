@@ -16,6 +16,7 @@ resources:
     name: Azure/azure-iotedge
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
 
 stages:
@@ -223,19 +224,11 @@ stages:
           -c Release
       displayName: Build
 
-    # The code sign task requires .NET Core 2.1.
-    # TODO: Investigate why we have to toggle primary installs on linux, when we didn't have to do this on windows (now removed).
-    - template: ../templates/force-dotnet21.yaml
-
-    # Code Sign
     - template: templates/dotnet-code-sign.yaml
       parameters:
         name: Sign Metrics Collector
         path: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
         pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
-
-    # We're done with code signing, so remove dotnet version override
-    - template: ../templates/restore-default-dotnet.yaml
 
     - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
       displayName: Generate SBOM

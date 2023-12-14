@@ -2,6 +2,7 @@ trigger: none
 pr: none
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
 
 resources:

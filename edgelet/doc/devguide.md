@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `redhat8`, `redhat9`, `debian10`, `debian11`, `ubuntu18.04`, `ubuntu20.04`, or `ubuntu22.04`.
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `redhat8`, `redhat9`, `debian10`, `debian11`, `ubuntu20.04`, or `ubuntu22.04`.
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -95,7 +95,7 @@ apt-get install \
     gcc g++ pkg-config \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
-#### Ubuntu 18.04, 20.04
+#### Ubuntu 20.04
 
 ```sh
 apt-get update
@@ -153,7 +153,7 @@ In order to locally run aziot-edged, there is a dependency on running Azure IoT 
 3. Make directories and chown them to your user
     ```sh
     mkdir -p /run/aziot /var/lib/aziot/{keyd,certd,identityd,edged} /var/lib/iotedge /etc/aziot/{keyd,certd,identityd,tpmd,edged}/config.d
-    
+
     chown -hR $USER /run/aziot /var/lib/aziot/ /var/lib/iotedge /etc/aziot/
     ```
 4. Copy Provisioning File and Fill out the provisioning parameters. Example : For Provisioning via Symmetric Keys Use [these instructions](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-provision-single-device-linux-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cubuntu)
@@ -172,7 +172,6 @@ In order to locally run aziot-edged, there is a dependency on running Azure IoT 
     [listen]
     workload_uri = "unix:///var/run/iotedge/workload.sock"
     management_uri = "unix:///var/run/iotedge/management.sock"
-    min_tls_version = "tls1.0"
     ```
    This is because when running locally or without systemd, LISTEN_FDNAMES environment variable is not passed to aziot-edged and hence we explicitly need to specify the listen sockets.
 
@@ -210,11 +209,11 @@ cargo test --all
 
 ### Run Code Coverage Checks
 
-In order to run Code Coverage Checks locally do the following 
+In order to run Code Coverage Checks locally do the following
 ```sh
 
 #Run From the Edgelet Directory
-cd edgelet 
+cd edgelet
 
 #One Time Setup Only.
 cargo install cargo-tarpaulin
@@ -234,7 +233,7 @@ You should see an output like this
 || support-bundle/src/runtime_util.rs: 0/18
 || support-bundle/src/shell_util.rs: 0/117
 || support-bundle/src/support_bundle.rs: 0/50
-|| 
+||
 46.28% coverage, 2993/6467 lines covered
 ```
 

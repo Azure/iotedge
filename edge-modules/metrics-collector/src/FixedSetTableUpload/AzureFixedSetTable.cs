@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 using (var handler = new HttpClientHandler())
                 {
                     handler.ClientCertificates.Add(cert);
-                    handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12;
+                    handler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
                     handler.PreAuthenticate = true;
                     handler.ClientCertificateOptions = ClientCertificateOption.Manual;
 

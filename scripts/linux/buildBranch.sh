@@ -46,7 +46,7 @@ print_help_and_exit()
 process_args()
 {
     local save_next_arg=0
-    for arg in "$@"; 
+    for arg in "$@";
     do
         if [ $save_next_arg -eq 1 ]; then
             CONFIGURATION="$arg"
@@ -164,7 +164,7 @@ publish_app()
 publish_lib()
 {
     local name="$1"
-    publish_project library "$name" netstandard2.0 $CONFIGURATION "$PUBLISH_FOLDER/$name"
+    publish_project library "$name" net6.0 $CONFIGURATION "$PUBLISH_FOLDER/$name"
 }
 
 publish_quickstart()
@@ -211,14 +211,14 @@ build_solution()
 {
     echo "Building IoT Edge solution"
     dotnet --version
-    
+
     build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION -o \"$BUILD_BINARIESDIRECTORY\""
-    
+
     if [ -n "$DOTNET_RUNTIME" ]; then
         build_command="$build_command -p:DotNet_Runtime=$DOTNET_RUNTIME"
     fi
     build_command="$build_command $ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
-        
+
     eval ${build_command}
     if [ $? -gt 0 ]; then
         RES=1

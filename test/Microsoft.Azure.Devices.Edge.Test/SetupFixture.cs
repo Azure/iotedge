@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
@@ -22,43 +21,32 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         IEdgeDaemon daemon;
 
-        private (string, string)[] configFiles =
-        {
-            ("/etc/aziot/keyd/config.toml", "aziotks"),
-            ("/etc/aziot/certd/config.toml", "aziotcs"),
-            ("/etc/aziot/identityd/config.toml", "aziotid"),
-            ("/etc/aziot/tpmd/config.toml", "aziottpm"),
-            ("/etc/aziot/edged/config.toml", "iotedge")
-        };
-
         [OneTimeSetUp]
         public async Task BeforeAllAsync()
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             CancellationToken token = cts.Token;
 
-            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(
-                Context.Current.InstallerPath,
-                token);
+            // Set up logging
+            LogEventLevel consoleLevel = Context.Current.Verbose
+                ? LogEventLevel.Verbose
+                : LogEventLevel.Information;
+            var loggerConfig = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.NUnit(consoleLevel);
+            Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
+            Log.Logger = loggerConfig.CreateLogger();
+
+            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(token);
 
             await Profiler.Run(
                 async () =>
                 {
-                    // Set up logging
-                    LogEventLevel consoleLevel = Context.Current.Verbose
-                        ? LogEventLevel.Verbose
-                        : LogEventLevel.Information;
-                    var loggerConfig = new LoggerConfiguration()
-                        .MinimumLevel.Verbose()
-                        .WriteTo.NUnit(consoleLevel);
-                    Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
-                    Log.Logger = loggerConfig.CreateLogger();
-
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
 
                     // Delete directories used by previous installs.
-                    string[] directories = { "/run/aziot", "/var/lib/aziot" };
+                    string[] directories = { "/run/aziot", "/var/lib/aziot", "/etc/aziot" };
 
                     foreach (string directory in directories)
                     {
@@ -79,20 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     Directory.CreateDirectory(FixedPaths.E2E_TEST_DIR);
 
-                    // Backup any existing service config files.
-                    foreach ((string file, string owner) in this.configFiles)
-                    {
-                        if (File.Exists(file))
-                        {
-                            File.Move(file, file + ".backup", true);
-                        }
-
-                        // Reset all config files to the default file.
-                        ResetConfigFile(file, file + ".default", owner);
-                    }
-
                     await this.daemon.ConfigureAsync(
-                        config =>
+                        async config =>
                         {
                             var msgBuilder = new StringBuilder();
                             var props = new List<object>();
@@ -125,9 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 props.Add(proxy.ToString());
                             });
 
-                            config.Update();
+                            await config.UpdateAsync(token);
 
-                            return Task.FromResult((msgBuilder.ToString(), props.ToArray()));
+                            return (msgBuilder.ToString(), props.ToArray());
                         },
                         token,
                         restart: false);
@@ -162,28 +138,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Log.CloseAndFlush();
             });
-
-        private static void ResetConfigFile(string configFile, string defaultFile, string owner)
-        {
-            // Reset the config file to the default.
-            Log.Verbose($"Resetting {configFile} to {defaultFile}");
-            File.Copy(defaultFile, configFile, true);
-            OsPlatform.Current.SetOwner(configFile, owner, "644");
-
-            // Clear existing principals.
-            string principalsPath = Path.Combine(
-                Path.GetDirectoryName(configFile),
-                "config.d");
-
-            if (Directory.Exists(principalsPath))
-            {
-                Directory.Delete(principalsPath, true);
-
-                Directory.CreateDirectory(principalsPath);
-                OsPlatform.Current.SetOwner(principalsPath, owner, "755");
-                Log.Verbose($"Cleared {principalsPath}");
-            }
-        }
     }
 
     // Generates a test CA cert, test CA key, and trust bundle.

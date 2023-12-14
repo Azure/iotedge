@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
     using System.ComponentModel;
-    using System.IO;
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
@@ -15,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public class EdgeDaemon : IEdgeDaemon
     {
         readonly PackageManagement packageManagement;
+        readonly bool isCentOs;
 
         public static async Task<EdgeDaemon> CreateAsync(CancellationToken token)
         {
@@ -78,12 +78,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }
 
-            return new EdgeDaemon(new PackageManagement(os, version, packageExtension));
+            return new EdgeDaemon(new PackageManagement(os, version, packageExtension), os == "centos");
         }
 
-        EdgeDaemon(PackageManagement packageManagement)
+        EdgeDaemon(PackageManagement packageManagement, bool isCentOs)
         {
             this.packageManagement = packageManagement;
+            this.isCentOs = isCentOs;
         }
 
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
@@ -121,15 +122,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     await this.InternalStopAsync(token);
 
-                    ConfigFilePaths paths = new ConfigFilePaths
+                    DaemonConfiguration conf = new DaemonConfiguration("/etc/aziot/config.toml");
+                    if (this.isCentOs)
                     {
-                        Keyd = "/etc/aziot/keyd/config.toml",
-                        Certd = "/etc/aziot/certd/config.toml",
-                        Identityd = "/etc/aziot/identityd/config.toml",
-                        Edged = "/etc/aziot/edged/config.toml"
-                    };
+                        // The recommended way to set up [listen] sockets in config.toml is to use the 'fd://...' URL
+                        // scheme, which will make use of systemd socket activation. CentOS 7 supports systemd but does
+                        // not support socket activation, so for that platform use the 'unix://...' scheme.
+                        conf.SetConnectSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
+                        conf.SetListenSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
+                    }
 
-                    DaemonConfiguration conf = new DaemonConfiguration(paths);
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
@@ -137,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     if (restart)
                     {
-                        await this.InternalStartAsync(token);
+                        await Process.RunAsync("iotedge", "config apply", token);
                     }
                 },
                 message.ToString(),

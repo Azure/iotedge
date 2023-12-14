@@ -323,7 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 Metrics.ReportTwinSignatureResult(false);
                 Events.ExtractHubTwinAndVerifyFailed(ex);
-                throw ex;
+                throw;
             }
         }
 
