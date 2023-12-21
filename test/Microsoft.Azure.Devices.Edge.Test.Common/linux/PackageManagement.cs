@@ -147,26 +147,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     },
                     _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
                 },
-                SupportedPackageExtension.Snap => new[]
-                {
-                    "sudo snap install --edge azure-iot-identity",
-                    "snap connect azure-iot-identity:hostname-control",
-                    "snap connect azure-iot-identity:log-observe",
-                    "snap connect azure-iot-identity:mount-observe",
-                    "snap connect azure-iot-identity:system-observe",
-                    "snap connect azure-iot-identity:tpm",
-                    "sudo snap install --edge azure-iot-edge",
-                    "snap connect azure-iot-edge:home",
-                    "snap connect azure-iot-edge:hostname-control",
-                    "snap connect azure-iot-edge:log-observe",
-                    "snap connect azure-iot-edge:mount-observe",
-                    "snap connect azure-iot-edge:system-observe",
-                    "snap connect azure-iot-edge:run-iotedge",
-                    "snap connect azure-iot-edge:aziotctl-executables azure-iot-identity:aziotctl-executables",
-                    "snap connect azure-iot-edge:identity-service azure-iot-identity:identity-service",
-                    "snap connect azure-iot-edge:docker-executables docker:docker-executables",
-                    "snap connect azure-iot-edge:docker docker:docker-daemon"
-                },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.PackageExtension}'"),
             };
         }
