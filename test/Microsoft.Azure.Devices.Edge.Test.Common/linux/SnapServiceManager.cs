@@ -33,8 +33,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             Directory.CreateDirectory(
                 "/var/snap/azure-iot-identity/current/shared/config/aziot/edged/config.d");
 
+            // For snaps, we don't currently add 'RestartPreventExitStatus=153' to the systemd service unit file like
+            // we do for other packages. This means that if the daemon is running but isn't yet configured, it will
+            // keep restarting until unit start rate limiting kicks in. To prevent this scenario, we'll call
+            // 'systemctl reset-failed' to flush the restart rate counter and allow the service to start.
+            await Process.RunAsync("systemctl", "reset-failed snap.azure-iot-edge.aziot-edged", token);
+
             await Process.RunAsync("azure-iot-edge.iotedge", "config apply", token);
-            await Process.RunAsync("snap", "restart azure-iot-identity.identityd azure-iot-edge.aziot-edged", token);
+
+            // `iotedge config apply` for snaps only restarts aziot-edged, not identityd, keyd, certd, or tpmd.
+            // The identity service components would eventually recognize that the config has been updated, but we
+            // can't wait that long, so we bring down aziot-edged while we force-restart the identity service.
+            await Process.RunAsync("snap", "stop azure-iot-edge.aziot-edged", token);
+            await Process.RunAsync("snap", "restart azure-iot-identity", token);
+            await Process.RunAsync("snap", "start azure-iot-edge.aziot-edged", token);
         }
 
         public string ConfigurationPath() =>
@@ -52,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             while (true)
             {
-                string[] output = await Process.RunAsync("snap", $"services azure-iot-edge.aziot-edged", token);
+                string[] output = await Process.RunAsync("snap", "services azure-iot-edge.aziot-edged", token);
                 string state = output.Last().Split(" ", StringSplitOptions.RemoveEmptyEntries)[2];
                 if (stateMatchesDesired(state))
                 {
