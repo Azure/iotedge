@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     parentDir.Create();
                 }
 
-                sourcePaths[i].CopyTo(destinationPaths[i].FullName);
+                sourcePaths[i].CopyTo(destinationPaths[i].FullName, overwrite: true);
                 switch (destinationPaths[i])
                 {
                     case var path when path.Name.EndsWith("key.pem"):
