@@ -183,6 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             };
 
             leaf = await iotHub.CreateDeviceIdentityAsync(leaf, token);
+            string destPath = Path.Combine(FixedPaths.E2E_TEST_DIR, leafDeviceId);
 
             return await DeleteIdentityIfFailedAsync(
                 leaf,
@@ -190,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token,
                 async () =>
                 {
-                    IdCertificates certFiles = await ca.GenerateIdentityCertificatesAsync(leafDeviceId, token);
+                    IdCertificates certFiles = await ca.GenerateIdentityCertificatesAsync(leafDeviceId, destPath, token);
 
                     (X509Certificate2 leafCert, IEnumerable<X509Certificate2> trustedCerts) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
@@ -222,8 +223,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token,
             ClientOptions options)
         {
-            IdCertificates primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", token);
-            IdCertificates secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", token);
+            string destPath = Path.Combine(FixedPaths.E2E_TEST_DIR, leafDeviceId);
+            IdCertificates primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", destPath, token);
+            IdCertificates secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", destPath, token);
 
             string[] streams = await Task.WhenAll(
                 new[]

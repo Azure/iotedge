@@ -72,36 +72,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.ParentHostname,
                 Context.Current.Hostname);
         }
-
-        public async Task SetUpCertificatesAsync(CancellationToken token, DateTime startTime, string deviceId)
-        {
-            (string, string, string) rootCa =
-                Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing DPS ID scope (check rootCaPrivateKeyPath in context.json)"));
-            string caCertScriptPath =
-                Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
-            string certId = Context.Current.Hostname.GetOrElse(deviceId);
-
-            try
-            {
-                this.ca = await CertificateAuthority.CreateAsync(
-                    certId,
-                    rootCa,
-                    caCertScriptPath,
-                    token);
-
-                CaCertificates caCert = await this.ca.GenerateCaCertificatesAsync(certId, token);
-                this.ca.EdgeCertificates = caCert;
-            }
-
-            // ReSharper disable once RedundantCatchClause
-            catch
-            {
-                throw;
-            }
-            finally
-            {
-                await NUnitLogs.CollectAsync(startTime, this.cli, token);
-            }
-        }
     }
 }

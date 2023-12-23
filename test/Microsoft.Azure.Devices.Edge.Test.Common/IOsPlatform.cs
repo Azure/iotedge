@@ -19,14 +19,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // After calling this function, the following files will be available under {scriptPath}:
         //  certs/iot-device-{deviceId}-full-chain.cert.pem
         //  private/iot-device-{deviceId}.key.pem
-        Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, string scriptPath, CancellationToken token);
+        Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, string scriptPath, string destPath, CancellationToken token);
 
         // After calling this function, the following files will be available under {scriptPath}:
         //  certs/iot-edge-device-{deviceId}-full-chain.cert.pem
         //  private/iot-edge-device-{deviceId}.key.pem
-        Task<CaCertificates> GenerateCaCertificatesAsync(string deviceId, string scriptPath, CancellationToken token);
-
-        CaCertificates GetEdgeQuickstartCertificates(string deviceId);
+        Task<CaCertificates> GenerateCaCertificatesAsync(string deviceId, string scriptPath, string destPath, CancellationToken token);
 
         void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings);
 

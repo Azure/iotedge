@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         await this.ConfigureDaemonAsync(
                             async config =>
                             {
-                                testCerts.AddCertsToConfig(config);
+                                config.SetCertificates(testCerts.CaCertificates);
                                 config.SetDeviceManualX509(
                                     this.IotHub.Hostname,
                                     Context.Current.ParentHostname,
@@ -81,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 () => new InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
             string idScope = Context.Current.DpsIdScope.Expect(
                 () => new InvalidOperationException("Missing DPS ID scope(check dpsIdScope in context.json)"));
+            string destPath = Path.Combine(FixedPaths.E2E_TEST_DIR, deviceId);
 
             CertificateAuthority ca = await CertificateAuthority.CreateAsync(
                 deviceId,
@@ -88,29 +89,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 caCertScriptPath,
                 token);
 
-            var identityCerts = await ca.GenerateIdentityCertificatesAsync(deviceId, token);
+            var identityCerts = await ca.GenerateIdentityCertificatesAsync(deviceId, destPath, token);
+            X509Certificate2 deviceCert = new X509Certificate2(identityCerts.CertificatePath);
 
-            // Generated credentials need to be copied out of the script path because future runs
-            // of the script will overwrite them.
-            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, deviceId);
-            string certPath = Path.Combine(path, "device_id_cert.pem");
-            string keyPath = Path.Combine(path, "device_id_cert_key.pem");
-
-            Directory.CreateDirectory(path);
-            File.Copy(identityCerts.CertificatePath, certPath);
-            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
-            File.Copy(identityCerts.KeyPath, keyPath);
-            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
-
-            X509Certificate2 deviceCert = new X509Certificate2(certPath);
-
-            return (new X509Thumbprint()
-            {
-                PrimaryThumbprint = deviceCert.Thumbprint,
-                SecondaryThumbprint = deviceCert.Thumbprint
-            },
-            certPath,
-            keyPath);
+            return (
+                new X509Thumbprint()
+                {
+                    PrimaryThumbprint = deviceCert.Thumbprint,
+                    SecondaryThumbprint = deviceCert.Thumbprint
+                },
+                identityCerts.CertificatePath,
+                identityCerts.KeyPath);
         }
     }
 }

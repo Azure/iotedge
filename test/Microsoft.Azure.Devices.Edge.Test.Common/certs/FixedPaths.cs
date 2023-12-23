@@ -26,14 +26,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             public const string Cert = "certs/azure-iot-test-only.root.ca.cert.pem";
             public const string Key = "private/azure-iot-test-only.root.ca.key.pem";
         }
-
-        public sealed class QuickStartCaCert
-        {
-            private static string BasePath(string deviceId) => Path.Combine(E2E_TEST_DIR, deviceId);
-
-            public static string Cert(string deviceId) => Path.Combine(BasePath(deviceId), "device_ca_cert.pem");
-            public static string Key(string deviceId) => Path.Combine(BasePath(deviceId), "device_ca_cert_key.pem");
-            public static string TrustCert(string deviceId) => Path.Combine(BasePath(deviceId), "trust_bundle.pem");
-        }
     }
 }

@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.daemon.ConfigureAsync(
                 async config =>
                 {
-                    testCerts.AddCertsToConfig(config);
+                    config.SetCertificates(testCerts.CaCertificates);
                     config.SetDpsSymmetricKey(idScope, registrationId, deviceKey);
                     await config.UpdateAsync(token);
                     return ("with DPS symmetric key attestation for '{Identity}'", new object[] { registrationId });
@@ -87,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string registrationId = DeviceId.Current.Generate();
 
             CancellationToken token = this.TestToken;
+            string destPath = Path.Combine(FixedPaths.E2E_TEST_DIR, registrationId);
 
             CertificateAuthority ca = await CertificateAuthority.CreateAsync(
                 registrationId,
@@ -94,26 +95,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 caCertScriptPath,
                 token);
 
-            IdCertificates idCert = await ca.GenerateIdentityCertificatesAsync(registrationId, token);
+            IdCertificates idCert = await ca.GenerateIdentityCertificatesAsync(registrationId, destPath, token);
             (TestCertificates testCerts, _) = await TestCertificates.GenerateCertsAsync(registrationId, token);
-
-            // Generated credentials need to be copied out of the script path because future runs
-            // of the script will overwrite them.
-            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, registrationId);
-            string certPath = Path.Combine(path, "device_id_cert.pem");
-            string keyPath = Path.Combine(path, "device_id_cert_key.pem");
-
-            Directory.CreateDirectory(path);
-            File.Copy(idCert.CertificatePath, certPath);
-            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
-            File.Copy(idCert.KeyPath, keyPath);
-            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
 
             await this.daemon.ConfigureAsync(
                 async config =>
                 {
-                    testCerts.AddCertsToConfig(config);
-                    config.SetDpsX509(idScope, certPath, keyPath);
+                    config.SetCertificates(testCerts.CaCertificates);
+                    config.SetDpsX509(idScope, idCert.CertificatePath, idCert.KeyPath);
                     await config.UpdateAsync(token);
                     return ("with DPS X509 attestation for '{Identity}'", new object[] { registrationId });
                 },

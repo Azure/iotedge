@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
@@ -48,8 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     await this.ConfigureDaemonAsync(
                         async config =>
                         {
-                            testCerts.AddCertsToConfig(config);
-
+                            config.SetCertificates(testCerts.CaCertificates);
                             config.SetManualSasProvisioning(
                                 this.IotHub.Hostname,
                                 Context.Current.ParentHostname,
