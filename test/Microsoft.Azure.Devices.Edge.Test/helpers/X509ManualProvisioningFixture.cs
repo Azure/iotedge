@@ -28,8 +28,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         string deviceId = DeviceId.Current.Generate();
                         string certsPath = this.daemon.GetCertificatesPath();
 
-                        (X509Thumbprint thumbprint, string certPath, string keyPath) =
-                            await this.CreateIdentityCertAsync(deviceId, certsPath, token);
+                        var idCerts = await TestCertificates.GenerateIdentityCertificatesAsync(
+                            deviceId,
+                            certsPath,
+                            token);
+                        var deviceCert = idCerts.Certificate;
+                        var thumbprint = new X509Thumbprint()
+                        {
+                            PrimaryThumbprint = deviceCert.Thumbprint,
+                            SecondaryThumbprint = deviceCert.Thumbprint
+                        };
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
@@ -50,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.OptimizeForPerformance,
                             this.IotHub);
 
-                        (CaCertificates certs, this.ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
+                        (var certs, this.ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
                             device.Id,
                             certsPath,
                             token);
@@ -63,8 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                     this.IotHub.Hostname,
                                     Context.Current.ParentHostname,
                                     device.Id,
-                                    certPath,
-                                    keyPath);
+                                    idCerts.CertificatePath,
+                                    idCerts.KeyPath);
                                 await config.UpdateAsync(token);
                                 return ("with x509 certificate for device '{Identity}'", new object[] { device.Id });
                             },
@@ -74,34 +82,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     }
                 },
                 "Completed edge manual provisioning with self-signed certificate");
-        }
-
-        async Task<(X509Thumbprint, string, string)> CreateIdentityCertAsync(string deviceId, string destPath, CancellationToken token)
-        {
-            (string, string, string) rootCa =
-            Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing DPS ID scope (check rootCaPrivateKeyPath in context.json)"));
-            string caCertScriptPath = Context.Current.CaCertScriptPath.Expect(
-                () => new InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
-            string idScope = Context.Current.DpsIdScope.Expect(
-                () => new InvalidOperationException("Missing DPS ID scope(check dpsIdScope in context.json)"));
-
-            CertificateAuthority ca = await CertificateAuthority.CreateAsync(
-                deviceId,
-                rootCa,
-                caCertScriptPath,
-                token);
-
-            var identityCerts = await ca.GenerateIdentityCertificatesAsync(deviceId, destPath, token);
-            var deviceCert = identityCerts.Certificate;
-
-            return (
-                new X509Thumbprint()
-                {
-                    PrimaryThumbprint = deviceCert.Thumbprint,
-                    SecondaryThumbprint = deviceCert.Thumbprint
-                },
-                identityCerts.CertificatePath,
-                identityCerts.KeyPath);
         }
     }
 }

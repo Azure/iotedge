@@ -10,6 +10,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     // TODO: Remove this once iotedge init is finished?
     public class TestCertificates
     {
+        public static async Task<IdCertificates> GenerateIdentityCertificatesAsync(
+            string deviceId,
+            string destPath,
+            CancellationToken token)
+        {
+            string scriptPath = Context.Current.CaCertScriptPath.Expect(
+                () => new System.InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
+            (string, string, string) rootCa = Context.Current.RootCaKeys.Expect(
+                () => new System.InvalidOperationException("Missing root CA"));
+
+            CertificateAuthority ca = await CertificateAuthority.CreateAsync(deviceId, rootCa, scriptPath, token);
+            return await ca.GenerateIdentityCertificatesAsync(deviceId, destPath, token);
+        }
+
         public static async Task<(CaCertificates, CertificateAuthority ca)> GenerateEdgeCaCertsAsync(
             string deviceId,
             string destPath,

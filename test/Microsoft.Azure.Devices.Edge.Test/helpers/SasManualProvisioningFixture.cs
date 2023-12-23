@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 // This is a temporary solution see ticket: 9288683
                 if (!Context.Current.ISA95Tag)
                 {
-                    (CaCertificates certs, this.ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
+                    (var certs, this.ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
                         this.device.Id,
                         this.daemon.GetCertificatesPath(),
                         token);

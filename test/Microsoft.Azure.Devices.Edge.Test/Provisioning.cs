@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.TestToken;
 
-            (CaCertificates certs, _) = await TestCertificates.GenerateEdgeCaCertsAsync(
+            (var certs, _) = await TestCertificates.GenerateEdgeCaCertsAsync(
                 deviceId,
                 this.daemon.GetCertificatesPath(),
                 token);
@@ -84,29 +84,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Category("FlakyOnArm")]
         public async Task DpsX509()
         {
-            (string, string, string) rootCa =
-                        Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing DPS ID scope (check rootCaPrivateKeyPath in context.json)"));
-            string caCertScriptPath =
-                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
-            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
+            string idScope = Context.Current.DpsIdScope.Expect(() =>
+                new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
             string deviceId = DeviceId.Current.Generate();
 
             CancellationToken token = this.TestToken;
-            CertificateAuthority ca = await CertificateAuthority.CreateAsync(
-                deviceId,
-                rootCa,
-                caCertScriptPath,
-                token);
 
             var certsPath = this.daemon.GetCertificatesPath();
-            IdCertificates idCert = await ca.GenerateIdentityCertificatesAsync(deviceId, certsPath, token);
-            (CaCertificates edgeCaCerts, _) = await TestCertificates.GenerateEdgeCaCertsAsync(deviceId, certsPath, token);
+            var idCerts = await TestCertificates.GenerateIdentityCertificatesAsync(deviceId, certsPath, token);
+            (var edgeCaCerts, _) = await TestCertificates.GenerateEdgeCaCertsAsync(deviceId, certsPath, token);
 
             await this.daemon.ConfigureAsync(
                 async config =>
                 {
                     config.SetCertificates(edgeCaCerts);
-                    config.SetDpsX509(idScope, idCert.CertificatePath, idCert.KeyPath);
+                    config.SetDpsX509(idScope, idCerts.CertificatePath, idCerts.KeyPath);
                     await config.UpdateAsync(token);
                     return ("with DPS X509 attestation for '{Identity}'", new object[] { deviceId });
                 },

@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token,
                 async () =>
                 {
-                    IdCertificates certFiles = await ca.GenerateIdentityCertificatesAsync(leafDeviceId, certsPath, token);
+                    var certFiles = await ca.GenerateIdentityCertificatesAsync(leafDeviceId, certsPath, token);
 
                     (X509Certificate2 leafCert, IEnumerable<X509Certificate2> trustedCerts) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
@@ -227,8 +227,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token,
             ClientOptions options)
         {
-            IdCertificates primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", certsPath, token);
-            IdCertificates secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", certsPath, token);
+            var primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", certsPath, token);
+            var secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", certsPath, token);
 
             string[] streams = await Task.WhenAll(
                 new[]
