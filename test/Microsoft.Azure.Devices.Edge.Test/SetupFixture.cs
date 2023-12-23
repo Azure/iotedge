@@ -101,13 +101,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 props.Add(proxy.ToString());
                             });
 
-                            // TODO: Only set these values for snaps
-                            config.SetDeviceHomedir("/var/snap/azure-iot-edge/common/var/lib/aziot/edged");
-                            config.SetMobyRuntimeUri("unix:///var/snap/azure-iot-edge/common/docker-proxy.sock");
-                            config.SetConnectSockets("unix:///var/run/iotedge/workload.sock", "unix:///var/run/iotedge/mgmt.sock");
-                            config.SetListenSockets("unix:///var/run/iotedge/workload.sock", "unix:///var/run/iotedge/mgmt.sock");
-                            config.AddAgentUserId("0");
-
                             await config.UpdateAsync(token);
 
                             return (msgBuilder.ToString(), props.ToArray());

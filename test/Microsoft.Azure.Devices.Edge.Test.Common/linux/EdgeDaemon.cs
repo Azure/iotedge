@@ -154,6 +154,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         conf.SetListenSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
                     }
 
+                    if (this.packageManagement.PackageExtension == SupportedPackageExtension.Snap)
+                    {
+                        conf.SetDeviceHomedir("/var/snap/azure-iot-edge/common/var/lib/aziot/edged");
+                        conf.SetMobyRuntimeUri("unix:///var/snap/azure-iot-edge/common/docker-proxy.sock");
+                        // conf.SetConnectSockets("unix:///var/run/iotedge/workload.sock", "unix:///var/run/iotedge/mgmt.sock");
+                        // conf.SetListenSockets("unix:///var/run/iotedge/workload.sock", "unix:///var/run/iotedge/mgmt.sock");
+                        conf.AddAgentUserId("0");
+                    }
+
                     (string msg, object[] props) = await config(conf);
                     message += $" {msg}";
                     properties = properties.Concat(props).ToArray();
