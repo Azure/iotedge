@@ -10,13 +10,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         Task InstallAsync(Option<Uri> proxy, CancellationToken token);
 
-        Task ConfigureAsync(Func<DaemonConfiguration, Task<(string message, object[] properties)>> config, CancellationToken token, bool restart = true);
+        Task ConfigureAsync(
+            Func<DaemonConfiguration, Task<(string message, object[] properties)>> config,
+            CancellationToken token,
+            bool restart = true);
 
         Task StartAsync(CancellationToken token);
 
         Task StopAsync(CancellationToken token);
 
         Task UninstallAsync(CancellationToken token);
+
+        string GetCertificatesPath();
 
         IotedgeCli GetCli();
     }

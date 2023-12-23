@@ -43,13 +43,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 // This is a temporary solution see ticket: 9288683
                 if (!Context.Current.ISA95Tag)
                 {
-                    TestCertificates testCerts;
-                    (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(this.device.Id, token);
+                    (CaCertificates certs, this.ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
+                        this.device.Id,
+                        this.daemon.GetCertificatesPath(),
+                        token);
 
                     await this.ConfigureDaemonAsync(
                         async config =>
                         {
-                            config.SetCertificates(testCerts.CaCertificates);
+                            config.SetCertificates(certs);
                             config.SetManualSasProvisioning(
                                 this.IotHub.Hostname,
                                 Context.Current.ParentHostname,

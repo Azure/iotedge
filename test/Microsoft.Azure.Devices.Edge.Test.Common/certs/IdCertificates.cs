@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 {
     using System.IO;
+    using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class IdCertificates
@@ -15,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public string CertificatePath { get; protected set; }
         public string KeyPath { get; protected set; }
+
+        public X509Certificate2 Certificate => new X509Certificate2(this.CertificatePath);
 
         public IdCertificates(string deviceId, string scriptPath)
         {
