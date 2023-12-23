@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
             // Need to deploy edgeHub or one check will fail
-            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, Context.Current.NestedEdge);
 
             string diagnosticImageName = Context.Current
                 .DiagnosticsImage.Expect(() => new ArgumentException("Missing diagnostic image"));
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             void OnStderr(string e) => Log.Verbose(e);
 
-            await Process.RunAsync("iotedge", args, OnStdout, OnStderr, token);
+            await this.cli.RunAsync(args, OnStdout, OnStderr, token);
 
             Assert.AreEqual(string.Empty, errors_number);
         }

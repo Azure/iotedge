@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Threading;
@@ -29,6 +30,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
+        static async Task<string[]> RunAsync(ProcessStartInfo processStartInfo, CancellationToken token, bool logVerbose)
+        {
+            Action<string> MakeOutputHandler(bool logVerbose)
+            {
+                return logVerbose ? (string s) => Log.Verbose(s) : (string o) => { };
+            }
+
+            Action<string> onStdout = MakeOutputHandler(logVerbose);
+            Action<string> onStderr = MakeOutputHandler(logVerbose);
+
+            using (ProcessResults result = await ProcessEx.RunAsync(processStartInfo, onStdout, onStderr, token))
+            {
+                if (result.ExitCode != 0)
+                {
+                    throw new Win32Exception(result.ExitCode);
+                }
+
+                return result.StandardOutput;
+            }
+        }
+
         public static async Task<string[]> RunAsync(string name, string args, CancellationToken token, bool logVerbose = true)
         {
             var info = new ProcessStartInfo
@@ -43,23 +65,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Log.Verbose($"RunAsync: {name} {args}");
             }
 
-            Action<string> MakeOutputHandler(bool logVerbose)
+            return await RunAsync(info, token, logVerbose);
+        }
+
+        public static async Task<string[]> RunAsync(string name, ICollection<string> args, CancellationToken token, bool logVerbose = true)
+        {
+            var info = new ProcessStartInfo
             {
-                return logVerbose ? (string s) => Log.Verbose(s) : (string o) => { };
+                FileName = name,
+                RedirectStandardInput = true,
+            };
+
+            foreach (var arg in args)
+            {
+                info.ArgumentList.Add(arg);
             }
 
-            Action<string> onStdout = MakeOutputHandler(logVerbose);
-            Action<string> onStderr = MakeOutputHandler(logVerbose);
-
-            using (ProcessResults result = await ProcessEx.RunAsync(info, onStdout, onStderr, token))
+            if (logVerbose)
             {
-                if (result.ExitCode != 0)
-                {
-                    throw new Win32Exception(result.ExitCode);
-                }
-
-                return result.StandardOutput;
+                Log.Verbose($"RunAsync: {name} {string.Join(' ', args)}");
             }
+
+            return await RunAsync(info, token, logVerbose);
         }
     }
 }

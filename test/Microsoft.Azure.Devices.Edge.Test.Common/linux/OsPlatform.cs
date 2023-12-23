@@ -32,21 +32,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return daemonLog;
         }
 
-        public async Task<IEdgeDaemon> CreateEdgeDaemonAsync(CancellationToken token) =>
-            await EdgeDaemon.CreateAsync(token);
+        public async Task<IEdgeDaemon> CreateEdgeDaemonAsync(Option<string> packagesPath, CancellationToken token) =>
+            await EdgeDaemon.CreateAsync(packagesPath, token);
 
-        public async Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<IdCertificates> GenerateIdentityCertificatesAsync(string uniqueId, string scriptPath, string destPath, CancellationToken token)
         {
-            var command = BuildCertCommand($"create_device_certificate '{deviceId}'", scriptPath);
+            var command = BuildCertCommand($"create_device_certificate '{uniqueId}'", scriptPath);
             await this.RunScriptAsync(("bash", command), token);
-            return new IdCertificates(deviceId, scriptPath);
+            return IdCertificates.CopyTo(uniqueId, scriptPath, destPath);
         }
 
-        public async Task<CaCertificates> GenerateCaCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<CaCertificates> GenerateCaCertificatesAsync(string deviceId, string scriptPath, string destPath, CancellationToken token)
         {
             var command = BuildCertCommand($"create_edge_device_certificate '{deviceId}'", scriptPath);
             await this.RunScriptAsync(("bash", command), token);
-            return new CaCertificates(deviceId, scriptPath);
+            return CaCertificates.CopyTo(deviceId, scriptPath, destPath);
         }
 
         public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
