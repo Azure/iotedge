@@ -73,11 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             // environment because we don't need revocation.
             chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-#if NETSTANDARD2_0
-            X509Certificate input = certificate;
-#else
             byte[] input = certificate.Export(X509ContentType.Cert);
-#endif
+
             if (!chain.Build(new X509Certificate2(input)))
             {
                 Log.Verbose("Unable to build the chain using the expected root certificate.");

@@ -48,7 +48,7 @@ Provide a detailed set of steps to reproduce the bug.
 </details>
 
 ### Device Information
-* Host OS [e.g. Ubuntu 18.04, Windows Server IoT 2019]: 
+* Host OS [e.g. Ubuntu 22.04, Windows Server IoT 2019]: 
 * Architecture [e.g. amd64, arm32, arm64]: 
 * Container OS [e.g. Linux containers, Windows containers]: 
 

@@ -28,7 +28,6 @@ DOCKER_IMAGENAME=
 DOCKER_NAMESPACE='microsoft'
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 SCRIPT_NAME=$(basename "$0")
-SOURCE_MAP=
 
 ###############################################################################
 # Check format and content of the --platforms argument
@@ -74,7 +73,6 @@ usage() {
     echo " -a, --app            App to build image for (e.g. Microsoft.Azure.Devices.Edge.Agent.Service)"
     echo " -b, --bin            Path to the application binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
     echo " -h, --help           Print this message and exit"
-    echo " -m, --source-map     Path to the JSON file that maps Dockerfile image sources to their replacements. Assumes the tool 'gnarly' is in the PATH"
     echo " -n, --name           Image name (e.g. azureiotedge-agent)"
     echo " -p, --platforms      Platforms to build. Default is '$PLATFORMS'"
     echo " -r, --registry       Docker registry required to build, tag and run the module"
@@ -100,19 +98,16 @@ process_args() {
             BUILD_BINARIESDIRECTORY="$arg"
             save_next_arg=0
         elif [[ ${save_next_arg} -eq 3 ]]; then
-            SOURCE_MAP="$arg"
-            save_next_arg=0
-        elif [[ ${save_next_arg} -eq 4 ]]; then
             DOCKER_IMAGENAME="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 5 ]]; then
+        elif [[ ${save_next_arg} -eq 4 ]]; then
             PLATFORMS="$arg"
             check_platforms
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 6 ]]; then
+        elif [[ ${save_next_arg} -eq 5 ]]; then
             DOCKER_REGISTRY="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 7 ]]; then
+        elif [[ ${save_next_arg} -eq 6 ]]; then
             DOCKER_IMAGEVERSION="$arg"
             save_next_arg=0
         else
@@ -120,11 +115,10 @@ process_args() {
             "-a" | "--app") save_next_arg=1 ;;
             "-b" | "--bin") save_next_arg=2 ;;
             "-h" | "--help") usage ;;
-            "-m" | "--source-map") save_next_arg=3 ;;
-            "-n" | "--name") save_next_arg=4 ;;
-            "-p" | "--platforms") save_next_arg=5 ;;
-            "-r" | "--registry") save_next_arg=6 ;;
-            "-v" | "--version") save_next_arg=7 ;;
+            "-n" | "--name") save_next_arg=3 ;;
+            "-p" | "--platforms") save_next_arg=4 ;;
+            "-r" | "--registry") save_next_arg=5 ;;
+            "-v" | "--version") save_next_arg=6 ;;
             *) echo "Unknown argument '$arg'"; usage ;;
             esac
         fi
@@ -151,16 +145,6 @@ process_args() {
 
     if [[ -z "$APP" ]]; then
         echo 'The --app parameter is required'
-        print_help_and_exit
-    fi
-
-    if [[ -n "$SOURCE_MAP" ]] && [[ ! -f "$SOURCE_MAP" ]]; then
-        echo 'File specified by --source-map not found'
-        print_help_and_exit
-    fi
-
-    if [[ -n "$SOURCE_MAP" ]] && ! command -v gnarly > /dev/null; then
-        echo '--source-map specified, but required tool 'gnarly' not found in PATH'
         print_help_and_exit
     fi
 
@@ -207,7 +191,6 @@ process_args() {
 ###############################################################################
 process_args $@
 
-BUILD_CONTEXT=
 DOCKERFILE="$APP_BINARIESDIRECTORY/docker/linux/Dockerfile"
 IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION"
 
@@ -228,18 +211,12 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
         CONVERTED_PLATFORM="$(convert_platform $PLATFORM)"
         PLAT_IMAGE="$IMAGE-$CONVERTED_PLATFORM"
 
-        if [[ -n "$SOURCE_MAP" ]]; then
-            BUILD_CONTEXT=$(gnarly --mod-config $SOURCE_MAP \
-                "$APP_BINARIESDIRECTORY/docker/${CONVERTED_PLATFORM/-/\/}/Dockerfile")
-        fi
-
         docker buildx build \
             --no-cache \
             --platform "$PLATFORM" \
             --file "$APP_BINARIESDIRECTORY/docker/${CONVERTED_PLATFORM/-/\/}/Dockerfile" \
             --output=type=registry,name=$PLAT_IMAGE \
             --build-arg EXE_DIR=. \
-            $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
             $APP_BINARIESDIRECTORY
 
         PLAT_IMAGES+=( $PLAT_IMAGE )
@@ -257,10 +234,6 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     TAG="$DOCKER_IMAGEVERSION" \
     copy_manifests
 else
-    if [[ -n "$SOURCE_MAP" ]]; then
-        BUILD_CONTEXT=$(gnarly --mod-config $SOURCE_MAP $DOCKERFILE)
-    fi
-
     # First, build the complete multi-platform image
     docker buildx build \
         --no-cache \
@@ -268,7 +241,6 @@ else
         --file "$DOCKERFILE" \
         --output=type=registry,name=$IMAGE \
         --build-arg EXE_DIR=. \
-        $([ -z "$BUILD_CONTEXT" ] || echo $BUILD_CONTEXT) \
         "$APP_BINARIESDIRECTORY"
 
     # Next, tag each platform-specific image

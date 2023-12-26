@@ -17,6 +17,7 @@ schedules:
   always: true
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
 
 stages:

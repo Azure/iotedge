@@ -94,7 +94,7 @@ function Create-Azure-VM-For-E2E-Test
             --authentication-type ssh `
             --admin-username "$AdminUsername" `
             --ssh-key-values "$VmPubKey" `
-            --image 'Canonical:UbuntuServer:18.04-LTS:latest' `
+            --image 'Canonical:0001-com-ubuntu-server-jammy:22_04-lts:latest' `
             --size 'Standard_D4s_v3' `
             --location "$VmRegion" `
             --subnet "$SubnetId"

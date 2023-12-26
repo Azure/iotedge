@@ -136,19 +136,11 @@ namespace LeafDeviceTest
             Console.WriteLine($"    IssuerName = {certificate.Issuer}");
             Console.WriteLine($"    SubjectName = {certificate.Subject}");
 
-#if NETSTANDARD2_0
-            if (!chain.Build(new X509Certificate2(certificate)))
-            {
-                Console.WriteLine("Unable to build the chain using the expected root certificate.");
-                return false;
-            }
-#else
             if (!chain.Build(new X509Certificate2(certificate.Export(X509ContentType.Cert))))
             {
                 Console.WriteLine("Unable to build the chain using the expected root certificate.");
                 return false;
             }
-#endif
 
             // Pin the trusted root of the chain to the expected root certificate
             X509Certificate2 actualRoot = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;

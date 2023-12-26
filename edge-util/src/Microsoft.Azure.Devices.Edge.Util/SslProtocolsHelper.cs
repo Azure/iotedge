@@ -13,8 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         // Examples:
         //      Tls1.2
         //      Tls12
-        //      Tls11, Tls12
-        //      Tls1.1, Tls1.2
+        //      Tls12, Tls13
+        //      Tls1.2, Tls1.3
         public static SslProtocols Parse(string protocols, SslProtocols defaultSslProtocols, ILogger logger)
         {
             if (string.IsNullOrEmpty(protocols))
@@ -48,19 +48,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             var sslProtocolsList = new List<string>();
 
-            if ((sslProtocols & SslProtocols.Tls) > 0)
-            {
-                sslProtocolsList.Add($"{SslProtocols.Tls}");
-            }
-
-            if ((sslProtocols & SslProtocols.Tls11) > 0)
-            {
-                sslProtocolsList.Add($"{SslProtocols.Tls11}");
-            }
-
             if ((sslProtocols & SslProtocols.Tls12) > 0)
             {
                 sslProtocolsList.Add($"{SslProtocols.Tls12}");
+            }
+
+            if ((sslProtocols & SslProtocols.Tls13) > 0)
+            {
+                sslProtocolsList.Add($"{SslProtocols.Tls13}");
             }
 
             return sslProtocolsList.Count > 0 ? string.Join(", ", sslProtocolsList) : $"{SslProtocols.None}";
@@ -71,25 +66,17 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             switch (protocol.ToLowerInvariant())
             {
-                case "tls":
-                case "tls1":
-                case "tls10":
-                case "tls1.0":
-                case "tls1_0":
-                case "tlsv10":
-                    sslProtocol = SslProtocols.Tls;
-                    return true;
-                case "tls11":
-                case "tls1.1":
-                case "tls1_1":
-                case "tlsv11":
-                    sslProtocol = SslProtocols.Tls11;
-                    return true;
                 case "tls12":
                 case "tls1.2":
                 case "tls1_2":
                 case "tlsv12":
                     sslProtocol = SslProtocols.Tls12;
+                    return true;
+                case "tls13":
+                case "tls1.3":
+                case "tls1_3":
+                case "tlsv13":
+                    sslProtocol = SslProtocols.Tls13;
                     return true;
             }
 

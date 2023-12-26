@@ -18,6 +18,7 @@ schedules:
   always: true
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
   itProxy: http://10.16.8.4:3128
   otProxy: http://10.16.5.4:3128
@@ -56,8 +57,8 @@ stages:
     displayName: SettingUp level 5
     timeoutInMinutes: 180
     variables:
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      artifactName: iotedged-ubuntu20.04-amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       level: '5'
       upstreamProtocol: 'amqp'
@@ -93,9 +94,9 @@ stages:
     condition: succeeded()
     timeoutInMinutes: 180
     variables:
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      artifactName: iotedged-ubuntu18.04-amd64
+      artifactName: iotedged-ubuntu20.04-amd64
       parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
       deploymentFile: 'nestededge_middleLayerBaseDeployment_amqp.json'
@@ -129,9 +130,9 @@ stages:
     condition: succeeded()
     timeoutInMinutes: 180
     variables:
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      artifactName: iotedged-ubuntu18.04-amd64
+      artifactName: iotedged-ubuntu20.04-amd64
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
       deploymentFile: 'nestededge_isa95_smoke_test_BaseDeployment.json'
@@ -177,8 +178,8 @@ stages:
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      artifactName: iotedged-ubuntu20.04-amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       nestededge: true
       proxyAddress: $(otProxy)

@@ -3,6 +3,7 @@ trigger: none
 pr: none
 
 variables:
+  Codeql.Enabled: false
   DisableDockerDetector: true
 
 resources:
@@ -70,18 +71,6 @@ stages:
             arch: aarch64
             target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
-          Ubuntu1804-amd64:
-            os: ubuntu18.04
-            arch: amd64
-            target.iotedged: edgelet/target/release
-          Ubuntu1804-arm32v7:
-            os: ubuntu18.04
-            arch: arm32v7
-            target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-          Ubuntu1804-aarch64:
-            os: ubuntu18.04
-            arch: aarch64
-            target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
           Ubuntu2004-amd64:
             arch: amd64
             os: ubuntu20.04
@@ -214,21 +203,6 @@ stages:
             identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
             pmcRepoName: microsoft-rhel9.0-prod-yum
             pmcRelease: ''
-
-          Ubuntu1804-amd64:
-            os: ubuntu18.04
-            artifactName: iotedged-ubuntu18.04-amd64
-            identityServiceArtifactName: packages_ubuntu-18.04_amd64
-            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-            pmcRepoName: microsoft-ubuntu-bionic-prod-apt
-            pmcRelease: bionic
-          Ubuntu1804-aarch64:
-            os: ubuntu18.04
-            artifactName: iotedged-ubuntu18.04-aarch64
-            identityServiceArtifactName: packages_ubuntu-18.04_aarch64
-            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-            pmcRepoName: microsoft-ubuntu-bionic-prod-apt
-            pmcRelease: bionic
 
           Ubuntu2004-amd64:
             os: ubuntu20.04
@@ -438,22 +412,6 @@ stages:
             os: debian11
             artifactName: iotedged-debian11-aarch64
             identityServiceArtifactName: packages_debian-11-slim_aarch64
-            identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-
-          Ubuntu1804-amd64:
-            os: ubuntu18.04
-            artifactName: iotedged-ubuntu18.04-amd64
-            identityServiceArtifactName: packages_ubuntu-18.04_amd64
-            identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          Ubuntu1804-arm32v7:
-            os: ubuntu18.04
-            artifactName: iotedged-ubuntu18.04-arm32v7
-            identityServiceArtifactName: packages_ubuntu-18.04_arm32v7
-            identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-          Ubuntu1804-aarch64:
-            os: ubuntu18.04
-            artifactName: iotedged-ubuntu18.04-aarch64
-            identityServiceArtifactName: packages_ubuntu-18.04_aarch64
             identityServicePackageFilter: aziot-identity-service_*_arm64.deb
 
           Ubuntu2004-amd64:

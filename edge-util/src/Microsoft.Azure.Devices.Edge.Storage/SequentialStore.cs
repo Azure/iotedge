@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public Task<ulong> Count() => this.entityStore.Count();
 
-        public Task<ulong> GetCountFromOffset(long offset) => this.entityStore.GetCountFromOffset(StoreUtils.GetKeyFromOffset(offset));
+        public Task<ulong> GetCountFromOffset(long offset) => this.entityStore.GetCountFromStartKey(StoreUtils.GetKeyFromOffset(offset));
 
         public void Dispose()
         {
