@@ -15,32 +15,32 @@ members = [
 ]
 
 [patch.'https://github.com/Azure/iot-identity-service']
-aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-key-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-logger = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-openssl-build = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-pkcs11 = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-pkcs11-sys = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
-test-common = { git = "https://github.com/Azure/iot-identity-service", branch = "feature/snapping" }
+aziot-cert-client-async = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-cert-common-http = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-certd-config = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-identity-client-async = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-identity-common = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-identity-common-http = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-identityd-config = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-key-client = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-key-client-async = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-key-common = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-key-common-http = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-key-openssl-engine = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-keyd-config = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-keys-common = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziot-tpmd-config = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+aziotctl-common = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+cert-renewal = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+config-common = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+http-common = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+logger = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+openssl-build = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+openssl-sys2 = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+openssl2 = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+pkcs11 = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+pkcs11-sys = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
+test-common = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
 
 [profile.dev]
 panic = 'abort'
