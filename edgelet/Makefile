@@ -8,6 +8,9 @@ REVISION?=1
 DEB_VERSION?=$(VERSION)
 DEB_REVISION?=$(REVISION)
 
+# Default socket directory. Override by specifying on the CLI for make.
+SOCKET_DIR ?= /run/aziot
+
 # Converts debian versioning to rpm version
 # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
 RPM_VERSION?=$(word 1,$(subst ~, , $(VERSION)))
@@ -42,7 +45,7 @@ CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
 DPKGFLAGS=-b -rfakeroot -us -uc -i
 RPMBUILDFLAGS=-v -bb --clean
 
-CARGO=cargo
+CARGO=SOCKET_DIR="$(SOCKET_DIR)" cargo
 GIT=git
 GIT_ARCHIVEFLAGS=--prefix=$(PACKAGE)/ -o $(TARGET)/$(PACKAGE).tar.gz $(GIT_TAG)
 GIT_TAG=HEAD
