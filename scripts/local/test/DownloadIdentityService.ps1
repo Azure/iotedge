@@ -39,7 +39,7 @@ else
     # Any package in the iot-identity-service repo will have the same Git commit hash.
     # So, this script selects the first package in that repo.
     $matches = Select-String -Path ./edgelet/Cargo.lock -Pattern `
-        'github.com/Azure/iot-identity-service\?branch=[ -~]+#(?<commit>\w+)' | `
+        'github.com/Azure//?iot-identity-service\?branch=[ -~]+#(?<commit>\w+)' | `
         Select-Object -First 1
     $commit = $matches.Matches.Groups | Where-Object -Property Name -EQ 'commit'
 

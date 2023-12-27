@@ -14,6 +14,10 @@ members = [
     "support-bundle",
 ]
 
+# When removing this patch, also remember to remove the update to the identity service URL regex in
+# scripts/local/test/DownloadIdentityService.ps1:
+# 'github.com/Azure//?iot-identity-service\?branch=[ -~]+#(?<commit>\w+)'
+#                   ^^ -- allows for optional 2nd forward slash between org name and repo name
 [patch.'https://github.com/Azure/iot-identity-service']
 aziot-cert-client-async = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
 aziot-cert-common-http = { git = "https://github.com/Azure//iot-identity-service", branch = "feature/snapping" }
