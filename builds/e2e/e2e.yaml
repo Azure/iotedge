@@ -210,8 +210,8 @@ jobs:
           artifactName: iotedged-snap-amd64
           identityServiceArtifactName: packages_snap_amd64
           identityServicePackageFilter: azure-iot-identity_*_amd64.snap
-        aarch64:
-          arch: aarch64
+        arm64v8:
+          arch: arm64v8
           pool: $(pool.linux.arm.name)
           image: agent-aziotedge-ubuntu-20.04-arm64-docker
           artifactName: iotedged-snap-aarch64
