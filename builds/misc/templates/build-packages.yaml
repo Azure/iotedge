@@ -165,12 +165,20 @@ stages:
               sudo snap install snapcraft --classic
               snapcraft --destructive-mode
             displayName: Build snap
+            condition: eq(${{ parameters['E2EBuild'] }}, false)
+          - task: CopyFiles@2
+            displayName: Stage artifacts for publishing
+            condition: eq(${{ parameters['E2EBuild'] }}, false)
+            inputs:
+              Contents: '*.snap'
+              SourceFolder: '$(build.sourcesdirectory)'
+              TargetFolder: '$(build.artifactstagingdirectory)'
           - task: PublishBuildArtifacts@1
             displayName: Publish artifacts
+            condition: eq(${{ parameters['E2EBuild'] }}, false)
             inputs:
-              PathtoPublish: '$(build.artifactstagingdirectory)'
               ArtifactName: 'iotedged-snap-$(arch)'
-            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+              PathtoPublish: '$(build.artifactstagingdirectory)'
 
     ################################################################################
       - job: mariner_linux
