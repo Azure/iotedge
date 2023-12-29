@@ -59,7 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
             finally
             {
-                await NUnitLogs.CollectAsync(startTime, this.cli, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await NUnitLogs.CollectAsync(startTime, this.cli, token);
+                }
             }
         }
 
