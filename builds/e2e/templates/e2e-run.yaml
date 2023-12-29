@@ -114,9 +114,7 @@ steps:
     Copy-Item "$(binDir)/supportbundle*" "$logDir/"
     if ($test_type -eq 'upgrade_scenarios')
     {
-      $artifactSuffix = '$(Build.BuildNumber)-$(System.JobName)' -replace '_','-'
-    } else {
-      $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+      $artifactSuffix = '$(Build.BuildNumber)-$(System.JobName)-$(System.JobAttempt)' -replace '_','-'
     }
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
