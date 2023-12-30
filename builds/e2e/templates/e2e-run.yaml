@@ -101,6 +101,7 @@ steps:
   condition: not(variables['Agent.ProxyUrl'])
 
 - script: env
+  condition: always()
 
 - pwsh: |
     $test_type = '${{ parameters.test_type }}'
