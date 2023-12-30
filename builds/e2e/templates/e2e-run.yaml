@@ -115,12 +115,7 @@ steps:
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
     Copy-Item "$(binDir)/supportbundle*" "$logDir/"
-    if ($test_type -eq 'upgrade_scenarios')
-    {
-      $artifactSuffix = '$(Build.BuildNumber)-$(System.JobName)' -replace '_','-'
-    } else {
-      $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
-    }
+    $artifactSuffix = '$(Build.BuildNumber)-$(System.JobIdentifier)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
   condition: always()
