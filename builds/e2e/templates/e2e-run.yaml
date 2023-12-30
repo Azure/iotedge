@@ -100,9 +100,6 @@ steps:
   # see https://github.com/microsoft/azure-pipelines-tasks/issues/11831
   condition: not(variables['Agent.ProxyUrl'])
 
-- script: env
-  condition: always()
-
 - pwsh: |
     $test_type = '${{ parameters.test_type }}'
     $logDir = '$(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}'
