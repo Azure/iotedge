@@ -226,7 +226,10 @@ jobs:
 
     steps:
     - script: |
-        sudo apt-get purge -y docker-* moby-*
+        set -euo pipefail
+        sudo apt-get purge -y docker-* || true
+        sudo apt-get purge -y moby-* || true
+        sudo apt-get -y autoremove
         sudo snap install docker
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
