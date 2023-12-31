@@ -83,7 +83,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     "snap connect azure-iot-identity:log-observe",
                     "snap connect azure-iot-identity:mount-observe",
                     "snap connect azure-iot-identity:system-observe",
-                    "snap connect azure-iot-identity:tpm",
+                    // There isn't a TPM in this setup, so don't connect it
+                    // "snap connect azure-iot-identity:tpm",
                     "snap connect azure-iot-edge:home",
                     "snap connect azure-iot-edge:hostname-control",
                     "snap connect azure-iot-edge:log-observe",

@@ -59,7 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
             finally
             {
-                await NUnitLogs.CollectAsync(startTime, this.cli, token);
+                using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
+                await NUnitLogs.CollectAsync(startTime, this.cli, cts.Token);
             }
         }
 

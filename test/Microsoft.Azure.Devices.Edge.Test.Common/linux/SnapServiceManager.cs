@@ -36,7 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Process.RunAsync("systemctl", "reset-failed snap.azure-iot-edge.aziot-edged", token);
 
             var config = await File.ReadAllTextAsync(this.ConfigurationPath(), token);
-            await Process.RunAsync("snap", new string[] { "set", "azure-iot-edge", $"raw-config={config}" }, token);
+            // Turn off verbose logging when setting config to avoid logging sensitive information, like docker
+            // registry credentials.
+            await Process.RunAsync(
+                "snap", new string[] { "set", "azure-iot-edge", $"raw-config={config}" }, token, logVerbose: false);
 
             // `snap set azure-iot-edge raw-config=...` calls `iotedge config apply`, which, for snaps, only restarts
             // aziot-edged, not identityd, keyd, certd, or tpmd. The identity service components need to refresh their
