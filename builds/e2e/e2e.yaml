@@ -200,7 +200,6 @@ jobs:
 
     variables:
       os: linux
-      minimal: true # TODO: REMOVE
 
     strategy:
       matrix:
