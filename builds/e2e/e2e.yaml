@@ -207,14 +207,14 @@ jobs:
         amd64:
           arch: amd64
           pool: $(pool.linux.name)
-          image: agent-aziotedge-ubuntu-20.04-docker
+          image: agent-aziotedge-ubuntu-20.04
           artifactName: iotedged-snap-amd64
           identityServiceArtifactName: packages_snap_amd64
           identityServicePackageFilter: azure-iot-identity_*_amd64.snap
         arm64v8:
           arch: arm64v8
           pool: $(pool.linux.arm.name)
-          image: agent-aziotedge-ubuntu-20.04-arm64-docker
+          image: agent-aziotedge-ubuntu-20.04-arm64
           artifactName: iotedged-snap-aarch64
           identityServiceArtifactName: packages_snap_aarch64
           identityServicePackageFilter: azure-iot-identity_*_arm64.snap
@@ -226,10 +226,6 @@ jobs:
 
     steps:
     - script: |
-        set -euo pipefail
-        sudo apt-get purge -y docker-* || true
-        sudo apt-get purge -y moby-* || true
-        sudo apt-get -y autoremove
         sudo snap install docker
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
