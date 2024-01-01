@@ -163,7 +163,8 @@ stages:
         steps:
           - script: |
               sudo snap install snapcraft --classic
-              snapcraft --destructive-mode
+              lxd init --minimal
+              snapcraft --use-lxd
             displayName: Build snap
             condition: eq(${{ parameters['E2EBuild'] }}, false)
           - task: CopyFiles@2
