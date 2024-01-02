@@ -590,7 +590,7 @@ where
     }
 
     async fn system_resources(&self) -> anyhow::Result<SystemResources> {
-        log::info!("Querying system resources...");
+        log::debug!("Querying system resources...");
 
         let uptime = nix::sys::sysinfo::sysinfo()?.uptime().as_secs();
 

@@ -79,7 +79,7 @@ async fn watchdog(
     runtime: &edgelet_docker::DockerModuleRuntime<http_common::Connector>,
     identity_client: &aziot_identity_client_async::Client,
 ) -> Result<(), EdgedError> {
-    log::info!("Watchdog checking Edge runtime status");
+    log::debug!("Watchdog checking Edge runtime status");
     let agent_name = settings.agent().name();
 
     if let Ok((_, agent_status)) = runtime.get(agent_name).await {
@@ -87,7 +87,7 @@ async fn watchdog(
 
         match agent_status {
             edgelet_core::ModuleStatus::Running => {
-                log::info!("Edge runtime is running");
+                log::debug!("Edge runtime is running");
             }
 
             edgelet_core::ModuleStatus::Stopped | edgelet_core::ModuleStatus::Failed => {
