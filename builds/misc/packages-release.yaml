@@ -381,6 +381,7 @@ stages:
         foreach ($arch in @('amd64', 'aarch64'))
         {
           $env:ARTIFACT_NAME = "packages_snap_$arch"
+          $env:PACKAGE_FILTER = "azure-iot-identity_*_$arch.snap"
           $env:DOWNLOAD_PATH = "$(System.ArtifactsDirectory)/packages_snap_$arch"
           New-Item $env:DOWNLOAD_PATH -ItemType Directory -Force | Out-Null
           scripts/local/test/DownloadIdentityService.ps1
@@ -388,7 +389,6 @@ stages:
       displayName: Get azure-iot-identity snaps
       env:
         GITHUB_TOKEN: '$(GitHubAccessToken)'
-        PACKAGE_FILTER: 'azure-iot-identity_*.snap'
         IDENTITY_SERVICE_COMMIT: '$(aziotis.commit)'
     - script: |
         for pkg in "$(ls $(System.ArtifactsDirectory)/**/*.snap)"
