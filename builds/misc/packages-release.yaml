@@ -391,6 +391,7 @@ stages:
         GITHUB_TOKEN: '$(GitHubAccessToken)'
         IDENTITY_SERVICE_COMMIT: '$(aziotis.commit)'
     - script: |
+        sudo snap install snapcraft --classic
         for pkg in "$(ls $(System.ArtifactsDirectory)/**/*.snap)"
         do
           # TODO: change release channel from 'edge' to 'stable'
