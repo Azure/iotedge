@@ -147,6 +147,11 @@ stages:
         ArtifactName: 'iotedged-$(os)-$(arch)'
       condition: succeededOrFailed()
 
+################################################################################
+- stage: BuildSnaps
+################################################################################
+  displayName: Build Snaps
+  jobs:
   - job: snaps
     displayName: Snaps
     strategy:
@@ -344,14 +349,18 @@ stages:
         --pmc-release "$(pmcRelease)"
       displayName: PMC Package Publication
 
+################################################################################
+- stage: PublishSnaps
+################################################################################
+  displayName: Publish Snaps to Snapcraft
+  dependsOn: [BuildSnaps]
+  pool:
+    name: $(pool.linux.name)
+    demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  jobs:
   - job: snaps
     displayName: Snaps
-    strategy:
-      matrix:
-        amd64:
-          arch: amd64
-        aarch64:
-          arch: aarch64
     steps:
     - task: AzureKeyVault@1
       displayName: Get secrets
@@ -362,22 +371,25 @@ stages:
           GitHubAccessToken
           snapcraft-store-credentials
     - task: DownloadPipelineArtifact@2
-      displayName: Get azure-iot-edge snap
+      displayName: Get azure-iot-edge snaps
       inputs:
         source: current
         path: '$(System.ArtifactsDirectory)'
-        patterns: '$(artifactName)/*.snap'
+        patterns: 'iotedged-snap-*/*.snap'
     - pwsh: |
-        scripts/local/test/DownloadIdentityService.ps1
-      displayName: Get azure-iot-identity snap
+        for a in 'amd64 aarch64'
+        do
+          ARTIFACT_NAME="packages_snap_$a" \
+            DOWNLOAD_PATH="$(System.ArtifactsDirectory)/packages_snap_$a" \
+            scripts/local/test/DownloadIdentityService.ps1
+        done
+      displayName: Get azure-iot-identity snaps
       env:
         GITHUB_TOKEN: '$(GitHubAccessToken)'
-        ARTIFACT_NAME: 'packages_snap_$(arch)'
-        PACKAGE_FILTER: 'azure-iot-identity_*_$(arch).snap'
-        DOWNLOAD_PATH: '$(System.ArtifactsDirectory)/$(artifactName)'
+        PACKAGE_FILTER: 'azure-iot-identity_*.snap'
         IDENTITY_SERVICE_COMMIT: '$(aziotis.commit)'
     - script: |
-        for pkg in "$(ls $SNAP_PUBLISH_DIR/*.snap)"
+        for pkg in "$(ls $(System.ArtifactsDirectory)/**/*.snap)"
         do
           # TODO: change release channel from 'edge' to 'stable'
           snapcraft upload --release=edge "$pkg"
@@ -385,7 +397,6 @@ stages:
       displayName: Publish snaps to snapcraft
       env:
         SNAPCRAFT_STORE_CREDENTIALS: '$(snapcraft-store-credentials)'
-        SNAP_PUBLISH_DIR: '$(System.ArtifactsDirectory)/$(artifactName)'
 
 ##############################################################################
 - stage: PublishPackagesGithub
