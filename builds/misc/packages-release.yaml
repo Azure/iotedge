@@ -179,7 +179,7 @@ stages:
     - task: CopyFiles@2
       displayName: Stage snap
       inputs:
-        Contents: *.snap
+        Contents: '*.snap'
         SourceFolder: '$(build.sourcesdirectory)'
         TargetFolder: '$(build.artifactstagingdirectory)'
     - task: PublishBuildArtifacts@1
