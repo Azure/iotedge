@@ -196,7 +196,7 @@ stages:
   pool:
     name: $(pool.linux.name)
     demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   jobs:
   - deployment: safe_guard
     environment: 'Azure-IoT-Edge-Core Release Env'
@@ -205,8 +205,8 @@ stages:
       runOnce:
         deploy:
           steps:
-            - bash: |
-                echo "Approval Complete"
+          - bash: |
+              echo "Approval Complete"
   - job: linux
     displayName: Linux
     strategy:
@@ -291,8 +291,8 @@ stages:
         source: 'current'
         path: $(System.ArtifactsDirectory)
         patterns: |
-            $(artifactName)/*.deb
-            $(artifactName)/*.rpm
+          $(artifactName)/*.deb
+          $(artifactName)/*.rpm
     - task: PowerShell@2
       displayName: 'Download aziot-identity-service'
       inputs:
@@ -357,7 +357,7 @@ stages:
   pool:
     name: $(pool.linux.name)
     demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   jobs:
   - job: snaps
     displayName: Snaps
@@ -462,15 +462,15 @@ stages:
           identityServiceArtifactName: packages_centos-7_amd64
           identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
         RedHat8-amd64:
-            os: redhat8
-            artifactName: iotedged-redhat8-amd64
-            identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
-            identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+          os: redhat8
+          artifactName: iotedged-redhat8-amd64
+          identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
+          identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
         RedHat9-amd64:
-            os: redhat9
-            artifactName: iotedged-redhat9-amd64
-            identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
-            identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+          os: redhat9
+          artifactName: iotedged-redhat9-amd64
+          identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
+          identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
 
         Debian10-amd64:
           os: debian10
@@ -562,9 +562,9 @@ stages:
         source: 'current'
         path: $(System.ArtifactsDirectory)
         patterns: |
-            $(artifactName)/*.deb
-            $(artifactName)/*.rpm
-            $(artifactName)/*.snap
+          $(artifactName)/*.deb
+          $(artifactName)/*.rpm
+          $(artifactName)/*.snap
     - task: PowerShell@2
       displayName: 'Download aziot-identity-service'
       inputs:
@@ -641,7 +641,6 @@ stages:
             sudo apt-get install jq -y
         fi
       displayName: Setup Test Agent
-      name: SetupTestAgent
 
     - bash: |
         # Fetch versions to be used for each component
