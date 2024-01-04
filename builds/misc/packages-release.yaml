@@ -369,7 +369,7 @@ stages:
         azureSubscription: $(az.subscription)
         keyVaultName: $(kv.name)
         secretsFilter: >-
-          GitHubAccessToken
+          GitHubAccessToken,
           snapcraft-store-credentials
     - task: DownloadPipelineArtifact@2
       displayName: Get azure-iot-edge snaps
