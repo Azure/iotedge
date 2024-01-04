@@ -378,12 +378,12 @@ stages:
         path: '$(System.ArtifactsDirectory)'
         patterns: 'iotedged-snap-*/*.snap'
     - pwsh: |
-        for a in 'amd64 aarch64'
-        do
-          ARTIFACT_NAME="packages_snap_$a" \
-            DOWNLOAD_PATH="$(System.ArtifactsDirectory)/packages_snap_$a" \
+        foreach ($arch in @('amd64', 'aarch64'))
+        {
+          ARTIFACT_NAME="packages_snap_$arch" \
+            DOWNLOAD_PATH="$(System.ArtifactsDirectory)/packages_snap_$arch" \
             scripts/local/test/DownloadIdentityService.ps1
-        done
+        }
       displayName: Get azure-iot-identity snaps
       env:
         GITHUB_TOKEN: '$(GitHubAccessToken)'
