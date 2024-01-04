@@ -151,6 +151,7 @@ stages:
 - stage: BuildSnaps
 ################################################################################
   displayName: Build Snaps
+  dependsOn: []
   jobs:
   - job: snaps
     displayName: Snaps
