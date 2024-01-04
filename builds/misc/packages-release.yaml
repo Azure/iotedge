@@ -382,6 +382,7 @@ stages:
         {
           $env:ARTIFACT_NAME = "packages_snap_$arch"
           $env:DOWNLOAD_PATH = "$(System.ArtifactsDirectory)/packages_snap_$arch"
+          New-Item $env:DOWNLOAD_PATH -ItemType Directory -Force | Out-Null
           scripts/local/test/DownloadIdentityService.ps1
         }
       displayName: Get azure-iot-identity snaps
