@@ -380,9 +380,9 @@ stages:
     - pwsh: |
         foreach ($arch in @('amd64', 'aarch64'))
         {
-          ARTIFACT_NAME="packages_snap_$arch" \
-            DOWNLOAD_PATH="$(System.ArtifactsDirectory)/packages_snap_$arch" \
-            scripts/local/test/DownloadIdentityService.ps1
+          $env:ARTIFACT_NAME = "packages_snap_$arch"
+          $env:DOWNLOAD_PATH = "$(System.ArtifactsDirectory)/packages_snap_$arch"
+          scripts/local/test/DownloadIdentityService.ps1
         }
       displayName: Get azure-iot-identity snaps
       env:
