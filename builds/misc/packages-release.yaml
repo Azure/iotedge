@@ -147,12 +147,6 @@ stages:
         ArtifactName: 'iotedged-$(os)-$(arch)'
       condition: succeededOrFailed()
 
-################################################################################
-- stage: BuildSnaps
-################################################################################
-  displayName: Build Snaps
-  dependsOn: []
-  jobs:
   - job: snaps
     displayName: Snaps
     strategy:
@@ -350,16 +344,6 @@ stages:
         --pmc-release "$(pmcRelease)"
       displayName: PMC Package Publication
 
-################################################################################
-- stage: PublishSnaps
-################################################################################
-  displayName: Publish Snaps to Snapcraft
-  dependsOn: [BuildSnaps]
-  pool:
-    name: $(pool.linux.name)
-    demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-  jobs:
   - job: snaps
     displayName: Snaps
     steps:
