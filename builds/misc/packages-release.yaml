@@ -397,9 +397,17 @@ stages:
           # TODO: change release channel from 'edge' to 'stable'
           snapcraft upload --release=edge "$pkg"
         done
+
+        cp $HOME/.local/state/snapcraft/log/*.log '$(Build.ArtifactStagingDirectory)/'
       displayName: Publish snaps to snapcraft
       env:
         SNAPCRAFT_STORE_CREDENTIALS: '$(snapcraft-store-credentials)'
+    - task: PublishBuildArtifacts@1
+      displayName: Save snapcraft logs
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'snapcraft-logs'
+      condition: succeededOrFailed()
 
 ##############################################################################
 - stage: PublishPackagesGithub
