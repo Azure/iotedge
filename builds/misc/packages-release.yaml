@@ -398,14 +398,16 @@ stages:
           snapcraft upload --release=edge "$pkg"
         done
 
-        cp $HOME/.local/state/snapcraft/log/*.log '$(Build.ArtifactStagingDirectory)/'
+        logdir='$(Build.ArtifactStagingDirectory)/logs'
+        mkdir -p "$logdir"
+        cp $HOME/.local/state/snapcraft/log/*.log "$logdir/"
       displayName: Publish snaps to snapcraft
       env:
         SNAPCRAFT_STORE_CREDENTIALS: '$(snapcraft-store-credentials)'
     - task: PublishBuildArtifacts@1
       displayName: Save snapcraft logs
       inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/logs'
         ArtifactName: 'snapcraft-logs'
       condition: succeededOrFailed()
 
