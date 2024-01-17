@@ -10,12 +10,8 @@ description: |
 confinement: strict # use 'strict' once you have the right plugs and slots
 adopt-info: edgelet
 
-# Use passthrough for the moment, until the appropriate snapcraft release lands
-# system-usernames:
-#   snap_aziotedge: shared
-passthrough:
-  system-usernames:
-    snap_aziotedge: shared
+system-usernames:
+  snap_aziotedge: shared
 
 package-repositories:
   - type: apt
