@@ -1,5 +1,5 @@
 name: azure-iot-edge
-base: core20 # the base snap is the execution environment for this snap
+base: core22 # the base snap is the execution environment for this snap
 summary: Single-line elevator pitch for your amazing snap # 79 char long summary
 description: |
   This is my-snap's description. You have a paragraph or two to tell the
@@ -10,12 +10,8 @@ description: |
 confinement: strict # use 'strict' once you have the right plugs and slots
 adopt-info: edgelet
 
-# Use passthrough for the moment, until the appropriate snapcraft release lands
-# system-usernames:
-#   snap_aziotedge: shared
-passthrough:
-  system-usernames:
-    snap_aziotedge: shared
+system-usernames:
+  snap_aziotedge: shared
 
 package-repositories:
   - type: apt
@@ -34,7 +30,7 @@ parts:
     override-build: |
       mkdir -p $HOME/.cargo/bin
       curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --profile minimal -y
-      cd $SNAPCRAFT_PROJECT_DIR/edgelet
+      cd $CRAFT_PROJECT_DIR/edgelet
       rustup update
   edgelet:
     after: [ rust-toolchain ]
@@ -55,14 +51,14 @@ parts:
       - USER_AZIOTTPM: "root"
       - USER_IOTEDGE: "snap_aziotedge"
     override-build: |
-      rm -rf $SNAPCRAFT_PART_BUILD/target
-      SC_VERSION="$(cat $SNAPCRAFT_PART_SRC/version.txt)"
-      snapcraftctl set-version "$SC_VERSION"
+      rm -rf $CRAFT_PART_BUILD/target
+      SC_VERSION="$(cat $CRAFT_PART_SRC/version.txt)"
+      craftctl set version="$SC_VERSION"
       # if version contains substing "dev" set grade to devel, else stable
       if test "${SC_VERSION#*dev}" != "$SC_VERSION" ; then
-        snapcraftctl set-grade devel
+        craftctl set grade=devel
       else
-        snapcraftctl set-grade stable
+        craftctl set grade=stable
       fi
       make install \
         PLATFORM_FEATURES=snapd \
@@ -70,7 +66,7 @@ parts:
         CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock \
         LISTEN_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock \
         LISTEN_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock \
-        DESTDIR=$SNAPCRAFT_PART_INSTALL
+        DESTDIR=$CRAFT_PART_INSTALL
     build-packages:
       - binutils
       - build-essential
@@ -78,7 +74,6 @@ parts:
       - curl
       - cmake
       - debhelper
-      - dh-systemd
       - file
       - git
       - make
