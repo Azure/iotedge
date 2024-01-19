@@ -13,6 +13,7 @@ members = [
     "iotedge",
     "support-bundle",
 ]
+resolver = "2"
 
 [profile.dev]
 panic = 'abort'
