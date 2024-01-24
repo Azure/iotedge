@@ -16,8 +16,8 @@ system-usernames:
 package-repositories:
   - type: apt
     components: [ main ]
-    suites: [ focal ]
-    url: https://packages.microsoft.com/ubuntu/20.04/prod
+    suites: [ jammy ]
+    url: https://packages.microsoft.com/ubuntu/22.04/prod
     key-id: BC528686B50D79E339D3721CEB3E94ADBE1229CF
 
 parts:
@@ -147,17 +147,13 @@ hooks:
       - mount-observe
 
 environment:
-  PATH: "$PATH:$SNAP/docker/bin:$SNAP/aziotctl/bin"
+  PATH: "$PATH:$SNAP/aziotctl/bin"
 
 plugs:
   aziotctl-executables:
     interface: content
     content: aziotctl-executables
     target: $SNAP/aziotctl
-  docker-executables:
-    interface: content
-    content: docker-executables
-    target: $SNAP/docker
   identity-service:
     interface: content
     content: aziot-identity-service
@@ -179,5 +175,3 @@ layout:
     symlink: $SNAP_COMMON/shared/config/aziot
   /usr/libexec/aziot/aziot-edged:
     symlink: $SNAP/usr/libexec/aziot/aziot-edged
-  /etc/docker/daemon.json:
-    symlink: $SNAP/docker/config/daemon.json
