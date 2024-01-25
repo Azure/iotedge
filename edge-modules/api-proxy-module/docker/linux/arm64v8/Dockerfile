@@ -12,6 +12,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
 
+COPY ./docker/linux/arm64v8/api-proxy-module .
+COPY ./docker/linux/arm64v8/templates .
+
 ENV NGINXUSER_ID ${NGINXUSER_ID:-13624}
 RUN usermod -u ${NGINXUSER_ID} nginx
 
@@ -21,8 +24,6 @@ RUN chown -R nginx:nginx /app && \
 RUN touch /var/run/nginx.pid && \
         chown -R nginx:nginx /var/run/nginx.pid
 
-COPY ./docker/linux/arm64v8/api-proxy-module .
-COPY ./docker/linux/arm64v8/templates .
 
 USER nginx
 
