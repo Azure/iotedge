@@ -18,6 +18,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly Uri workloadUri;
         readonly bool enableOrphanedIdentityCleanup;
 
+        // Hold onto cache of identities and previous diff to avoid unnecessary calls to edgelet.
+        IImmutableDictionary<string, IModuleIdentity> moduleIdentities;
+        Diff previousDiff;
+
         protected virtual bool ShouldAlwaysReturnIdentities => false;
 
         public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri, bool enableOrphanedIdentityCleanup)
@@ -36,6 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
 
+            if (this.previousDiff != null && this.previousDiff.Equals(diff))
+            {
+                return this.moduleIdentities;
+            }
+            this.previousDiff = diff;
+
             try
             {
                 IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
@@ -46,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 }
 
                 IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff, identities);
+                this.moduleIdentities = moduleIdentities;
                 return moduleIdentities;
             }
             catch (Exception ex)
