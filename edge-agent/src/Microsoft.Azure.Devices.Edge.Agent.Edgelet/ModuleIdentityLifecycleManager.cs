@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 return this.moduleIdentities;
             }
+
             this.previousDiff = diff;
 
             try
