@@ -315,9 +315,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Mock.Get(identityManager).VerifyNoOtherCalls();
         }
 
-        [Fact]
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
         [Unit]
-        public async Task TestGetModulesIdentity_WhenRepeated_ShouldReturnCachedIdentities()
+        public async Task TestGetModulesIdentity_WhenRepeated_ShouldReturnCachedIdentities(bool enableOrphanedIdentities)
         {
             // Arrange
             const string Module1 = "module1";
@@ -336,7 +338,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                     m.DeleteIdentityAsync(Module3) == Task.FromResult(identity3));
             Mock.Get(identityManager).Verify(identityManager => identityManager.GetIdentities(), Times.Once);
 
-            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri, true);
+            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri, enableOrphanedIdentities);
             var envVar = new Dictionary<string, EnvVal>();
             var desiredModule = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
             var currentModule1 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
