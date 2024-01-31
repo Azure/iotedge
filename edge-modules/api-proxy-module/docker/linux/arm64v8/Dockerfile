@@ -8,6 +8,7 @@ FROM arm64v8/nginx:1.25
 WORKDIR /app
 
 RUN apt-get update && \
+    apt-get upgrade -y && \
     apt-get install -y libcap2-bin && \
     rm -rf /var/lib/apt/lists/*
 RUN setcap 'cap_net_bind_service=+ep' /usr/sbin/nginx
