@@ -153,7 +153,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             public static void PrintDiff(Diff diff)
             {
-                Log.LogDebug((int)EventIds.PrintDiff, $"Diff: {diff}");
+                
+                var added = diff.Added.Select(m => m.Name);
+                var diffStr = $@"{{
+                    added: {string.Join(", ", diff.Added.Select(m => ModuleAsString(m)))},
+                    addedOrUpdated: {string.Join(", ", diff.AddedOrUpdated.Select(m => ModuleAsString(m)))},
+                    desiredStatusUpdated: {string.Join(", ", diff.DesiredStatusUpdated.Select(m => ModuleAsString(m)))},
+                    removed: {string.Join(", ", diff.Removed.Select(m => m))},
+                    updated: {string.Join(", ", diff.Updated.Select(m => ModuleAsString(m)))}
+                }}";
+                Log.LogDebug((int)EventIds.PrintDiff, diffStr);
             }
 
             public static void ErrorGettingModuleIdentities(Exception ex)
@@ -169,6 +178,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             public static void FinishedRemovingOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
             {
                 Log.LogInformation((int)EventIds.FinishedRemovingOrphanedIdentities, $"Finished removing orphaned identities {string.Join(", ", removeOrphanedIdentities.Select(s => s.ToString()))}");
+            }
+
+            private static string ModuleAsString(IModule module)
+            {
+                return $@"{{
+                    { module.Name },
+                    { module.Version },
+                    { module.Type },
+                    { module.DesiredStatus },
+                    { module.RestartPolicy },
+                    { module.ImagePullPolicy },
+                    { module.StartupOrder },
+                    { module.ConfigurationInfo }
+                    { string.Join(", ", module.Env.Select(pair => pair.Key + "=" + pair.Value)) },
+                }}";
             }
         }
     }
