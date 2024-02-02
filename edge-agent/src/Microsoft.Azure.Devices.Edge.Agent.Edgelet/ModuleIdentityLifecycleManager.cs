@@ -40,6 +40,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
 
+            Events.PrintDiff(diff);
+            Events.PrintDiff(this.previousDiff);
+
             if (this.previousDiff != null && this.previousDiff.Equals(diff))
             {
                 return this.moduleIdentities;
@@ -144,7 +147,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 ErrorGettingModuleIdentities = IdStart,
                 RemoveOrphanedIdentities,
-                FinishedRemovingOrphanedIdentities
+                FinishedRemovingOrphanedIdentities,
+                PrintDiff
+            }
+
+            public static void PrintDiff(Diff diff)
+            {
+                Log.LogDebug((int)EventIds.PrintDiff, $"Diff: {diff}");
             }
 
             public static void ErrorGettingModuleIdentities(Exception ex)
