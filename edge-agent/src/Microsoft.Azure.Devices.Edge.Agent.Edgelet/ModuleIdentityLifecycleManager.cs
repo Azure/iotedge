@@ -153,7 +153,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             public static void PrintDiff(Diff diff)
             {
-                
                 var added = diff.Added.Select(m => m.Name);
                 var diffStr = $@"{{
                     added: {string.Join(", ", diff.Added.Select(m => ModuleAsString(m)))},
