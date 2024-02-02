@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                     {module.RestartPolicy},
                     {module.ImagePullPolicy},
                     {module.StartupOrder},
-                    {module.ConfigurationInf }
+                    {module.ConfigurationInfo},
                     {string.Join(", ", module.Env.Select(pair => pair.Key + "=" + pair.Value))},
                 }}";
             }
