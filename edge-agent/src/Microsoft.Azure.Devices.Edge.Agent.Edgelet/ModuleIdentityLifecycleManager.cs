@@ -183,15 +183,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             private static string ModuleAsString(IModule module)
             {
                 return $@"{{
-                    { module.Name },
-                    { module.Version },
-                    { module.Type },
-                    { module.DesiredStatus },
-                    { module.RestartPolicy },
-                    { module.ImagePullPolicy },
-                    { module.StartupOrder },
-                    { module.ConfigurationInfo }
-                    { string.Join(", ", module.Env.Select(pair => pair.Key + "=" + pair.Value)) },
+                    {module.Name},
+                    {module.Version},
+                    {module.Type},
+                    {module.DesiredStatus},
+                    {module.RestartPolicy},
+                    {module.ImagePullPolicy},
+                    {module.StartupOrder},
+                    {module.ConfigurationInf }
+                    {string.Join(", ", module.Env.Select(pair => pair.Key + "=" + pair.Value))},
                 }}";
             }
         }
