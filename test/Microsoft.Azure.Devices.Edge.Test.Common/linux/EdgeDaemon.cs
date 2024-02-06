@@ -49,8 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             switch (os)
             {
                 case "ubuntu":
-                    // if we find .deb and .snap files on an Ubuntu 20.04 host, prefer snap
-                    packageExtension = detectedSnap && version == "20.04"
+                    // if we find .deb and .snap files on an Ubuntu 22.04 host, prefer snap
+                    packageExtension = detectedSnap && version == "22.04"
                         ? SupportedPackageExtension.Snap
                         : SupportedPackageExtension.Deb;
                     break;
