@@ -1,4 +1,3 @@
-%global debug_package %{nil}
 %define iotedge_user iotedge
 %define iotedge_group %{iotedge_user}
 %define iotedge_home %{_localstatedir}/lib/aziot/edged

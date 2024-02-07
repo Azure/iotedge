@@ -307,6 +307,7 @@ stages:
                 "ubuntu:22.04" \
                 '/src/ci/package.sh'
               popd
+              ls -al iot-identity-service/packages/mariner$(os_version)/$(arch)/*.rpm
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
               sudo rm -rf iot-identity-service
           
