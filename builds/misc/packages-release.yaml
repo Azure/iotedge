@@ -123,8 +123,6 @@ stages:
             Pattern: |
               *.deb
               *.rpm
-              !*-dbgsym_*.deb
-              !*-debuginfo-*.rpm
             SessionTimeout: 20
             inlineOperation: |
               [
