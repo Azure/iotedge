@@ -141,7 +141,7 @@ stages:
             rm -f ./CodeSignSummary*
           displayName: Remove CodeSign Summary
         - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-          displayName: 'SBOM Generation Task'
+          displayName: 'Generate SBOM'
           inputs:
               BuildDropPath: '$(build.artifactstagingdirectory)'
         - task: PublishBuildArtifacts@1
