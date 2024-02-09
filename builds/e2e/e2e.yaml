@@ -209,7 +209,7 @@ jobs:
       arch: amd64
       artifactName: iotedged-centos7-amd64
       identityServiceArtifactName: packages_centos-7_amd64
-      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
 
     steps:
     - template: templates/e2e-clean-directory.yaml
@@ -232,7 +232,7 @@ jobs:
       arch: amd64
       artifactName: iotedged-redhat8-amd64
       identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
-      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -253,7 +253,7 @@ jobs:
       arch: amd64
       artifactName: iotedged-redhat9-amd64
       identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
-      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -307,7 +307,7 @@ jobs:
       arch: amd64
       artifactName: iotedged-mariner2-amd64
       identityServiceArtifactName: packages_mariner-2_amd64
-      identityServicePackageFilter: aziot-identity-service-*.cm2.x86_64.rpm
+      identityServicePackageFilter: aziot-identity-service-?.*.cm2.x86_64.rpm
 
     timeoutInMinutes: 90
 
