@@ -37,6 +37,8 @@ securely and at scale—whether in the cloud or offline.
 
 This package contains the IoT Edge daemon and CLI tool.
 
+%debug_package
+
 %prep
 %setup -q
 # include rust toolchain that matches the one from aziotedge's pipeline
