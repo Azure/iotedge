@@ -122,6 +122,7 @@ stages:
             FolderPath: '$(build.artifactstagingdirectory)'
             Pattern: |
               *.deb
+              *.ddeb
               *.rpm
             SessionTimeout: 20
             inlineOperation: |
