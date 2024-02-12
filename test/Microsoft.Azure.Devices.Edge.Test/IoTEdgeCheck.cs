@@ -2,13 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using Serilog;
 
@@ -17,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         [Test]
         [Category("CentOsSafe")]
-        public async Task IoTEdge_check()
+        public async Task IotEdgeCheck()
         {
             CancellationToken token = this.TestToken;
             // Need to deploy edgeHub or one check will fail
@@ -25,30 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string diagnosticImageName = Context.Current
                 .DiagnosticsImage.Expect(() => new ArgumentException("Missing diagnostic image"));
-
-            // If we are in a nested configuration, we don't need to login to docker because the bottom layer
-            // will ask the upper layer for the image through ApiProxy, which will continue up the chain
-            // until the top layer, which has permissions, can get it, and send it back down.
-            // Non-nested configuration needs it because we are calling out to a new process, and this process
-            // needs auth
-            // We can also skip if the user has provided a public image from mcr.microsoft.com that requires no auth
-            if (!Context.Current.NestedEdge || diagnosticImageName.Contains("mcr.microsoft.com"))
-            {
-                Registry diagnosticsRegistry = Context.Current.Registries.First();
-                foreach (var registry in Context.Current.Registries)
-                {
-                    if (diagnosticImageName.Contains(registry.Address))
-                    {
-                        // Get the registry that corresponds to the diagnosticImageName in case there are multiple registries.
-                        diagnosticsRegistry = registry;
-                    }
-                }
-
-                await Process.RunAsync(
-                    "docker",
-                    $"login --username {diagnosticsRegistry.Username} --password {diagnosticsRegistry.Password} {diagnosticsRegistry.Address}",
-                    token);
-            }
 
             string args = $"check --diagnostics-image-name {diagnosticImageName} --verbose";
             if (Context.Current.EdgeProxy.HasValue)

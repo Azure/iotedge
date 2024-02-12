@@ -3,6 +3,14 @@ parameters:
   IotHubConnectionString: '$(TestIotHubConnectionString)'
   test_type: ''
 
+steps:
+  # Docker login required for the 'iotedge check' end-to-end test
+- task: Docker@2
+  displayName: Docker login edgebuilds
+  inputs:
+    command: login
+    containerRegistry: iotedge-edgebuilds-acr
+
 # This E2E test pipeline uses the following filters in order to skip certain tests:
 #   Flaky: Flaky on multiple platforms
 #   FlakyOnArm: Flaky only on arm
@@ -13,7 +21,6 @@ parameters:
 #   NestedEdgeAmqpOnly: Only applies to nested edge cases using amqp upstream protocol
 #   LegacyMqttRequired: Only applies to cases with the edgehub legacy mqtt protocol head
 #   Amd64Only: Only applies to amd64 architecture
-steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
     $test_type = '${{ parameters.test_type }}'
