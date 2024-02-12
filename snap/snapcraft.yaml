@@ -105,6 +105,7 @@ parts:
 apps:
   aziot-edged:
     command-chain:
+      - snap/command-chain/handle-exit-status-153.sh
       - snap/command-chain/make-socket-directory.sh
       - snap/command-chain/drop-privileges.sh
     command: usr/libexec/aziot/aziot-edged
