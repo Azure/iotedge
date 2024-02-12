@@ -1,11 +1,11 @@
 name: azure-iot-edge
 base: core22 # the base snap is the execution environment for this snap
-summary: Single-line elevator pitch for your amazing snap # 79 char long summary
+summary: Managed solution for deploying and configuring software on IoT devices
 description: |
-  This is my-snap's description. You have a paragraph or two to tell the
-  most important story about your snap. Keep it under 100 words though,
-  we live in tweetspace and your description wants to look good in the snap
-  store.
+  Azure IoT Edge is a fully managed service that delivers cloud intelligence
+  locally by deploying and running artificial intelligence (AI), Azure services,
+  and custom logic directly on cross-platform IoT devices. Run your IoT solution
+  securely and at scale—whether in the cloud or offline.
 
 confinement: strict # use 'strict' once you have the right plugs and slots
 adopt-info: edgelet
