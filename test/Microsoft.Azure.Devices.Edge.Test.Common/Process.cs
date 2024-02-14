@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class Process
     {
-        public static async Task RunAsync(string name, string args, Action<string> onStandardOutput, Action<string> onStandardError, CancellationToken token)
+        public static async Task RunAsync(string name, string args, Action<string> onStandardOutput, Action<string> onStandardError, CancellationToken token, bool logCommand = true)
         {
             var info = new ProcessStartInfo
             {
@@ -20,6 +20,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Arguments = args,
                 RedirectStandardInput = true,
             };
+
+            if (logCommand)
+            {
+                Log.Verbose($"RunAsync: {name} {args}");
+            }
 
             using (ProcessResults result = await ProcessEx.RunAsync(info, onStandardOutput, onStandardError, token))
             {
@@ -30,15 +35,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
-        static async Task<string[]> RunAsync(ProcessStartInfo processStartInfo, CancellationToken token, bool logVerbose)
+        static async Task<string[]> RunAsync(ProcessStartInfo processStartInfo, CancellationToken token, bool logOutput)
         {
-            Action<string> MakeOutputHandler(bool logVerbose)
+            Action<string> MakeOutputHandler(bool logOutput)
             {
-                return logVerbose ? (string s) => Log.Verbose(s) : (string o) => { };
+                return logOutput ? (string s) => Log.Verbose(s) : (string o) => { };
             }
 
-            Action<string> onStdout = MakeOutputHandler(logVerbose);
-            Action<string> onStderr = MakeOutputHandler(logVerbose);
+            Action<string> onStdout = MakeOutputHandler(logOutput);
+            Action<string> onStderr = MakeOutputHandler(logOutput);
 
             using (ProcessResults result = await ProcessEx.RunAsync(processStartInfo, onStdout, onStderr, token))
             {
@@ -51,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
-        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token, bool logVerbose = true)
+        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token, bool logCommand = true, bool logOutput = true)
         {
             var info = new ProcessStartInfo
             {
@@ -60,15 +65,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 RedirectStandardInput = true,
             };
 
-            if (logVerbose)
+            if (logCommand)
             {
                 Log.Verbose($"RunAsync: {name} {args}");
             }
 
-            return await RunAsync(info, token, logVerbose);
+            return await RunAsync(info, token, logOutput);
         }
 
-        public static async Task<string[]> RunAsync(string name, ICollection<string> args, CancellationToken token, bool logVerbose = true)
+        public static async Task<string[]> RunAsync(string name, ICollection<string> args, CancellationToken token, bool logCommand = true, bool logOutput = true)
         {
             var info = new ProcessStartInfo
             {
@@ -81,12 +86,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 info.ArgumentList.Add(arg);
             }
 
-            if (logVerbose)
+            if (logCommand)
             {
                 Log.Verbose($"RunAsync: {name} {string.Join(' ', args)}");
             }
 
-            return await RunAsync(info, token, logVerbose);
+            return await RunAsync(info, token, logOutput);
         }
     }
 }

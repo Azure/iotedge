@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 "-u docker",
                 $"--since \"{testStartTime:yyyy-MM-dd HH:mm:ss}\"",
                 "--no-pager");
-            string[] output = await Process.RunAsync("journalctl", args, token, logVerbose: false);
+            string[] output = await Process.RunAsync("journalctl", args, token, logCommand: true, logOutput: false);
 
             string daemonLog = $"{filePrefix}-daemon.log";
             await File.WriteAllLinesAsync(daemonLog, output, token);

@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Serilog;
 
     class SnapServiceManager : IServiceManager
     {
@@ -29,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public async Task ConfigureAsync(CancellationToken token)
         {
+            // TODO: REMOVE
             // For snaps, we don't currently add 'RestartPreventExitStatus=153' to the systemd service unit file like
             // we do for other packages. This means that if the daemon is running but isn't yet configured, it will
             // keep restarting until unit start rate limiting kicks in. To prevent this scenario, we'll call
@@ -38,8 +40,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             var config = await File.ReadAllTextAsync(this.ConfigurationPath(), token);
             // Turn off verbose logging when setting config to avoid logging sensitive information, like docker
             // registry credentials.
+            Log.Verbose($"Calling 'snap set azure-iot-edge raw-config=...' with contents of {this.ConfigurationPath()}");
             await Process.RunAsync(
-                "snap", new string[] { "set", "azure-iot-edge", $"raw-config={config}" }, token, logVerbose: false);
+                "snap",
+                new string[] { "set", "azure-iot-edge", $"raw-config={config}" },
+                token,
+                logCommand: false,
+                logOutput: true);
 
             // `snap set azure-iot-edge raw-config=...` calls `iotedge config apply`, which, for snaps, only restarts
             // aziot-edged, not identityd, keyd, certd, or tpmd. The identity service components need to refresh their

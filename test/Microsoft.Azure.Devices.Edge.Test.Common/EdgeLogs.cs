@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 foreach (string name in modules)
                 {
                     string moduleLog = $"{filePrefix}-{name}.log";
-                    output = await cli.RunAsync($"logs {name}", token, logVerbose: false);
+                    output = await cli.RunAsync($"logs {name}", token, logCommand: true, logOutput: false);
                     await File.WriteAllLinesAsync(moduleLog, output, token);
                     paths.Add(moduleLog);
                 }
