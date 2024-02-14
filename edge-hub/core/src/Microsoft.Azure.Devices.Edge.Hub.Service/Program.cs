@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             catch (Exception ex)
             {
                 logger.LogError(ex, "Stopping with exception");
-                throw;
+                return 1;
             }
 
             return 0;
