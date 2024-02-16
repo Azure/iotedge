@@ -385,4 +385,5 @@ docker run --rm \
     "
 
 find "$PROJECT_ROOT" -name '*.deb'
+find "$PROJECT_ROOT" -name '*.ddeb'
 find "$PROJECT_ROOT" -name '*.rpm'
