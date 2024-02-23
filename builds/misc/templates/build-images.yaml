@@ -55,6 +55,14 @@ stages:
     - job: BuildDotnetComponents
       displayName: Build Dotnet Components
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+            mkdir $(Build.SourcesDirectory)\testSdk
+            az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
         displayName: Build ($(Build.Configuration)) dotnet artifacts
