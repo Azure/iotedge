@@ -164,7 +164,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Edge Agent
@@ -182,7 +182,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Edge Hub
@@ -200,7 +200,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Temperature Sensor
@@ -217,7 +217,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Diagnostics
@@ -234,7 +234,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: API Proxy
@@ -256,7 +256,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Temperature Filter
@@ -273,7 +273,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Load Gen
@@ -290,7 +290,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Test Analyzer
@@ -309,7 +309,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Functions Sample
@@ -327,7 +327,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Direct Method Sender
@@ -344,7 +344,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Direct Method Receiver
@@ -361,7 +361,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Metrics Validator
@@ -378,7 +378,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Number Logger
@@ -395,7 +395,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Module Restarter
@@ -412,7 +412,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: TwinTester
@@ -430,7 +430,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Relayer
@@ -447,7 +447,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Network Controller
@@ -465,7 +465,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: TestResultCoordinator
@@ -483,7 +483,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Test Metrics Collector
@@ -500,7 +500,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: DeploymentTester
@@ -517,7 +517,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: EdgeHubRestartTester
@@ -534,7 +534,7 @@ stages:
           scriptLocation: inlineScript
           inlineScript: |
           mkdir $(Build.SourcesDirectory)\testSdk
-          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+          az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Cloud To Device Message Tester
