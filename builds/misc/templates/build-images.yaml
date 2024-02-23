@@ -157,6 +157,14 @@ stages:
     # Product images
     - job: BuildImageEdgeAgent
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Edge Agent
@@ -167,6 +175,14 @@ stages:
 
     - job: BuildImageEdgeHub
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Edge Hub
@@ -177,6 +193,14 @@ stages:
 
     - job: BuildImageTemperatureSensor
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Temperature Sensor
@@ -186,6 +210,14 @@ stages:
 
     - job: BuildImageDiagnostics
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Diagnostics
@@ -195,6 +227,14 @@ stages:
 
     - job: BuildImageApiProxy
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: API Proxy
@@ -209,6 +249,14 @@ stages:
     # Test images
     - job: BuildImageTemperatureFilter
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Temperature Filter
@@ -218,6 +266,14 @@ stages:
 
     - job: BuildImageLoadGen
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Load Gen
@@ -227,6 +283,14 @@ stages:
 
     - job: BuildImageTestAnalyzer
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Test Analyzer
@@ -238,6 +302,14 @@ stages:
       # Functions Sample - Only supported on amd64
     - job: BuildImageFunctionsSample
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Functions Sample
@@ -248,6 +320,14 @@ stages:
 
     - job: BuildImageDirectMethodSender
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Direct Method Sender
@@ -257,6 +337,14 @@ stages:
 
     - job: BuildImageDirectMethodReceiver
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Direct Method Receiver
@@ -266,6 +354,14 @@ stages:
 
     - job: BuildImageMetricsValidator
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Metrics Validator
@@ -275,6 +371,14 @@ stages:
 
     - job: BuildImageNumberLogger
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Number Logger
@@ -284,6 +388,14 @@ stages:
 
     - job: BuildImageModuleRestarter
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Module Restarter
@@ -293,6 +405,14 @@ stages:
 
     - job: BuildImageTwinTester
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: TwinTester
@@ -303,6 +423,14 @@ stages:
 
     - job: BuildImageRelayer
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Relayer
@@ -312,6 +440,14 @@ stages:
 
     - job: BuildImageNetworkController
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Network Controller
@@ -322,6 +458,14 @@ stages:
 
     - job: BuildImageTestResultCoordinator
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: TestResultCoordinator
@@ -332,6 +476,14 @@ stages:
 
     - job: BuildImageTestMetricsCollector
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Test Metrics Collector
@@ -341,6 +493,14 @@ stages:
 
     - job: BuildImageDeploymentTester
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: DeploymentTester
@@ -350,6 +510,14 @@ stages:
 
     - job: BuildImageEdgeHubRestartTester
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: EdgeHubRestartTester
@@ -359,6 +527,14 @@ stages:
 
     - job: BuildImageCloudToDeviceMessageTester
       steps:
+      - task: AzureCLI@1
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: "bearAppRegConnectionService"
+          scriptLocation: inlineScript
+          inlineScript: |
+          mkdir $(Build.SourcesDirectory)\testSdk
+          az storage blob download-batch -d . --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)\testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - template: image-linux.yaml
         parameters:
           displayName: Cloud To Device Message Tester
