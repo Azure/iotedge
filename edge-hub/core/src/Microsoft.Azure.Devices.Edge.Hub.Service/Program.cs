@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -45,6 +46,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         static async Task<int> MainAsync(IConfigurationRoot configuration)
         {
+            // Configure this value to filter all the necessary events when OnEventSourceCreated is called.
+            // The EventListener base class constructor creates an event listener in which all events are disabled by default.
+            // EventListener constructor also causes the OnEventSourceCreated callback to fire.
+            // Since our ConsoleEventListener uses the OnEventSourceCreated callback to enable events, the event filter needs to be
+            // initialized before OnEventSourceCreated is called. For this reason we cannot use ConsoleEventListener constructor
+            // to initialize the event filter (base class constructors are called before derived class constructors).
+            // The OnEventSourceCreated will be triggered sooner than the filter is initialized in the ConsoleEventListener constructor.
+            // As a result we will need to define the event filter list as a static variable.
+            // Link to EventListener sourcecode: https://github.com/dotnet/runtime/blob/6696065ab0f517f5a9e5f55c559df0010a816dbe/src/libraries/System.Private.CoreLib/src/System/Diagnostics/Tracing/EventSource.cs#L4009-L4018
+            string[] eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
+
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
 
@@ -55,6 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
+
+            using var sdk = new ConsoleEventListener(eventFilter, logger);
 
             try
             {
