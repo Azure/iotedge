@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <Import Project="..\..\..\netcoreappVersion.props" />
-  
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <HighEntropyVA>true</HighEntropyVA>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.1" />
@@ -24,12 +23,11 @@
     <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker\Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <Import Project="..\..\..\stylecop.props" />
 </Project>

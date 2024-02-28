@@ -1,24 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <Import Project="..\..\..\netstandardVersion.props" />
-
   <PropertyGroup>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <HighEntropyVA>true</HighEntropyVA>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Core\Microsoft.Azure.Devices.Edge.Agent.Core.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Docker\Microsoft.Azure.Devices.Edge.Agent.Docker.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Edgelet\Microsoft.Azure.Devices.Edge.Agent.Edgelet.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <Import Project="..\..\..\stylecop.props" />
 </Project>
