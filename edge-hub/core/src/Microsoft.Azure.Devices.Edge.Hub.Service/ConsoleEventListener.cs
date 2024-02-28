@@ -84,8 +84,8 @@ namespace Microsoft.Azure.Devices.Logging
 #else
                     eventIdent = eventData.EventName;
 #endif
-                    string text = $"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture)} [{eventData.EventSource.Name}-{eventIdent}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : "")}";
-                    _logger.LogTrace(text);
+                    string text = $"SDK {DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture)} [{eventData.EventSource.Name}-{eventIdent}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : "")}";
+                    _logger.LogInformation(text);
                 }
             }
         }
