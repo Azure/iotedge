@@ -31,8 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         const int DefaultShutdownWaitPeriod = 60;
         const SslProtocols DefaultSslProtocols = SslProtocols.Tls12;
 
-        private static readonly ConsoleEventListener listener = new ConsoleEventListener();
-
         public static int Main()
         {
             Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
