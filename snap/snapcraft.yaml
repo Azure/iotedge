@@ -148,7 +148,7 @@ hooks:
       - mount-observe
 
 environment:
-  PATH: "$PATH:$SNAP/aziotctl/bin"
+  PATH: "$PATH:$SNAP/aziotctl/bin:$SNAP/usr/bin"
 
 plugs:
   aziotctl-executables:
