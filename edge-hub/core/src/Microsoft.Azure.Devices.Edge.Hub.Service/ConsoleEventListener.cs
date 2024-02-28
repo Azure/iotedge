@@ -9,6 +9,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics.Tracing;
+using System.Globalization;
 using System.Linq;
 
 namespace Microsoft.Azure.Devices.Logging
