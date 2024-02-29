@@ -1,22 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <Import Project="..\..\..\..\netstandardVersion.props" />
-
   <PropertyGroup>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <NoWarn>3021</NoWarn>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
-
   <PropertyGroup>
-  <!-- on windows, if you've done an flat download(xcopy install) of openjdk without really installing it or adding it to your path add a props file 
+    <!-- on windows, if you've done an flat download(xcopy install) of openjdk without really installing it or adding it to your path add a props file 
   to %localappdata%\Microsoft\MSBuild\(toolversion)\Imports\Microsoft.Common.props\ImportBefore\OpenJDK.props> that defines
   the JDK paths with trailing slashes. otherwise everything works the way it always has
   -->
     <JavaRuntime>"$(JDKBinPath)java"</JavaRuntime>
   </PropertyGroup>
-
   <ItemGroup>
     <!-- NOTE: If you change the version of Antlr4 here, you also have to change <FullAntlr4ToolLocation> below -->
     <PackageReference Include="Antlr4" Version="4.6.6" />
@@ -25,22 +22,18 @@
       reference here to override the version and fix a vulnerability. See
       https://github.com/advisories/GHSA-7jgj-8wvc-jh57.
     -->
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="App.Metrics" Version="3.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    <PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="8.0.0" />
+    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="8.0.0" />
     <!--
       Microsoft.Extensions.Logging.Console/5.0.0 takes a transitive dependency on
       System.Text.Encodings.Web. Use an explicit reference here to override the
       version and fix a security vulnerability.
       See https://github.com/dotnet/runtime/issues/49377#issuecomment-804930299.
     -->
-    <PackageReference Include="System.Text.Encodings.Web" Version="5.0.1" />
-    <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
-    <PackageReference Include="System.Reflection.Extensions" Version="4.3.0" />
-    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.5.1" />
-    <PackageReference Include="System.Threading.Tasks.Dataflow" Version="4.7.0" />
   </ItemGroup>
-
   <ItemGroup Condition="'$(BuildingInsideVisualStudio)' == 'true' And '$(OS)' == 'Windows_NT'">
     <Antlr4 Include="grammar\Condition.g4">
       <Generator>MSBuild:Compile</Generator>
@@ -74,13 +67,11 @@
     <EmbeddedResource Remove="grammar\generated\**" />
     <None Remove="grammar\generated\**" />
   </ItemGroup>
-
   <ItemGroup>
     <Antlr4Inputs Include="grammar\*.g4;query\jsonpath\*.g4" />
     <Antlr4Outputs Include="grammar\generated\**\*.cs" />
     <Antlr4Outputs Condition="'@(Antlr4Outputs)' == ''" Include="grammar\generated\dummy.cs" />
   </ItemGroup>
-
   <Target Name="Antlr4CodeGen" BeforeTargets="Antlr4Sources" Inputs="@(Antlr4Inputs)" Outputs="@(Antlr4Outputs)" Condition="'$(BuildingInsideVisualStudio)' != 'true' Or '$(OS)' != 'Windows_NT'">
     <PropertyGroup>
       <FullAntlr4ToolLocation>$(NuGetPackageRoot)antlr4.codegenerator/4.6.6/tools/antlr4-csharp-4.6.6-complete.jar</FullAntlr4ToolLocation>
@@ -92,22 +83,19 @@
       <Output TaskParameter="ValueSetByTask" PropertyName="Antlr4CodeGenRan" />
     </CreateProperty>
   </Target>
-
   <Target Name="Antlr4Sources" BeforeTargets="CoreCompile">
     <ItemGroup Condition="'$(Antlr4CodeGenRan)' == 'true'">
       <Compile Include="grammar\generated\**\*.cs" />
     </ItemGroup>
   </Target>
-
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <Import Project="..\..\..\..\stylecop.props" />
 </Project>

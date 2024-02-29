@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Azure.Functions.Worker;
 // Copyright (c) Microsoft. All rights reserved.
 namespace Functions.Samples
 {
@@ -6,13 +8,11 @@ namespace Functions.Samples
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.WebJobs;
-    using Microsoft.Azure.WebJobs.Extensions.EdgeHub;
     using Newtonsoft.Json;
 
     public static class EdgeHubSamples
     {
-        [FunctionName("EdgeHubTrigger-CSharp")]
+        [Function("EdgeHubTrigger-CSharp")]
         public static async Task FilterMessageAndSendMessage(
             [EdgeHubTrigger("input1")] Message messageReceived,
             [EdgeHub(OutputName = "output1")] IAsyncCollector<Message> output)

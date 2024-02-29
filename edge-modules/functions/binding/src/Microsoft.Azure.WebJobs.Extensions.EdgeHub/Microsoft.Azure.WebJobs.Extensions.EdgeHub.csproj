@@ -2,18 +2,15 @@
   <PropertyGroup>
     <CompileBlocked>true</CompileBlocked>
   </PropertyGroup>
-
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
-  
   <PropertyGroup>
     <AssemblyName>Microsoft.Azure.WebJobs.Extensions.EdgeHub</AssemblyName>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
-
   <PropertyGroup>
     <Title>Microsoft Azure Edge Function extension</Title>
     <Authors>Microsoft</Authors>
@@ -26,30 +23,27 @@
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <PackageTags>IoT Microsoft Azure IoTEdge Functions</PackageTags>
   </PropertyGroup>
-
   <ItemGroup>
     <None Include="..\..\..\..\..\LICENSE" Pack="true" PackagePath="" />
     <None Include="images\icon.png" Pack="true" PackagePath="" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.8" />
-    <PackageReference Include="System.Text.Encodings.Web" Version="4.7.2" />
     <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.36" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="8.0.0" />
     <!--
         Newtonsoft.Json < 13.0.2 has a vulnerability due to insecure defaults.
         Use an explicit reference to ensure the transitive dependency through
         Microsoft.Azure.Devices.Client and Microsoft.Azure.WebJobs is a safe
         version.
     -->
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
   </ItemGroup>
-
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <Import Project="..\..\..\..\..\stylecop.props" />
 </Project>

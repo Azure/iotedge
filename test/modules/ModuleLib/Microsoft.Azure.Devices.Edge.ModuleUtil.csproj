@@ -1,7 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <Import Project="..\..\..\netcoreappVersion.props" />
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.8" />
     <!--
@@ -9,13 +7,10 @@
       Use an explicit reference here to override the version and fix a vulnerability. See
       https://github.com/advisories/GHSA-7jgj-8wvc-jh57.
     -->
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
@@ -24,6 +19,7 @@
     <RootNamespace>Microsoft.Azure.Devices.Edge.ModuleUtil</RootNamespace>
     <AssemblyName>Microsoft.Azure.Devices.Edge.ModuleUtil</AssemblyName>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
-  </PropertyGroup>  
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
   <Import Project="..\..\..\stylecop.props" />
 </Project>

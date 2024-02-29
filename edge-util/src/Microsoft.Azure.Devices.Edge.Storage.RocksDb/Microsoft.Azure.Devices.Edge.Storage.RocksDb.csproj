@@ -1,14 +1,12 @@
 ﻿<!--EXTERNAL_PROPERTIES: RocksDbAsPackage-->
 <Project Sdk="Microsoft.NET.Sdk">
-
   <Import Project="..\..\..\netstandardVersion.props" />
-
   <PropertyGroup>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
     <!--
       Add '-p:RocksDbAsPackage=false' to the 'dotnet build/publish' command line to avoid
@@ -23,18 +21,15 @@
       RocksDbSharp/5.17.2. Use an explicit reference here to override the version and fix a
       vulnerability. See https://github.com/advisories/GHSA-7jgj-8wvc-jh57.
     -->
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <Import Project="..\..\..\stylecop.props" />
 </Project>

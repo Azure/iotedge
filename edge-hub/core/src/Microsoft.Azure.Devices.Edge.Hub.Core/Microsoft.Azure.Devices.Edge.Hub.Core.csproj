@@ -1,25 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <Import Project="..\..\..\..\netstandardVersion.props" />
-
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Remove="Listeners\**" />
     <EmbeddedResource Remove="Listeners\**" />
     <None Remove="Listeners\**" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="App.Metrics" Version="3.0.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2018.3.0" />
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.9" />
-    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
     <!--
       We have a transitive dependency on Dotnetty via Microsoft.Azure.Devices.Client. Use
       explicit references here to override the version and fix a known OOM bug. See
@@ -32,20 +28,17 @@
     <PackageReference Include="DotNetty.Common" Version="0.7.6" />
     <PackageReference Include="DotNetty.Handlers" Version="0.7.6" />
     <PackageReference Include="DotNetty.Transport" Version="0.7.6" />
-
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />
     <ProjectReference Include="..\..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Routing.Core\Microsoft.Azure.Devices.Routing.Core.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
+  </PropertyGroup>
   <Import Project="..\..\..\..\stylecop.props" />
 </Project>
