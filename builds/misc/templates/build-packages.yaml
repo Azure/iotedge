@@ -153,11 +153,11 @@ stages:
             amd64:
               arch: amd64
               pool: $(pool.linux.name)
-              image: agent-aziotedge-ubuntu-22.04-msmoby
+              image: agent-aziotedge-ubuntu-22.04
             aarch64:
               arch: aarch64
               pool: $(pool.linux.arm.name)
-              image: agent-aziotedge-ubuntu-22.04-arm64-msmoby
+              image: agent-aziotedge-ubuntu-22.04-arm64
         pool:
           name: $(pool)
           demands:
