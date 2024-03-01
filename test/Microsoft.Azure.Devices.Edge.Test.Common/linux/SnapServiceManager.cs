@@ -30,13 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public async Task ConfigureAsync(CancellationToken token)
         {
-            // TODO: REMOVE
-            // For snaps, we don't currently add 'RestartPreventExitStatus=153' to the systemd service unit file like
-            // we do for other packages. This means that if the daemon is running but isn't yet configured, it will
-            // keep restarting until unit start rate limiting kicks in. To prevent this scenario, we'll call
-            // 'systemctl reset-failed' to flush the restart rate counter and allow the service to start.
-            await Process.RunAsync("systemctl", "reset-failed snap.azure-iot-edge.aziot-edged", token);
-
             var config = await File.ReadAllTextAsync(this.ConfigurationPath(), token);
             // Turn off verbose logging when setting config to avoid logging sensitive information, like docker
             // registry credentials.
