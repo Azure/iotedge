@@ -163,7 +163,7 @@ stages:
         aarch64:
           arch: aarch64
           pool: $(pool.linux.arm.name)
-          image: agent-aziotedge-ubuntu-22.04-arm64-docker
+          image: agent-aziotedge-ubuntu-22.04-arm64-msmoby
     pool:
       name: $(pool)
       demands:
