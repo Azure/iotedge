@@ -40,6 +40,7 @@ jobs:
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: |
+          source $HOME/.cargo/env
           cd edgelet
           make \
             CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock \
