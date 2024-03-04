@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string certContentBase64 = Convert.ToBase64String(certContentBytes);
             string clientCertString = $"-----BEGIN CERTIFICATE-----\n{certContentBase64}\n-----END CERTIFICATE-----\n";
             clientCertString = WebUtility.UrlEncode(clientCertString);
-            httpContext.Request.Headers.Add(Constants.ClientCertificateHeaderKey, new StringValues(clientCertString));
+            httpContext.Request.Headers.Append(Constants.ClientCertificateHeaderKey, new StringValues(clientCertString));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
             var authenticator = new Mock<IAuthenticator>();
 
@@ -76,10 +76,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string certContentBase64 = Convert.ToBase64String(certContentBytes);
             string clientCertString = $"{certContentBase64}";
             clientCertString = WebUtility.UrlEncode(clientCertString);
-            httpContext.Request.Headers.Add(Constants.ClientCertificateHeaderKey, new StringValues(clientCertString));
+            httpContext.Request.Headers.Append(Constants.ClientCertificateHeaderKey, new StringValues(clientCertString));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{apiProxyId}");
-            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
+            httpContext.Request.Headers.Append(HeaderNames.Authorization, new StringValues(sasToken));
             var authenticator = new Mock<IAuthenticator>();
 
             var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName));
@@ -101,9 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string certContentBase64 = Convert.ToBase64String(certContentBytes);
             string clientCertString = $"-----BEGIN CERTIFICATE-----\n{certContentBase64}\n-----END CERTIFICATE-----\n";
             clientCertString = WebUtility.UrlEncode(clientCertString);
-            httpContext.Request.Headers.Add(Constants.ClientCertificateHeaderKey, new StringValues(clientCertString));
+            httpContext.Request.Headers.Append(Constants.ClientCertificateHeaderKey, new StringValues(clientCertString));
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{apiProxyId}");
-            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
+            httpContext.Request.Headers.Append(HeaderNames.Authorization, new StringValues(sasToken));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.Is<IClientCredentials>(c => c.Identity.Id == "device_2/iotedgeApiProxy"))).ReturnsAsync(false);
@@ -128,9 +128,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string certContentBase64 = Convert.ToBase64String(certContentBytes);
             string clientCertString = $"-----BEGIN CERTIFICATE-----\n{certContentBase64}\n-----END CERTIFICATE-----\n";
             clientCertString = WebUtility.UrlEncode(clientCertString);
-            httpContext.Request.Headers.Add(Constants.ClientCertificateHeaderKey, new StringValues(clientCertString));
+            httpContext.Request.Headers.Append(Constants.ClientCertificateHeaderKey, new StringValues(clientCertString));
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{apiProxyId}");
-            httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
+            httpContext.Request.Headers.Append(HeaderNames.Authorization, new StringValues(sasToken));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(a => a.AuthenticateAsync(It.Is<IClientCredentials>(c => c.Identity.Id == "device_2/iotedgeApiProxy"))).ReturnsAsync(true);

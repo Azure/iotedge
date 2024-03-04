@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         {
             string toDeviceId = "device1";
             var sut = SetupControllerToRespond(toDeviceId, Option.None<string>(), 200, new byte[0]);
-            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
+            sut.HttpContext.Request.Headers.Append(Constants.ServiceApiIdHeaderKey, actorId);
 
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string toDeviceId = "edgedevice";
             string toModuleId = "module2";
             var sut = SetupControllerToRespond(toDeviceId, Option.Some(toModuleId), 200, new byte[0]);
-            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
+            sut.HttpContext.Request.Headers.Append(Constants.ServiceApiIdHeaderKey, actorId);
 
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var responsePayloadBytes = Encoding.UTF8.GetBytes(reponsePayloadJson);
 
             var sut = SetupControllerToRespond(toDeviceId, Option.None<string>(), 200, responsePayloadBytes);
-            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
+            sut.HttpContext.Request.Headers.Append(Constants.ServiceApiIdHeaderKey, actorId);
 
             string command = "showdown";
             string cmdPayload = "{ \"prop1\" : \"value1\" }";
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var responsePayloadBytes = Encoding.UTF8.GetBytes(reponsePayloadJson);
 
             var sut = SetupControllerToRespond(toDeviceId, Option.Some(toModuleId), 200, responsePayloadBytes);
-            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
+            sut.HttpContext.Request.Headers.Append(Constants.ServiceApiIdHeaderKey, actorId);
 
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         {
             string toDeviceId = "device1";
             var sut = SetupControllerToRespond(toDeviceId, Option.None<string>(), 200, new byte[0]);
-            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, $"{actorDevice}");
+            sut.HttpContext.Request.Headers.Append(Constants.ServiceApiIdHeaderKey, $"{actorDevice}");
 
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         {
             string toDeviceId = "device1";
             var sut = SetupControllerToRespond(toDeviceId, Option.None<string>(), 200, new byte[0]);
-            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, $"differentEdge/module1");
+            sut.HttpContext.Request.Headers.Append(Constants.ServiceApiIdHeaderKey, $"differentEdge/module1");
 
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         {
             string toDeviceId = "device1";
             var sut = SetupControllerToThrow(toDeviceId, Option.None<string>(), HttpStatusCode.GatewayTimeout, new EdgeHubTimeoutException("EdgeHub timed out"));
-            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
+            sut.HttpContext.Request.Headers.Append(Constants.ServiceApiIdHeaderKey, actorId);
 
             string command = "showdown";
             string cmdPayload = "{ \"prop1\" : \"value1\" }";
@@ -195,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.True(reponsePayloadJson.Length != responsePayloadBytes.Length);
 
             var sut = SetupControllerToRespond(toDeviceId, Option.Some(toModuleId), 200, responsePayloadBytes);
-            sut.HttpContext.Request.Headers.Add(Constants.ServiceApiIdHeaderKey, actorId);
+            sut.HttpContext.Request.Headers.Append(Constants.ServiceApiIdHeaderKey, actorId);
 
             string command = "showdown";
             string payload = "{ \"prop1\" : \"value1\" }";

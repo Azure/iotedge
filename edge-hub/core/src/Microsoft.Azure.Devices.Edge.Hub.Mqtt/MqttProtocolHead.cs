@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             }
             catch (Exception ex)
             {
-                this.logger.LogError("Failed to stop cleanly", ex);
+                this.logger.LogError("Failed to stop cleanly. Exception: {}", ex);
             }
         }
 
