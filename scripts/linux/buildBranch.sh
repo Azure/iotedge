@@ -127,10 +127,9 @@ publish_project()
 {
     local type="$1"
     local name="$2"
-    local framework="$3"
-    local config="$4"
-    local output="$5"
-    local option="$6"
+    local config="$3"
+    local output="$4"
+    local option="$5"
 
     local path=$(find $ROOT_FOLDER -type f -name $name.csproj)
     if [ -z "$path" ]; then
@@ -139,8 +138,7 @@ publish_project()
     fi
 
     echo "Publishing $type '$name'"
-    echo "$DOTNET_ROOT_PATH/dotnet publish -f $framework -p:DotNet_Runtime=$DOTNET_RUNTIME -c $config $option -o $output $path"
-    $DOTNET_ROOT_PATH/dotnet publish -f $framework -p:DotNet_Runtime=$DOTNET_RUNTIME -c $config $option -o $output $path
+    $DOTNET_ROOT_PATH/dotnet publish -c $config $option -o $output $path
 
     if [ $? -gt 0 ]; then
         RES=1
@@ -150,21 +148,13 @@ publish_project()
 publish_app()
 {
     local name="$1"
-    local dotnet_runtime="$2"
-
-    if [ -z "$dotnet_runtime" ]
-    then
-        dotnet_runtime=$DOTNET_RUNTIME
-    fi
-
-    publish_project app \
-        "$name" $dotnet_runtime $CONFIGURATION "$PUBLISH_FOLDER/$name" $MSBUILD_OPTIONS
+    publish_project app "$name" $CONFIGURATION "$PUBLISH_FOLDER/$name" $MSBUILD_OPTIONS
 }
 
 publish_lib()
 {
     local name="$1"
-    publish_project library "$name" net8.0 $CONFIGURATION "$PUBLISH_FOLDER/$name"
+    publish_project library "$name" $CONFIGURATION "$PUBLISH_FOLDER/$name"
 }
 
 publish_quickstart()
@@ -212,14 +202,7 @@ build_solution()
     echo "Building IoT Edge solution"
     dotnet --version
 
-    build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION -o \"$BUILD_BINARIESDIRECTORY\""
-
-    if [ -n "$DOTNET_RUNTIME" ]; then
-        build_command="$build_command -p:DotNet_Runtime=$DOTNET_RUNTIME"
-    fi
-    build_command="$build_command $ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln"
-
-    eval ${build_command}
+    $DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION $ROOT_FOLDER/Microsoft.Azure.Devices.Edge.sln
     if [ $? -gt 0 ]; then
         RES=1
     fi
