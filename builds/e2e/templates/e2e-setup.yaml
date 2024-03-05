@@ -109,6 +109,15 @@ steps:
       ROOT_CERT: $(TestRootCaCertificate)
       ROOT_KEY: $(TestRootCaKey)
   
+  - task: AzureCLI@1
+    displayName: 'Setup Local SDK NuGet Source'
+    inputs:
+      azureSubscription: bearAppRegConnectionService
+      scriptLocation: inlineScript
+      inlineScript: |
+        mkdir $(Build.SourcesDirectory)/sdk
+        az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)/testSdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+
   - pwsh: |
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       dotnet build $testDir
