@@ -41,7 +41,10 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
         if nix::unistd::Uid::current().is_root() {
             let aziotks_user = nix::unistd::User::from_name(aziotks_username)
                 .map_err(|err| {
-                    format!("could not query {aziotks_username} user information: {}", err)
+                    format!(
+                        "could not query {aziotks_username} user information: {}",
+                        err
+                    )
                 })?
                 .ok_or(format!(
                     "could not query {aziotks_username} user information"
@@ -49,7 +52,10 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
 
             let aziotcs_user = nix::unistd::User::from_name(aziotcs_username)
                 .map_err(|err| {
-                    format!("could not query {aziotcs_username} user information: {}", err)
+                    format!(
+                        "could not query {aziotcs_username} user information: {}",
+                        err
+                    )
                 })?
                 .ok_or(format!(
                     "could not query {aziotcs_username} user information"
@@ -57,7 +63,10 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
 
             let aziotid_user = nix::unistd::User::from_name(aziotid_username)
                 .map_err(|err| {
-                    format!("could not query {aziotid_username} user information: {}", err)
+                    format!(
+                        "could not query {aziotid_username} user information: {}",
+                        err
+                    )
                 })?
                 .ok_or(format!(
                     "could not query {aziotid_username} user information"
@@ -65,7 +74,10 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
 
             let aziottpm_user = nix::unistd::User::from_name(aziottpm_username)
                 .map_err(|err| {
-                    format!("could not query {aziottpm_username} user information: {}", err)
+                    format!(
+                        "could not query {aziottpm_username} user information: {}",
+                        err
+                    )
                 })?
                 .ok_or(format!(
                     "could not query {aziottpm_username} user information"
@@ -73,7 +85,10 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
 
             let iotedge_user = nix::unistd::User::from_name(iotedge_username)
                 .map_err(|err| {
-                    format!("could not query {iotedge_username} user information: {}", err)
+                    format!(
+                        "could not query {iotedge_username} user information: {}",
+                        err
+                    )
                 })?
                 .ok_or(format!(
                     "could not query {iotedge_username} user information"
