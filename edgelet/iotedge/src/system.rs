@@ -22,17 +22,15 @@ lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
         ServiceDefinition {
             service: "snap.azure-iot-edge.aziot-edged.service",
-            sockets: &[]
+            sockets: &[],
         }
     };
-
     static ref DOCKERPROXY: ServiceDefinition = {
         ServiceDefinition {
             service: "snap.azure-iot-edge.docker-proxy.service",
-            sockets: &[]
+            sockets: &[],
         }
     };
-
     static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> =
         [&*DOCKERPROXY, &*IOTEDGED].into_iter().collect();
 }
