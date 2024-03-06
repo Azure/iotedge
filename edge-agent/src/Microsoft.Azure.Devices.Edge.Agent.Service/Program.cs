@@ -64,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     // Fallback if the logger hasn't been set up, should pretty much never happen
                     Console.Error.WriteLine(ex);
                 }
+
                 return 1;
             }
         }
