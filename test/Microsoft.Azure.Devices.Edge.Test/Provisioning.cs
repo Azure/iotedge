@@ -26,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Context.Current.TestRunnerProxy);
         }
 
-        string DeriveDeviceKey(byte[] groupKey, string registrationId)
+        string DeriveDeviceKey(byte[] groupKey, string deviceId)
         {
             using (var hmac = new HMACSHA256(groupKey))
             {
-                return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(registrationId)));
+                return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(deviceId)));
             }
         }
 
@@ -39,104 +39,85 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Category("FlakyOnArm")]
         public async Task DpsSymmetricKey()
         {
-            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
-            string groupKey = Context.Current.DpsGroupKey.Expect(() => new InvalidOperationException("Missing DPS enrollment group key (check DPS_GROUP_KEY env var)"));
-            string registrationId = DeviceId.Current.Generate();
+            string idScope = Context.Current.DpsIdScope.Expect(() =>
+                new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
+            string groupKey = Context.Current.DpsGroupKey.Expect(() =>
+                new InvalidOperationException("Missing DPS enrollment group key (check DPS_GROUP_KEY env var)"));
+            string deviceId = DeviceId.Current.Generate();
 
-            string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
+            string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), deviceId);
 
             CancellationToken token = this.TestToken;
 
-            (TestCertificates testCerts, _) = await TestCertificates.GenerateCertsAsync(registrationId, token);
+            (var certs, _) = await TestCertificates.GenerateEdgeCaCertsAsync(
+                deviceId,
+                this.daemon.GetCertificatesPath(),
+                token);
 
             await this.daemon.ConfigureAsync(
                 async config =>
                 {
-                    testCerts.AddCertsToConfig(config);
-                    config.SetDpsSymmetricKey(idScope, registrationId, deviceKey);
+                    config.SetCertificates(certs);
+                    config.SetDpsSymmetricKey(idScope, deviceId, deviceKey);
                     await config.UpdateAsync(token);
-                    return ("with DPS symmetric key attestation for '{Identity}'", new object[] { registrationId });
+                    return ("with DPS symmetric key attestation for '{Identity}'", new object[] { deviceId });
                 },
                 token);
 
-            await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
-
-            var agent = new EdgeAgent(registrationId, this.iotHub);
-            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            var agent = new EdgeAgent(deviceId, this.iotHub);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
-                registrationId,
+                deviceId,
                 this.iotHub,
                 token,
                 takeOwnership: true);
 
             Context.Current.DeleteList.TryAdd(
-                registrationId,
+                deviceId,
                 device.Expect(() => new InvalidOperationException(
-                    $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
+                    $"Device '{deviceId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
 
         [Test]
         [Category("FlakyOnArm")]
         public async Task DpsX509()
         {
-            (string, string, string) rootCa =
-                        Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing DPS ID scope (check rootCaPrivateKeyPath in context.json)"));
-            string caCertScriptPath =
-                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
-            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
-            string registrationId = DeviceId.Current.Generate();
+            string idScope = Context.Current.DpsIdScope.Expect(() =>
+                new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
+            string deviceId = DeviceId.Current.Generate();
 
             CancellationToken token = this.TestToken;
 
-            CertificateAuthority ca = await CertificateAuthority.CreateAsync(
-                registrationId,
-                rootCa,
-                caCertScriptPath,
-                token);
-
-            IdCertificates idCert = await ca.GenerateIdentityCertificatesAsync(registrationId, token);
-            (TestCertificates testCerts, _) = await TestCertificates.GenerateCertsAsync(registrationId, token);
-
-            // Generated credentials need to be copied out of the script path because future runs
-            // of the script will overwrite them.
-            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, registrationId);
-            string certPath = Path.Combine(path, "device_id_cert.pem");
-            string keyPath = Path.Combine(path, "device_id_cert_key.pem");
-
-            Directory.CreateDirectory(path);
-            File.Copy(idCert.CertificatePath, certPath);
-            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
-            File.Copy(idCert.KeyPath, keyPath);
-            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
+            var certsPath = this.daemon.GetCertificatesPath();
+            var idCerts = await TestCertificates.GenerateIdentityCertificatesAsync(deviceId, certsPath, token);
+            (var edgeCaCerts, _) = await TestCertificates.GenerateEdgeCaCertsAsync(deviceId, certsPath, token);
 
             await this.daemon.ConfigureAsync(
                 async config =>
                 {
-                    testCerts.AddCertsToConfig(config);
-                    config.SetDpsX509(idScope, certPath, keyPath);
+                    config.SetCertificates(edgeCaCerts);
+                    config.SetDpsX509(idScope, idCerts.CertificatePath, idCerts.KeyPath);
                     await config.UpdateAsync(token);
-                    return ("with DPS X509 attestation for '{Identity}'", new object[] { registrationId });
+                    return ("with DPS X509 attestation for '{Identity}'", new object[] { deviceId });
                 },
                 token);
 
-            await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
-
-            var agent = new EdgeAgent(registrationId, this.iotHub);
-            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            var agent = new EdgeAgent(deviceId, this.iotHub);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
-                registrationId,
+                deviceId,
                 this.iotHub,
                 token,
                 takeOwnership: true);
 
             Context.Current.DeleteList.TryAdd(
-                registrationId,
+                deviceId,
                 device.Expect(() => new InvalidOperationException(
-                    $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
+                    $"Device '{deviceId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
     }
 }

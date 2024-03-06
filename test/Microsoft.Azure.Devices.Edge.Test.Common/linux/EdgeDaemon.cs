@@ -3,9 +3,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
     using System.ComponentModel;
+    using System.IO;
     using System.Linq;
     using System.Net;
-    using System.ServiceProcess;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -14,9 +14,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public class EdgeDaemon : IEdgeDaemon
     {
         readonly PackageManagement packageManagement;
+        readonly Option<string> packagesPath;
+        readonly IServiceManager serviceManager;
         readonly bool isCentOs;
+        readonly string certsPath;
 
-        public static async Task<EdgeDaemon> CreateAsync(CancellationToken token)
+        public static async Task<EdgeDaemon> CreateAsync(Option<string> packagesPath, CancellationToken token)
         {
             string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
             string os = Array.Find(platformInfo, element => element.StartsWith("ID="));
@@ -39,12 +42,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
             version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
 
+            bool detectedSnap = packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length != 0).OrDefault();
+
             SupportedPackageExtension packageExtension;
 
             switch (os)
             {
                 case "ubuntu":
-                    packageExtension = SupportedPackageExtension.Deb;
+                    // if we find .deb and .snap files on an Ubuntu 22.04 host, prefer snap
+                    packageExtension = detectedSnap && version == "22.04"
+                        ? SupportedPackageExtension.Snap
+                        : SupportedPackageExtension.Deb;
                     break;
                 case "raspbian":
                     os = "debian";
@@ -57,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     if (version != "8" && version != "9")
                     {
-                        throw new NotImplementedException($"Daemon is only installed on Red Hat version 8.X, operating system '{os} {version}'");
+                        throw new NotImplementedException($"Operating system '{os} {version}' not supported");
                     }
 
                     break;
@@ -67,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     if (version != "7")
                     {
-                        throw new NotImplementedException($"Daemon is only installed on Centos version 7.X, operating system '{os} {version}'");
+                        throw new NotImplementedException($"Operating system '{os} {version}' not supported");
                     }
 
                     break;
@@ -78,27 +86,38 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }
 
-            return new EdgeDaemon(new PackageManagement(os, version, packageExtension), os == "centos");
+            if (detectedSnap && packageExtension != SupportedPackageExtension.Snap)
+            {
+                throw new NotImplementedException(
+                    $"Snap package was detected but isn't supported on operating system '{os} {version}'");
+            }
+
+            return new EdgeDaemon(packagesPath, new PackageManagement(os, version, packageExtension), os == "centos");
         }
 
-        EdgeDaemon(PackageManagement packageManagement, bool isCentOs)
+        EdgeDaemon(Option<string> packagesPath, PackageManagement packageManagement, bool isCentOs)
         {
+            this.packagesPath = packagesPath;
             this.packageManagement = packageManagement;
+            this.serviceManager = packageManagement.PackageExtension == SupportedPackageExtension.Snap
+                ? new SnapServiceManager()
+                : new SystemdServiceManager();
             this.isCentOs = isCentOs;
+            this.certsPath = Path.Combine(Path.GetDirectoryName(this.serviceManager.ConfigurationPath()), "e2e_tests");
         }
 
-        public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        public async Task InstallAsync(Option<Uri> proxy, CancellationToken token)
         {
             var properties = new object[] { Dns.GetHostName() };
             string message = "Installed edge daemon on '{Device}'";
-            packagesPath.ForEach(
+            this.packagesPath.ForEach(
                 p =>
                 {
                     message += " from packages in '{InstallPackagePath}'";
                     properties = properties.Append(p).ToArray();
                 });
 
-            string[] commands = packagesPath.Match(
+            string[] commands = this.packagesPath.Match(
                 p => this.packageManagement.GetInstallCommandsFromLocal(p),
                 () => this.packageManagement.GetInstallCommandsFromMicrosoftProd(proxy));
 
@@ -112,7 +131,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 properties);
         }
 
-        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
+        public Task ConfigureAsync(
+            Func<DaemonConfiguration, Task<(string, object[])>> config,
+            CancellationToken token,
+            bool restart)
         {
             var properties = new object[] { };
             var message = "Configured edge daemon";
@@ -122,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     await this.InternalStopAsync(token);
 
-                    DaemonConfiguration conf = new DaemonConfiguration("/etc/aziot/config.toml");
+                    var conf = new DaemonConfiguration(this.serviceManager.ConfigurationPath());
                     if (this.isCentOs)
                     {
                         // The recommended way to set up [listen] sockets in config.toml is to use the 'fd://...' URL
@@ -132,14 +154,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         conf.SetListenSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
                     }
 
-                    (string msg, object[] props) = await config(conf);
+                    if (this.packageManagement.PackageExtension == SupportedPackageExtension.Snap)
+                    {
+                        conf.SetDeviceHomedir("/var/snap/azure-iot-edge/common/var/lib/aziot/edged");
+                        conf.SetMobyRuntimeUri("unix:///var/snap/azure-iot-edge/common/docker-proxy.sock");
+                        conf.AddAgentUserId("0");
+                    }
 
+                    (string msg, object[] props) = await config(conf);
                     message += $" {msg}";
                     properties = properties.Concat(props).ToArray();
 
                     if (restart)
                     {
-                        await Process.RunAsync("iotedge", "config apply", token);
+                        await this.serviceManager.ConfigureAsync(token);
                     }
                 },
                 message.ToString(),
@@ -152,14 +180,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
-            await WaitForStatusAsync(ServiceControllerStatus.Running, token);
+            await this.serviceManager.StartAsync(token);
             await Task.Delay(10000);
 
             await Retry.Do(
                 async () =>
                 {
-                    string[] output = await Process.RunAsync("iotedge", "list", token);
+                    string[] output = await this.GetCli().RunAsync("list", token);
                     return output;
                 },
                 output => true,
@@ -188,8 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
-            await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
+            await this.serviceManager.StopAsync(token);
         }
 
         public async Task UninstallAsync(CancellationToken token)
@@ -222,35 +248,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 }, "Uninstalled edge daemon");
         }
 
-        public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token) => Profiler.Run(
-            () => WaitForStatusAsync((ServiceControllerStatus)desired, token),
-            "Edge daemon entered the '{Desired}' state",
-            desired.ToString().ToLower());
+        public string GetCertificatesPath() => this.certsPath;
 
-        static async Task WaitForStatusAsync(ServiceControllerStatus desired, CancellationToken token)
+        public IotedgeCli GetCli()
         {
-            string[] processes = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
-
-            foreach (string process in processes)
-            {
-                while (true)
-                {
-                    Func<string, bool> stateMatchesDesired = desired switch
-                    {
-                        ServiceControllerStatus.Running => s => s == "active",
-                        ServiceControllerStatus.Stopped => s => s == "inactive" || s == "failed",
-                        _ => throw new NotImplementedException($"No handler for {desired}"),
-                    };
-
-                    string[] output = await Process.RunAsync("systemctl", $"-p ActiveState show {process}", token);
-                    if (stateMatchesDesired(output.First().Split("=").Last()))
-                    {
-                        break;
-                    }
-
-                    await Task.Delay(250, token).ConfigureAwait(false);
-                }
-            }
+            return new IotedgeCli(this.serviceManager.GetCliName());
         }
     }
 }

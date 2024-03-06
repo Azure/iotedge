@@ -1,0 +1,2 @@
+[env]
+SOCKET_DIR = "/run/aziot"

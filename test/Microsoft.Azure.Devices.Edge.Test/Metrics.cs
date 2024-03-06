@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -103,12 +104,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         builder.AddTemporaryModule();
                         builder.AddMetricsValidatorConfig(metricsValidatorImage);
                     },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
             // Next remove the temporary image from the deployment
             await this.runtime.DeployConfigurationAsync(
                 builder => { builder.AddMetricsValidatorConfig(metricsValidatorImage); },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
         }

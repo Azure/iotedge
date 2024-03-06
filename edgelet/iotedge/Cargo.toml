@@ -54,3 +54,6 @@ edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"
 edgelet-utils = { path = "../edgelet-utils" }
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 support-bundle = { path = "../support-bundle" }
+
+[features]
+snapctl = ["aziotctl-common/snapctl", "support-bundle/snapctl"]
