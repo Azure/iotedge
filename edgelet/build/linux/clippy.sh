@@ -58,7 +58,6 @@ echo "Installing clippy..."
 $RUSTUP component add clippy
 
 echo "Running clippy..."
-export SOCKET_DIR=/run/aziot
 $CARGO clippy --all
 $CARGO clippy --all --tests
 $CARGO clippy --all --examples
