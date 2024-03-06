@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 this.device.NestedEdge.DeviceHostname,
                 token,
@@ -61,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -73,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 this.device.NestedEdge.DeviceHostname,
                 token,
@@ -102,6 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 this.device.NestedEdge.DeviceHostname,
                 token,
@@ -131,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, Context.Current.NestedEdge);
 
             // These must match the IDs in nestededge_middleLayerBaseDeployment_amqp.json,
             // which defines a route that filters by deviceId to forwards the message
@@ -148,6 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
@@ -198,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             Log.Verbose("Deploying L3 Edge");
-            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
 
             // Disable the parent Edge device
             Log.Verbose("Disabling Edge device");
@@ -219,6 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 this.device.NestedEdge.DeviceHostname,
                 token,

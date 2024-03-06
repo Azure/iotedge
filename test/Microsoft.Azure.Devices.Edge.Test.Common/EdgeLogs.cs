@@ -13,20 +13,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         // Make an effort to collect logs, but swallow any exceptions to prevent tests/fixtures
         // from failing if this function fails.
-        public static async Task<IEnumerable<string>> CollectAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
+        public static async Task<IEnumerable<string>> CollectAsync(DateTime testStartTime, string filePrefix, IotedgeCli cli, CancellationToken token)
         {
             var paths = new List<string>();
 
             // Save module logs
             try
             {
-                string[] output = await Process.RunAsync("iotedge", "list", token);
+                string[] output = await cli.RunAsync("list", token);
                 string[] modules = output.Select(ln => ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries).First()).Skip(1).ToArray();
 
                 foreach (string name in modules)
                 {
                     string moduleLog = $"{filePrefix}-{name}.log";
-                    output = await Process.RunAsync("iotedge", $"logs {name}", token, logVerbose: false);
+                    output = await cli.RunAsync($"logs {name}", token, logCommand: true, logOutput: false);
                     await File.WriteAllLinesAsync(moduleLog, output, token);
                     paths.Add(moduleLog);
                 }

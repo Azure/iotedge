@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eux
+exec 1> >(logger -s -t "$SNAP_INSTANCE_NAME.$(basename $0)") 2>&1
+
+mkdir -p $SNAP_COMMON/var/{lib/{aziot/edged,iotedge},log}
+
+chown -R snap_aziotedge:snap_aziotedge $SNAP_COMMON/var/{lib/{aziot/edged,iotedge},log}
