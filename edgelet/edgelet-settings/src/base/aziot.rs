@@ -23,12 +23,21 @@ pub struct Endpoints {
 impl Default for Endpoints {
     fn default() -> Self {
         Endpoints {
-            aziot_certd_url: url::Url::parse("unix:///run/aziot/certd.sock")
-                .expect("cannot fail to parse hardcoded url"),
-            aziot_keyd_url: url::Url::parse("unix:///run/aziot/keyd.sock")
-                .expect("cannot fail to parse hardcoded url"),
-            aziot_identityd_url: url::Url::parse("unix:///run/aziot/identityd.sock")
-                .expect("cannot fail to parse hardcoded url"),
+            aziot_certd_url: url::Url::parse(&format!(
+                "unix://{}/certd.sock",
+                option_env!("SOCKET_DIR").unwrap_or("/run/aziot")
+            ))
+            .expect("cannot fail to parse hardcoded url"),
+            aziot_keyd_url: url::Url::parse(&format!(
+                "unix://{}/keyd.sock",
+                option_env!("SOCKET_DIR").unwrap_or("/run/aziot")
+            ))
+            .expect("cannot fail to parse hardcoded url"),
+            aziot_identityd_url: url::Url::parse(&format!(
+                "unix://{}/identityd.sock",
+                option_env!("SOCKET_DIR").unwrap_or("/run/aziot")
+            ))
+            .expect("cannot fail to parse hardcoded url"),
         }
     }
 }

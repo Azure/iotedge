@@ -6,14 +6,36 @@ use lazy_static::lazy_static;
 
 use aziotctl_common::system::{
     get_status, get_system_logs as logs, restart, set_log_level as log_level, stop,
-    ServiceDefinition, SERVICE_DEFINITIONS as IS_SERVICES,
+    ServiceDefinition,
 };
+
+#[cfg(not(feature = "snapctl"))]
+use aziotctl_common::system::SERVICE_DEFINITIONS as IS_SERVICES;
 
 use aziot_identity_client_async::Client as IdentityClient;
 use aziot_identity_common_http::ApiVersion;
 
 use crate::error::Error;
 
+#[cfg(feature = "snapctl")]
+lazy_static! {
+    static ref IOTEDGED: ServiceDefinition = {
+        ServiceDefinition {
+            service: "snap.azure-iot-edge.aziot-edged.service",
+            sockets: &[],
+        }
+    };
+    static ref DOCKERPROXY: ServiceDefinition = {
+        ServiceDefinition {
+            service: "snap.azure-iot-edge.docker-proxy.service",
+            sockets: &[],
+        }
+    };
+    static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> =
+        [&*DOCKERPROXY, &*IOTEDGED].into_iter().collect();
+}
+
+#[cfg(not(feature = "snapctl"))]
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
         // If IOTEDGE_LISTEN_MANAGEMENT_URI isn't set at compile-time, assume socket activation is being used.
@@ -83,8 +105,11 @@ impl System {
     }
 
     pub async fn reprovision() -> Result<(), Error> {
-        let uri = url::Url::parse("unix:///run/aziot/identityd.sock")
-            .expect("hard-coded URI should parse");
+        let uri = url::Url::parse(&format!(
+            "unix://{}/identityd.sock",
+            option_env!("SOCKET_DIR").unwrap_or("/run/aziot")
+        ))
+        .expect("hard-coded URI should parse");
         let client = IdentityClient::new(
             ApiVersion::V2020_09_01,
             http_common::Connector::new(&uri).map_err(|err| {

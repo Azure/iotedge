@@ -16,12 +16,23 @@ use crate::shell_util::{
     get_docker_networks, write_check, write_inspect, write_network_inspect, write_system_log,
 };
 
+#[cfg(not(feature = "snapctl"))]
 const SYSTEM_MODULES: &[(&str, &str)] = &[
     ("aziot-keyd", "aziot-keyd"),
     ("aziot-certd", "aziot-certd"),
     ("aziot-identityd", "aziot-identityd"),
     ("aziot-edged", "aziot-edged"),
     ("docker", "docker"),
+];
+
+#[cfg(feature = "snapctl")]
+const SYSTEM_MODULES: &[(&str, &str)] = &[
+    ("aziot-keyd", "snap.azure-iot-identity.keyd"),
+    ("aziot-certd", "snap.azure-iot-identity.certd"),
+    ("aziot-identityd", "snap.azure-iot-identity.identityd"),
+    ("aziot-edged", "snap.azure-iot-edge.edged"),
+    ("docker-proxy", "snap.azure-iot-edge.docker-proxy"),
+    ("docker", "snap.docker.dockerd"),
 ];
 
 /// # Errors

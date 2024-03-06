@@ -9,7 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public enum SupportedPackageExtension
     {
         Deb,
-        Rpm
+        Rpm,
+        Snap
     }
 
     public class PackageManagement
@@ -17,29 +18,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         readonly string os;
         readonly string version;
         readonly SupportedPackageExtension packageExtension;
-        public string IotedgeServices { get; }
 
         public PackageManagement(string os, string version, SupportedPackageExtension extension)
         {
             this.os = os;
             this.version = version;
             this.packageExtension = extension;
-            this.IotedgeServices = string.Join(
-                " ",
-                "aziot-keyd.service",
-                "aziot-certd.service",
-                "aziot-identityd.service",
-                "aziot-edged.service");
         }
+
+        public SupportedPackageExtension PackageExtension => this.packageExtension;
 
         public string[] GetInstallCommandsFromLocal(string path)
         {
             string[] packages = Directory
-                .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
+                .GetFiles(path, $"*.{this.PackageExtension.ToString().ToLower()}")
                 .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
 
-            return this.packageExtension switch
+            return this.PackageExtension switch
             {
                 SupportedPackageExtension.Deb => new[]
                 {
@@ -79,7 +75,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     },
                     _ => throw new NotImplementedException($"RPM packaging is set up only for Centos, Mariner, and RHEL, current OS '.{this.os}'"),
                 },
-                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+                SupportedPackageExtension.Snap => new[]
+                {
+                    "set -e",
+                    $"snap install {string.Join(' ', packages)} --dangerous",
+                    "snap connect azure-iot-identity:hostname-control",
+                    "snap connect azure-iot-identity:log-observe",
+                    "snap connect azure-iot-identity:mount-observe",
+                    "snap connect azure-iot-identity:system-observe",
+                    // There isn't a TPM in this setup, so don't connect it
+                    // "snap connect azure-iot-identity:tpm",
+                    "snap connect azure-iot-edge:home",
+                    "snap connect azure-iot-edge:hostname-control",
+                    "snap connect azure-iot-edge:log-observe",
+                    "snap connect azure-iot-edge:mount-observe",
+                    "snap connect azure-iot-edge:system-observe",
+                    "snap connect azure-iot-edge:run-iotedge",
+                    "snap connect azure-iot-edge:aziotctl-executables azure-iot-identity:aziotctl-executables",
+                    "snap connect azure-iot-edge:identity-service azure-iot-identity:identity-service",
+                    "snap connect azure-iot-edge:docker docker:docker-daemon"
+                },
+                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.PackageExtension}'"),
             };
         }
 
@@ -93,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 _ => throw new NotImplementedException($"Don't know how to install daemon for '{this.os}'"),
             };
 
-            return this.packageExtension switch
+            return this.PackageExtension switch
             {
                 SupportedPackageExtension.Deb => new[]
                 {
@@ -127,11 +143,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     },
                     _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.os}'")
                 },
-                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.PackageExtension}'"),
             };
         }
 
-        public string[] GetUninstallCommands() => this.packageExtension switch
+        public string[] GetUninstallCommands() => this.PackageExtension switch
         {
             SupportedPackageExtension.Deb => new[]
             {
@@ -153,7 +169,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 "yum autoremove -y",
                 "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
-            _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
+            SupportedPackageExtension.Snap => new string[]
+            {
+                "snap remove --purge azure-iot-edge",
+                "snap remove --purge azure-iot-identity",
+                "rm -r -f /etc/aziot",
+                "snap restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
+            },
+            _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.PackageExtension}'")
         };
     }
 }

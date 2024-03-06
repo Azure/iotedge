@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using Newtonsoft.Json.Serialization;
     using Serilog;
 
     public enum EdgeModuleStatus
@@ -35,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.iotHub = iotHub;
         }
 
-        public static Task WaitForStatusAsync(IEnumerable<EdgeModule> modules, EdgeModuleStatus desired, CancellationToken token)
+        public static Task WaitForStatusAsync(IEnumerable<EdgeModule> modules, EdgeModuleStatus desired, IotedgeCli cli, CancellationToken token)
         {
             string[] moduleIds = modules.Select(m => m.Id.TrimStart('$')).Distinct().ToArray();
 
@@ -46,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 await Retry.Do(
                     async () =>
                     {
-                        string[] output = await Process.RunAsync("iotedge", "list", token);
+                        string[] output = await cli.RunAsync("list", token);
 
                         return output
                             .Where(
@@ -90,8 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 desired.ToString().ToLower());
         }
 
-        public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token) =>
-            WaitForStatusAsync(new[] { this }, desired, token);
+        public Task WaitForStatusAsync(EdgeModuleStatus desired, IotedgeCli cli, CancellationToken token) =>
+            WaitForStatusAsync(new[] { this }, desired, cli, token);
 
         public Task<string> WaitForEventsReceivedAsync(
             DateTime seekTime,

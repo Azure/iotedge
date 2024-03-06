@@ -42,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Option<string> parentId,
             bool useSecondaryCertificate,
             CertificateAuthority ca,
+            string certsPath,
             IotHub iotHub,
             string edgeHostname,
             CancellationToken token,
@@ -76,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     leafDeviceId,
                                     p,
                                     ca,
+                                    certsPath,
                                     iotHub,
                                     transport,
                                     edgeHostname,
@@ -91,6 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     p,
                                     useSecondaryCertificate,
                                     ca,
+                                    certsPath,
                                     iotHub,
                                     transport,
                                     edgeHostname,
@@ -165,6 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string leafDeviceId,
             string parentId,
             CertificateAuthority ca,
+            string certsPath,
             IotHub iotHub,
             ITransportSettings transport,
             string edgeHostname,
@@ -190,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token,
                 async () =>
                 {
-                    IdCertificates certFiles = await ca.GenerateIdentityCertificatesAsync(leafDeviceId, token);
+                    var certFiles = await ca.GenerateIdentityCertificatesAsync(leafDeviceId, certsPath, token);
 
                     (X509Certificate2 leafCert, IEnumerable<X509Certificate2> trustedCerts) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
@@ -216,14 +220,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string parentId,
             bool useSecondaryCertificate,
             CertificateAuthority ca,
+            string certsPath,
             IotHub iotHub,
             ITransportSettings transport,
             string edgeHostname,
             CancellationToken token,
             ClientOptions options)
         {
-            IdCertificates primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", token);
-            IdCertificates secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", token);
+            var primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", certsPath, token);
+            var secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", certsPath, token);
 
             string[] streams = await Task.WhenAll(
                 new[]

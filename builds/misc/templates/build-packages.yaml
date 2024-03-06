@@ -5,9 +5,9 @@ parameters:
 
 stages:
 
-  ################################################################################
+################################################################################
   - stage: CheckBuildPackages
-  ################################################################################
+################################################################################
     displayName: Check For Source Code Changes
     pool:
         name: $(pool.linux.name)
@@ -31,19 +31,17 @@ stages:
   - stage: BuildPackages
 ################################################################################
     displayName: Build Packages
+    dependsOn: CheckBuildPackages
     condition: |
       or
       (
         eq(${{ parameters['E2EBuild'] }}, false),
         eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
       )
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-    dependsOn: CheckBuildPackages
     jobs:
+    ################################################################################
       - job: linux
+    ################################################################################
         displayName: Linux
         pool:
           name: $(pool.linux.name)
@@ -144,9 +142,48 @@ stages:
               ArtifactName: 'iotedged-$(os)-$(arch)'
             condition: and(succeededOrFailed(), or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64')))
 
-      ################################################################################
+    ################################################################################
+      - job: snap
+    ################################################################################
+        displayName: Snap
+        strategy:
+          matrix:
+            amd64:
+              arch: amd64
+              pool: $(pool.linux.name)
+              image: agent-aziotedge-ubuntu-22.04
+            aarch64:
+              arch: aarch64
+              pool: $(pool.linux.arm.name)
+              image: agent-aziotedge-ubuntu-22.04-arm64
+        pool:
+          name: $(pool)
+          demands:
+          - ImageOverride -equals $(image)
+        steps:
+          - script: |
+              sudo snap install snapcraft --classic
+              lxd init --minimal
+              snapcraft --use-lxd
+            displayName: Build snap
+            condition: eq(${{ parameters['E2EBuild'] }}, false)
+          - task: CopyFiles@2
+            displayName: Stage artifacts for publishing
+            condition: eq(${{ parameters['E2EBuild'] }}, false)
+            inputs:
+              Contents: '*.snap'
+              SourceFolder: '$(build.sourcesdirectory)'
+              TargetFolder: '$(build.artifactstagingdirectory)'
+          - task: PublishBuildArtifacts@1
+            displayName: Publish artifacts
+            condition: eq(${{ parameters['E2EBuild'] }}, false)
+            inputs:
+              ArtifactName: 'iotedged-snap-$(arch)'
+              PathtoPublish: '$(build.artifactstagingdirectory)'
+
+    ################################################################################
       - job: mariner_linux
-      ################################################################################
+    ################################################################################
         displayName: Mariner_Linux
         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
         pool:
@@ -228,9 +265,9 @@ stages:
               ArtifactName: 'iotedged-$(os)$(os_version)-$(arch)'
             condition: succeededOrFailed()
 
-      ################################################################################
+    ################################################################################
       - job: mariner_linux_arm64
-      ################################################################################
+    ################################################################################
         displayName: Mariner_Linux on ARM64
         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
         timeoutInMinutes: 90
