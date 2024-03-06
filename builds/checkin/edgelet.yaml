@@ -76,10 +76,10 @@ jobs:
         displayName: Install Rust
       - script: "cargo install cross --version ^0.2"
         displayName: "Install cross"
-      - script: "SOCKET_DIR=/run/aziot cross build --target armv7-unknown-linux-gnueabihf"
+      - script: "cross build --target armv7-unknown-linux-gnueabihf"
         displayName: armv7-unknown-linux-gnueabihf build
         workingDirectory: $(Build.SourcesDirectory)/edgelet
-      - script: "SOCKET_DIR=/run/aziot cross test --target armv7-unknown-linux-gnueabihf"
+      - script: "cross test --target armv7-unknown-linux-gnueabihf"
         displayName: armv7-unknown-linux-gnueabihf test
         workingDirectory: $(Build.SourcesDirectory)/edgelet
 
@@ -107,10 +107,10 @@ jobs:
         displayName: Install Rust
       - script: "cargo install cross --version ^0.2"
         displayName: "Install cross"
-      - script: "SOCKET_DIR=/run/aziot cross build --target aarch64-unknown-linux-gnu"
+      - script: "cross build --target aarch64-unknown-linux-gnu"
         displayName: aarch64-unknown-linux-gnu build
         workingDirectory: $(Build.SourcesDirectory)/edgelet
-      - script: "SOCKET_DIR=/run/aziot cross test --target aarch64-unknown-linux-gnu"
+      - script: "cross test --target aarch64-unknown-linux-gnu"
         displayName: aarch64-unknown-linux-gnu test
         workingDirectory: $(Build.SourcesDirectory)/edgelet
 
