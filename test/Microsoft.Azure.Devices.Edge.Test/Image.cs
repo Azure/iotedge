@@ -29,13 +29,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(SensorName, sensorImage);
                 },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
             EdgeModule sensor = deployment1.Modules[SensorName];
-            await sensor.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            await sensor.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
 
             // Create second deployment without simulated temperature sensor
             EdgeDeployment deployment2 = await this.runtime.DeployConfigurationAsync(
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 

@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -ux
+exec 1> >(logger -s -t "$SNAP_INSTANCE_NAME.$(basename $0)") 2>&1
+
+toml_kvp() {
+	printf "%s = \"%s\"\n" "$1" "$2"
+}
+
+toml_new_section() {
+	printf "\n\n"
+	printf "[%s]\n" "$1"
+}
+
+# make sure we are plugged in to the identity service
+if ! snapctl is-connected identity-service; then
+	exit 0
+fi
+
+mkdir -p /etc/aziot/edged/config.d
+
+snapctl get raw-config > /etc/aziot/config.toml
+
+{
+	toml_kvp "hostname" "$(hostnamectl hostname)"
+} | tee /etc/aziot/keyd/config.d/01-snap.toml /etc/aziot/certd/config.d/01-snap.toml /etc/aziot/identityd/config.d/01-snap.toml /etc/aziot/tpmd/config.d/01-snap.toml
+
+{
+	toml_kvp "hostname" "$(hostnamectl hostname)"
+
+	toml_new_section "agent"
+	toml_kvp "name" "edgeAgent"
+	toml_kvp "type" "docker"
+
+	toml_new_section "agent.env"
+	toml_kvp "EDGEAGENTUSER_ID" "0"
+
+	toml_new_section "connect"
+	toml_kvp "workload_uri" "unix:///var/run/iotedge/workload.sock"
+	toml_kvp "management_uri" "unix:///var/run/iotedge/mgmt.sock"
+
+	toml_new_section "listen"
+	toml_kvp "workload_uri" "unix:///var/run/iotedge/workload.sock"
+	toml_kvp "management_uri" "unix:///var/run/iotedge/mgmt.sock"
+
+	toml_new_section "moby_runtime"
+	toml_kvp "uri" "unix://$SNAP_COMMON/docker-proxy.sock"
+	toml_kvp "network" "azure-iot-edge"
+} > /etc/aziot/edged/config.d/01-snap.toml
+
+$SNAP/usr/bin/iotedge config apply
+
+snapctl restart $SNAP_INSTANCE_NAME.aziot-edged

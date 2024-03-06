@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 config,
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -40,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
@@ -73,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol) + this.BuildAddLoadGenConfig(protocol, loadGenImage);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 config,
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 

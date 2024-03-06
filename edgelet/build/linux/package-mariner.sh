@@ -103,7 +103,7 @@ echo "Vendoring Rust dependencies"
 cargo vendor vendor
 
 # Configure Cargo to use vendored the deps
-mkdir .cargo
+mkdir -p .cargo
 cat > .cargo/config << EOF
 [source.crates-io]
 replace-with = "vendored-sources"
