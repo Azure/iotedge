@@ -29,11 +29,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                     },
+                    this.cli,
                     token,
                     Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
-            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
             EdgeModule edgeAgent = deployment.Modules[ModuleName.EdgeAgent];
             // certificate renew should stop edgeHub and then it should be started by edgeAgent
             await edgeAgent.WaitForReportedPropertyUpdatesAsync(
@@ -76,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         builder.AddModule(SensorName, sensorImage)
                             .WithEnvironment(new[] { ("MessageCount", "-1") });
                     },
+                    this.cli,
                     token,
                     Context.Current.NestedEdge);
                 sensor = deployment.Modules[SensorName];
@@ -120,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -160,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -194,6 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(methodReceiver, receiverImage)
                         .WithEnvironment(new[] { ("ClientTransportType", clientTransport) });
                 },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 

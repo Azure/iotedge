@@ -33,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected async Task BeforeAllTestsAsync()
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
-            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(cts.Token);
+            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, cts.Token);
+            this.cli = this.daemon.GetCli();
         }
 
         protected async Task ConfigureDaemonAsync(
@@ -46,10 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             try
             {
-                await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
-
                 var agent = new EdgeAgent(device.Id, this.IotHub);
-                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
                 await agent.PingAsync(token);
             }
 
@@ -60,7 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
             finally
             {
-                await NUnitLogs.CollectAsync(startTime, token);
+                using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
+                await NUnitLogs.CollectAsync(startTime, this.cli, cts.Token);
             }
         }
 
@@ -72,37 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.ParentDeviceId,
                 Context.Current.ParentHostname,
                 Context.Current.Hostname);
-        }
-
-        public async Task SetUpCertificatesAsync(CancellationToken token, DateTime startTime, string deviceId)
-        {
-            (string, string, string) rootCa =
-                Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing DPS ID scope (check rootCaPrivateKeyPath in context.json)"));
-            string caCertScriptPath =
-                Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
-            string certId = Context.Current.Hostname.GetOrElse(deviceId);
-
-            try
-            {
-                this.ca = await CertificateAuthority.CreateAsync(
-                    certId,
-                    rootCa,
-                    caCertScriptPath,
-                    token);
-
-                CaCertificates caCert = await this.ca.GenerateCaCertificatesAsync(certId, token);
-                this.ca.EdgeCertificates = caCert;
-            }
-
-            // ReSharper disable once RedundantCatchClause
-            catch
-            {
-                throw;
-            }
-            finally
-            {
-                await NUnitLogs.CollectAsync(startTime, token);
-            }
         }
     }
 }

@@ -1,17 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 {
-    using System;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Serilog;
     using RootCaKeys = System.ValueTuple<string, string, string>;
 
     public class CertificateAuthority
     {
-        readonly Option<string> scriptPath;
+        readonly string scriptPath;
+        readonly string deviceId;
 
         // TODO: EdgeCertificates needs to be moved into certificate types.
         public CaCertificates EdgeCertificates { get; set; }
@@ -33,38 +32,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                 Log.Verbose("----------------------------------------");
             }
 
-            return new CertificateAuthority(scriptPath);
+            return new CertificateAuthority(deviceId, scriptPath);
         }
 
-        public static CertificateAuthority GetQuickstart(string deviceId)
+        CertificateAuthority(string deviceId, string scriptPath)
         {
-            CaCertificates certs = OsPlatform.Current.GetEdgeQuickstartCertificates(deviceId);
-            return new CertificateAuthority(certs);
+            this.deviceId = deviceId;
+            this.scriptPath = scriptPath;
         }
 
-        CertificateAuthority(string scriptPath)
-        {
-            this.scriptPath = Option.Maybe(scriptPath);
-        }
+        public Task<IdCertificates> GenerateIdentityCertificatesAsync(string uniqueId, string destPath, CancellationToken token) =>
+            OsPlatform.Current.GenerateIdentityCertificatesAsync(uniqueId, this.scriptPath, destPath, token);
 
-        CertificateAuthority(CaCertificates certs)
-        {
-            this.scriptPath = Option.None<string>();
-            this.EdgeCertificates = certs;
-        }
-
-        public Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, CancellationToken token)
-        {
-            const string Err = "Cannot generate certificates without script";
-            string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));
-            return OsPlatform.Current.GenerateIdentityCertificatesAsync(deviceId, scriptPath, token);
-        }
-
-        public Task<CaCertificates> GenerateCaCertificatesAsync(string deviceId, CancellationToken token)
-        {
-            const string Err = "Cannot generate certificates without script";
-            string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));
-            return OsPlatform.Current.GenerateCaCertificatesAsync(deviceId, scriptPath, token);
-        }
+        public Task<CaCertificates> GenerateCaCertificatesAsync(string destPath, CancellationToken token) =>
+            OsPlatform.Current.GenerateCaCertificatesAsync(this.deviceId, this.scriptPath, destPath, token);
     }
 }

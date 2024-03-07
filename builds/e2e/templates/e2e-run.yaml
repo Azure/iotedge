@@ -4,13 +4,6 @@ parameters:
   test_type: ''
 
 steps:
-  # Docker login required for the 'iotedge check' end-to-end test
-- task: Docker@2
-  displayName: Docker login edgebuilds
-  inputs:
-    command: login
-    containerRegistry: iotedge-edgebuilds-acr
-
 # This E2E test pipeline uses the following filters in order to skip certain tests:
 #   Flaky: Flaky on multiple platforms
 #   FlakyOnArm: Flaky only on arm
@@ -119,12 +112,7 @@ steps:
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
     Copy-Item "$(binDir)/supportbundle*" "$logDir/"
-    if ($test_type -eq 'upgrade_scenarios')
-    {
-      $artifactSuffix = '$(Build.BuildNumber)-$(System.JobName)' -replace '_','-'
-    } else {
-      $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
-    }
+    $artifactSuffix = '$(Build.BuildNumber)-$(System.JobIdentifier)-$(System.JobAttempt)' -replace '_','-'
     Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
   condition: always()
