@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Threading;
@@ -11,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class Process
     {
-        public static async Task RunAsync(string name, string args, Action<string> onStandardOutput, Action<string> onStandardError, CancellationToken token)
+        public static async Task RunAsync(string name, string args, Action<string> onStandardOutput, Action<string> onStandardError, CancellationToken token, bool logCommand = true)
         {
             var info = new ProcessStartInfo
             {
@@ -19,6 +20,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Arguments = args,
                 RedirectStandardInput = true,
             };
+
+            if (logCommand)
+            {
+                Log.Verbose($"RunAsync: {name} {args}");
+            }
 
             using (ProcessResults result = await ProcessEx.RunAsync(info, onStandardOutput, onStandardError, token))
             {
@@ -29,29 +35,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
-        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token, bool logVerbose = true)
+        static async Task<string[]> RunAsync(ProcessStartInfo processStartInfo, CancellationToken token, bool logOutput)
         {
-            var info = new ProcessStartInfo
+            Action<string> MakeOutputHandler(bool logOutput)
             {
-                FileName = name,
-                Arguments = args,
-                RedirectStandardInput = true,
-            };
-
-            if (logVerbose)
-            {
-                Log.Verbose($"RunAsync: {name} {args}");
+                return logOutput ? (string s) => Log.Verbose(s) : (string o) => { };
             }
 
-            Action<string> MakeOutputHandler(bool logVerbose)
-            {
-                return logVerbose ? (string s) => Log.Verbose(s) : (string o) => { };
-            }
+            Action<string> onStdout = MakeOutputHandler(logOutput);
+            Action<string> onStderr = MakeOutputHandler(logOutput);
 
-            Action<string> onStdout = MakeOutputHandler(logVerbose);
-            Action<string> onStderr = MakeOutputHandler(logVerbose);
-
-            using (ProcessResults result = await ProcessEx.RunAsync(info, onStdout, onStderr, token))
+            using (ProcessResults result = await ProcessEx.RunAsync(processStartInfo, onStdout, onStderr, token))
             {
                 if (result.ExitCode != 0)
                 {
@@ -60,6 +54,44 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                 return result.StandardOutput;
             }
+        }
+
+        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token, bool logCommand = true, bool logOutput = true)
+        {
+            var info = new ProcessStartInfo
+            {
+                FileName = name,
+                Arguments = args,
+                RedirectStandardInput = true,
+            };
+
+            if (logCommand)
+            {
+                Log.Verbose($"RunAsync: {name} {args}");
+            }
+
+            return await RunAsync(info, token, logOutput);
+        }
+
+        public static async Task<string[]> RunAsync(string name, ICollection<string> args, CancellationToken token, bool logCommand = true, bool logOutput = true)
+        {
+            var info = new ProcessStartInfo
+            {
+                FileName = name,
+                RedirectStandardInput = true,
+            };
+
+            foreach (var arg in args)
+            {
+                info.ArgumentList.Add(arg);
+            }
+
+            if (logCommand)
+            {
+                Log.Verbose($"RunAsync: {name} {string.Join(' ', args)}");
+            }
+
+            return await RunAsync(info, token, logOutput);
         }
     }
 }

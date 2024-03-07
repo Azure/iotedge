@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     parentId,
                     testAuth.UseSecondaryCertificate(),
                     this.ca,
+                    this.daemon.GetCertificatesPath(),
                     this.IotHub,
                     this.device.NestedEdge.DeviceHostname,
                     token,
@@ -91,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, Context.Current.NestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -105,6 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     parentId,
                     testAuth.UseSecondaryCertificate(),
                     this.ca,
+                    this.daemon.GetCertificatesPath(),
                     this.IotHub,
                     this.device.NestedEdge.ParentHostname,
                     token,

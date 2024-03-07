@@ -327,3 +327,8 @@ stylecop.json
 in
 out
 
+# snap{craft} files
+parts/
+stage/
+prime/
+*.snap
