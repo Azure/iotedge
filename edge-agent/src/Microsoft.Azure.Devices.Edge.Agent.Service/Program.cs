@@ -39,6 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         public static int Main()
         {
             Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Agent Main()");
+            ILogger logger = null;
+
             try
             {
                 IConfigurationRoot configuration = new ConfigurationBuilder()
@@ -46,20 +48,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     .AddEnvironmentVariables()
                     .Build();
 
-                return MainAsync(configuration).Result;
+                // Bring up the logger before anything else so we can log errors ASAP
+                logger = SetupLogger(configuration);
+
+                return MainAsync(configuration, logger).Result;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex);
+                if (logger != null)
+                {
+                    logger.LogDebug(ex, "An unhandled exception occurred");
+                }
+                else
+                {
+                    // Fallback if the logger hasn't been set up, should pretty much never happen
+                    Console.Error.WriteLine(ex);
+                }
+
                 return 1;
             }
         }
 
-        public static async Task<int> MainAsync(IConfiguration configuration)
+        public static async Task<int> MainAsync(IConfiguration configuration, ILogger logger)
         {
-            // Bring up the logger before anything else so we can log errors ASAP
-            ILogger logger = SetupLogger(configuration);
-
             logger.LogInformation("Initializing Edge Agent.");
 
             VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);

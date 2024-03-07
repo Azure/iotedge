@@ -31,28 +31,47 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public static int Main()
         {
-            Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
-            IConfigurationRoot configuration = new ConfigurationBuilder()
-                .AddJsonFile(Constants.ConfigFileName)
-                .AddEnvironmentVariables()
-                .Build();
+            ILogger logger = null;
 
-            return MainAsync(configuration).Result;
+            try
+            {
+                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
+                IConfigurationRoot configuration = new ConfigurationBuilder()
+                    .AddJsonFile(Constants.ConfigFileName)
+                    .AddEnvironmentVariables()
+                    .Build();
+
+                string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
+                Logger.SetLogLevel(logLevel);
+
+                // Set the LoggerFactory used by the Routing code.
+                if (configuration.GetValue("EnableRoutingLogging", false))
+                {
+                    Routing.LoggerFactory = Logger.Factory;
+                }
+
+                logger = Logger.Factory.CreateLogger("EdgeHub");
+
+                return MainAsync(configuration, logger).Result;
+            }
+            catch (Exception ex)
+            {
+                if (logger != null)
+                {
+                    logger.LogDebug(ex, "An unhandled exception occurred");
+                }
+                else
+                {
+                    // Fallback if the logger hasn't been set up, should pretty much never happen
+                    Console.Error.WriteLine(ex);
+                }
+
+                return 1;
+            }
         }
 
-        static async Task<int> MainAsync(IConfigurationRoot configuration)
+        static async Task<int> MainAsync(IConfigurationRoot configuration, ILogger logger)
         {
-            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
-            Logger.SetLogLevel(logLevel);
-
-            // Set the LoggerFactory used by the Routing code.
-            if (configuration.GetValue("EnableRoutingLogging", false))
-            {
-                Routing.LoggerFactory = Logger.Factory;
-            }
-
-            ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
-
             try
             {
                 EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
@@ -165,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             catch (Exception ex)
             {
                 logger.LogError(ex, "Stopping with exception");
-                throw;
+                return 1;
             }
 
             return 0;
