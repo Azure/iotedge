@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 # This script runs all the .NET test projects (*test*.csproj) in the repo using
 # binaries built previously (see buildBranch.sh).
 
@@ -26,6 +24,7 @@ run_tests()
 echo "Running tests with filter: '$TEST_FILTER' and configuration: '$BUILD_CONFIG'"
 
 while read testProject; do
-  echo "Found test project: $testProject"
-  run_tests $testProject
-done < <(find . -type d -iname 'Microsoft.Azure.*.Test')
+  testPath="$(dirname $testProject)"
+  echo "Found test project: $testPath"
+  run_tests $testPath
+done < <(find . -iname '*.Test.csproj')
