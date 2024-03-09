@@ -72,6 +72,15 @@ jobs:
   steps:
   - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites
+  - task: AzureCLI@2
+    displayName: 'Setup Local SDK NuGet Source'
+    inputs:
+      azureSubscription: bearAppRegConnectionService
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        mkdir $(Build.SourcesDirectory)/.sdk
+        az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)/.sdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
   - script: |
       dotnet test \
         --logger trx \
