@@ -47,6 +47,15 @@ jobs:
         displayName: Install protocol head certificate # Needed for integration tests
         env:
           CERT_VALUE: $(IotHubMqttHeadCert)
+      - task: AzureCLI@2
+        displayName: 'Setup Local SDK NuGet Source'
+        inputs:
+          azureSubscription: bearAppRegConnectionService
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            mkdir $(Build.SourcesDirectory)/.sdk
+            az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)/.sdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --skip-quickstart
         displayName: Build
       - script: sudo -E bash -c './scripts/linux/runTests.sh "$(test.filter)" "$(Build.Configuration)"'
