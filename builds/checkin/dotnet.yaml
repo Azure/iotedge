@@ -40,7 +40,7 @@ jobs:
   - task: AzureCLI@2
     displayName: 'Setup Local SDK NuGet Source'
     inputs:
-      azureSubscription: bearAppRegConnectionService
+      azureSubscription: bearAppRegConnectionService2
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
@@ -77,7 +77,7 @@ jobs:
   - task: AzureCLI@2
     displayName: 'Setup Local SDK NuGet Source'
     inputs:
-      azureSubscription: bearAppRegConnectionService
+      azureSubscription: bearAppRegConnectionService2
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
