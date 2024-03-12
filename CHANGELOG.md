@@ -1,3 +1,30 @@
+# 1.4.33 (2024-03-12)
+
+## Edge Agent
+### Bug fixes
+* Ensure agent and hub use logger for stack traces by @Gunni ( [4ae6c29](https://github.com/Azure/iotedge/commit/4ae6c29c771e1ce087c15ba6079c19d2f9f44b1e) )
+
+## Edge Hub
+### Bug fixes
+* Ensure agent and hub use logger for stack traces by @Gunni ( [4ae6c29](https://github.com/Azure/iotedge/commit/4ae6c29c771e1ce087c15ba6079c19d2f9f44b1e) )
+
+## aziot-edge
+### OS support
+* Add support for Snap amd64/arm64 packages ( [c38e0c8](https://github.com/Azure/iotedge/commit/c38e0c896d7b1bc7dc338b8ec0637daaeb6d27b3) )
+
+### Bug fixes
+* Fix apt purge --autoremove on Debian/Ubuntu ( [6c34f4b](https://github.com/Azure/iotedge/commit/6c34f4bdbd36de74f98ce88213ae0b11b9ffb909) )
+
+## aziot-identity-service
+### OS support
+* Add support for Snap amd64/arm64 packages ( [9743701](https://github.com/Azure/iot-identity-service/commit/9743701f21e729984200968e909cdd639b1f0799) )
+
+### Features
+* Add packages for debug symbols ( [0cea2bd](https://github.com/Azure/iot-identity-service/commit/0cea2bd36466ec843056715441949990ab836ce5) )
+
+### Bug fixes
+* Fix apt purge --autoremove on Debian/Ubuntu ( [014edf1](https://github.com/Azure/iot-identity-service/commit/014edf1992347a8ca54662c90df62003b375ed40) )
+
 # 1.4.32 (2024-02-14)
 
 The following Docker images were updated because their base images changed:
