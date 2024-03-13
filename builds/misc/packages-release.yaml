@@ -383,8 +383,7 @@ stages:
         sudo snap install snapcraft --classic
         for pkg in $(ls $(System.ArtifactsDirectory)/**/*.snap)
         do
-          # TODO: change release channel from 'edge' to 'stable'
-          snapcraft upload --release=edge "$pkg"
+          snapcraft upload --release=stable "$pkg"
         done
 
         logdir='$(Build.ArtifactStagingDirectory)/logs'
