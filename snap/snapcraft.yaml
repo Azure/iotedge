@@ -54,7 +54,7 @@ parts:
       rm -rf $CRAFT_PART_BUILD/target
       SC_VERSION="$(cat $CRAFT_PART_SRC/version.txt)"
       craftctl set version="$SC_VERSION"
-      # if version contains substing "dev" set grade to devel, else stable
+      # if version contains substring "dev" set grade to devel, else stable
       if test "${SC_VERSION#*dev}" != "$SC_VERSION" ; then
         craftctl set grade=devel
       else
