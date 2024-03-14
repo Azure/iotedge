@@ -39,4 +39,7 @@ steps:
           -proxyAddress "$(proxyAddress)" \
           -changeDeployConfigOnly "${{ parameters.changeDeployConfigOnly }}" \
           -waitForTestComplete \
+          -servicePrincipalSecret "$(edgebuild-service-principal-secret)" \
+          -servicePrincipalClientId "$(servicePrincipal.clientId)" \
+          -servicePrincipalTenantId "$(servicePrincipal.tenantId)" \
           -cleanAll

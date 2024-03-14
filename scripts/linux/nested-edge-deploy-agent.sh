@@ -123,6 +123,7 @@ function prepare_test_from_artifacts() {
     sudo cat ${deployment_working_file}
 
     #deploy the config in azure portal
+    az login --service-principal -p $(SP_SECRET) -u $(SP_CLIENTID) --tenant $(SP_TENANT)
     az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 }
 
@@ -191,6 +192,15 @@ function process_args() {
         elif [ $saveNextArg -eq 20 ]; then
             CHANGE_DEPLOY_CONFIG_ONLY="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 21 ]; then
+            SP_SECRET="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 22 ]; then
+            SP_CLIENTID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 23 ]; then
+            SP_TENANT="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -214,9 +224,11 @@ function process_args() {
                 '-iotHubName' ) saveNextArg=18;;
                 '-proxyAddress' ) saveNextArg=19;;
                 '-changeDeployConfigOnly' ) saveNextArg=20;;
+                '-servicePrincipalSecret' ) saveNextArg=21;;
+                '-servicePrincipalClientId' ) saveNextArg=22;;
+                '-servicePrincipalTenantId' ) saveNextArg=23;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
-
                 * )
                     echo "Unsupported argument: $saveNextArg $arg"
                     usage
