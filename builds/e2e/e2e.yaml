@@ -139,9 +139,7 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -164,9 +162,7 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -189,9 +185,7 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -249,9 +243,7 @@ jobs:
       identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
   ################################################################################
