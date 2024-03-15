@@ -164,7 +164,7 @@ stages:
           - script: |
               sudo snap install snapcraft --classic
               lxd init --minimal
-              snapcraft --use-lxd
+              SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
             displayName: Build snap
             condition: eq(${{ parameters['E2EBuild'] }}, false)
           - task: CopyFiles@2

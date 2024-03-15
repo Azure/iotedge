@@ -167,7 +167,7 @@ stages:
     - script: |
         sudo snap install snapcraft --classic
         lxd init --minimal
-        snapcraft --use-lxd
+        SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
       displayName: Build snap
       env:
         SNAPCRAFT_BUILD_INFO: 1
@@ -378,8 +378,7 @@ stages:
         sudo snap install snapcraft --classic
         for pkg in $(ls $(System.ArtifactsDirectory)/**/*.snap)
         do
-          # TODO: change release channel from 'edge' to 'stable'
-          snapcraft upload --release=edge "$pkg"
+          snapcraft upload --release=stable "$pkg"
         done
 
         logdir='$(Build.ArtifactStagingDirectory)/logs'
