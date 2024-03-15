@@ -123,8 +123,8 @@ function prepare_test_from_artifacts() {
     sudo cat ${deployment_working_file}
 
     #deploy the config in azure portal
-    az login --service-principal -p $(SP_SECRET) -u $(SP_CLIENTID) --tenant $(SP_TENANT)
-    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
+    # az login --service-principal -p $(SP_SECRET) -u $(SP_CLIENTID) --tenant $(SP_TENANT)
+    sudo az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 }
 
 function process_args() {
