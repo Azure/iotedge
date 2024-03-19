@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool disableDeviceAnalyticsTelemetry;
         readonly ModuleUpdateMode moduleUpdateMode;
         readonly TimeSpan edgeletTimeout;
+        readonly bool enableOrphanedIdentityCleanup;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -68,7 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string backupConfigFilePath,
             bool disableDeviceAnalyticsTelemetry,
             ModuleUpdateMode moduleUpdateMode,
-            TimeSpan edgeletTimeout)
+            TimeSpan edgeletTimeout,
+            bool enableOrphanedIdentityCleanup)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -87,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.disableDeviceAnalyticsTelemetry = disableDeviceAnalyticsTelemetry;
             this.moduleUpdateMode = moduleUpdateMode;
             this.edgeletTimeout = edgeletTimeout;
+            this.enableOrphanedIdentityCleanup = enableOrphanedIdentityCleanup;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -115,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IModuleIdentityLifecycleManager
             var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostName, this.deviceId);
-            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
+            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri, this.enableOrphanedIdentityCleanup))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
 

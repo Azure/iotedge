@@ -16,14 +16,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly IIdentityManager identityManager;
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
         readonly Uri workloadUri;
+        readonly bool enableOrphanedIdentityCleanup;
 
         protected virtual bool ShouldAlwaysReturnIdentities => false;
 
-        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
+        public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri, bool enableOrphanedIdentityCleanup)
         {
             this.identityManager = Preconditions.CheckNotNull(identityManager, nameof(identityManager));
             this.identityProviderServiceBuilder = Preconditions.CheckNotNull(identityProviderServiceBuilder, nameof(identityProviderServiceBuilder));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
+            this.enableOrphanedIdentityCleanup = enableOrphanedIdentityCleanup;
         }
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
@@ -36,7 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             try
             {
-                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+                IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
+
+                if (this.enableOrphanedIdentityCleanup)
+                {
+                    identities = await this.RemoveStaleIdentities(desired, current, identities);
+                }
+
+                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff, identities);
                 return moduleIdentities;
             }
             catch (Exception ex)
@@ -46,12 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
         }
 
-        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
+        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff, IImmutableDictionary<string, Identity> identities)
         {
             IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
             List<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName).ToList();
-
-            IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
             // Create identities for all modules that are in the deployment but aren't in iotedged.
             IEnumerable<string> createIdentities = addedOrUpdatedModuleNames.Where(m => !identities.ContainsKey(m));
@@ -92,6 +99,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         IModuleIdentity GetModuleIdentity(Identity identity) =>
             this.identityProviderServiceBuilder.Create(identity.ModuleId, identity.GenerationId, this.workloadUri.ToString());
 
+        async Task<IImmutableDictionary<string, Identity>> RemoveStaleIdentities(ModuleSet desired, ModuleSet current, IImmutableDictionary<string, Identity> identities)
+        {
+            // Need to remove any identities (except EA/EH and those in desired) that are managed by EA but don't have a tracked module in the ModuleSet.
+            IEnumerable<string> removeOrphanedIdentities = identities.Where(
+                i => !(
+                        Constants.EdgeAgentModuleIdentityName.Equals(i.Key, StringComparison.Ordinal) ||
+                        Constants.EdgeHubModuleIdentityName.Equals(i.Key, StringComparison.Ordinal)
+                     ) &&
+                     Constants.ModuleIdentityEdgeManagedByValue.Equals(i.Value.ManagedBy, StringComparison.OrdinalIgnoreCase) &&
+                     !current.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key) &&
+                     !desired.Modules.Any(m => ModuleIdentityHelper.GetModuleIdentityName(m.Key) == i.Key))
+                .Select(i => i.Key);
+
+            Events.RemoveOrphanedIdentities(removeOrphanedIdentities);
+
+            // First any identities that don't have running modules currently.
+            await Task.WhenAll(removeOrphanedIdentities.Select(i => this.identityManager.DeleteIdentityAsync(i)));
+
+            Events.FinishedRemovingOrphanedIdentities(removeOrphanedIdentities);
+
+            // Remove any identities from map that were in removeOrphanedIdentities
+            return identities.RemoveRange(removeOrphanedIdentities);
+        }
+
         static class Events
         {
             const int IdStart = AgentEventIds.ModuleIdentityLifecycleManager;
@@ -100,11 +131,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             enum EventIds
             {
                 ErrorGettingModuleIdentities = IdStart,
+                RemoveOrphanedIdentities,
+                FinishedRemovingOrphanedIdentities
             }
 
             public static void ErrorGettingModuleIdentities(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorGettingModuleIdentities, ex, "Error getting module identities.");
+            }
+
+            public static void RemoveOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
+            {
+                Log.LogInformation((int)EventIds.RemoveOrphanedIdentities, $"Removing orphaned identities {string.Join(", ", removeOrphanedIdentities.Select(s => s.ToString()))}");
+            }
+
+            public static void FinishedRemovingOrphanedIdentities(IEnumerable<string> removeOrphanedIdentities)
+            {
+                Log.LogInformation((int)EventIds.FinishedRemovingOrphanedIdentities, $"Finished removing orphaned identities {string.Join(", ", removeOrphanedIdentities.Select(s => s.ToString()))}");
             }
         }
     }
