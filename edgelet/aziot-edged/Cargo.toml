@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
 edition = "2021"
+description = "The aziot-edged is the main binary for the IoT edge daemon."
+homepage = "https://aka.ms/iotedge"
+license = "MIT"
 
 [dependencies]
 base64 = "0.21"
