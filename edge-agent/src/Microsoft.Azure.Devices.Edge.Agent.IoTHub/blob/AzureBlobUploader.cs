@@ -17,8 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             var headers = new BlobHttpHeaders();
             contentType.ForEach(c => headers.ContentType = c);
             contentEncoding.ForEach(c => headers.ContentEncoding = c);
-            blob.SetHttpHeaders(headers);
-            var azureBlob = new AzureBlob(blob);
+            var azureBlob = new AzureBlob(blob, headers);
             return azureBlob;
         }
 
@@ -29,8 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             var headers = new BlobHttpHeaders();
             contentType.ForEach(c => headers.ContentType = c);
             contentEncoding.ForEach(c => headers.ContentEncoding = c);
-            blob.SetHttpHeaders(headers);
-            await blob.CreateAsync();
+            var options = new AppendBlobCreateOptions { HttpHeaders = headers };
+            await blob.CreateAsync(options);
             var azureBlob = new AzureAppendBlob(blob);
             return azureBlob;
         }
