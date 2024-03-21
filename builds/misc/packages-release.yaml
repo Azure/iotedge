@@ -234,14 +234,14 @@ stages:
           os: redhat8
           artifactName: iotedged-redhat8-amd64
           identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
-          identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+          identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
           pmcRepoName: microsoft-rhel8.0-prod-yum
           pmcRelease: ''
         RedHat9-amd64:
           os: redhat9
           artifactName: iotedged-redhat9-amd64
           identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
-          identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+          identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
           pmcRepoName: microsoft-rhel9.0-prod-yum
           pmcRelease: ''
 
@@ -477,65 +477,65 @@ stages:
           os: debian10
           artifactName: iotedged-debian10-amd64
           identityServiceArtifactName: packages_debian-10-slim_amd64
-          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          identityServicePackageFilter: aziot-identity-service*_amd64.deb
         Debian10-arm32v7:
           os: debian10
           artifactName: iotedged-debian10-arm32v7
           identityServiceArtifactName: packages_debian-10-slim_arm32v7
-          identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          identityServicePackageFilter: aziot-identity-service*_armhf.deb
         Debian10-aarch64:
           os: debian10
           artifactName: iotedged-debian10-aarch64
           identityServiceArtifactName: packages_debian-10-slim_aarch64
-          identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          identityServicePackageFilter: aziot-identity-service*_arm64.deb
 
         Debian11-amd64:
           os: debian11
           artifactName: iotedged-debian11-amd64
           identityServiceArtifactName: packages_debian-11-slim_amd64
-          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          identityServicePackageFilter: aziot-identity-service*_amd64.deb
         Debian11-arm32v7:
           os: debian11
           artifactName: iotedged-debian11-arm32v7
           identityServiceArtifactName: packages_debian-11-slim_arm32v7
-          identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          identityServicePackageFilter: aziot-identity-service*_armhf.deb
         Debian11-aarch64:
           os: debian11
           artifactName: iotedged-debian11-aarch64
           identityServiceArtifactName: packages_debian-11-slim_aarch64
-          identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          identityServicePackageFilter: aziot-identity-service*_arm64.deb
 
         Ubuntu2004-amd64:
           os: ubuntu20.04
           artifactName: iotedged-ubuntu20.04-amd64
           identityServiceArtifactName: packages_ubuntu-20.04_amd64
-          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          identityServicePackageFilter: aziot-identity-service*_amd64.*deb
         Ubuntu2004-arm32v7:
           os: ubuntu20.04
           artifactName: iotedged-ubuntu20.04-arm32v7
           identityServiceArtifactName: packages_ubuntu-20.04_arm32v7
-          identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          identityServicePackageFilter: aziot-identity-service*_armhf.*deb
         Ubuntu2004-aarch64:
           os: ubuntu20.04
           artifactName: iotedged-ubuntu20.04-aarch64
           identityServiceArtifactName: packages_ubuntu-20.04_aarch64
-          identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          identityServicePackageFilter: aziot-identity-service*_arm64.*deb
 
         Ubuntu2204-amd64:
           os: ubuntu22.04
           artifactName: iotedged-ubuntu22.04-amd64
           identityServiceArtifactName: packages_ubuntu-22.04_amd64
-          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          identityServicePackageFilter: aziot-identity-service*_amd64.*deb
         Ubuntu2204-arm32v7:
           os: ubuntu22.04
           artifactName: iotedged-ubuntu22.04-arm32v7
           identityServiceArtifactName: packages_ubuntu-22.04_arm32v7
-          identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          identityServicePackageFilter: aziot-identity-service*_armhf.*deb
         Ubuntu2204-aarch64:
           os: ubuntu22.04
           artifactName: iotedged-ubuntu22.04-aarch64
           identityServiceArtifactName: packages_ubuntu-22.04_aarch64
-          identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+          identityServicePackageFilter: aziot-identity-service*_arm64.*deb
 
         Snap-amd64:
           os: ubuntu22.04
