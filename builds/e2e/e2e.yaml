@@ -139,9 +139,7 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -164,9 +162,7 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -189,9 +185,44 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: snaps
+################################################################################
+    displayName: Snaps
+
+    variables:
+      os: linux
+
+    strategy:
+      matrix:
+        amd64:
+          arch: amd64
+          pool: $(pool.linux.name)
+          image: agent-aziotedge-ubuntu-22.04
+          artifactName: iotedged-snap-amd64
+          identityServiceArtifactName: packages_snap_amd64
+          identityServicePackageFilter: azure-iot-identity_*_amd64.snap
+        arm64v8:
+          arch: arm64v8
+          pool: $(pool.linux.arm.name)
+          image: agent-aziotedge-ubuntu-22.04-arm64
+          artifactName: iotedged-snap-aarch64
+          identityServiceArtifactName: packages_snap_aarch64
+          identityServicePackageFilter: azure-iot-identity_*_arm64.snap
+
+    pool:
+      name: $(pool)
+      demands:
+      - ImageOverride -equals $(image)
+
+    steps:
+    - script: |
+        sudo snap install docker
+      displayName: Install Docker as a snap
+    - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -212,9 +243,7 @@ jobs:
       identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
   ################################################################################

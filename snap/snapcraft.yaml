@@ -1,0 +1,178 @@
+name: azure-iot-edge
+base: core22 # the base snap is the execution environment for this snap
+summary: Managed solution for deploying and configuring software on IoT devices
+description: |
+  Azure IoT Edge is a fully managed service that delivers cloud intelligence
+  locally by deploying and running artificial intelligence (AI), Azure services,
+  and custom logic directly on cross-platform IoT devices. Run your IoT solution
+  securely and at scale—whether in the cloud or offline.
+
+confinement: strict # use 'strict' once you have the right plugs and slots
+adopt-info: edgelet
+
+system-usernames:
+  snap_aziotedge: shared
+
+package-repositories:
+  - type: apt
+    components: [ main ]
+    suites: [ jammy ]
+    url: https://packages.microsoft.com/ubuntu/22.04/prod
+    key-id: BC528686B50D79E339D3721CEB3E94ADBE1229CF
+
+parts:
+  rust-toolchain:
+    plugin: nil
+    build-packages:
+      - curl
+    build-environment:
+      - PATH: "$PATH:$HOME/.cargo/bin"
+    override-build: |
+      mkdir -p $HOME/.cargo/bin
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --profile minimal -y
+      cd $CRAFT_PROJECT_DIR/edgelet
+      rustup update
+  edgelet:
+    after: [ rust-toolchain ]
+    source: edgelet/
+    plugin: make
+    make-parameters:
+      - "CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock"
+      - "CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock"
+      - "LISTEN_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock"
+      - "LISTEN_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock"
+      - "PLATFORM_FEATURES=snapd"
+    build-environment:
+      - PATH: "$PATH:$HOME/.cargo/bin"
+      - SOCKET_DIR: "/var/sockets/aziot"
+      - USER_AZIOTKS: "root"
+      - USER_AZIOTCS: "root"
+      - USER_AZIOTID: "root"
+      - USER_AZIOTTPM: "root"
+      - USER_IOTEDGE: "snap_aziotedge"
+    override-build: |
+      rm -rf $CRAFT_PART_BUILD/target
+      SC_VERSION="$(cat $CRAFT_PART_SRC/version.txt)"
+      craftctl set version="$SC_VERSION"
+      # if version contains substring "dev" set grade to devel, else stable
+      if test "${SC_VERSION#*dev}" != "$SC_VERSION" ; then
+        craftctl set grade=devel
+      else
+        craftctl set grade=stable
+      fi
+      make install \
+        PLATFORM_FEATURES=snapd \
+        CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock \
+        CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock \
+        LISTEN_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock \
+        LISTEN_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock \
+        DESTDIR=$CRAFT_PART_INSTALL
+    build-packages:
+      - binutils
+      - build-essential
+      - ca-certificates
+      - curl
+      - cmake
+      - debhelper
+      - file
+      - git
+      - make
+      - gcc
+      - g++
+      - pkg-config
+      - libcurl4-openssl-dev
+      - libssl-dev
+      - uuid-dev
+  command-chain:
+    plugin: dump
+    source: edgelet/contrib/
+    stage-packages: [ util-linux ]
+    stage:
+      - snap/command-chain
+      - usr/bin/setpriv
+      - usr/share/doc/util-linux/copyright
+  socat:
+    plugin: dump
+    source: edgelet/contrib/snap
+    stage-packages: [ socat ]
+    organize:
+      socat.sh: bin/socat.sh
+  docker-cli:
+    plugin: nil
+    stage-packages:
+      - moby-cli
+
+apps:
+  aziot-edged:
+    command-chain:
+      - snap/command-chain/handle-exit-status-153.sh
+      - snap/command-chain/make-socket-directory.sh
+      - snap/command-chain/drop-privileges.sh
+    command: usr/libexec/aziot/aziot-edged
+    daemon: simple
+    plugs:
+      - docker
+      - identity-service
+      - mount-observe
+      - network
+      - network-bind
+      - system-observe
+      - run-iotedge
+  iotedge:
+    command: usr/bin/iotedge
+    plugs:
+      - docker
+      - identity-service
+      - home
+      - log-observe
+      - mount-observe
+      - network
+      - system-observe
+      - run-iotedge
+  docker-proxy:
+    command: bin/socat.sh
+    daemon: simple
+    plugs:
+      - docker
+      - network
+      - network-bind
+
+hooks:
+  configure:
+    plugs:
+      - aziotctl-executables
+      - docker
+      - hostname-control
+      - identity-service
+      - log-observe
+      - mount-observe
+
+environment:
+  PATH: "$PATH:$SNAP/aziotctl/bin:$SNAP/usr/bin"
+
+plugs:
+  aziotctl-executables:
+    interface: content
+    content: aziotctl-executables
+    target: $SNAP/aziotctl
+  identity-service:
+    interface: content
+    content: aziot-identity-service
+    target: $SNAP_COMMON
+  run-iotedge:
+    interface: system-files
+    write: [ /var/run/iotedge, /run/iotedge ]
+
+layout:
+  /var/lib/aziot:
+    symlink: $SNAP_COMMON/var/lib/aziot
+  /var/lib/iotedge:
+    symlink: $SNAP_COMMON/var/lib/iotedge
+  /var/sockets/aziot:
+    symlink: $SNAP_COMMON/shared/sockets/aziot
+  /var/secrets/aziot:
+    symlink: $SNAP_COMMON/shared/secrets/aziot
+  /etc/aziot:
+    symlink: $SNAP_COMMON/shared/config/aziot
+  /usr/libexec/aziot/aziot-edged:
+    symlink: $SNAP/usr/libexec/aziot/aziot-edged
