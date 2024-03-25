@@ -344,10 +344,8 @@ get_metrics_collector_release_info() {
 }
 
 #
-# Uses the GitHub API to create a GitHub Release page in the *product* repo for a release that only
-# refreshes our core Docker images (agent, hub, temp sensor and diagnostics) when their base images
-# have been updated (i.e., no code changes in our project repo). Returns an error status code if
-# the required environment variables are empty, or if GitHub returns an error.
+# Uses the GitHub API to create a GitHub Release page in the *product* repo. Returns an error status
+# code if the required environment variables are empty, or if GitHub returns an error.
 #
 # Globals
 #   BRANCH       Optional. If not given, defaults to 'main'
@@ -416,10 +414,8 @@ create_github_release_page_in_product_repo() {
 }
 
 #
-# Uses the GitHub API to create a GitHub Release page in the *project* repo for a release that only
-# refreshes our core Docker images (agent, hub, temp sensor and diagnostics) when their base images
-# have been updated (i.e., no code changes in our project repo). Returns an error status code if
-# the required environment variables are empty, or if GitHub returns an error.
+# Uses the GitHub API to create a GitHub Release page in the *project* repo. Returns an error status
+# code if the required environment variables are empty, or if GitHub returns an error.
 #
 # Globals
 #   BRANCH       Optional. If not given, defaults to current branch (e.g., 'release/1.4')
@@ -480,10 +476,8 @@ create_github_release_page_for_core_images_in_project_repo() {
 }
 
 #
-# Uses the GitHub API to create a GitHub Release page in the *project* repo for a release that only
-# refreshes our Metrics Collector Docker images when their base images have been updated (i.e., no
-# code changes in our project repo). Returns an error status code if the required environment
-# variables are empty, or if GitHub returns an error.
+# Uses the GitHub API to create a GitHub Release page in the *project* repo. Returns an error status
+# code if the required environment variables are empty, or if GitHub returns an error.
 #
 # Globals
 #   COMMITISH    Optional. If not given, defaults to current branch (e.g., 'release/1.4')
