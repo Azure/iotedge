@@ -68,6 +68,8 @@ local filepath="$3"
 cat <<- EOF > "$filepath"
 # $prod_version ($(date --iso-8601=date))
 
+Only Docker images are updated in this release. The daemon remains at version $diag_version.
+
 The following Docker images were updated because their base images changed:
 * azureiotedge-agent
 * azureiotedge-hub
@@ -206,10 +208,8 @@ get_project_release_info() {
 }
 
 #
-# Uses the GitHub API to create a GitHub Release page in the *product* repo for a release that only
-# refreshes our core Docker images (agent, hub, temp sensor and diagnostics) when their base images
-# have been updated (i.e., no code changes in our project repo). Returns an error status code if
-# the required environment variables are empty, or if GitHub returns an error.
+# Uses the GitHub API to create a GitHub Release page in the *product* repo. Returns an error status
+# code if the required environment variables are empty, or if GitHub returns an error.
 #
 # Globals
 #   BRANCH       Optional. If not given, defaults to 'main'
@@ -235,16 +235,13 @@ create_github_release_page_in_product_repo() {
     return 1
   fi
 
+  local body="$CHANGELOG"
   local branch=${BRANCH:-main}
   local is_lts=${IS_LTS:-false}
   local name="$CORE_VERSION"
   if [ "$is_lts" != "false" ]; then
     name+=" LTS"
   fi
-
-  local body='Only Docker images are updated in this release.'
-  body+=$(echo -e " The daemon remains at version $DIAG_VERSION.\n\n")
-  body+="$CHANGELOG"
 
   local data=$(jq -nc \
     --arg version "$CORE_VERSION" \
@@ -281,10 +278,8 @@ create_github_release_page_in_product_repo() {
 }
 
 #
-# Uses the GitHub API to create a GitHub Release page in the *project* repo for a release that only
-# refreshes our core Docker images (agent, hub, temp sensor and diagnostics) when their base images
-# have been updated (i.e., no code changes in our project repo). Returns an error status code if
-# the required environment variables are empty, or if GitHub returns an error.
+# Uses the GitHub API to create a GitHub Release page in the *project* repo. Returns an error status
+# code if the required environment variables are empty, or if GitHub returns an error.
 #
 # Globals
 #   BRANCH       Optional. If not given, defaults to current branch (e.g., 'release/1.4')

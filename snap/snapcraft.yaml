@@ -25,11 +25,14 @@ parts:
     plugin: nil
     build-packages:
       - curl
+      - sed
     build-environment:
       - PATH: "$PATH:$HOME/.cargo/bin"
     override-build: |
       mkdir -p $HOME/.cargo/bin
-      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --profile minimal -y
+      CHANNEL=$(sed -n '/^channel *=* */{s///;s/^"//;s/"$//;p;}' $CRAFT_PROJECT_DIR/rust-toolchain.toml)
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+        sh -s -- --no-modify-path --profile minimal -y --default-toolchain $CHANNEL
       cd $CRAFT_PROJECT_DIR/edgelet
       rustup update
   edgelet:
