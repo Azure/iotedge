@@ -37,12 +37,21 @@ jobs:
   steps:
   - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites
-  - script: scripts/linux/buildBranch.sh -c '$(configuration)'
-    displayName: Build
-  - script: scripts/linux/runTests.sh '--filter Category=Unit&Category!=GetLogsTests'
-    displayName: Test
-  - script: scripts/linux/runTests.sh '--filter Category=GetLogsTests'
-    displayName: Run GetLogsTests Tests
+  - task: AzureCLI@2
+    displayName: 'Setup Local SDK NuGet Source'
+    inputs:
+      azureSubscription: bearAppRegConnectionService
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        mkdir $(Build.SourcesDirectory)/.sdk
+        az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)/.sdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
+  - script: |
+      dotnet test \
+        --configuration $(configuration) \
+        --filter 'Category=Unit' \
+        --logger trx \
+    displayName: Build and run unit tests
   - task: PublishTestResults@2
     displayName: Publish Test Results
     inputs:
@@ -65,23 +74,23 @@ jobs:
   steps:
   - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites
+  - task: AzureCLI@2
+    displayName: 'Setup Local SDK NuGet Source'
+    inputs:
+      azureSubscription: bearAppRegConnectionService
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        mkdir $(Build.SourcesDirectory)/.sdk
+        az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)/.sdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
   - script: |
       dotnet test \
         --logger trx \
         --results-directory '$(Agent.TempDirectory)' \
-        --filter 'Category=Unit&Category!=GetLogsTests' \
+        --filter 'Category=Unit' \
         --collect 'xplat code coverage' \
         --settings CodeCoverage.runsettings
     displayName: Run unit tests with code coverage
-  - script: |
-      dotnet test 'edge-agent/test/Microsoft.Azure.Devices.Edge.Agent.Core.Test' \
-        --logger trx \
-        --results-directory '$(Agent.TempDirectory)' \
-        --filter 'Category=GetLogsTests' \
-        --collect 'xplat code coverage' \
-        --settings CodeCoverage.runsettings
-    displayName: Run GetLogsTests unit tests with code coverage
-    condition: succeededOrFailed()
   - script: |
       dotnet new tool-manifest
       dotnet tool install dotnet-reportgenerator-globaltool

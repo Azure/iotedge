@@ -2,11 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
+    using System.Linq;
     using System.Threading.Tasks;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
@@ -86,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 async (context, next) =>
                 {
                     // Response header is added to prevent MIME type sniffing
-                    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+                    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
                     await next();
                 });
 

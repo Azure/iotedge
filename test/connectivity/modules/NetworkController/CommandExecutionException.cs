@@ -4,7 +4,6 @@ namespace NetworkController
     using System;
     using System.Runtime.Serialization;
 
-    [Serializable]
     class CommandExecutionException : Exception
     {
         public CommandExecutionException()
@@ -18,11 +17,6 @@ namespace NetworkController
 
         public CommandExecutionException(string message, Exception innerException)
             : base(message, innerException)
-        {
-        }
-
-        protected CommandExecutionException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
         {
         }
     }

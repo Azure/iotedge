@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.8" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.9" />
     <!--
       We have a transitive dependency on System.Net.Http via Microsoft.Azure.Devices.Client/1.36.6.
       Use an explicit reference here to override the version and fix a vulnerability. See
