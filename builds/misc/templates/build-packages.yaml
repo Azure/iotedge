@@ -133,7 +133,9 @@ stages:
               SourceFolder: $(target.iotedged)
               Contents: |
                 *.deb
+                *.ddeb
                 *.rpm
+                !*-debugsource-*.rpm
               TargetFolder: '$(build.artifactstagingdirectory)'
           - task: PublishBuildArtifacts@1
             displayName: Publish Artifacts
@@ -345,6 +347,7 @@ stages:
                 '/src/ci/package.sh'
               popd
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
+              sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-debuginfo-$packageVersion-1.cm$(os_version).$(arch).rpm .
               sudo rm -rf iot-identity-service
           
           - bash: |
