@@ -85,7 +85,7 @@ stages:
         inputs:
           targetType: inline
           script: |
-            az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+            sudo az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
 
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-get-device-name.yaml
@@ -103,6 +103,9 @@ stages:
           changeDeployConfigOnly: true
           level: 5
           name: 5
+          spsecret: $(edgebuild-service-principal-secret)
+          spclientid: $(servicePrincipal.clientId)
+          sptenantid: $(servicePrincipal.tenantId)
       - template: templates/nested-deploy-config.yaml
         parameters:
           deviceId: $(parentDeviceId)
@@ -110,6 +113,9 @@ stages:
           changeDeployConfigOnly: true
           level: 4
           name: 4
+          spsecret: $(edgebuild-service-principal-secret)
+          spclientid: $(servicePrincipal.clientId)
+          sptenantid: $(servicePrincipal.tenantId)
       - template: templates/e2e-run.yaml
         parameters:
           EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
