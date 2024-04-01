@@ -57,15 +57,6 @@ stages:
       variables:
         Codeql.Enabled: true
       steps:
-      - task: AzureCLI@2
-        displayName: 'Setup Local SDK NuGet Source'
-        inputs:
-          azureSubscription: bearAppRegConnectionService2
-          scriptType: bash
-          scriptLocation: inlineScript
-          inlineScript: |
-            mkdir $(Build.SourcesDirectory)/.sdk
-            az storage blob download-batch --pattern "*" --source $(bearcontainer) --destination $(Build.SourcesDirectory)/.sdk --account-name $(bearcontainer) --account-key $(bearcontainerkey)
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
         displayName: Build ($(Build.Configuration)) dotnet artifacts
