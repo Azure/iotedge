@@ -54,13 +54,22 @@ pub(crate) async fn get_device_info(
                 }
             },
             Err(err) => {
-                log::error!("Failed to obtain device identity: {}", err);
+                log::warn!("Failed to obtain device identity: {}", err);
 
-                // Reprovision device since device identity is not available.
-                log::info!("Requesting device reprovision");
+                // Reprovision device if the device identity is unavailable, but only on errors
+                // returned by Identity Service itself. Errors such as connection timeouts and
+                // permission errors should not trigger a reprovision, as these generally mean
+                // that Identity Service has not yet fully started.
+                if err.kind() == std::io::ErrorKind::Other {
+                    log::info!("Requesting device reprovision");
 
-                if let Err(err) = reprovision(identity_client, cache_dir).await {
-                    log::warn!("Failed to reprovision: {}", err);
+                    if let Err(err) = reprovision(identity_client, cache_dir).await {
+                        log::warn!("Failed to reprovision: {}", err);
+                    }
+                } else {
+                    log::warn!(
+                        "Identity Service was unreachable. Waiting for Identity Service startup."
+                    );
                 }
 
                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
