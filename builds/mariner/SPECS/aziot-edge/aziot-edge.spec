@@ -1,4 +1,3 @@
-%global debug_package %{nil}
 %define iotedge_user iotedge
 %define iotedge_group %{iotedge_user}
 %define iotedge_home %{_localstatedir}/lib/aziot/edged
@@ -37,6 +36,8 @@ and custom logic directly on cross-platform IoT devices. Run your IoT solution
 securely and at scale—whether in the cloud or offline.
 
 This package contains the IoT Edge daemon and CLI tool.
+
+%debug_package
 
 %prep
 %setup -q

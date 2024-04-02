@@ -53,6 +53,7 @@ parts:
       - USER_AZIOTID: "root"
       - USER_AZIOTTPM: "root"
       - USER_IOTEDGE: "snap_aziotedge"
+      - CARGO_PROFILE_RELEASE_DEBUG: 0
     override-build: |
       rm -rf $CRAFT_PART_BUILD/target
       SC_VERSION="$(cat $CRAFT_PART_SRC/version.txt)"

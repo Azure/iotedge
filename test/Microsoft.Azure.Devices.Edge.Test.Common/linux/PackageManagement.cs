@@ -32,7 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             string[] packages = Directory
                 .GetFiles(path, $"*.{this.PackageExtension.ToString().ToLower()}")
-                .Where(p => !p.Contains("debug") && !p.Contains("devel"))
+                .Where(p => !p.Contains("debuginfo")
+                    && !p.Contains("dbgsym")
+                    && !p.Contains("devel")
+                    && !p.Contains("src.rpm"))
                 .ToArray();
 
             return this.PackageExtension switch
@@ -43,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get install -y --option DPkg::Lock::Timeout=600 {string.Join(' ', packages)}",
                     $"apt-get install -f --option DPkg::Lock::Timeout=600"
                 },
-                SupportedPackageExtension.Rpm => this.os switch {
+                SupportedPackageExtension.Rpm => this.os switch
+                {
                     "centos" => new[]
                     {
                         "set -e",
@@ -118,7 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"apt-get update",
                     $"apt-get install --option DPkg::Lock::Timeout=600 --yes aziot-edge"
                 },
-                SupportedPackageExtension.Rpm => this.os switch {
+                SupportedPackageExtension.Rpm => this.os switch
+                {
                     "centos" => new[]
                     {
                         $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
