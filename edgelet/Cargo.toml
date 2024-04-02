@@ -22,4 +22,6 @@ panic = 'abort'
 panic = 'abort'
 # Release builds will have full symbols. The packaging phase will strip symbols from binaries and
 # make them available in a separate package.
+# Notes: Snaps don't have a good story for debug symbols, so for now we'll override this setting in
+# the snapcraft.yaml file by setting CARGO_PROFILE_RELEASE_DEBUG=0.
 debug = 2
