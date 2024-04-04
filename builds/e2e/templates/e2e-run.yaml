@@ -67,8 +67,6 @@ steps:
     {
       $filter += '&Category!=NestedEdgeOnly'
     }
-
-    $filter += '&FullyQualifiedName~ValidateMetrics'
     
     #Dotnet SDK 3.1.415 package on Centos doesn't allow dotnet to be accessed via sudo command due to Path issues. Use the below workaround for centos only.
     if ('$(artifactName)'.Contains('centos'))
