@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (nestedEdge == true)
             {
-                hubEnvVar.Append(("DeviceScopeCacheRefreshDelaySecs", ,"0"));
+                hubEnvVar.Append(("DeviceScopeCacheRefreshDelaySecs", "0"));
             }
             else
             {
