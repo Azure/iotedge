@@ -37,7 +37,7 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
-                var transportType = configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+                var transportType = configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Amqp);
 
                 Logger.LogInformation("Make Client");
                 using (ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
