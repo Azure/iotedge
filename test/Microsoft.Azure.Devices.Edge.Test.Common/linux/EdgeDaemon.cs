@@ -53,9 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         ? SupportedPackageExtension.Snap
                         : SupportedPackageExtension.Deb;
                     break;
-                case "raspbian":
-                    os = "debian";
-                    version = "stretch";
+                case "debian":
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
                 case "rhel":

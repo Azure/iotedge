@@ -36,7 +36,6 @@ impl AdditionalInfo {
 ///  OS                  | id                  | version_id
 /// ---------------------+---------------------+------------
 ///  RedHat EL 8         | rhel                | 8.5
-///  Debian 10           | debian              | 10
 ///  Debian 11           | debian              | 11
 ///  openSUSE Tumbleweed | opensuse-tumbleweed | 20190325
 ///  Ubuntu 22.04        | ubuntu              | 22.04

@@ -58,19 +58,6 @@ stages:
               os: redhat9
               target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
 
-            Debian10-amd64:
-              os: debian10
-              arch: amd64
-              target.iotedged: edgelet/target/release
-            Debian10-arm32v7:
-              os: debian10
-              arch: arm32v7
-              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-            Debian10-aarch64:
-              os: debian10
-              arch: aarch64
-              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-
             Debian11-amd64:
               os: debian11
               arch: amd64
