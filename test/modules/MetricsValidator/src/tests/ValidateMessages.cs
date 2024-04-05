@@ -46,7 +46,7 @@ namespace MetricsValidator.Tests
                 const string output = "ToSelf";
 
                 // Setup reciever
-                // TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
+                TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
                 // tcs.SetResult(MessageResponse.Completed);
                 // await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
 
