@@ -46,8 +46,8 @@ namespace MetricsValidator.Tests
                 const string output = "ToSelf";
 
                 // Setup reciever
-                TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
-                tcs.SetResult(MessageResponse.Completed);
+                // TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
+                // tcs.SetResult(MessageResponse.Completed);
                 // await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
 
                 // This will assert the queue clears
@@ -173,6 +173,8 @@ namespace MetricsValidator.Tests
             TimeSpan timePerMessage = TimeSpan.FromMilliseconds(100);
 
             const string input = "FromSelf";
+            TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
+            tcs.SetResult(MessageResponse.Completed);
             await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
 
             TestReporter reporter = this.testReporter.MakeSubcategory("Messages Sent and Recieved");
