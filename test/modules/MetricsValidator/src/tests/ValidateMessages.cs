@@ -173,9 +173,11 @@ namespace MetricsValidator.Tests
             TimeSpan timePerMessage = TimeSpan.FromMilliseconds(100);
 
             const string input = "FromSelf";
-            TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
-            tcs.SetResult(MessageResponse.Completed);
-            await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
+            
+            await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => {
+                Console.WriteLine("Received message");
+                return Task.FromResult(MessageResponse.Completed);
+            }, null, cancellationToken);
 
             TestReporter reporter = this.testReporter.MakeSubcategory("Messages Sent and Recieved");
             using (reporter.MeasureDuration())
