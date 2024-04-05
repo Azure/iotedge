@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public const string CollectorModuleName = "metricsCollector";
 
         [Test]
-        [Category("CentOsSafe")]
         public async Task MetricsCollector()
         {
             CancellationToken token = this.TestToken;

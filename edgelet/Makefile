@@ -76,7 +76,7 @@ all:
 release:
 	# These must be set by the caller:
 	# - `make deb` when building Debian packages
-	# - `rpmbuild` via `make rpm` when building the CentOS package
+	# - `rpmbuild` via `make rpm8` when building RHEL packages
 	[ -n '$(CONNECT_MANAGEMENT_URI)' ]
 	[ -n '$(CONNECT_WORKLOAD_URI)' ]
 	[ -n '$(LISTEN_MANAGEMENT_URI)' ]
@@ -148,11 +148,6 @@ deb: release
 rpm8:
 	cp $(srcdir)/contrib/enterprise-linux/00-aziot-edged.preset $(rpmbuilddir)/SOURCES
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/enterprise-linux/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
-	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
-
-rpm:
-	cp $(srcdir)/contrib/centos/00-aziot-edged.preset $(rpmbuilddir)/SOURCES
-	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
 	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
 
 rpm-dist:

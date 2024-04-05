@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
         [Test]
-        [Category("CentOsSafe")]
         public async Task ImageGarbageCollection()
         {
             CancellationToken token = this.TestToken;

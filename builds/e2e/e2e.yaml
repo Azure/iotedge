@@ -225,27 +225,6 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: centos7_amd64
-################################################################################
-    displayName: CentOs7 amd64
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-centos-7-msmoby
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-centos7-amd64
-      identityServiceArtifactName: packages_centos-7_amd64
-      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
-
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
-
   ################################################################################
   - job: redhat8_amd64
   ################################################################################

@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `redhat8`, `redhat9`, `debian10`, `debian11`, `ubuntu20.04`, or `ubuntu22.04`.
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `redhat8`, `redhat9`, `debian10`, `debian11`, `ubuntu20.04`, or `ubuntu22.04`.
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -33,13 +33,6 @@ Note that the script must be run on an `amd64` device. The `PACKAGE_ARCH=arm32v7
 Once the packages are built, they will be found somewhere under the `edgelet/target/` directory. (The exact path under that directory depends on the combination of `PACKAGE_OS` and `PACKAGE_ARCH`. See `builds/misc/templates/build-packages.yaml` for the exact paths.)
 
 If you want to run another build for a different combination of `PACKAGE_OS` and `PACKAGE_ARCH`, make sure to clean the repository first with `sudo git clean -xffd` so that artifacts from the previous build don't get reused for the next one.
-
-Note: For the following targets, `qemu-user-static` must be installed on the host and registered with `binfmt`:
-
-- `PACKAGE_OS=centos7 PACKAGE_ARCH=arm32v7`
-- `PACKAGE_OS=centos7 PACKAGE_ARCH=aarch64`
-
-If that has not been done, `package.sh` prints an error message explaining how to do that.
 
 This is because these targets do not have functional cross-compilers, so their builds are done as native builds emulated using qemu. Be aware that these builds are much slower - where a native build might take 15m, a qemu build might take 2h30m.
 
@@ -65,16 +58,6 @@ rustup update   # Install / update the toolchain used to build the daemon binari
 ```
 
 In addition, building the daemon binaries also requires these dependencies to be installed:
-
-#### CentOS 7
-
-```sh
-yum update
-yum install \
-    curl git make rpm-build \
-    gcc gcc-c++ \
-    libcurl-devel libuuid-devel openssl-devel
-```
 
 #### RHEL 8
 

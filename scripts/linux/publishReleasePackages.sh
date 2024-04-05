@@ -46,9 +46,6 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "debian11" ]]; then
         OS_NAME="debian"
         OS_VERSION="bullseye"
-    elif [[ "$PACKAGE_OS" == "centos7" ]]; then
-        OS_NAME="centos"
-        OS_VERSION="7"
     elif [[ "$PACKAGE_OS" == "redhat8" ]]; then
         OS_NAME="redhat"
         OS_VERSION="8"

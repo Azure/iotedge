@@ -18,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [TestCase(Protocol.Mqtt)]
         [TestCase(Protocol.Amqp)]
-        [Category("CentOsSafe")]
         public async Task CertRenew(Protocol protocol)
         {
             CancellationToken token = this.TestToken;
@@ -58,7 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         [Category("nestededge_isa95")]
         public async Task TempSensor()
         {
@@ -93,7 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         public async Task TempFilter()
         {
             const string filterName = "tempFilter";
@@ -132,7 +129,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("Amd64Only")]
-        [Category("CentOsSafe")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
@@ -172,7 +168,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {

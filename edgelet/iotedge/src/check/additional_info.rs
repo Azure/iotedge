@@ -35,7 +35,6 @@ impl AdditionalInfo {
 /// ```ignore
 ///  OS                  | id                  | version_id
 /// ---------------------+---------------------+------------
-///  CentOS 7            | centos              | 7
 ///  RedHat EL 8         | rhel                | 8.5
 ///  Debian 10           | debian              | 10
 ///  Debian 11           | debian              | 11

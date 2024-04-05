@@ -15,24 +15,6 @@ VERSION="${VERSION:-$DEFAULT_VERSION}"
 DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
-    'centos7')
-        # Converts debian versioning to rpm version
-        # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
-        RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
-        RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2)"
-        if [ -n "$RPM_TAG" ]; then
-            RPM_RELEASE="0.$REVISION.$RPM_TAG"
-        else
-            RPM_RELEASE="$REVISION"
-        fi
-
-        case "$PACKAGE_ARCH" in
-            'amd64')
-                DOCKER_IMAGE='centos:7.5.1804'
-                ;;
-        esac
-        ;;
-
     'redhat8')
         # Converts debian versioning to rpm version
         # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
@@ -111,16 +93,6 @@ fi
 
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
-    centos7.amd64)
-        SETUP_COMMAND=$'
-            yum update -y &&
-            yum install -y \
-                curl git make rpm-build \
-                gcc gcc-c++ \
-                libcurl-devel libuuid-devel openssl-devel &&
-        '
-        ;;
-
     redhat8.amd64)
         SETUP_COMMAND=$'
             dnf distro-sync -y &&
@@ -299,31 +271,6 @@ if [ -z "$SETUP_COMMAND" ]; then
 fi
 
 case "$PACKAGE_OS" in
-    centos7)
-        case "$PACKAGE_ARCH" in
-            amd64)
-                MAKE_TARGET_DIR='target/release'
-                ;;
-            arm32v7)
-                MAKE_TARGET_DIR="target/$RUST_TARGET/release"
-                CARGO_TARGET_FLAG="--target $RUST_TARGET"
-                RPMBUILD_TARGET_FLAG='--target armv7hl'
-                ;;
-            aarch64)
-                MAKE_TARGET_DIR="target/$RUST_TARGET/release"
-                CARGO_TARGET_FLAG="--target $RUST_TARGET"
-                RPMBUILD_TARGET_FLAG='--target aarch64'
-                ;;
-        esac
-
-        MAKE_COMMAND="mkdir -p /project/edgelet/target/rpmbuild"
-        MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet/target/rpmbuild"
-        MAKE_COMMAND="$MAKE_COMMAND && mkdir -p RPMS SOURCES SPECS SRPMS BUILD"
-        MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet"
-        MAKE_COMMAND="$MAKE_COMMAND && make rpm-dist 'TARGET=target/rpmbuild/SOURCES' 'VERSION=$VERSION' 'REVISION=$REVISION'"
-        MAKE_COMMAND="$MAKE_COMMAND && make rpm rpmbuilddir=/project/edgelet/target/rpmbuild 'TARGET=$MAKE_TARGET_DIR' 'VERSION=$VERSION' 'REVISION=$REVISION' 'CARGOFLAGS=--manifest-path ./Cargo.toml $CARGO_TARGET_FLAG' RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /project/edgelet/target/rpmbuild\" $RPMBUILD_TARGET_FLAG'"
-        ;;
-
     redhat8|redhat9)
         case "$PACKAGE_ARCH" in
             amd64)
