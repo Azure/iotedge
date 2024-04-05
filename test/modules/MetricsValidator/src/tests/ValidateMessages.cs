@@ -173,7 +173,8 @@ namespace MetricsValidator.Tests
             TimeSpan timePerMessage = TimeSpan.FromMilliseconds(100);
 
             const string input = "FromSelf";
-            await this.moduleClient.SetInputMessageHandlerAsync(input, 
+            await this.moduleClient.SetInputMessageHandlerAsync(
+            input,
             (message, _) =>
             {
                 Console.WriteLine("Received message");
