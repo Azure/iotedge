@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class Image : SasManualProvisioningFixture
     {
         const string SensorName = "tempSensor";
-        const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+        const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.5";
 
         [Test]
         public async Task ImageGarbageCollection()
