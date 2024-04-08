@@ -6,11 +6,10 @@ namespace TestResultCoordinator
     using System.Linq;
     using System.Threading.Tasks;
     using Azure.Storage.Blobs;
+    using Azure.Storage.Sas;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Microsoft.WindowsAzure.Storage;
-    using Microsoft.WindowsAzure.Storage.Blob;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using TestResultCoordinator.Reports;
@@ -139,9 +138,7 @@ namespace TestResultCoordinator
                 await containerClient.CreateAsync();
             }
 
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageAccountConnectionString);
-            var container = new CloudBlobContainer(containerClient.Uri, storageAccount.Credentials);
-            return GetContainerSasUri(container);
+            return GetContainerSasUri(containerClient);
         }
 
         internal static async Task UploadLogsAsync(string iotHubConnectionString, Uri blobContainerWriteUri, Option<TimeSpan> logUploadDuration, ILogger logger)
@@ -224,18 +221,12 @@ namespace TestResultCoordinator
             return $"logs{DateTime.UtcNow.ToString("yyyyMMdd")}";
         }
 
-        static Uri GetContainerSasUri(CloudBlobContainer container)
+        static Uri GetContainerSasUri(BlobContainerClient container)
         {
-            var adHocPolicy = new SharedAccessBlobPolicy()
-            {
-                // When the start time for the SAS is omitted, the start time is assumed to be the time when the storage service receives the request.
-                // Omitting the start time for a SAS that is effective immediately helps to avoid clock skew.
-                SharedAccessExpiryTime = DateTime.UtcNow.AddHours(1),
-                Permissions = SharedAccessBlobPermissions.Write | SharedAccessBlobPermissions.List
-            };
-
-            string sasContainerToken = container.GetSharedAccessSignature(adHocPolicy, null);
-            return new Uri(container.Uri + sasContainerToken);
+            var permissions = BlobContainerSasPermissions.Write | BlobContainerSasPermissions.List;
+            // When the start time for the SAS is omitted, the start time is assumed to be the time when the storage service receives the request.
+            // Omitting the start time for a SAS that is effective immediately helps to avoid clock skew.
+            return container.GenerateSasUri(permissions, DateTime.UtcNow.AddHours(1));
         }
 
         enum UploadLogResponseStatus
