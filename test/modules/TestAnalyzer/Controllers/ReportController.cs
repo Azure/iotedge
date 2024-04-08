@@ -69,7 +69,7 @@ namespace TestAnalyzer.Controllers
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed uploading reports to log analytics:", e);
+                Logger.LogError("Failed uploading reports to log analytics:", e);
             }
         }
     }
