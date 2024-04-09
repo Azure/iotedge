@@ -214,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     filter = new { },
                 },
                 encoding = 0,
-                contentYtpe = 1,
+                contentType = 1,
                 sasUrl,
             };
 

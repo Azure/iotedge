@@ -4,7 +4,6 @@ namespace NetworkController
     using System;
     using System.Runtime.Serialization;
 
-    [Serializable]
     class TestInitializationException : Exception
     {
         public TestInitializationException()
@@ -18,11 +17,6 @@ namespace NetworkController
 
         public TestInitializationException(string message, Exception innerException)
             : base(message, innerException)
-        {
-        }
-
-        protected TestInitializationException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
         {
         }
     }

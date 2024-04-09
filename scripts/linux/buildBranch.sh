@@ -22,7 +22,7 @@ SRC_E2E_TEST_FILES_DIR=$ROOT_FOLDER/e2e_test_files
 SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
-DOTNET_RUNTIME=net6.0
+DOTNET_RUNTIME=net8.0
 SKIP_QUICKSTART=0
 
 usage()
@@ -32,7 +32,7 @@ usage()
     echo "options"
     echo " -c, --config         Product binary configuration: Debug [default] or Release"
     echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
-    echo " --dotnet_runtime     Set the dotnet_runtime version to build. (Default net6.0)"
+    echo " --dotnet_runtime     Set the dotnet_runtime version to build. (Default net8.0)"
     echo " --skip-quickstart    Do not build the quickstart test tool or copy {e2e_deployment_files,e2e_test_files}"
     exit 1;
 }
@@ -164,7 +164,7 @@ publish_app()
 publish_lib()
 {
     local name="$1"
-    publish_project library "$name" net6.0 $CONFIGURATION "$PUBLISH_FOLDER/$name"
+    publish_project library "$name" net8.0 $CONFIGURATION "$PUBLISH_FOLDER/$name"
 }
 
 publish_quickstart()

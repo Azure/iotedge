@@ -536,7 +536,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             foreach (var header in headers)
             {
-                this.Response.Headers.Add(header.Key, header.Value);
+                this.Response.Headers.Append(header.Key, header.Value);
             }
 
             if (!string.IsNullOrEmpty(jsonContent))
