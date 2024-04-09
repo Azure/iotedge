@@ -12,7 +12,6 @@ namespace MetricsValidator.Tests
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.WindowsAzure.Storage.Table;
 
     public class ValidateMessages : TestBase
     {
