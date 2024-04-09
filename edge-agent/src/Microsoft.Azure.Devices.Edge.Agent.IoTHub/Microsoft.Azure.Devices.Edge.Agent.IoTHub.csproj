@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.6" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.10" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.39.1" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.42.3" />
   </ItemGroup>
 
   <ItemGroup>

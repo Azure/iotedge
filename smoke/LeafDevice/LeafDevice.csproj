@@ -10,8 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.3.2" />
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.6" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.10" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.39.1" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.42.3" />
     <PackageReference Include="RunProcessAsTask" Version="1.2.4" />
     <PackageReference Include="YamlDotNet" Version="6.0.0" />
   </ItemGroup>
