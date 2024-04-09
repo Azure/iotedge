@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.6" />
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.10" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
   </ItemGroup>
 
   <ItemGroup>
