@@ -59,7 +59,7 @@ scripts/linux/downloadAndInstallCert.sh -v <VaultName> -c <CertName>
 Then run the tests either with Test Explorer in Visual Studio IDE, or with:
 
 ```sh
-scripts/linux/runTests.sh "--filter Category=Integration"
+scripts/linux/runTests.sh "Category=Integration"
 ```
 
 The syntax of the "filter" argument is described [here](https://docs.microsoft.com/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.
