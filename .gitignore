@@ -332,3 +332,6 @@ parts/
 stage/
 prime/
 *.snap
+
+# used by the C# Dev Kit (VS Code extension)
+.mono/
