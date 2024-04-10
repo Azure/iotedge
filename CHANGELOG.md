@@ -1,3 +1,13 @@
+# 1.4.34 (2024-04-10)
+
+Only Docker images are updated in this release. The daemon remains at version 1.4.33.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.4.33 to match the daemon)
+
 # 1.4.33 (2024-03-12)
 
 ## Edge Agent
