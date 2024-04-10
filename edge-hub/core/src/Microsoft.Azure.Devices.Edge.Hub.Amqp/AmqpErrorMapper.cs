@@ -28,25 +28,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                     return ArgumentError;
 
                 case ErrorCode.IotHubUnauthorizedAccess:
-                case ErrorCode.IotHubUnauthorized:
                     return AmqpErrorCode.UnauthorizedAccess;
 
                 case ErrorCode.DeviceNotFound:
                     return AmqpErrorCode.NotFound;
 
-                case ErrorCode.DeviceMessageLockLost:
-                    return MessageLockLostError;
-
+                // case ErrorCode.DeviceMessageLockLost:
+                //     return MessageLockLostError;
+                // TODO: replace? ^^
                 case ErrorCode.IotHubQuotaExceeded:
                 case ErrorCode.DeviceMaximumQueueDepthExceeded:
-                case ErrorCode.IotHubMaxCbsTokenExceeded:
+                // case ErrorCode.IotHubMaxCbsTokenExceeded:
+                // TODO: replace? ^^
                     return AmqpErrorCode.ResourceLimitExceeded;
-
-                case ErrorCode.IotHubSuspended:
-                    return IotHubSuspended;
-
-                case ErrorCode.IotHubNotFound:
-                    return IotHubNotFoundError;
 
                 case ErrorCode.PreconditionFailed:
                     return PreconditionFailed;

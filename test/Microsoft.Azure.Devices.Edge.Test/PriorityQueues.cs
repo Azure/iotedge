@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
 
                                 var receivedTrackingId = (string)data.Properties["trackingId"];
-                                if (!receivedTrackingId.IsNullOrWhiteSpace() && receivedTrackingId.Equals(trackingId))
+                                if (!string.IsNullOrWhiteSpace(receivedTrackingId) && receivedTrackingId.Equals(trackingId))
                                 {
                                     messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
                                     {
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 }
                                 else
                                 {
-                                    var message = receivedTrackingId.IsNullOrWhiteSpace() ? "EMPTY" : receivedTrackingId;
+                                    var message = string.IsNullOrWhiteSpace(receivedTrackingId) ? "EMPTY" : receivedTrackingId;
                                     Log.Verbose($"Message contains incorrect tracking id: {message}. Ignoring.");
                                 }
                             }

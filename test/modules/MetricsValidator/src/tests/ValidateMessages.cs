@@ -12,7 +12,6 @@ namespace MetricsValidator.Tests
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.WindowsAzure.Storage.Table;
 
     public class ValidateMessages : TestBase
     {
@@ -48,8 +47,8 @@ namespace MetricsValidator.Tests
 
                 // Setup reciever
                 TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
-                tcs.SetResult(MessageResponse.Completed);
-                await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
+                // tcs.SetResult(MessageResponse.Completed);
+                // await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
 
                 // This will assert the queue clears
                 async Task WaitForQueueToClear(string name)
@@ -172,6 +171,17 @@ namespace MetricsValidator.Tests
         {
             string endpoint = Guid.NewGuid().ToString();
             TimeSpan timePerMessage = TimeSpan.FromMilliseconds(100);
+
+            const string input = "FromSelf";
+            await this.moduleClient.SetInputMessageHandlerAsync(
+            input,
+            (message, _) =>
+            {
+                Console.WriteLine("Received message");
+                return Task.FromResult(MessageResponse.Completed);
+            },
+            null,
+            cancellationToken);
 
             TestReporter reporter = this.testReporter.MakeSubcategory("Messages Sent and Recieved");
             using (reporter.MeasureDuration())

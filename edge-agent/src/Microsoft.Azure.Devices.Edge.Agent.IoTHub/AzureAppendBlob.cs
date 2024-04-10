@@ -2,21 +2,23 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
+    using System.IO;
     using System.Threading.Tasks;
+    using global::Azure.Storage.Blobs.Specialized;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.WindowsAzure.Storage.Blob;
 
     class AzureAppendBlob : IAzureAppendBlob
     {
-        readonly CloudAppendBlob appendBlob;
+        readonly AppendBlobClient appendBlob;
 
-        public AzureAppendBlob(CloudAppendBlob appendBlob)
+        public AzureAppendBlob(AppendBlobClient appendBlob)
         {
             this.appendBlob = Preconditions.CheckNotNull(appendBlob, nameof(appendBlob));
         }
 
         public string Name => this.appendBlob.Name;
 
-        public Task AppendByteArray(ArraySegment<byte> bytes) => this.appendBlob.AppendFromByteArrayAsync(bytes.Array, bytes.Offset, bytes.Count);
+        public Task AppendByteArray(ArraySegment<byte> bytes) =>
+            this.appendBlob.AppendBlockAsync(new MemoryStream(bytes.Array, bytes.Offset, bytes.Count));
     }
 }

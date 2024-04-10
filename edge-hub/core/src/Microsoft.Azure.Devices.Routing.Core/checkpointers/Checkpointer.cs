@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 Metrics.DecrementQueueLength(this.EndpointId, this.Priority);
             }
 
-            Events.CommitFinished(this);
+            Events.CommitFinished(this, successful.Count);
         }
 
         public async Task CloseAsync(CancellationToken token)
@@ -184,9 +184,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 Log.LogInformation((int)EventIds.CommitStarted, "[CheckpointerCommitStarted] SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(checkpointer));
             }
 
-            public static void CommitFinished(Checkpointer checkpointer)
+            public static void CommitFinished(Checkpointer checkpointer, int successfulCount)
             {
-                Log.LogInformation((int)EventIds.CommitFinished, "[CheckpointerCommitFinished] {context}", GetContextString(checkpointer));
+                Log.LogInformation((int)EventIds.CommitFinished, "[CheckpointerCommitFinished] {context}, successfull count {successfulCount}", GetContextString(checkpointer), successfulCount);
             }
 
             public static void Close(Checkpointer checkpointer)

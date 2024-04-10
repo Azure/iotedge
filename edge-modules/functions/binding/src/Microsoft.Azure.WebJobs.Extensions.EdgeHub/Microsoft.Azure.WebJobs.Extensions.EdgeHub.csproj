@@ -33,16 +33,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.8" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.42.3" />
     <PackageReference Include="System.Text.Encodings.Web" Version="4.7.2" />
-    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.36" />
+    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.39" />
     <!--
         Newtonsoft.Json < 13.0.2 has a vulnerability due to insecure defaults.
         Use an explicit reference to ensure the transitive dependency through
         Microsoft.Azure.Devices.Client and Microsoft.Azure.WebJobs is a safe
         version.
     -->
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>

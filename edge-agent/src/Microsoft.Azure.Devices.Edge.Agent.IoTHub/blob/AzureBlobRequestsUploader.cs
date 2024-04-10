@@ -5,12 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
     using System.Globalization;
     using System.IO;
     using System.Threading.Tasks;
+    using global::Azure.Storage.Blobs;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
-    using Microsoft.WindowsAzure.Storage.Blob;
 
     public class AzureBlobRequestsUploader : IRequestsUploader
     {
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             {
                 var containerUri = new Uri(uri);
                 string blobName = this.GetBlobName(id, GetLogsExtension(logsContentEncoding, logsContentType));
-                var container = new CloudBlobContainer(containerUri);
+                var container = new BlobContainerClient(containerUri);
                 Events.Uploading(blobName, container.Name);
 
                 await ExecuteWithRetry(
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
 
             var containerUri = new Uri(uri);
             string blobName = this.GetBlobName(id, GetLogsExtension(logsContentEncoding, logsContentType));
-            var container = new CloudBlobContainer(containerUri);
+            var container = new BlobContainerClient(containerUri);
             Events.Uploading(blobName, container.Name);
             IAzureAppendBlob blob = await this.azureBlobUploader.GetAppendBlob(containerUri, blobName, GetContentType(logsContentType), GetContentEncoding(logsContentEncoding));
             return blob.AppendByteArray;
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
             {
                 var containerUri = new Uri(uri);
                 string blobName = this.GetBlobName("support-bundle", "zip");
-                var container = new CloudBlobContainer(containerUri);
+                var container = new BlobContainerClient(containerUri);
                 Events.Uploading(blobName, container.Name);
                 await ExecuteWithRetry(
                     () =>
