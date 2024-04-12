@@ -20,7 +20,6 @@ stages:
     name: $(pool.linux.name)
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
-  timeoutInMinutes: 90
   jobs:
   - job: ubuntu_2204
     displayName: Ubuntu 22.04 on amd64
