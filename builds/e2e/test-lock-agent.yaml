@@ -1,0 +1,41 @@
+trigger: none
+pr: none
+
+variables:
+  Codeql.Enabled: false
+  DisableDockerDetector: true
+  # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
+  # environments that are very similar to other platforms/environments in our matrix, Ubuntu 20.04
+  # with the 'docker-ce' package vs. Ubuntu 20.04 with the 'iotedge-moby' package vs. the same
+  # variations in Ubuntu 22.04. In these instances the platforms/environments are so similar that we
+  # don't reasonably expect to encounter differences--if we do, it would likely manifest during
+  # installation, or in running a very basic test. We don't need to repeat the entire test suite.
+  # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
+  minimal: false
+  verbose: false
+
+stages:
+- stage: LockAgents
+  jobs:
+  - task: AzureCLI@2
+    inputs:
+      azureSubscription: 'IoTEdge1-msazure'
+      scriptType: 'pscore'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        # Note that the resoruce is specified to limit the token to Azure DevOps
+        $token = az account get-access-token --query accessToken --resource 499b84ac-1321-427f-aa17-267ca6975798 -o tsv
+        $orgUrl = "https://dev.azure.com/msazure"
+        $headers = @{
+          "Authorization" = "Bearer $token"
+          "Content-Type" = "application/json"
+        }
+        Invoke-RestMethod -Method Get -Uri "$orgUrl/_apis/projects?api-version=6.0" -Headers $headers
+
+        # Pass the token to the next job
+        Write-Host "##vso[task.setvariable variable=IotEdgePAT;issecret=true]$token"
+
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'test'
+      pat: $(IotEdgePAT)
