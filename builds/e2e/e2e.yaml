@@ -41,7 +41,7 @@ stages:
 
             # Pass the token to the next job
             Write-Host "##vso[task.setvariable variable=IotEdgePAT;issecret=true]$token"
-  - template: templates/lock-test-agents.yaml
-    parameters:
-      upstream.protocol: 'test'
-      pat: $(IotEdgePAT)
+  # - template: templates/lock-test-agents.yaml
+  #   parameters:
+  #     upstream.protocol: 'test'
+  #     pat: $(IotEdgePAT)
