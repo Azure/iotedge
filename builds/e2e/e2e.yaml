@@ -17,8 +17,8 @@ variables:
 stages:
 - stage: LockAgents
   jobs:
-  - job: ubuntu_2204
-    displayName: Ubuntu 22.04 
+  - job:  LockAgents
+    displayName: Lock agents
     pool:
       name: $(pool.linux.name)
       demands:
@@ -45,4 +45,3 @@ stages:
         parameters:
           upstream.protocol: 'test'
           pat: $(IotEdgePAT)
-
