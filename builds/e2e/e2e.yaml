@@ -16,14 +16,13 @@ variables:
 
 stages:
   - stage: RunE2ETest
-    displayName: End-to-End Test
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     jobs:
       - job: ubuntu_2204
-        displayName: Ubuntu 22.04 on amd64
+        displayName: Ubuntu 22.04 
+        pool:
+          name: $(pool.linux.name)
+          demands:
+            - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
         steps:
         - task: AzureCLI@2
           inputs:
