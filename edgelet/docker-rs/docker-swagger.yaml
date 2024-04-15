@@ -6245,12 +6245,12 @@ paths:
             ```
             {
               "docker.example.com": {
-                "username": "janedoe",
-                "password": "hunter2"
+                "username": "",
+                "password": ""
               },
               "https://index.docker.io/v1/": {
-                "username": "mobydock",
-                "password": "conta1n3rize14"
+                "username": "",
+                "password": ""
               }
             }
             ```
