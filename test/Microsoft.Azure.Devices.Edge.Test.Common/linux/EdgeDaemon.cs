@@ -57,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         ThrowUnsupportedOs();
                     }
 
+                    // if we find .deb and .snap files on an Ubuntu 22.04 host, prefer snap
                     packageExtension = detectedSnap && version == "22.04"
                         ? SupportedPackageExtension.Snap
                         : SupportedPackageExtension.Deb;
