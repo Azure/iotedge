@@ -38,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // Trim potential whitespaces and double quotes
             char[] trimChr = { ' ', '"' };
             os = os.Split('=').Last().Trim(trimChr).ToLower();
+            os = os == "raspbian" ? "debian" : os;
             // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
             version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
 
@@ -45,15 +46,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             SupportedPackageExtension packageExtension;
 
+            void ThrowUnsupportedOs() =>
+                throw new NotImplementedException($"Operating system '{os} {version}' not supported");
+
             switch (os)
             {
                 case "ubuntu":
-                    // if we find .deb and .snap files on an Ubuntu 22.04 host, prefer snap
+                    if (version != "20.04" && version != "22.04")
+                    {
+                        ThrowUnsupportedOs();
+                    }
+
                     packageExtension = detectedSnap && version == "22.04"
                         ? SupportedPackageExtension.Snap
                         : SupportedPackageExtension.Deb;
                     break;
                 case "debian":
+                    if (version != "11")
+                    {
+                        ThrowUnsupportedOs();
+                    }
+
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
                 case "rhel":
@@ -62,11 +75,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     if (version != "8" && version != "9")
                     {
-                        throw new NotImplementedException($"Operating system '{os} {version}' not supported");
+                        ThrowUnsupportedOs();
                     }
 
                     break;
                 case "mariner":
+                    if (version != "2.0")
+                    {
+                        ThrowUnsupportedOs();
+                    }
+
                     packageExtension = SupportedPackageExtension.Rpm;
                     break;
                 default:
