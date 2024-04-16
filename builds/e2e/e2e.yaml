@@ -25,6 +25,154 @@ stages:
         - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     steps:
       - task: AzureCLI@2
+        condition: always()
+        displayName: 'Debug repo clone'
+        inputs:
+          azureSubscription: 'IoTEdge1-msazure'
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            orgName="msazure"
+            projectName="One"
+            repoName="iotedge-release"
+
+                if [ "$SYSTEM_DEBUG" == "true" ]; then
+                set -x
+            fi
+
+            authorizationUriHeader=$(curl -v https://dev.azure.com/$orgName 2>&1 | grep authorization_uri)
+            if [ $? -ne 0 ]; then
+                echo "Could not connect to org home page: https://dev.azure.com/$orgName.  Did you mistype the orgName?"
+                exit 60
+            fi
+            orgTenant=$(echo "$authorizationUriHeader" | grep -o -E "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}")
+            echo "Azure DevOps org is attached to tenant $orgTenant."
+
+            # ensure you are logged in
+            accountInfo=$(az account show)
+            if [ $? -ne 0 ]; then
+                echo "Not logged in to Az CLI or no access to subscription?"
+                exit 10
+            fi
+            userName=$(echo $accountInfo | jq -r ".user.name")
+            echo "Az CLI is logged in as $userName, base64($userName)='$(echo $userName|base64)'"
+            # echo $accountInfo
+
+            azCliTenant=$(echo $accountInfo | jq -r ".tenantId")
+            azCliHomeTenant=$(echo $accountInfo | jq -r ".homeTenantId")
+            if [ "$orgTenant" != "$azCliTenant" ]; then
+                echo "Azure DevOps org $orgName's tenant $orgTenant does not match Az CLI tenant $azCliTenant."
+                exit 20
+            fi
+            echo "Az CLI tenant matches Azure DevOps tenant."
+
+            if [ "$orgTenant" != "$azCliHomeTenant" ]; then
+                echo "Azure DevOps org $orgName's tenant $orgTenant does not match Az CLI home tenant $azCliHomeTenant."
+                exit 30
+            fi
+            echo "Az CLI home tenant matches Azure DevOps tenant."
+
+            # Note that the resoruce is specified to limit the token to Azure DevOps
+            aadTokenInfo=$(az account get-access-token --resource "499b84ac-1321-427f-aa17-267ca6975798")
+            if [ $? -ne 0 ]; then
+                echo "Could not acquire Azure DevOps token."
+                exit 40
+            fi
+            echo "Azure DevOps AAD token acquired.  Expires $(echo $aadTokenInfo | jq -r .expiresOn)"
+            aadToken=$(echo $aadTokenInfo | jq -r .accessToken)
+
+
+            function azdoCall() {
+                statusCode=$(curl \
+                    -H "Authorization: Bearer $aadToken" \
+                    -H "X-TFS-FedAuthRedirect: Suppress" \
+                    -H "Accept: application/json" \
+                    --dump-header /tmp/headers.txt -o /tmp/body.txt \
+                    -s -w "%{http_code}\n" \
+                    $1)
+                if [ $? -ne 0 ]; then
+                    echo "curl failed."
+                    exit 1
+                fi
+
+                echo "$1 $statusCode $(grep e2eid /tmp/headers.txt)"
+
+                if [ "$statusCode" != "200" ]; then
+                    cat /tmp/headers.txt
+                    cat /tmp/body.txt
+                fi
+                
+                return $statusCode
+            }
+
+            azdoCall "https://dev.azure.com/$orgName/_apis/projects/?\$top=1&api-version=7.1-preview.4"
+            if [ $? -ne 200 ]; then
+                echo "Could not list projects. Has your PCA added the Managed Idenitity to the org?"
+                exit 50
+            fi
+
+            azdoCall "https://dev.azure.com/$orgName/_apis/projects/$projectName?api-version=7.1-preview.4"
+            if [ $? -ne 200 ]; then
+                echo "Could not connect to project. Is identity added to project?"
+                exit 80
+            fi
+
+            azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/MemberEntitlements?%24filter=userType%20eq%20%27managedIdentity%27&%24orderBy=name%20Ascending&api-version=7.1-preview.2"
+            if [ $? -ne 200 ]; then
+                echo "Could not access managed identity entitlements."
+                exit 70
+            fi
+            entitlement=$(cat /tmp/body.txt | jq ".items[] | select(.member.applicationId==\"$userName\")")
+            if [ "$entitlement" == "" ] || [ "$entitlement" == "null" ]; then
+                cat /tmp/body.txt 
+                azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/MemberEntitlements?api-version=7.1-preview.2"
+                if [ $? -ne 200 ]; then
+                    echo "Could not find entitlements for service principals."
+                    exit 70
+                fi
+                entitlement=$(cat /tmp/body.txt | jq ".items[] | select(.member.applicationId==\"$userName\")")
+            fi
+            if [ "$entitlement" == "" ] || [ "$entitlement" == "null" ]; then
+                cat /tmp/body.txt 
+                azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/userentitlements?\$filter=name%20eq%20%27$userName%27&api-version=7.1-preview.4"
+                if [ $? -ne 200 ]; then
+                    echo "Could not find entitlements for user."
+                    exit 70
+                fi
+                entitlement=$(cat /tmp/body.txt | jq '.items[0]')
+            fi
+
+            if [ "$entitlement" == "null" ]; then
+                echo Could not find entitlements/license for managed identity $userName
+                exit 70
+            fi
+
+            accountLicenseType=$(echo $entitlement | jq -r .accessLevel.accountLicenseType)
+            if [ "$accountLicenseType" == "" ]; then
+                echo $entitlement
+                echo "Could not determine license type."
+                exit 70
+            fi
+
+            echo "User has license type '$accountLicenseType'"
+            if [ "$accountLicenseType" == "stakeholder" ]; then
+                echo $entitlement
+                echo "Identity only has stakeholder license.  Has your PCA given the Managed Idenitity a better license?"
+                exit 70
+            fi
+            if [ "$accountLicenseType" == "express" ]; then
+                echo $entitlements
+                echo "Identity only has basic license.  Has your PCA given the Managed Idenitity a better license?"
+                exit 70
+            fi
+
+            # Clone the repository
+            rm -Rf test_clone
+            set -e
+            git -c http.extraheader="AUTHORIZATION: bearer $aadToken" \
+                clone https://dev.azure.com/$orgName/$projectName/_git/$repoName test_clone
+            rm -Rf test_clone
+      - task: AzureCLI@2
         inputs:
           azureSubscription: 'IoTEdge1-msazure'
           scriptType: 'pscore'
