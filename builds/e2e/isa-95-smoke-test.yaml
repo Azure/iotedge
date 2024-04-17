@@ -1,35 +1,18 @@
 trigger: none
 pr: none
 
-# Test agents are shared, so schedules must be coordinated to avoid conflicts:
-# - main and release/1.4 run daily, but are offset from each other by 12 hours
-schedules:
-- cron: "0 0 * * *"
-  displayName: Daily run main
-  branches:
-    include:
-    - main
-  always: true
-- cron: "0 12 * * *"
-  displayName: Daily run release/1.4
-  branches:
-    include:
-    - release/1.4
-  always: true
-
 variables:
   Codeql.Enabled: false
   DisableDockerDetector: true
-  itProxy: http://10.16.8.4:3128
-  otProxy: http://10.16.5.4:3128
-  resourceGroup: nested-edge-isa95
-  otProxyName: "otproxy"
-
-resources:
-  pipelines:
-  - pipeline: ci-build
-    source: 'Azure-IoT-Edge-Core CI Build'
-    branch: 'release/1.4'
+  # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
+  # environments that are very similar to other platforms/environments in our matrix, Ubuntu 20.04
+  # with the 'docker-ce' package vs. Ubuntu 20.04 with the 'iotedge-moby' package vs. the same
+  # variations in Ubuntu 22.04. In these instances the platforms/environments are so similar that we
+  # don't reasonably expect to encounter differences--if we do, it would likely manifest during
+  # installation, or in running a very basic test. We don't need to repeat the entire test suite.
+  # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
+  minimal: false
+  verbose: false
 
 stages:
 - stage: LockAgents
@@ -37,264 +20,177 @@ stages:
   - job:  LockAgents
     displayName: Lock agents
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     steps:
-      - template: templates/nested-get-secrets.yaml
-      - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)" -n 1 -u "amqp"
-        env:
-          PAT: "$(IotEdge1-PAT-msazure)"
-        displayName: Lock agents for nested topology
-        name: lock_test_agent
-
-- stage: RunISA95Tests
-  dependsOn: LockAgents
-  jobs:
-  - job: SetupVM_level5
-    displayName: SettingUp level 5
-    timeoutInMinutes: 180
-    variables:
-      artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      level: '5'
-      upstreamProtocol: 'amqp'
-      deploymentFile: 'nestededge_topLayerBaseDeployment_amqp.json'
-      parentName: ''
-      parentDeviceId: ''
-      proxyAddress: $(itProxy)
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - level -equals 5
-    steps:
-      - template: templates/clean-drive-and-images.yaml
-      - template: templates/nested-get-secrets.yaml
-      - template: templates/e2e-clean-directory.yaml
-      - template: templates/nested-get-root-ca.yaml
-      - template: templates/nested-create-identity.yaml
-      - template: templates/nested-agent-deploy.yaml
-      - task: Bash@3
-        displayName: 'Exporting agentName'
-        name: exportAgentName
+      - task: AzureCLI@2
+        condition: always()
+        displayName: 'Debug repo clone'
         inputs:
-          targetType: inline
-          script: |
-            echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
+          azureSubscription: 'IoTEdge1-msazure'
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            orgName="msazure"
+            projectName="One"
+            repoName="iotedge-release"
 
-  - job: SetupVM_level4
-    dependsOn: SetupVM_level5
-    displayName: SettingUp level 4
-    condition: succeeded()
-    timeoutInMinutes: 180
-    variables:
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      artifactName: iotedged-ubuntu20.04-amd64
-      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
-      deploymentFile: 'nestededge_middleLayerBaseDeployment_amqp.json'
-      level: '4'
-      upstreamProtocol: 'amqp'
-    pool:
-     name: $(pool.name)
-     demands:
-       - agent-group -equals $(agent.group)
-       - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
-       - level -equals 4
-    steps:
-      - template: templates/clean-drive-and-images.yaml
-      - template: templates/nested-get-secrets.yaml
-      - template: templates/e2e-clean-directory.yaml
-      - template: templates/nested-get-root-ca.yaml
-      - template: templates/nested-create-identity.yaml
-      - template: templates/nested-agent-deploy.yaml
-      - task: Bash@3
-        displayName: 'Exporting agentName'
-        name: exportAgentName
+                if [ "$SYSTEM_DEBUG" == "true" ]; then
+                set -x
+            fi
+
+            authorizationUriHeader=$(curl -v https://dev.azure.com/$orgName 2>&1 | grep authorization_uri)
+            if [ $? -ne 0 ]; then
+                echo "Could not connect to org home page: https://dev.azure.com/$orgName.  Did you mistype the orgName?"
+                exit 60
+            fi
+            orgTenant=$(echo "$authorizationUriHeader" | grep -o -E "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}")
+            echo "Azure DevOps org is attached to tenant $orgTenant."
+
+            # ensure you are logged in
+            accountInfo=$(az account show)
+            if [ $? -ne 0 ]; then
+                echo "Not logged in to Az CLI or no access to subscription?"
+                exit 10
+            fi
+            userName=$(echo $accountInfo | jq -r ".user.name")
+            echo "Az CLI is logged in as $userName, base64($userName)='$(echo $userName|base64)'"
+            # echo $accountInfo
+
+            azCliTenant=$(echo $accountInfo | jq -r ".tenantId")
+            azCliHomeTenant=$(echo $accountInfo | jq -r ".homeTenantId")
+            if [ "$orgTenant" != "$azCliTenant" ]; then
+                echo "Azure DevOps org $orgName's tenant $orgTenant does not match Az CLI tenant $azCliTenant."
+                exit 20
+            fi
+            echo "Az CLI tenant matches Azure DevOps tenant."
+
+            if [ "$orgTenant" != "$azCliHomeTenant" ]; then
+                echo "Azure DevOps org $orgName's tenant $orgTenant does not match Az CLI home tenant $azCliHomeTenant."
+                exit 30
+            fi
+            echo "Az CLI home tenant matches Azure DevOps tenant."
+
+            # Note that the resoruce is specified to limit the token to Azure DevOps
+            aadTokenInfo=$(az account get-access-token --resource "499b84ac-1321-427f-aa17-267ca6975798")
+            if [ $? -ne 0 ]; then
+                echo "Could not acquire Azure DevOps token."
+                exit 40
+            fi
+            echo "Azure DevOps AAD token acquired.  Expires $(echo $aadTokenInfo | jq -r .expiresOn)"
+            aadToken=$(echo $aadTokenInfo | jq -r .accessToken)
+
+
+            function azdoCall() {
+                statusCode=$(curl \
+                    -H "Authorization: Bearer $aadToken" \
+                    -H "X-TFS-FedAuthRedirect: Suppress" \
+                    -H "Accept: application/json" \
+                    --dump-header /tmp/headers.txt -o /tmp/body.txt \
+                    -s -w "%{http_code}\n" \
+                    $1)
+                if [ $? -ne 0 ]; then
+                    echo "curl failed."
+                    exit 1
+                fi
+
+                echo "$1 $statusCode $(grep e2eid /tmp/headers.txt)"
+
+                if [ "$statusCode" != "200" ]; then
+                    cat /tmp/headers.txt
+                    cat /tmp/body.txt
+                fi
+                
+                return $statusCode
+            }
+
+            azdoCall "https://dev.azure.com/$orgName/_apis/projects/?\$top=1&api-version=7.1-preview.4"
+            if [ $? -ne 200 ]; then
+                echo "Could not list projects. Has your PCA added the Managed Idenitity to the org?"
+                exit 50
+            fi
+
+            azdoCall "https://dev.azure.com/$orgName/_apis/projects/$projectName?api-version=7.1-preview.4"
+            if [ $? -ne 200 ]; then
+                echo "Could not connect to project. Is identity added to project?"
+                exit 80
+            fi
+
+            azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/MemberEntitlements?%24filter=userType%20eq%20%27managedIdentity%27&%24orderBy=name%20Ascending&api-version=7.1-preview.2"
+            if [ $? -ne 200 ]; then
+                echo "Could not access managed identity entitlements."
+                exit 70
+            fi
+            entitlement=$(cat /tmp/body.txt | jq ".items[] | select(.member.applicationId==\"$userName\")")
+            if [ "$entitlement" == "" ] || [ "$entitlement" == "null" ]; then
+                cat /tmp/body.txt 
+                azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/MemberEntitlements?api-version=7.1-preview.2"
+                if [ $? -ne 200 ]; then
+                    echo "Could not find entitlements for service principals."
+                    exit 70
+                fi
+                entitlement=$(cat /tmp/body.txt | jq ".items[] | select(.member.applicationId==\"$userName\")")
+            fi
+            if [ "$entitlement" == "" ] || [ "$entitlement" == "null" ]; then
+                cat /tmp/body.txt 
+                azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/MemberEntitlements?%24filter=userType%20eq%20%27application%27&%24orderBy=name%20Ascending&api-version=7.1-preview.2"
+                # azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/userentitlements?\$filter=name%20eq%20%27$userName%27&api-version=7.1-preview.4"
+                if [ $? -ne 200 ]; then
+                    echo "Could not find entitlements for user."
+                    exit 70
+                fi
+                entitlement=$(cat /tmp/body.txt | jq '.items[0]')
+            fi
+
+            if [ "$entitlement" == "null" ]; then
+                echo Could not find entitlements/license for managed identity $userName
+                exit 70
+            fi
+
+            accountLicenseType=$(echo $entitlement | jq -r .accessLevel.accountLicenseType)
+            if [ "$accountLicenseType" == "" ]; then
+                echo $entitlement
+                echo "Could not determine license type."
+                exit 70
+            fi
+
+            echo "User has license type '$accountLicenseType'"
+            if [ "$accountLicenseType" == "stakeholder" ]; then
+                echo $entitlement
+                echo "Identity only has stakeholder license.  Has your PCA given the Managed Idenitity a better license?"
+                exit 70
+            fi
+            if [ "$accountLicenseType" == "express" ]; then
+                echo $entitlements
+                echo "Identity only has basic license.  Has your PCA given the Managed Idenitity a better license?"
+                exit 70
+            fi
+
+            # Clone the repository
+            rm -Rf test_clone
+            set -e
+            git -c http.extraheader="AUTHORIZATION: bearer $aadToken" \
+                clone https://dev.azure.com/$orgName/$projectName/_git/$repoName test_clone
+            rm -Rf test_clone
+      - task: AzureCLI@2
         inputs:
-          targetType: inline
-          script: |
-            echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
+          azureSubscription: 'IoTEdge1-msazure'
+          scriptType: 'pscore'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            # Note that the resoruce is specified to limit the token to Azure DevOps
+            $token = az account get-access-token --query accessToken --resource 499b84ac-1321-427f-aa17-267ca6975798 -o tsv
+            $orgUrl = "https://dev.azure.com/msazure"
+            $headers = @{
+              "Authorization" = "Bearer $token"
+              "Content-Type" = "application/json"
+            }
+            Invoke-RestMethod -Method Get -Uri "$orgUrl/_apis/projects?api-version=6.0" -Headers $headers
 
-  - job: SetupVM_level3
-    dependsOn: SetupVM_level4
-    displayName: SettingUp level 3
-    condition: succeeded()
-    timeoutInMinutes: 180
-    variables:
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      artifactName: iotedged-ubuntu20.04-amd64
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
-      deploymentFile: 'nestededge_isa95_smoke_test_BaseDeployment.json'
-      level: '3'
-      upstreamProtocol: 'amqp'
-      proxyAddress: $(otProxy)
-    pool:
-     name: $(pool.name)
-     demands:
-       - agent-group -equals $(agent.group)
-       - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
-       - level -equals 3
-    steps:
-      - template: templates/clean-drive-and-images.yaml
-      - template: templates/nested-get-secrets.yaml
-      - template: templates/e2e-clean-directory.yaml
-      - template: templates/nested-get-root-ca.yaml
-      - template: templates/nested-create-identity.yaml
-      - template: templates/nested-agent-deploy.yaml
-      - task: Bash@3
-        displayName: 'Exporting agentName'
-        name: exportAgentName
-        inputs:
-          targetType: inline
-          script: |
-            echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
-
-  - job: Run_ISA95_test
-    dependsOn:
-      - SetupVM_level5
-      - SetupVM_level4
-      - SetupVM_level3
-    displayName: Run ISA-95 test
-    condition: succeeded()
-    timeoutInMinutes: 180
-    variables:
-      Lvl3DeviceId: $[ dependencies.SetupVM_level3.outputs['createIdentity.parentDeviceId'] ]
-      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['exportAgentName.agentName'] ]
-      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['exportAgentName.agentName'] ]
-      deviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['exportAgentName.agentName'] ]
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      nestededge: true
-      proxyAddress: $(otProxy)
-      test_type: nestededge_isa95
-      verbose: false
-    pool:
-     name: $(pool.name)
-     demands:
-       - agent-group -equals $(agent.group)
-       - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
-       - level -equals jumpbox
-    steps:
-      - template: templates/nested-get-secrets.yaml
-      - template: templates/e2e-clean-directory.yaml
-      - template: templates/nested-isa95-lock.yaml
-        parameters:
-          agentName: $(deviceLvl5AgentName)
-          lvl: 5
-      - template: templates/nested-isa95-lock.yaml
-        parameters:
-          agentName: $(deviceLvl4AgentName)
-          lvl: 4
-      - template: templates/nested-isa95-lock.yaml
-        parameters:
-          agentName: $(otProxyName)
-          lvl: 35
-      - template: templates/nested-isa95-lock.yaml
-        parameters:
-          agentName: $(deviceLvl3AgentName)
-          lvl: 3
-      - pwsh: |
-          #Sleep 30s to let the rules time to set
-          Start-Sleep -s 30
-        displayName: Wait for network to lock
-      - template: templates/nested-get-root-ca.yaml
-      - template: templates/e2e-setup.yaml
-      - template: templates/e2e-run.yaml
-        parameters:
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
-          test_type: $(test_type)
-
-
-- stage: Cleanup
-  condition: always()
-  dependsOn:
-    - LockAgents
-    - RunISA95Tests
-  jobs:
-  - job:  Unlock_agents
-    displayName: Unlock agents
-    timeoutInMinutes: 10
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-    steps:
-      - template: templates/nested-get-secrets.yaml
-      - template: templates/unlock-test-agents.yaml
-
-  - job:  Clean_up_identities
-    displayName: Clean up identities
-    timeoutInMinutes: 10
-    variables:
-      deviceLvl5DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
-      deviceLvl4DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
-      deviceLvl5IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.iotHubName'] ]
-      deviceLvl4IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
-      deviceLvl5AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['exportAgentName.agentName'] ]
-      deviceLvl4AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['exportAgentName.agentName'] ]
-      deviceLvl3AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['exportAgentName.agentName'] ]
-      deviceLvl5NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl5.nsgName'] ]
-      deviceLvl4NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl4.nsgName'] ]
-      deviceLvl35NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl35.nsgName'] ]
-      deviceLvl3NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl3.nsgName'] ]
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - level -equals jumpbox
-    steps:
-      - template: templates/nested-get-secrets.yaml
-      - template: templates/nested-clean-identity.yaml
-        parameters:
-          iotHubName: $(deviceLvl5IoTHubName)
-          deviceId: $(deviceLvl5DeviceId)
-          lvl: 5
-      - template: templates/nested-clean-identity.yaml
-        parameters:
-          iotHubName: $(deviceLvl4IoTHubName)
-          deviceId: $(deviceLvl4DeviceId)
-          lvl: 4
-      - template: templates/nested-clean-identity.yaml
-        parameters:
-          iotHubName: $(deviceLvl3IoTHubName)
-          deviceId: $(deviceLvl3DeviceId)
-          lvl: 3
-      - template: templates/nested-isa95-unlock.yaml
-        parameters:
-          agentName: $(deviceLvl5AgentName)
-          nsgName: $(deviceLvl5NSGName)
-      - template: templates/nested-isa95-unlock.yaml
-        parameters:
-          agentName: $(deviceLvl4AgentName)
-          nsgName: $(deviceLvl4NSGName)
-      - template: templates/nested-isa95-unlock.yaml
-        parameters:
-          agentName: $(otProxyName)
-          nsgName: $(deviceLvl35NSGName)
-      - template: templates/nested-isa95-unlock.yaml
-        parameters:
-          agentName: $(deviceLvl3AgentName)
-          nsgName: $(deviceLvl3NSGName)
+            # Pass the token to the next job
+            Write-Host "##vso[task.setvariable variable=IotEdgePAT;issecret=true]$token"
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'test'
+      pat: "$(IotEdgePAT)"

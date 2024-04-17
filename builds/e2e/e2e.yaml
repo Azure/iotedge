@@ -1,6 +1,16 @@
 trigger: none
 pr: none
 
+resources:
+  pipelines:
+  - pipeline: ci-build
+    source: 'Azure-IoT-Edge-Core CI Build'
+    branch: 'release/1.4'
+    trigger:
+      branches:
+      - main
+      - release/*
+
 variables:
   Codeql.Enabled: false
   DisableDockerDetector: true
@@ -14,183 +24,343 @@ variables:
   minimal: false
   verbose: false
 
-stages:
-- stage: LockAgents
-  jobs:
-  - job:  LockAgents
-    displayName: Lock agents
+jobs:
+
+################################################################################
+  - job: debian_11_arm32v7
+################################################################################
+    displayName: Debian 11 arm32v7
+
+    pool:
+      name: $(pool.custom.name)
+      demands: deb11-e2e-tests
+
+    variables:
+      os: linux
+      arch: arm32v7
+      artifactName: iotedged-debian11-arm32v7
+      identityServiceArtifactName: packages_debian-11-slim_arm32v7
+      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+
+    timeoutInMinutes: 120
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: debian_10_arm32v7
+################################################################################
+    displayName: Debian 10 arm32v7 (minimal)
+
+    pool:
+      name: $(pool.custom.name)
+      demands: deb10-e2e-tests
+
+    variables:
+      os: linux
+      arch: arm32v7
+      artifactName: iotedged-debian10-arm32v7
+      identityServiceArtifactName: packages_debian-10-slim_arm32v7
+      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+      minimal: true
+
+    timeoutInMinutes: 120
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: ubuntu_2004_msmoby
+################################################################################
+    displayName: Ubuntu 20.04 with iotedge-moby
+
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu20.04-amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+
+    timeoutInMinutes: 90
+
     steps:
-      - task: AzureCLI@2
-        condition: always()
-        displayName: 'Debug repo clone'
-        inputs:
-          azureSubscription: 'IoTEdge1-msazure'
-          scriptType: 'bash'
-          scriptLocation: 'inlineScript'
-          inlineScript: |
-            orgName="msazure"
-            projectName="One"
-            repoName="iotedge-release"
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
 
-                if [ "$SYSTEM_DEBUG" == "true" ]; then
-                set -x
-            fi
+################################################################################
+  - job: ubuntu_2004_docker
+################################################################################
+    displayName: Ubuntu 20.04 with Docker (minimal)
 
-            authorizationUriHeader=$(curl -v https://dev.azure.com/$orgName 2>&1 | grep authorization_uri)
-            if [ $? -ne 0 ]; then
-                echo "Could not connect to org home page: https://dev.azure.com/$orgName.  Did you mistype the orgName?"
-                exit 60
-            fi
-            orgTenant=$(echo "$authorizationUriHeader" | grep -o -E "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}")
-            echo "Azure DevOps org is attached to tenant $orgTenant."
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
 
-            # ensure you are logged in
-            accountInfo=$(az account show)
-            if [ $? -ne 0 ]; then
-                echo "Not logged in to Az CLI or no access to subscription?"
-                exit 10
-            fi
-            userName=$(echo $accountInfo | jq -r ".user.name")
-            echo "Az CLI is logged in as $userName, base64($userName)='$(echo $userName|base64)'"
-            # echo $accountInfo
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu20.04-amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      minimal: true
 
-            azCliTenant=$(echo $accountInfo | jq -r ".tenantId")
-            azCliHomeTenant=$(echo $accountInfo | jq -r ".homeTenantId")
-            if [ "$orgTenant" != "$azCliTenant" ]; then
-                echo "Azure DevOps org $orgName's tenant $orgTenant does not match Az CLI tenant $azCliTenant."
-                exit 20
-            fi
-            echo "Az CLI tenant matches Azure DevOps tenant."
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
 
-            if [ "$orgTenant" != "$azCliHomeTenant" ]; then
-                echo "Azure DevOps org $orgName's tenant $orgTenant does not match Az CLI home tenant $azCliHomeTenant."
-                exit 30
-            fi
-            echo "Az CLI home tenant matches Azure DevOps tenant."
+################################################################################
+  - job: ubuntu_2004_arm64v8
+################################################################################
+    displayName: Ubuntu 20.04 on arm64v8
+    pool:
+      name: $(pool.linux.arm.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
 
-            # Note that the resoruce is specified to limit the token to Azure DevOps
-            aadTokenInfo=$(az account get-access-token --resource "499b84ac-1321-427f-aa17-267ca6975798")
-            if [ $? -ne 0 ]; then
-                echo "Could not acquire Azure DevOps token."
-                exit 40
-            fi
-            echo "Azure DevOps AAD token acquired.  Expires $(echo $aadTokenInfo | jq -r .expiresOn)"
-            aadToken=$(echo $aadTokenInfo | jq -r .accessToken)
+    variables:
+      os: linux
+      arch: arm64v8
+      artifactName: iotedged-ubuntu20.04-aarch64
+      identityServiceArtifactName: packages_ubuntu-20.04_aarch64
+      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
 
+    timeoutInMinutes: 120
 
-            function azdoCall() {
-                statusCode=$(curl \
-                    -H "Authorization: Bearer $aadToken" \
-                    -H "X-TFS-FedAuthRedirect: Suppress" \
-                    -H "Accept: application/json" \
-                    --dump-header /tmp/headers.txt -o /tmp/body.txt \
-                    -s -w "%{http_code}\n" \
-                    $1)
-                if [ $? -ne 0 ]; then
-                    echo "curl failed."
-                    exit 1
-                fi
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
 
-                echo "$1 $statusCode $(grep e2eid /tmp/headers.txt)"
+################################################################################
+  - job: ubuntu_2204
+################################################################################
+    displayName: Ubuntu 22.04 on amd64
 
-                if [ "$statusCode" != "200" ]; then
-                    cat /tmp/headers.txt
-                    cat /tmp/body.txt
-                fi
-                
-                return $statusCode
-            }
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
 
-            azdoCall "https://dev.azure.com/$orgName/_apis/projects/?\$top=1&api-version=7.1-preview.4"
-            if [ $? -ne 200 ]; then
-                echo "Could not list projects. Has your PCA added the Managed Idenitity to the org?"
-                exit 50
-            fi
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu22.04-amd64
+      identityServiceArtifactName: packages_ubuntu-22.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
 
-            azdoCall "https://dev.azure.com/$orgName/_apis/projects/$projectName?api-version=7.1-preview.4"
-            if [ $? -ne 200 ]; then
-                echo "Could not connect to project. Is identity added to project?"
-                exit 80
-            fi
+    timeoutInMinutes: 90
 
-            azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/MemberEntitlements?%24filter=userType%20eq%20%27managedIdentity%27&%24orderBy=name%20Ascending&api-version=7.1-preview.2"
-            if [ $? -ne 200 ]; then
-                echo "Could not access managed identity entitlements."
-                exit 70
-            fi
-            entitlement=$(cat /tmp/body.txt | jq ".items[] | select(.member.applicationId==\"$userName\")")
-            if [ "$entitlement" == "" ] || [ "$entitlement" == "null" ]; then
-                cat /tmp/body.txt 
-                azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/MemberEntitlements?api-version=7.1-preview.2"
-                if [ $? -ne 200 ]; then
-                    echo "Could not find entitlements for service principals."
-                    exit 70
-                fi
-                entitlement=$(cat /tmp/body.txt | jq ".items[] | select(.member.applicationId==\"$userName\")")
-            fi
-            if [ "$entitlement" == "" ] || [ "$entitlement" == "null" ]; then
-                cat /tmp/body.txt 
-                azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/MemberEntitlements?%24filter=userType%20eq%20%27application%27&%24orderBy=name%20Ascending&api-version=7.1-preview.2"
-                # azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/userentitlements?\$filter=name%20eq%20%27$userName%27&api-version=7.1-preview.4"
-                if [ $? -ne 200 ]; then
-                    echo "Could not find entitlements for user."
-                    exit 70
-                fi
-                entitlement=$(cat /tmp/body.txt | jq '.items[0]')
-            fi
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
 
-            if [ "$entitlement" == "null" ]; then
-                echo Could not find entitlements/license for managed identity $userName
-                exit 70
-            fi
+################################################################################
+  - job: ubuntu_2204_arm64v8
+################################################################################
+    displayName: Ubuntu 22.04 on arm64v8
 
-            accountLicenseType=$(echo $entitlement | jq -r .accessLevel.accountLicenseType)
-            if [ "$accountLicenseType" == "" ]; then
-                echo $entitlement
-                echo "Could not determine license type."
-                exit 70
-            fi
+    pool:
+      name: $(pool.linux.arm.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-ubuntu-22.04-arm64-msmoby
 
-            echo "User has license type '$accountLicenseType'"
-            if [ "$accountLicenseType" == "stakeholder" ]; then
-                echo $entitlement
-                echo "Identity only has stakeholder license.  Has your PCA given the Managed Idenitity a better license?"
-                exit 70
-            fi
-            if [ "$accountLicenseType" == "express" ]; then
-                echo $entitlements
-                echo "Identity only has basic license.  Has your PCA given the Managed Idenitity a better license?"
-                exit 70
-            fi
+    variables:
+      os: linux
+      arch: arm64v8
+      artifactName: iotedged-ubuntu22.04-aarch64
+      identityServiceArtifactName: packages_ubuntu-22.04_aarch64
+      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
 
-            # Clone the repository
-            rm -Rf test_clone
-            set -e
-            git -c http.extraheader="AUTHORIZATION: bearer $aadToken" \
-                clone https://dev.azure.com/$orgName/$projectName/_git/$repoName test_clone
-            rm -Rf test_clone
-      - task: AzureCLI@2
-        inputs:
-          azureSubscription: 'IoTEdge1-msazure'
-          scriptType: 'pscore'
-          scriptLocation: 'inlineScript'
-          inlineScript: |
-            # Note that the resoruce is specified to limit the token to Azure DevOps
-            $token = az account get-access-token --query accessToken --resource 499b84ac-1321-427f-aa17-267ca6975798 -o tsv
-            $orgUrl = "https://dev.azure.com/msazure"
-            $headers = @{
-              "Authorization" = "Bearer $token"
-              "Content-Type" = "application/json"
-            }
-            Invoke-RestMethod -Method Get -Uri "$orgUrl/_apis/projects?api-version=6.0" -Headers $headers
+    timeoutInMinutes: 90
 
-            # Pass the token to the next job
-            Write-Host "##vso[task.setvariable variable=IotEdgePAT;issecret=true]$token"
-  - template: templates/lock-test-agents.yaml
-    parameters:
-      upstream.protocol: 'test'
-      pat: $(IotEdgePAT)
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: snaps
+################################################################################
+    displayName: Snaps
+
+    variables:
+      os: linux
+
+    strategy:
+      matrix:
+        amd64:
+          arch: amd64
+          pool: $(pool.linux.name)
+          image: agent-aziotedge-ubuntu-22.04
+          artifactName: iotedged-snap-amd64
+          identityServiceArtifactName: packages_snap_amd64
+          identityServicePackageFilter: azure-iot-identity_*_amd64.snap
+        arm64v8:
+          arch: arm64v8
+          pool: $(pool.linux.arm.name)
+          image: agent-aziotedge-ubuntu-22.04-arm64
+          artifactName: iotedged-snap-aarch64
+          identityServiceArtifactName: packages_snap_aarch64
+          identityServicePackageFilter: azure-iot-identity_*_arm64.snap
+
+    pool:
+      name: $(pool)
+      demands:
+      - ImageOverride -equals $(image)
+
+    steps:
+    - script: |
+        sudo snap install docker
+      displayName: Install Docker as a snap
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: centos7_amd64
+################################################################################
+    displayName: CentOs7 amd64
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-centos-7-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-centos7-amd64
+      identityServiceArtifactName: packages_centos-7_amd64
+      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+  ################################################################################
+  - job: redhat8_amd64
+  ################################################################################
+    displayName: RedHat8 amd64
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-rhel-8-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-redhat8-amd64
+      identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
+      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+  ################################################################################
+  - job: redhat9_amd64
+  ################################################################################
+    displayName: RedHat9 amd64
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-rhel-9-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-redhat9-amd64
+      identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
+      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: linux_amd64_proxy
+################################################################################
+    displayName: Linux amd64 behind a proxy
+
+    pool:
+      name: $(pool.custom.name)
+      demands: new-e2e-proxy
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu20.04-amd64
+      identityServiceArtifactName: packages_ubuntu-20.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
+      'agent.disablelogplugin.testfilepublisherplugin': true
+      'agent.disablelogplugin.testresultlogplugin': true
+      # because we aren't publishing test artifacts for this job, turn on verbose logging instead
+      verbose: true
+      # skip component governance detection to avoid proxy issues. It is checked in the other jobs.
+      skipComponentGovernanceDetection: true
+
+    timeoutInMinutes: 120
+
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+      parameters:
+        test_type: http_proxy
+
+################################################################################
+  - job: mariner2_amd64
+################################################################################
+    displayName: Mariner 2.0 amd64
+    condition: eq(variables['run.EFLOW.amd64'], true)
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-mariner-2.0-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner2-amd64
+      identityServiceArtifactName: packages_mariner-2_amd64
+      identityServicePackageFilter: aziot-identity-service-?.*.cm2.x86_64.rpm
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: mariner2_arm64
+################################################################################
+    displayName: Mariner 2.0 arm64
+    condition: eq(variables['run.EFLOW.arm64'], true)
+    pool:
+      name: $(pool.linux.arm.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-mariner-2.0-arm64-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-mariner2-aarch64
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
