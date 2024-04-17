@@ -240,6 +240,7 @@ echo
 echo "Validating devops API interface"
 echo "Checking for agents from the agent group $AGENT_GROUP..."
 agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
+echo "BEARWASHERE - $agentsInfo"
 agents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities."agent-group"=='\"$AGENT_GROUP\"') | .id' | tr -d '[], "'))
 echo ${#agents[@]}
 if [ ${#agents[@]} -eq 0 ]; then
