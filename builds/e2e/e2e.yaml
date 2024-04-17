@@ -134,7 +134,8 @@ stages:
             fi
             if [ "$entitlement" == "" ] || [ "$entitlement" == "null" ]; then
                 cat /tmp/body.txt 
-                azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/userentitlements?\$filter=name%20eq%20%27$userName%27&api-version=7.1-preview.4"
+                azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/MemberEntitlements?%24filter=userType%20eq%20%27application%27&%24orderBy=name%20Ascending&api-version=7.1-preview.2"
+                # azdoCall "https://vsaex.dev.azure.com/$orgName/_apis/userentitlements?\$filter=name%20eq%20%27$userName%27&api-version=7.1-preview.4"
                 if [ $? -ne 200 ]; then
                     echo "Could not find entitlements for user."
                     exit 70
