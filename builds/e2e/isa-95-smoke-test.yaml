@@ -4,25 +4,21 @@ pr: none
 variables:
   Codeql.Enabled: false
   DisableDockerDetector: true
-  # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
-  # environments that are very similar to other platforms/environments in our matrix, Ubuntu 20.04
-  # with the 'docker-ce' package vs. Ubuntu 20.04 with the 'iotedge-moby' package vs. the same
-  # variations in Ubuntu 22.04. In these instances the platforms/environments are so similar that we
-  # don't reasonably expect to encounter differences--if we do, it would likely manifest during
-  # installation, or in running a very basic test. We don't need to repeat the entire test suite.
-  # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
-  minimal: false
-  verbose: false
-
+  itProxy: http://10.16.8.4:3128
+  otProxy: http://10.16.5.4:3128
+  resourceGroup: nested-edge-isa95
+  otProxyName: "otproxy"
 stages:
 - stage: LockAgents
   jobs:
   - job:  LockAgents
     displayName: Lock agents
     pool:
-      name: $(pool.linux.name)
+      name: $(pool.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
     steps:
       - task: AzureCLI@2
         condition: always()
