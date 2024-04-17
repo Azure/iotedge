@@ -7,7 +7,7 @@ jobs:
     displayName: Lock nested agents for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
     pool:
-      name: $(pool.linux.name)
+      name: $(pool.name)
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     steps:
