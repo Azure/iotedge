@@ -194,9 +194,31 @@ stages:
         inputs:
           targetType: inline
           script: |
-            echo $PAT
+            echo $PAT >> $(Build.ArtifactStagingDirectory)/pat.txt
+
+            POOL_ID=123 # Devops agent pool id corresponding to "Azure-IoT-Edge-Core"
+            API_VER=6.0
+            TIMEOUT_SECONDS=$((60*60*3)) # 3 hours
+
+            agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
+            echo "agent info: $agentsInfo"
+            echo " "
+
+            unlockedAgents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities.status=="unlocked" and .userCapabilities."agent-group"=='\"$AGENT_GROUP\"') | .id' | tr -d '[], "'))
+            echo "Found these unlocked agents:"
+            echo ${unlockedAgents[@]}
+            echo " "
+            
         env:
           PAT: $(IotEdgePAT)
+          AGENT_GROUP: "ISA95"
+
+      - task: PublishBuildArtifacts@1
+        displayName: Publish artifacts
+        inputs:
+          PathtoPublish: $(Build.ArtifactStagingDirectory)/*
+          ArtifactName: outputArtifacts
+        condition: always()
 
       # - task: AzureCLI@2
       #   inputs:
