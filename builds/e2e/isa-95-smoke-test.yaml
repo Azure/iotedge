@@ -164,28 +164,60 @@ stages:
             fi
 
             # Clone the repository
-            rm -Rf test_clone
-            set -e
-            git -c http.extraheader="AUTHORIZATION: bearer $aadToken" \
-                clone https://dev.azure.com/$orgName/$projectName/_git/$repoName test_clone
-            rm -Rf test_clone
+            # rm -Rf test_clone
+            # set -e
+            # git -c http.extraheader="AUTHORIZATION: bearer $aadToken" \
+            #     clone https://dev.azure.com/$orgName/$projectName/_git/$repoName test_clone
+            # rm -Rf test_clone
+
       - task: AzureCLI@2
+        condition: always()
+        displayName: 'Get PAT'
         inputs:
           azureSubscription: 'IoTEdge1-msazure'
-          scriptType: 'pscore'
+          scriptType: 'bash'
           scriptLocation: 'inlineScript'
           inlineScript: |
             # Note that the resoruce is specified to limit the token to Azure DevOps
-            $token = az account get-access-token --query accessToken --resource 499b84ac-1321-427f-aa17-267ca6975798 -o tsv
-            $orgUrl = "https://dev.azure.com/msazure"
-            $headers = @{
-              "Authorization" = "Bearer $token"
-              "Content-Type" = "application/json"
-            }
-            Invoke-RestMethod -Method Get -Uri "$orgUrl/_apis/projects?api-version=6.0" -Headers $headers
+            aadTokenInfo=$(az account get-access-token --resource "499b84ac-1321-427f-aa17-267ca6975798")
+            if [ $? -ne 0 ]; then
+                echo "Could not acquire Azure DevOps token."
+                exit 40
+            fi
+            echo "Azure DevOps AAD token acquired.  Expires $(echo $aadTokenInfo | jq -r .expiresOn)"
+            aadToken=$(echo $aadTokenInfo | jq -r .accessToken)
+            echo "##vso[task.setvariable variable=IotEdgePAT;issecret=true]$aadToken"
 
-            # Pass the token to the next job
-            Write-Host "##vso[task.setvariable variable=IotEdgePAT;issecret=true]$token"
+      # - task: Bash@3
+      #   condition: always()
+      #   displayName: 'Use PAT test'
+      #   inputs:
+      #     targetType: inline
+      #     script: |
+      #       declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+      #       . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+      #       testName="LongHaul"
+      #     workingDirectory: "$(Agent.HomeDirectory)/.."
+      #   env:
+      #     PAT: $(IotEdgePAT)
+
+      # - task: AzureCLI@2
+      #   inputs:
+      #     azureSubscription: 'IoTEdge1-msazure'
+      #     scriptType: 'pscore'
+      #     scriptLocation: 'inlineScript'
+      #     inlineScript: |
+      #       # Note that the resoruce is specified to limit the token to Azure DevOps
+      #       $token = az account get-access-token --query accessToken --resource 499b84ac-1321-427f-aa17-267ca6975798 -o tsv
+      #       $orgUrl = "https://dev.azure.com/msazure"
+      #       $headers = @{
+      #         "Authorization" = "Bearer $token"
+      #         "Content-Type" = "application/json"
+      #       }
+      #       Invoke-RestMethod -Method Get -Uri "$orgUrl/_apis/projects?api-version=6.0" -Headers $headers
+
+      #       # Pass the token to the next job
+      #       Write-Host "##vso[task.setvariable variable=IotEdgePAT;issecret=true]$token"
   - template: templates/lock-test-agents.yaml
     parameters:
       upstream.protocol: 'test'
