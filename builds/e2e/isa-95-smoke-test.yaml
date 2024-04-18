@@ -188,18 +188,15 @@ stages:
             aadToken=$(echo $aadTokenInfo | jq -r .accessToken)
             echo "##vso[task.setvariable variable=IotEdgePAT;issecret=true]$aadToken"
 
-      # - task: Bash@3
-      #   condition: always()
-      #   displayName: 'Use PAT test'
-      #   inputs:
-      #     targetType: inline
-      #     script: |
-      #       declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
-      #       . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
-      #       testName="LongHaul"
-      #     workingDirectory: "$(Agent.HomeDirectory)/.."
-      #   env:
-      #     PAT: $(IotEdgePAT)
+      - task: Bash@3
+        condition: always()
+        displayName: 'Use PAT test'
+        inputs:
+          targetType: inline
+          script: |
+            echo $PAT
+        env:
+          PAT: $(IotEdgePAT)
 
       # - task: AzureCLI@2
       #   inputs:
