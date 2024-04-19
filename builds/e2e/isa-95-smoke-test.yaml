@@ -19,7 +19,7 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-    steps:
+    # steps:
       # - task: AzureCLI@2
       #   condition: always()
       #   displayName: 'Debug repo clone'
