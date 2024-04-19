@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use anyhow::{anyhow, Context};
 use regex::Regex;
+use semver::Version;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 use crate::error::{Error, FetchLatestVersionsReason};
@@ -24,8 +25,6 @@ impl Checker for AziotEdgedVersion {
     }
 
     async fn execute(&mut self, check: &mut Check) -> CheckResult {
-        // let request = hyper::Request::get("https://aka.ms/latest-aziot-edge")
-
         self.inner_execute(check)
             .await
             .unwrap_or_else(CheckResult::Failed)
@@ -33,7 +32,12 @@ impl Checker for AziotEdgedVersion {
 }
 
 impl AziotEdgedVersion {
-    async fn get_version(&mut self, check: &Check) -> anyhow::Result<crate::LatestVersions> {
+    const URI: &'static str = "https://aka.ms/azure-iotedge-latest-versions";
+
+    async fn get_latest_released_versions(
+        &mut self,
+        check: &Check,
+    ) -> anyhow::Result<crate::LatestVersions> {
         let proxy = check
             .proxy_uri
             .as_ref()
@@ -47,7 +51,7 @@ impl AziotEdgedVersion {
             .context("could not initialize HTTP connector")?;
         let client: hyper::Client<_, hyper::Body> = hyper::Client::builder().build(connector);
 
-        let mut uri: hyper::Uri = "https://aka.ms/latest-aziot-edge"
+        let mut uri: hyper::Uri = Self::URI
             .parse()
             .expect("hard-coded URI cannot fail to parse");
         let latest_versions: crate::LatestVersions = loop {
@@ -115,24 +119,7 @@ impl AziotEdgedVersion {
         Ok(latest_versions)
     }
 
-    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        let latest_versions =
-            if let Some(expected_aziot_edged_version) = &check.expected_aziot_edged_version {
-                crate::LatestVersions {
-                    aziot_edge: expected_aziot_edged_version.clone(),
-                }
-            } else {
-                if check.parent_hostname.is_some() {
-                    // This is a nested Edge device so it may not be able to access aka.ms or github.com.
-                    // In the best case the request would be blocked immediately, but in the worst case it may take a long time to time out.
-                    // The user didn't provide the `expected_aziot_edged_version` param on the CLI, so we just ignore this check.
-                    return Ok(CheckResult::Ignored);
-                }
-
-                self.get_version(check).await?
-            };
-        self.expected_version = Some(latest_versions.aziot_edge.clone());
-
+    async fn get_installed_version(&mut self, check: &Check) -> Result<String, anyhow::Error> {
         let mut process = tokio::process::Command::new(&check.aziot_edged);
         process.arg("--version");
 
@@ -148,10 +135,8 @@ impl AziotEdgedVersion {
             )
             .context("Could not spawn aziot-edged process"));
         }
-
         let output = String::from_utf8(output.stdout)
             .context("Could not parse output of aziot-edged --version")?;
-
         let aziot_edged_version_regex = Regex::new(r"^aziot-edged ([^ ]+)(?: \(.*\))?$")
             .expect("This hard-coded regex is expected to be valid.");
         let captures = aziot_edged_version_regex
@@ -164,16 +149,67 @@ impl AziotEdgedVersion {
             .get(1)
             .expect("unreachable: regex defines one capturing group")
             .as_str();
-        self.actual_version = Some(version.to_owned());
+        Ok(version.to_owned())
+    }
 
-        check.additional_info.aziot_edged_version = Some(version.to_owned());
+    async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
+        let actual_version = self.get_installed_version(check).await?;
+        let expected_version = if let Some(expected_aziot_edged_version) =
+            &check.expected_aziot_edged_version
+        {
+            expected_aziot_edged_version.clone()
+        } else {
+            if check.parent_hostname.is_some() {
+                // This is a nested Edge device so it may not be able to access aka.ms or github.com.
+                // In the best case the request would be blocked immediately, but in the worst case it may take a long time to time out.
+                // The user didn't provide the `expected_aziot_edged_version` param on the CLI, so we just ignore this check.
+                return Ok(CheckResult::Ignored);
+            }
 
-        if version != latest_versions.aziot_edge {
+            let versions: Vec<String> = self
+                .get_latest_released_versions(check)
+                .await?
+                .channels
+                .iter()
+                .flat_map(|channel| channel.products.iter())
+                .filter(|product| product.id == "aziot-edge")
+                .flat_map(|product| product.components.iter())
+                .filter(|component| component.name == "aziot-identity-service")
+                .map(|component| component.version.clone())
+                .collect();
+            let actual_channel = Version::parse(&actual_version)
+                .context("could not parse actual version as semver")?;
+            let expected_version = versions
+                    .iter()
+                    .find(|version| {
+                        let expected_channel = Version::parse(version)
+                            .context("could not parse expected version as semver")
+                            .unwrap(); // TODO: What's the right error handling here?
+                        expected_channel.major == actual_channel.major
+                            && expected_channel.minor == actual_channel.minor
+                    })
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "could not find aziot-identity-service version {}.{}.x in list of supported products at {}",
+                            actual_channel.major,
+                            actual_channel.minor,
+                            Self::URI
+                        )
+                    })?;
+            expected_version.clone()
+        };
+
+        self.expected_version = Some(expected_version.clone());
+        self.actual_version = Some(actual_version.clone());
+
+        check.additional_info.aziot_edged_version = Some(actual_version.clone());
+
+        if actual_version != expected_version {
             return Ok(CheckResult::Warning(
             anyhow!(
                 "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
-                version, latest_versions.aziot_edge,
+                actual_version, expected_version,
             ),
         ));
         }
