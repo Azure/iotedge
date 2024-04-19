@@ -1,6 +1,6 @@
 # Workload Sockets
 
-This page only applies to 1.1.x releases from 1.1.5 onwards and 1.2.x releases from 1.2.4 onwards.
+This page applies to versions 1.1.5+, 1.2.4+, and 1.3+.
 
 ## Separate workload sockets
 

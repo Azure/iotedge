@@ -51,31 +51,6 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
-  - job: debian_10_arm32v7
-################################################################################
-    displayName: Debian 10 arm32v7 (minimal)
-
-    pool:
-      name: $(pool.custom.name)
-      demands: deb10-e2e-tests
-
-    variables:
-      os: linux
-      arch: arm32v7
-      artifactName: iotedged-debian10-arm32v7
-      identityServiceArtifactName: packages_debian-10-slim_arm32v7
-      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      minimal: true
-
-    timeoutInMinutes: 120
-
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
-
-################################################################################
   - job: ubuntu_2004_msmoby
 ################################################################################
     displayName: Ubuntu 20.04 with iotedge-moby
@@ -222,27 +197,6 @@ jobs:
     - script: |
         sudo snap install docker
       displayName: Install Docker as a snap
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
-
-################################################################################
-  - job: centos7_amd64
-################################################################################
-    displayName: CentOs7 amd64
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-centos-7-msmoby
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-centos7-amd64
-      identityServiceArtifactName: packages_centos-7_amd64
-      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
-
-    steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 

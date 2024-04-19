@@ -25,7 +25,7 @@ function usage() {
     echo " -u,  --skip-upload            Skips Upload and Only Creates Release for Github. Defaults to false"
     echo " -b,  --branch-name            Git Branch Name"
     echo " -pro,--pmc-repository         PMC package repository"
-    echo " -pre,--pmc-release            Release for PMC (required for *.deb) {\"buster\", \"bullseye\", \"bionic\", \"focal\", \"jammy\", \"nightly\", \"\" }"
+    echo " -pre,--pmc-release            Release for PMC (required for *.deb) {\"bullseye\", \"focal\", \"jammy\", \"nightly\", \"\" }"
     echo " --setup-pmc-only              Setup production certificate for PMC publication. No package upload will be done."
     exit 1
 }
@@ -40,15 +40,9 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "ubuntu22.04" ]]; then
         OS_NAME="ubuntu"
         OS_VERSION="jammy"
-    elif [[ "$PACKAGE_OS" == "debian10" ]]; then
-        OS_NAME="debian"
-        OS_VERSION="buster"
     elif [[ "$PACKAGE_OS" == "debian11" ]]; then
         OS_NAME="debian"
         OS_VERSION="bullseye"
-    elif [[ "$PACKAGE_OS" == "centos7" ]]; then
-        OS_NAME="centos"
-        OS_VERSION="7"
     elif [[ "$PACKAGE_OS" == "redhat8" ]]; then
         OS_NAME="redhat"
         OS_VERSION="8"

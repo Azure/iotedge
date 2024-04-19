@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             props.Add(hostname);
 
                             string edgeAgent =
-                                Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.4");
+                                Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.5");
 
                             Log.Verbose("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>

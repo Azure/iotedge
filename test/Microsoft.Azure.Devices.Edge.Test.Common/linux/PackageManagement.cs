@@ -48,15 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 },
                 SupportedPackageExtension.Rpm => this.os switch
                 {
-                    "centos" => new[]
-                    {
-                        "set -e",
-                        $"rpm --nodeps -i {string.Join(' ', packages)}",
-                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                        "sudo systemctl daemon-reload"
-                    },
                     "rhel" => new[]
                     {
                         "set -e",
@@ -77,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
                         "sudo systemctl daemon-reload"
                     },
-                    _ => throw new NotImplementedException($"RPM packaging is set up only for Centos, Mariner, and RHEL, current OS '.{this.os}'"),
+                    _ => throw new NotImplementedException($"RPM packaging is set up only for RHEL and Mariner, current OS '.{this.os}'"),
                 },
                 SupportedPackageExtension.Snap => new[]
                 {
@@ -109,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             string repository = this.os.ToLower() switch
             {
                 "ubuntu" => $"https://packages.microsoft.com/config/ubuntu/{this.version}/prod.list",
-                "debian" => "https://packages.microsoft.com/config/debian/stretch/multiarch/prod.list",
+                "debian" => $"https://packages.microsoft.com/config/debian/{this.version}/prod.list",
                 _ => throw new NotImplementedException($"Don't know how to install daemon for '{this.os}'"),
             };
 
@@ -124,16 +115,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 },
                 SupportedPackageExtension.Rpm => this.os switch
                 {
-                    "centos" => new[]
-                    {
-                        $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
-                        $"yum updateinfo",
-                        $"yum install -y aziot-edge",
-                        "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
-                        "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                        "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                        "sudo systemctl daemon-reload"
-                    },
                     "rhel" => new[]
                     {
                         $"sudo rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",

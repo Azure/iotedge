@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     class Device : SasManualProvisioningFixture
     {
         [Test]
-        [Category("CentOsSafe")]
         public async Task QuickstartCerts()
         {
             CancellationToken token = this.TestToken;
@@ -55,7 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         [Category("NestedEdgeOnly")]
         [Category("FlakyOnNested")]
         public async Task QuickstartChangeSasKey()
@@ -127,7 +125,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         [Category("NestedEdgeOnly")]
         [Category("NestedEdgeAmqpOnly")]
         public async Task RouteMessageL3LeafToL4Module()
@@ -195,7 +192,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         [Category("Flaky")]
         public async Task DisableReenableParentEdge()
         {
