@@ -146,49 +146,42 @@ update_latest_version_json()
     check_required_variables
 
     [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
+    [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; exit 1; }
 
-    if [ "$BRANCH_NAME" == "refs/heads/release/1.4" ]; then
+    # Set target version file to be updated
+    TARGET_IE_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-edge.json"
+    TARGET_IIS_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-identity-service.json"
 
-        [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; exit 1; }
-        # Set target version file to be updated
-        TARGET_IE_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-edge.json"
-        TARGET_IIS_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-identity-service.json"
+    # Get all the relevant version to be verified
+    proposedEdgeletVersion=$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)
+    proposedImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq ".version" | tr -d '"')
+    proposedIisVersion=$(grep "PACKAGE_VERSION:" $IIS_REPO_PATH/.github/workflows/packages.yaml | awk '{print $2}' | tr -d "'" | tr -d '"')
 
-        # Get all the relevant version to be verified
-        proposedEdgeletVersion=$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)
-        proposedImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq ".version" | tr -d '"')
-        proposedIisVersion=$(grep "PACKAGE_VERSION:" $IIS_REPO_PATH/.github/workflows/packages.yaml | awk '{print $2}' | tr -d "'" | tr -d '"')
+    contentIe=$(cat $TARGET_IE_FILE)
+    latestEdgeletVersion=$(echo $contentIe | jq '."aziot-edge"' | tr -d '"')
+    contentIis=$(cat $TARGET_IIS_FILE)
+    latestIisVersion=$(echo $contentIis | jq '."aziot-identity-service"' | tr -d '"')
 
-        contentIe=$(cat $TARGET_IE_FILE)
-        latestEdgeletVersion=$(echo $contentIe | jq '."aziot-edge"' | tr -d '"')
-        contentIis=$(cat $TARGET_IIS_FILE)
-        latestIisVersion=$(echo $contentIis | jq '."aziot-identity-service"' | tr -d '"')
+    # Verify
+    echo "Sanity check iotedge version"
+    version_sanity_check $proposedEdgeletVersion $latestEdgeletVersion
+    echo "Sanity check docker image version"
+    version_sanity_check $proposedImageVersion get_latest_release_per_branch_name
+    echo "Sanity check iot-identity-service version"
+    version_sanity_check $proposedIisVersion $latestIisVersion
 
-        # Verify
-        echo "Sanity check iotedge version"
-        version_sanity_check $proposedEdgeletVersion $latestEdgeletVersion
-        echo "Sanity check docker image version"
-        version_sanity_check $proposedImageVersion get_latest_release_per_branch_name
-        echo "Sanity check iot-identity-service version"
-        version_sanity_check $proposedIisVersion $latestIisVersion
-
-        # Update the version files
-        jqQuery=".\"aziot-edge\" = \"$proposedEdgeletVersion\""
-        echo $contentIe | jq "$jqQuery" > $TARGET_IE_FILE
-        jqQuery=".\"aziot-identity-service\" = \"$proposedIisVersion\""
-        echo $contentIis | jq "$jqQuery" > $TARGET_IIS_FILE
-        
-        # Pring log for debugging
-        echo "Update $TARGET_IE_FILE:"
-        cat $TARGET_IE_FILE | jq '.'
-        echo ""
-        echo "Update $TARGET_IIS_FILE:"
-        cat $TARGET_IIS_FILE | jq '.'
-    else
-        echo "Oh dear, how did you get here?!?"
-        echo "Let me not let you do the release from your pull request branch"
-        exit 1;
-    fi
+    # Update the version files
+    jqQuery=".\"aziot-edge\" = \"$proposedEdgeletVersion\""
+    echo $contentIe | jq "$jqQuery" > $TARGET_IE_FILE
+    jqQuery=".\"aziot-identity-service\" = \"$proposedIisVersion\""
+    echo $contentIis | jq "$jqQuery" > $TARGET_IIS_FILE
+    
+    # Pring log for debugging
+    echo "Update $TARGET_IE_FILE:"
+    cat $TARGET_IE_FILE | jq '.'
+    echo ""
+    echo "Update $TARGET_IIS_FILE:"
+    cat $TARGET_IIS_FILE | jq '.'
 }
 
 
