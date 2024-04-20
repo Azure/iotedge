@@ -147,9 +147,6 @@ update_latest_version_json()
 
     [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
 
-    branchVersion=$(echo ${BRANCH_NAME##*/})
-    latestReleasedVersion=$(get_latest_release_per_branch_name)
-
     if [ "$BRANCH_NAME" == "refs/heads/release/1.4" ]; then
 
         [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; exit 1; }
