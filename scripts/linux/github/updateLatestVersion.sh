@@ -5,12 +5,11 @@
 #    send_github_request
 # DESCRIPTION:
 #    A helper function to send a GET request to a specified GitHub API endpoint
-#    
 # GLOBALS:
 #    GITHUB_PAT ___________ Github Personal Access Token (string)
 # ARGUMENTS:
-#    $1 _________________ GitHub repository   (string)
-#    $2 _________________ GitHub API Endpoint (string)
+#    $1 ___________________ GitHub repository   (string)
+#    $2 ___________________ GitHub API Endpoint (string)
 # OUTPUTS:
 #    A content response from the GitHub endpoint
 #######################################
@@ -18,8 +17,6 @@ send_github_request()
 {
     [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
 
-    # $1 - Repo (Azure/azure-iotedge)
-    # $2 - Endpoint
     url="https://api.github.com/repos/$1/$2"
     header_content="Accept:application/vnd.github.v3+json"
     header_auth="Authorization:token $GITHUB_PAT"
@@ -55,17 +52,17 @@ version_ge()
     echo -n "$1: $lhs > $rhs ? "
 
     if [[ "$rhs" == "$lhs" ]]; then
-        if [[ "$warning" != "true" ]]; then
-            echo "Ok"
+        if [[ "$warning" != 'true' ]]; then
+            echo 'Ok'
         else
-            echo "Warning - versions are equal, was that intended?"
+            echo 'Warning - versions are equal, was that intended?'
         fi
     else
         highVersion=$(echo -e "$rhs\n$lhs" | sort --version-sort -r | head -1)
         if [[ "$highVersion" == "$lhs" ]]; then # new > cur
-            echo "Ok"
+            echo 'Ok'
         else
-            echo "Failed"
+            echo 'Failed'
             exit 1
         fi
     fi  
