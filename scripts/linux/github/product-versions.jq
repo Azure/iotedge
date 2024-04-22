@@ -51,6 +51,7 @@ aziotedge_component_version($current_product_ver; "aziot-edge") = $edgelet_ver
 # versions updated to the given versions. The product name is also updated for the LTS channel.
 def add_aziotedge_products($current_product_ver; $new_product_ver; $edgelet_ver; $identity_ver; $core_image_ver):
 (
+  # Make a copy of the existing product entry from the stable channel, but with the versions updated
   channels_iter("stable")
   | product_iter(.products; "aziot-edge"; $current_product_ver)
   | aziotedge_component_version(.; "aziot-edge") = $edgelet_ver
@@ -61,7 +62,10 @@ def add_aziotedge_products($current_product_ver; $new_product_ver; $edgelet_ver;
   | aziotedge_component_version(.; "azureiotedge-diagnostics") = $edgelet_ver
   | .version = $new_product_ver
 ) as $product
+# Add the new product entries to the stable and LTS channels
 | (channels_iter("stable") | .products) += [ $product ]
 | (channels_iter("lts") | .products) += [
     $product | .name = ($new_product_ver | split(".") | .[0:-1] | join(".") | "Azure IoT Edge \(.) LTS")
-  ];
+  ]
+# The stable channel should only have one release (the latest), so remove the previous product entry
+| del(channels_iter("stable") | .products[] | select(.id == "aziot-edge" and .version == $current_product_ver));
