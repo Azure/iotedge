@@ -35,7 +35,8 @@ end;
 def product_version($product_name; $product_version):
 product_iter($product_name; $product_version) | .version;
 
-# Return a new JSON object whose "aziot-edge" product and component versions have been updated to the given versions
+# Return a new product-versions document whose "aziot-edge" product and component versions have been updated to the
+# given versions
 def update_aziotedge_versions($current_product_ver; $new_product_ver; $edgelet_ver; $identity_ver; $core_image_ver):
 aziotedge_component_version($current_product_ver; "aziot-edge") = $edgelet_ver
 | aziotedge_component_version($current_product_ver; "aziot-identity-service") = $identity_ver
