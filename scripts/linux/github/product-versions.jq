@@ -40,76 +40,36 @@ else
   | halt_error
 end;
 
-# Given a set of products and the product version, return a reference to the "aziot-edge" component's mutable version
-# property
-def edgelet_version_mut(product_iter; $aziotedge_product_version):
-component_iter(product_iter; "aziot-edge").version;
+# Given a set of products or the product version, return the version for the given component name
+def component_version(product_version_or_iter; $component_name):
+if product_version_or_iter | [ strings ] | length == 1 then
+  # Arg is the aziot-edge product version
+  component_iter(product_iter("aziot-edge"; product_version_or_iter); $component_name).version
+elif product_version_or_iter | [ objects ] | length != 0 then
+  # Arg is a product iterator
+  component_iter(product_version_or_iter; $component_name).version
+else
+  halt_error(
+    [
+      "Error: component_version: expected a product version string or a product iterator but got",
+      "\(product_version_or_iter)\n"
+    ] | join(" ")
+  )
+end;
 
-# Given the product version, return a reference to the "aziot-edge" component's mutable version property
-def edgelet_version_mut($aziotedge_product_version):
-edgelet_version_mut(product_iter("aziot-edge"; $aziotedge_product_version); "aziot-edge").version;
-
-# Given a set of products and the product version, return a reference to the "aziot-identity-service" component's
-# mutable version property
-def identity_version_mut(product_iter; $aziotedge_product_version):
-component_iter(product_iter; "aziot-identity-service").version;
-
-# Given the product version, return a reference to the "aziot-identity-service" component's mutable version property
-def identity_version_mut($aziotedge_product_version):
-identity_version_mut(product_iter("aziot-edge"; $aziotedge_product_version); "aziot-identity-service").version;
-
-# Given a set of products and the product version, return a reference to the "azureiotedge-agent" component's mutable
-# version property
-def agent_version_mut(product_iter; $aziotedge_product_version):
-component_iter(product_iter; "azureiotedge-agent").version;
-
-# Given the product version, return a reference to the "azureiotedge-agent" component's mutable version property
-def agent_version_mut($aziotedge_product_version):
-agent_version_mut(product_iter("aziot-edge"; $aziotedge_product_version); "azureiotedge-agent").version;
-
-# Given a set of products and the product version, return a reference to the "azureiotedge-hub" component's mutable
-# version property
-def hub_version_mut(product_iter; $aziotedge_product_version):
-component_iter(product_iter; "azureiotedge-hub").version;
-
-# Given the product version, return a reference to the "azureiotedge-hub" component's mutable version property
-def hub_version_mut($aziotedge_product_version):
-hub_version_mut(product_iter("aziot-edge"; $aziotedge_product_version); "azureiotedge-hub").version;
-
-# Given a set of products and the product version, return a reference to the "azureiotedge-simulated-temperature-sensor"
-# component's mutable version property
-def simulated_temperature_sensor_version_mut(product_iter; $aziotedge_product_version):
-component_iter(product_iter; "azureiotedge-simulated-temperature-sensor").version;
-
-# Given the product version, return a reference to the "azureiotedge-simulated-temperature-sensor" component's mutable
-# version property
-def simulated_temperature_sensor_version_mut($aziotedge_product_version):
-simulated_temperature_sensor_version_mut(
-  product_iter("aziot-edge"; $aziotedge_product_version); "azureiotedge-simulated-temperature-sensor"
-).version;
-
-# Given a set of products and the product version, return a reference to the "azureiotedge-diagnostics" component's
-# mutable version property
-def diagnostics_version_mut(product_iter; $aziotedge_product_version):
-component_iter(product_iter; "azureiotedge-diagnostics").version;
-
-# Given the product version, return a reference to the "azureiotedge-diagnostics" component's mutable version property
-def diagnostics_version_mut($aziotedge_product_version):
-diagnostics_version_mut(product_iter("aziot-edge"; $aziotedge_product_version); "azureiotedge-diagnostics").version;
-
-# Given the product name and version, return a reference to the product's mutable version property
-def product_version_mut($product_name; $product_version):
+# Given the product name and version, return the product's version
+def product_version($product_name; $product_version):
 product_iter($product_name; $product_version) | .version;
 
 # Return a new JSON object whose "aziot-edge" product and component versions have been updated to the given versions
 def update_aziotedge_versions($current_product_ver; $new_product_ver; $edgelet_ver; $identity_ver; $core_image_ver):
-edgelet_version_mut($current_product_ver) = $edgelet_ver
-| identity_version_mut($current_product_ver) = $identity_ver
-| agent_version_mut($current_product_ver) = $core_image_ver
-| hub_version_mut($current_product_ver) = $core_image_ver
-| simulated_temperature_sensor_version_mut($current_product_ver) = $core_image_ver
-| diagnostics_version_mut($current_product_ver) = $edgelet_ver
-| product_version_mut("aziot-edge"; $current_product_ver) = $new_product_ver;
+component_version($current_product_ver; "aziot-edge") = $edgelet_ver
+| component_version($current_product_ver; "aziot-identity-service") = $identity_ver
+| component_version($current_product_ver; "azureiotedge-agent") = $core_image_ver
+| component_version($current_product_ver; "azureiotedge-hub") = $core_image_ver
+| component_version($current_product_ver; "azureiotedge-simulated-temperature-sensor") = $core_image_ver
+| component_version($current_product_ver; "azureiotedge-diagnostics") = $edgelet_ver
+| product_version("aziot-edge"; $current_product_ver) = $new_product_ver;
 
 # Return a new product-versions document which adds "aziot-edge" product entries to the stable and LTS channels. The new
 # entries will be copies of the existing stable entry at $current_product_ver, but with the product and component
@@ -118,12 +78,12 @@ def add_aziotedge_products($current_product_ver; $new_product_ver; $edgelet_ver;
 (
   channels_iter("stable")
   | product_iter(.products; "aziot-edge"; $current_product_ver)
-  | edgelet_version_mut(.; $current_product_ver) = $edgelet_ver
-  | identity_version_mut(.; $current_product_ver) = $identity_ver
-  | agent_version_mut(.; $current_product_ver) = $core_image_ver
-  | hub_version_mut(.; $current_product_ver) = $core_image_ver
-  | simulated_temperature_sensor_version_mut(.; $current_product_ver) = $core_image_ver
-  | diagnostics_version_mut(.; $current_product_ver) = $edgelet_ver
+  | component_version(.; "aziot-edge") = $edgelet_ver
+  | component_version(.; "aziot-identity-service") = $identity_ver
+  | component_version(.; "azureiotedge-agent") = $core_image_ver
+  | component_version(.; "azureiotedge-hub") = $core_image_ver
+  | component_version(.; "azureiotedge-simulated-temperature-sensor") = $core_image_ver
+  | component_version(.; "azureiotedge-diagnostics") = $edgelet_ver
   | .version = $new_product_ver
 ) as $product
 | (channels_iter("stable") | .products) += [ $product ]

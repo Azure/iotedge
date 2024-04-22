@@ -30,37 +30,42 @@ send_github_request()
 
 #######################################
 # NAME: 
-#    is_version_greater_than
+#    version_ge
 # DESCRIPTION:
-#    Verify that the new version is greater than (or equal to) the current version
+#    Verify that the left version is greater than or equal to the right version
 # ARGUMENTS:
-#    $1 __________ Name of versioned thing  (string)
-#    $2 __________ New version              (string)
-#    $3 __________ Current version          (string)
+#    $1 __________ Name of versioned thing          (string)
+#    $2 __________ Left version                     (string)
+#    $3 __________ Right version                    (string)
+#    $4 __________ Optional(true): Print warning    (boolean)
 # OUTPUTS:
-#    Exit status is 0 if new >= cur, 1 otherwise. A warning is printed to stdout if new == cur.
+#    Exit status is 0 if left >= right, 1 otherwise. A warning is printed to
+#    stdout if left == right, unless the optional 4th argument is set to false.
 #######################################
-is_version_greater_than()
+version_ge()
 {
     [[ -z "$1" ]] && { echo "$FUNCNAME: \$1 is undefined"; exit 1; }
     [[ -z "$2" ]] && { echo "$FUNCNAME: \$2 is undefined"; exit 1; }
     [[ -z "$3" ]] && { echo "$FUNCNAME: \$3 is undefined"; exit 1; }
 
-    local newVersion=$2
-    local curVersion=$3
+    local lhs=$2
+    local rhs=$3
+    local warning=${4:-true}
 
-    echo -n "$1: $newVersion > $curVersion ? "
+    echo -n "$1: $lhs > $rhs ? "
 
-    if [[ "$curVersion" == "$newVersion" ]]; then
-        echo "Warning"
-        echo "  Versions are equal, was that intended?"
-    else
-        highVersion=$(echo -e "$curVersion\n$newVersion" | sort --version-sort -r | head -1)
-        if [[ "$highVersion" == "$newVersion" ]]; then # new > cur
+    if [[ "$rhs" == "$lhs" ]]; then
+        if [[ "$warning" != "true" ]]; then
             echo "Ok"
         else
-            echo "Error"
-            echo "  New version is less than current version"
+            echo "Warning - versions are equal, was that intended?"
+        fi
+    else
+        highVersion=$(echo -e "$rhs\n$lhs" | sort --version-sort -r | head -1)
+        if [[ "$highVersion" == "$lhs" ]]; then # new > cur
+            echo "Ok"
+        else
+            echo "Failed"
             exit 1
         fi
     fi  
@@ -155,14 +160,18 @@ update_product_versions_json()
     latestDiagnosticsVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "azureiotedge-diagnostics")' $TARGET_FILE)
 
     # Verify new versions
-    is_version_greater_than "product" $proposedProductVersion $latestProductVersion
-    is_version_greater_than "aziot-edge" $proposedEdgeletVersion $latestEdgeletVersion
-    is_version_greater_than "aziot-identity-service" $proposedIisVersion $latestIisVersion
-    is_version_greater_than "azureiotedge-agent" $proposedCoreImageVersion $latestAgentVersion
-    is_version_greater_than "azureiotedge-hub" $proposedCoreImageVersion $latestHubVersion
-    is_version_greater_than "azureiotedge-simulated-temperature-sensor" $proposedCoreImageVersion $latestTempSensorVersion
+    version_ge "product" $proposedProductVersion $latestProductVersion
+    version_ge "aziot-edge" $proposedEdgeletVersion $latestEdgeletVersion
+    version_ge "aziot-identity-service" $proposedIisVersion $latestIisVersion
+    version_ge "azureiotedge-agent" $proposedCoreImageVersion $latestAgentVersion
+    version_ge "azureiotedge-hub" $proposedCoreImageVersion $latestHubVersion
+    version_ge "azureiotedge-simulated-temperature-sensor" $proposedCoreImageVersion $latestTempSensorVersion
     # The diagnostics image is always versioned to match edgelet, not the other core images
-    is_version_greater_than "azureiotedge-diagnostics" $proposedEdgeletVersion $latestDiagnosticsVersion
+    version_ge "azureiotedge-diagnostics" $proposedEdgeletVersion $latestDiagnosticsVersion
+    # The product version should be >= all the other versions
+    version_ge "product v. aziot-edge & diagnostics" $proposedProductVersion $proposedEdgeletVersion false
+    version_ge "product v. aziot-identity-service" $proposedProductVersion $proposedIisVersion false
+    version_ge "product v. core images" $proposedProductVersion $proposedCoreImageVersion false
 
     # Update product-versions.json
     if is_major_minor_bump $proposedProductVersion $latestProductVersion; then
