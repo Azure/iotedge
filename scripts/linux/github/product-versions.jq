@@ -115,14 +115,18 @@ edgelet_version_mut($current_product_ver) = $edgelet_ver
 # existing entries at version $current_product_ver, but with the product and component versions updated to the given
 # versions.
 def add_aziotedge_products($current_product_ver; $new_product_ver; $edgelet_ver; $identity_ver; $core_image_ver):
-.channels[].products |= . + [
-  product_iter(.; "aziot-edge"; $current_product_ver)
-  | edgelet_version_mut(.; $current_product_ver) = $edgelet_ver
-  | identity_version_mut(.; $current_product_ver) = $identity_ver
-  | agent_version_mut(.; $current_product_ver) = $core_image_ver
-  | hub_version_mut(.; $current_product_ver) = $core_image_ver
-  | simulated_temperature_sensor_version_mut(.; $current_product_ver) = $core_image_ver
-  | diagnostics_version_mut(.; $current_product_ver) = $edgelet_ver
-  | .version = $new_product_ver
-  # TODO: Update object's "name" property, esp. in the LTS channel (e.g, "Azure IoT Edge 1.5 LTS")
-];
+.channels[]
+  | ($new_product_ver | split(".") | .[0:-1] | join(".")) as $major_minor
+  | (if .name == "lts" then "Azure IoT Edge \($major_minor) LTS" else "Azure IoT Edge" end) as $channel_name
+  | .products
+  |= . + [
+    product_iter(.; "aziot-edge"; $current_product_ver)
+    | edgelet_version_mut(.; $current_product_ver) = $edgelet_ver
+    | identity_version_mut(.; $current_product_ver) = $identity_ver
+    | agent_version_mut(.; $current_product_ver) = $core_image_ver
+    | hub_version_mut(.; $current_product_ver) = $core_image_ver
+    | simulated_temperature_sensor_version_mut(.; $current_product_ver) = $core_image_ver
+    | diagnostics_version_mut(.; $current_product_ver) = $edgelet_ver
+    | .version = $new_product_ver
+    | .name = $channel_name
+  ];
