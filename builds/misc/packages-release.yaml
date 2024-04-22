@@ -418,7 +418,7 @@ stages:
 
               # Source the scripts & Update version files
               source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
-              update_latest_version_json
+              update_product_versions_json
 
               # Update Github and tag
               github_update_and_push

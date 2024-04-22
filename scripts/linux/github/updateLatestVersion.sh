@@ -2,31 +2,6 @@
 
 #######################################
 # NAME: 
-#    check_required_variables
-# DESCRIPTION:
-#    Check the commonly used variable in the script if they are provided.
-#    
-# GLOBALS:
-#    GITHUB_PAT ___________ Github Personal Access Token (string)
-#    BRANCH_NAME __________ Git Branch name              (string)
-#    IOTEDGE_REPO_PATH ____ Path to /iotedge             (string)
-# ARGUMENTS:
-#    None
-# OUTPUTS:
-#    Error message
-# RETURN:
-#    1 if the variable is not provided otherwise return 0.
-#######################################
-check_required_variables()
-{
-    [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
-    [[ -z "$BRANCH_NAME" ]] && { echo "\$BRANCH_NAME is undefined"; exit 1; }   
-    [[ -z "$IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
-}
-
-
-#######################################
-# NAME: 
 #    send_github_request
 # DESCRIPTION:
 #    A helper function to send a GET request to a specified GitHub API endpoint
@@ -55,77 +30,86 @@ send_github_request()
 
 #######################################
 # NAME: 
-#    get_latest_release_per_branch_name
+#    is_version_greater_than
 # DESCRIPTION:
-#    Get latest release version given the branch name
-# GLOBALS:
-#    BRANCH_NAME __________ Git Branch name              (string)
-#      i.e. $(Build.SourceBranch)
-#    GITHUB_PAT ___________ Github Personal Access Token (string)
-#    IOTEDGE_REPO_PATH ____ Path to /iotedge             (string)
+#    Verify that the new version is greater than (or equal to) the current version
 # ARGUMENTS:
-#    None
+#    $1 __________ Name of versioned thing  (string)
+#    $2 __________ New version              (string)
+#    $3 __________ Current version          (string)
 # OUTPUTS:
-#    The lastest release version string of either edgelet or docker runtime images
-#    from Github release page.
+#    Exit status is 0 if new >= cur, 1 otherwise. A warning is printed to stdout if new == cur.
 #######################################
-get_latest_release_per_branch_name()
+is_version_greater_than()
 {
-    check_required_variables
+    [[ -z "$1" ]] && { echo "$FUNCNAME: \$1 is undefined"; exit 1; }
+    [[ -z "$2" ]] && { echo "$FUNCNAME: \$2 is undefined"; exit 1; }
+    [[ -z "$3" ]] && { echo "$FUNCNAME: \$3 is undefined"; exit 1; }
 
-    # Get the MAJOR.MINOR version
-    branchVersion=$(echo ${BRANCH_NAME##*/})
+    local newVersion=$2
+    local curVersion=$3
 
-    # Get the list of released version
-    content=$(send_github_request "Azure/azure-iotedge" "releases")
-    jqQuery=".[].name | select(startswith(\"$branchVersion\"))"
-    versionList=$(echo $content | jq "$jqQuery")
-    
-    # Beware of the "N.N.N~rcN"
-    # We are not gonna handle the 'rc' in the tag
-    echo $versionList | tr " " "\n"  | sort --version-sort -r | head -1 | tr -d '"'
+    echo -n "$1: $newVersion > $curVersion ? "
+
+    if [[ "$curVersion" == "$newVersion" ]]; then
+        echo "Warning"
+        echo "  Versions are equal, was that intended?"
+    else
+        highVersion=$(echo -e "$curVersion\n$newVersion" | sort --version-sort -r | head -1)
+        if [[ "$highVersion" == "$newVersion" ]]; then # new > cur
+            echo "Ok"
+        else
+            echo "Error"
+            echo "  New version is less than current version"
+            exit 1
+        fi
+    fi  
+}
+
+#######################################
+# NAME:
+#    is_major_minor_bump
+# DESCRIPTION:
+#    Determine if the new version bumps the major or minor version
+# ARGUMENTS:
+#    $1 __________ New version              (string)
+#    $2 __________ Current version          (string)
+# OUTPUTS:
+#    Exit status is 0 if a major or minor version bump is detected, 1 otherwise
+#######################################
+is_major_minor_bump()
+{
+    [[ -z "$1" ]] && { echo "$FUNCNAME: \$1 is undefined"; exit 1; }
+    [[ -z "$2" ]] && { echo "$FUNCNAME: \$2 is undefined"; exit 1; }
+
+    local newVersion=$1
+    local curVersion=$2
+    local newParts curParts
+
+    # validate that the new version is higher than the current version
+    local highVersion=$(echo -e "$curVersion\n$newVersion" | sort --version-sort -r | head -1)
+    if [[ "$highVersion" == "$curVersion" ]]; then
+        echo "Error: New version ($newVersion) is less than current version ($curVersion)"
+        exit 1
+    fi
+
+    IFS='.' read -a newParts <<< "$newVersion"
+    IFS='.' read -a curParts <<< "$curVersion"
+
+    newVersion="${newParts[0]}.${newParts[1]}"
+    curVersion="${curParts[0]}.${curParts[1]}"
+
+    if [[ "$newVersion" == "$curVersion" ]]; then
+        return 1
+    else
+        return 0
+    fi
 }
 
 
 #######################################
 # NAME: 
-#    version_sanity_check
-# DESCRIPTION:
-#    Verify if the Proposed Version is a later version than the Latest Release version
-# GLOBALS:
-#    BRANCH_NAME
-#    GITHUB_PAT
-#    IOTEDGE_REPO_PATH
-# ARGUMENTS:
-#    $1 __________ Proposed Version        (string)
-#    $2 __________ Latest Released Version (string)
-# OUTPUTS:
-#    If Passed, print a log message
-#    If Failed, print a log error message withe SIGINT=1
-#######################################
-version_sanity_check()
-{
-    # The latest released version is optional argument, so fetch that if not provided.
-    if [ "$#" -le "2" ]; then
-        latestReleasedVersion=$(get_latest_release_per_branch_name)
-    else
-        latestReleasedVersion=$2
-    fi
-
-    # Use the sort to compare, if the first result from sort() is not the input, then return false.
-    higherVersion=$(echo "$latestReleasedVersion $1" | tr " " "\n"  | sort --version-sort -r | head -1)
-    if [[ "$higherVersion" == "$latestReleasedVersion" ]]; then
-        # Remark: We can't really do `exit 1` here it's not always gauranteed that we will update both `iotedge` and docker images at the same release
-        echo "##[warning]FAILED: The proposed version ($1) cannot have a lower or equal version value than the latest released version ($latestReleasedVersion)"
-    else
-        echo "PASSED: version sanity check ($1)"
-    fi
-}
-
-
-#######################################
-# NAME: 
-#    update_latest_version_json
+#    update_product_versions_json
 # DESCRIPTION:
 #    Update the necessary version.json files for the last step of the IoTEdge release.
 # GLOBALS:
@@ -136,52 +120,79 @@ version_sanity_check()
 #    IIS_REPO_PATH ______________ Path to /iot-identity-service (string)
 #        i.e. $(Build.SourcesDirectory)/iot-identity-service
 # OUTPUTS:
-#    Updated latest version JSON files
-# REMARK:
-#    Please make sure the directories provided need to have a proper branch/commit 
-#    checked out.
+#    Updated product-versions.json
+# REMARKS:
+#    Make sure the directories provided have the proper branch/commit checked out
 #######################################
-update_latest_version_json()
+update_product_versions_json()
 {
-    check_required_variables
-
-    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
+    [[ -z "$IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
+    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$AZURE_IOTEDGE_REPO_PATH is undefined"; exit 1; }
     [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; exit 1; }
 
     # Set target version file to be updated
-    TARGET_IE_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-edge.json"
-    TARGET_IIS_FILE="$AZURE_IOTEDGE_REPO_PATH/latest-aziot-identity-service.json"
+    TARGET_FILE="$AZURE_IOTEDGE_REPO_PATH/product-versions.json"
 
-    # Get all the relevant version to be verified
+    # Get new versions. The new product version comes from the latest tag in the iotedge repo. The other versions come
+    # from the respective version files.
+    proposedProductVersion=$(cd $IOTEDGE_REPO_PATH; git describe --tags --abbrev=0 --match "[0-9].[0-9]*" HEAD)
     proposedEdgeletVersion=$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)
-    proposedImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq ".version" | tr -d '"')
+    proposedCoreImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq -r '.version')
     proposedIisVersion=$(grep "PACKAGE_VERSION:" $IIS_REPO_PATH/.github/workflows/packages.yaml | awk '{print $2}' | tr -d "'" | tr -d '"')
 
-    contentIe=$(cat $TARGET_IE_FILE)
-    latestEdgeletVersion=$(echo $contentIe | jq '."aziot-edge"' | tr -d '"')
-    contentIis=$(cat $TARGET_IIS_FILE)
-    latestIisVersion=$(echo $contentIis | jq '."aziot-identity-service"' | tr -d '"')
+    JQ="jq -L $IOTEDGE_REPO_PATH/scripts/linux/github"
+    IFS='.' read -a parts <<< "$proposedProductVersion"
+    prefix="${parts[0]}.${parts[1]}."
 
-    # Verify
-    echo "Sanity check iotedge version"
-    version_sanity_check $proposedEdgeletVersion $latestEdgeletVersion
-    echo "Sanity check docker image version"
-    version_sanity_check $proposedImageVersion get_latest_release_per_branch_name
-    echo "Sanity check iot-identity-service version"
-    version_sanity_check $proposedIisVersion $latestIisVersion
+    # Get current versions. The current product version comes from the latest tag in the azure-iotedge repo. The other
+    # versions come from product-versions.json.
+    latestProductVersion=$(cd $AZURE_IOTEDGE_REPO_PATH; git describe --tags --abbrev=0 --match "[0-9].[0-9]*" HEAD)
+    latestEdgeletVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "aziot-edge")' $TARGET_FILE)
+    latestIisVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "aziot-identity-service")' $TARGET_FILE)
+    latestAgentVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "azureiotedge-agent")' $TARGET_FILE)
+    latestHubVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "azureiotedge-hub")' $TARGET_FILE)
+    latestTempSensorVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "azureiotedge-simulated-temperature-sensor")' $TARGET_FILE)
+    latestDiagnosticsVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "azureiotedge-diagnostics")' $TARGET_FILE)
 
-    # Update the version files
-    jqQuery=".\"aziot-edge\" = \"$proposedEdgeletVersion\""
-    echo $contentIe | jq "$jqQuery" > $TARGET_IE_FILE
-    jqQuery=".\"aziot-identity-service\" = \"$proposedIisVersion\""
-    echo $contentIis | jq "$jqQuery" > $TARGET_IIS_FILE
-    
-    # Pring log for debugging
-    echo "Update $TARGET_IE_FILE:"
-    cat $TARGET_IE_FILE | jq '.'
+    # Verify new versions
+    is_version_greater_than "product" $proposedProductVersion $latestProductVersion
+    is_version_greater_than "aziot-edge" $proposedEdgeletVersion $latestEdgeletVersion
+    is_version_greater_than "aziot-identity-service" $proposedIisVersion $latestIisVersion
+    is_version_greater_than "azureiotedge-agent" $proposedCoreImageVersion $latestAgentVersion
+    is_version_greater_than "azureiotedge-hub" $proposedCoreImageVersion $latestHubVersion
+    is_version_greater_than "azureiotedge-simulated-temperature-sensor" $proposedCoreImageVersion $latestTempSensorVersion
+    # The diagnostics image is always versioned to match edgelet, not the other core images
+    is_version_greater_than "azureiotedge-diagnostics" $proposedEdgeletVersion $latestDiagnosticsVersion
+
+    # Update product-versions.json
+    if is_major_minor_bump $proposedProductVersion $latestProductVersion; then
+        echo "Adding new product entries for aziot-edge version $proposedProductVersion"
+        echo "$($JQ \
+            --arg current_product_ver "$latestProductVersion" \
+            --arg new_product_ver "$proposedProductVersion" \
+            --arg edgelet_ver "$proposedEdgeletVersion" \
+            --arg identity_ver "$proposedIisVersion" \
+            --arg core_image_ver "$proposedCoreImageVersion" '
+            include "product-versions";
+            add_aziotedge_products($current_product_ver; $new_product_ver; $edgelet_ver; $identity_ver; $core_image_ver)
+        ' $TARGET_FILE)" > $TARGET_FILE
+    else
+        echo "Updating existing product entries for aziot-edge version $proposedProductVersion"
+        echo "$($JQ \
+            --arg current_product_ver "$latestProductVersion" \
+            --arg new_product_ver "$proposedProductVersion" \
+            --arg edgelet_ver "$proposedEdgeletVersion" \
+            --arg identity_ver "$proposedIisVersion" \
+            --arg core_image_ver "$proposedCoreImageVersion" '
+            include "product-versions";
+            update_aziotedge_versions($current_product_ver; $new_product_ver; $edgelet_ver; $identity_ver; $core_image_ver)
+        ' $TARGET_FILE)" > $TARGET_FILE
+    fi
+
+    # Print log for debugging
+    echo "Updated $TARGET_FILE:"
+    jq '.' $TARGET_FILE
     echo ""
-    echo "Update $TARGET_IIS_FILE:"
-    cat $TARGET_IIS_FILE | jq '.'
 }
 
 
