@@ -624,14 +624,6 @@ stages:
     steps:
     - checkout: azure-iotedge
     - checkout: self
-    - task: AzureKeyVault@1
-      displayName: Get secrets
-      inputs:
-        azureSubscription: $(az.subscription)
-        keyVaultName: $(kv.name)
-        secretsFilter: >-
-          IotEdge1-PAT-msazure
-
     - bash: |
         # Source the scripts & Update version files
         source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
@@ -711,6 +703,24 @@ stages:
           "$(IsCheckPreviousPkg)"
       displayName: Released Artifacts Smoke Tests
 
+    - task: AzureCLI@2
+      condition: always()
+      displayName: 'Get PAT'
+      inputs:
+        azureSubscription: 'IoTEdge1-msazure'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          # Note that the resoruce is specified to limit the token to Azure DevOps
+          aadTokenInfo=$(az account get-access-token --resource "499b84ac-1321-427f-aa17-267ca6975798")
+          if [ $? -ne 0 ]; then
+              echo "Could not acquire Azure DevOps token."
+              exit 40
+          fi
+          echo "Azure DevOps AAD token acquired.  Expires $(echo $aadTokenInfo | jq -r .expiresOn)"
+          aadToken=$(echo $aadTokenInfo | jq -r .accessToken)
+          echo "##vso[task.setvariable variable=IotEdgePAT;issecret=true]$aadToken"
+
     - bash: |
         # Source the scripts & Update version files
         source $(Build.SourcesDirectory)/iotedge/scripts/linux/smokeTestHelper.sh
@@ -718,4 +728,4 @@ stages:
         test-released-images "$(Build.SourceBranchName)"
       displayName: Released Images Smoke Tests
       env:
-        DEVOPS_PAT: "$(IotEdge1-PAT-msazure)"
+        DEVOPS_PAT: "$(IotEdgePAT)"
