@@ -63,7 +63,7 @@ version_ge()
             echo 'Ok'
         else
             echo 'Failed'
-            exit 1
+            return 1
         fi
     fi  
 }
@@ -92,7 +92,7 @@ is_major_minor_bump()
     local highVersion=$(echo -e "$curVersion\n$newVersion" | sort --version-sort -r | head -1)
     if [[ "$highVersion" == "$curVersion" ]]; then
         echo "Error: New version ($newVersion) is less than current version ($curVersion)"
-        exit 1
+        return 1
     fi
 
     IFS='.' read -a newParts <<< "$newVersion"
@@ -106,6 +106,40 @@ is_major_minor_bump()
     else
         return 0
     fi
+}
+
+
+#######################################
+# NAME:
+#    get_version_from_json
+# DESCRIPTION:
+#    Get the version of a component from product-versions.json
+# GLOBALS:
+#    AZURE_IOTEDGE_REPO_PATH __________ Path to /azure-iotedge (string)
+#        i.e. $(Build.SourcesDirectory)/azure-iotedge
+#    JQ _______________________________ jq command with search path for "product-versions" module  (string)
+#        i.e. jq -L $(Build.SourcesDirectory)/iotedge/scripts/linux/github
+# ARGUMENTS:
+#    $1 _______________________________ Version to search for (string)
+#    $2 _______________________________ Component name to search for (string)
+# OUTPUTS:
+#    The version of the component from product-versions.json will be printed to stdout
+#######################################
+get_version_from_json()
+{
+    [[ -z "$1" ]] && { echo "$FUNCNAME: \$1 is undefined"; exit 1; }
+    [[ -z "$2" ]] && { echo "$FUNCNAME: \$2 is undefined"; exit 1; }
+    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$AZURE_IOTEDGE_REPO_PATH is undefined"; exit 1; }
+    [[ -z "$JQ" ]] && { echo "\$JQ is undefined"; exit 1; }
+
+    local version=$1
+    local component=$2
+    local json="$AZURE_IOTEDGE_REPO_PATH/product-versions.json"
+
+    $JQ -r --arg version "$version" --arg name "$component" '
+        include "product-versions";
+        aziotedge_component_version($version; $name)
+    ' $json
 }
 
 
@@ -140,21 +174,24 @@ update_product_versions_json()
     proposedProductVersion=$(cd $IOTEDGE_REPO_PATH; git describe --tags --abbrev=0 --match "[0-9].[0-9]*" HEAD)
     proposedEdgeletVersion=$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)
     proposedCoreImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq -r '.version')
-    proposedIisVersion=$(grep "PACKAGE_VERSION:" $IIS_REPO_PATH/.github/workflows/packages.yaml | awk '{print $2}' | tr -d "'" | tr -d '"')
+    proposedIisVersion=$(
+        grep "PACKAGE_VERSION:" $IIS_REPO_PATH/.github/workflows/packages.yaml
+        | awk '{print $2}'
+        | tr -d "'"
+        | tr -d '"'
+    )
 
     JQ="jq -L $IOTEDGE_REPO_PATH/scripts/linux/github"
-    IFS='.' read -a parts <<< "$proposedProductVersion"
-    prefix="${parts[0]}.${parts[1]}."
 
     # Get current versions. The current product version comes from the latest tag in the azure-iotedge repo. The other
     # versions come from product-versions.json.
     latestProductVersion=$(cd $AZURE_IOTEDGE_REPO_PATH; git describe --tags --abbrev=0 --match "[0-9].[0-9]*" HEAD)
-    latestEdgeletVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "aziot-edge")' $TARGET_FILE)
-    latestIisVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "aziot-identity-service")' $TARGET_FILE)
-    latestAgentVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "azureiotedge-agent")' $TARGET_FILE)
-    latestHubVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "azureiotedge-hub")' $TARGET_FILE)
-    latestTempSensorVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "azureiotedge-simulated-temperature-sensor")' $TARGET_FILE)
-    latestDiagnosticsVersion=$($JQ -r --arg version "$latestProductVersion" 'include "product-versions"; aziotedge_component_version($version; "azureiotedge-diagnostics")' $TARGET_FILE)
+    latestEdgeletVersion=$(get_version_from_json $latestProductVersion "aziot-edge")
+    latestIisVersion=$(get_version_from_json $latestProductVersion "aziot-identity-service")
+    latestAgentVersion=$(get_version_from_json $latestProductVersion "azureiotedge-agent")
+    latestHubVersion=$(get_version_from_json $latestProductVersion "azureiotedge-hub")
+    latestTempSensorVersion=$(get_version_from_json $latestProductVersion "azureiotedge-simulated-temperature-sensor")
+    latestDiagnosticsVersion=$(get_version_from_json $latestProductVersion "azureiotedge-diagnostics")
 
     # Verify new versions
     version_ge "product" $proposedProductVersion $latestProductVersion
