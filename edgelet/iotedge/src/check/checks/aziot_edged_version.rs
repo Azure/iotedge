@@ -166,6 +166,8 @@ impl AziotEdgedVersion {
                 return Ok(CheckResult::Ignored);
             }
 
+            let actual_semver = Version::parse(&actual_version)
+                .context("could not parse actual version as semver")?;
             let versions: Vec<String> = self
                 .get_latest_released_versions(check)
                 .await?
@@ -177,26 +179,24 @@ impl AziotEdgedVersion {
                 .filter(|component| component.name == "aziot-identity-service")
                 .map(|component| component.version.clone())
                 .collect();
-            let actual_channel = Version::parse(&actual_version)
-                .context("could not parse actual version as semver")?;
-            let expected_version = versions
-                    .iter()
-                    .find(|version| {
-                        let expected_channel = Version::parse(version)
-                            .context("could not parse expected version as semver")
-                            .unwrap(); // TODO: What's the right error handling here?
-                        expected_channel.major == actual_channel.major
-                            && expected_channel.minor == actual_channel.minor
-                    })
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "could not find aziot-identity-service version {}.{}.x in list of supported products at {}",
-                            actual_channel.major,
-                            actual_channel.minor,
-                            Self::URI
-                        )
-                    })?;
-            expected_version.clone()
+            let parsed_versions = versions
+                .iter()
+                .map(|version| {
+                    Version::parse(version).context("could not parse expected version as semver")
+                })
+                .collect::<Result<Vec<_>, anyhow::Error>>()?;
+            let expected_version = parsed_versions
+                .iter()
+                .find(|semver| semver.major == actual_semver.major && semver.minor == actual_semver.minor)
+                .ok_or_else(|| {
+                    anyhow!(
+                        "could not find aziot-identity-service version {}.{}.x in list of supported products at {}",
+                        actual_semver.major,
+                        actual_semver.minor,
+                        Self::URI
+                    )
+                })?;
+            expected_version.to_string()
         };
 
         self.expected_version = Some(expected_version.clone());
