@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{anyhow, Context};
+use regex::Regex;
 use semver::Version;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
@@ -118,8 +119,41 @@ impl AziotEdgedVersion {
         Ok(latest_versions)
     }
 
+    async fn get_installed_version(&mut self, check: &Check) -> Result<String, anyhow::Error> {
+        let mut process = tokio::process::Command::new(&check.aziot_edged);
+        process.arg("--version");
+
+        let output = process
+            .output()
+            .await
+            .context("Could not spawn aziot-edged process")?;
+        if !output.status.success() {
+            return Err(anyhow!(
+                "aziot-edged returned {}, stderr = {}",
+                output.status,
+                String::from_utf8_lossy(&output.stderr),
+            )
+            .context("Could not spawn aziot-edged process"));
+        }
+        let output = String::from_utf8(output.stdout)
+            .context("Could not parse output of aziot-edged --version")?;
+        let aziot_edged_version_regex = Regex::new(r"^aziot-edged ([^ ]+)(?: \(.*\))?$")
+            .expect("This hard-coded regex is expected to be valid.");
+        let captures = aziot_edged_version_regex
+            .captures(output.trim())
+            .ok_or_else(|| {
+                anyhow!("output {:?} does not match expected format", output,)
+                    .context("Could not parse output of aziot-edged --version")
+            })?;
+        let version = captures
+            .get(1)
+            .expect("unreachable: regex defines one capturing group")
+            .as_str();
+        Ok(version.to_owned())
+    }
+
     async fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        let actual_version = env!("CARGO_PKG_VERSION");
+        let actual_version = self.get_installed_version(check).await?;
         let expected_version = if let Some(expected_aziot_edged_version) =
             &check.expected_aziot_edged_version
         {
@@ -132,7 +166,7 @@ impl AziotEdgedVersion {
                 return Ok(CheckResult::Ignored);
             }
 
-            let actual_semver = Version::parse(actual_version)
+            let actual_semver = Version::parse(&actual_version)
                 .context("could not parse actual version as semver")?;
             let versions: Vec<String> = self
                 .get_latest_released_versions(check)
@@ -166,9 +200,9 @@ impl AziotEdgedVersion {
         };
 
         self.expected_version = Some(expected_version.clone());
-        self.actual_version = Some(actual_version.to_owned());
+        self.actual_version = Some(actual_version.clone());
 
-        check.additional_info.aziot_edged_version = Some(actual_version.to_owned());
+        check.additional_info.aziot_edged_version = Some(actual_version.clone());
 
         if actual_version != expected_version {
             return Ok(CheckResult::Warning(
