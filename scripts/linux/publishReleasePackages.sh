@@ -202,18 +202,9 @@ echo "Pulling PMC CLI Docker Image..."
 docker pull mcr.microsoft.com/pmc/pmc-cli
 PMC_CMD="docker run --volume $WDIR:$DOCKER_CONFIG_DIR --volume $DIR:/packages --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
 echo ""
-$PMC_CMD repo list --limit 600
-echo "--------------------------"
-$PMC_CMD repo list 
-$PMC_CMD repo list --offset 100
-$PMC_CMD repo list --offset 200
-$PMC_CMD repo list --offset 300
-$PMC_CMD repo list --offset 400
-$PMC_CMD repo list --offset 500
-
 
 # BEARWASHERE -- Temporary disabled
-#Upload the packages to a storage
+# #Upload the packages to a storage
 # echo "Running command: $PMC_CMD package upload packages/"
 # UPLOAD_OUTPUT=$($PMC_CMD package upload packages/)
 # echo "$UPLOAD_OUTPUT"
@@ -226,7 +217,7 @@ $PMC_CMD repo list --offset 500
 #     # exit 1 
 # fi
 
-#Generate Package Id list
+# Generate Package Id list
 # echo ""
 # PACKAGE_IDS=$(echo $UPLOAD_OUTPUT | jq '.[]."id"' | tr '\n' ' ' | tr -d '"')
 # ID_LIST=""; for ID in $PACKAGE_IDS; do ID_LIST=$ID','$ID_LIST; echo $ID_LIST; done; ID_LIST=${ID_LIST:0:-1}
@@ -237,10 +228,10 @@ $PMC_CMD repo list --offset 500
 # #Trigger linux repo to update and ingress new package association
 # $PMC_CMD repo publish "$PMC_REPO_NAME"
 
-# echo ""
-# echo "Package Upload Complete for"
-# #Let's go ahead and print out the two URLs to access PMC repo
-# $PMC_CMD distro list --repository "$PMC_REPO_NAME"
+echo ""
+echo "Package Upload Complete for"
+#Let's go ahead and print out the two URLs to access PMC repo
+$PMC_CMD distro list --repository "$PMC_REPO_NAME"
 
 # (8/24/2023) TODO - Let's monitor and re-enable this check as appropriate
 # #Wait upto 30 Minutes to see if package uploaded

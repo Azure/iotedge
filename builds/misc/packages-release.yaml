@@ -44,7 +44,7 @@ stages:
           artifactName: iotedged-debian12-arm32v7
           identityServiceArtifactName: packages_debian-12-slim_arm32v7
           identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-          pmcRepoName: microsoft-debian-bullseye-prod-apt
+          pmcRepoName: microsoft-debian-bookworm-prod-apt
           pmcRelease: 12
         # Ubuntu2004-amd64:
         #   os: ubuntu20.04
@@ -67,6 +67,7 @@ stages:
         mkdir -p $(System.ArtifactsDirectory)/$(artifactName)
         cd $(System.ArtifactsDirectory)/$(artifactName)
         wget https://github.com/Azure/azure-iotedge/releases/download/1.4.33/aziot-edge_1.4.33-1_debian11_amd64.deb -O aziot-edge_1.4.33~test_amd64.deb
+
     - task: AzureCLI@2
       displayName: Setup Package Publisher
       inputs:
@@ -74,6 +75,7 @@ stages:
         scriptType: bash
         scriptPath: $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh
         arguments: --setup-pmc-only true -w "$(System.ArtifactsDirectory)" -d "$(System.ArtifactsDirectory)/$(artifactName)"
+
     - script: |
         $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh \
         -p "$(os)" \
@@ -84,16 +86,16 @@ stages:
         --pmc-release "$(pmcRelease)"
       displayName: PMC Package Publication
 
-    - script: |
-        logdir='$(Build.ArtifactStagingDirectory)/logs'
-        mkdir -p "$logdir"
+    # - script: |
+    #     logdir='$(Build.ArtifactStagingDirectory)/logs'
+    #     mkdir -p "$logdir"
 
-        docker run --volume "/path/to/pmc:/root/.config/pmc" --rm --network="host" mcr.microsoft.com/pmc/pmc-cli repo list | tee $(Build.ArtifactStagingDirectory)/logs/pmc-repo-list.txt
-      displayName: Write the output to file
-      condition: succeededOrFailed()
-    - task: PublishBuildArtifacts@1
-      displayName: Save snapcraft logs
-      inputs:
-        PathtoPublish: '$(Build.ArtifactStagingDirectory)/logs'
-        ArtifactName: 'output-logs'
-      condition: succeededOrFailed()
+    #     docker run --volume "/path/to/pmc:/root/.config/pmc" --rm --network="host" mcr.microsoft.com/pmc/pmc-cli repo list | tee $(Build.ArtifactStagingDirectory)/logs/pmc-repo-list.txt
+    #   displayName: Write the output to file
+    #   condition: succeededOrFailed()
+    # - task: PublishBuildArtifacts@1
+    #   displayName: Save snapcraft logs
+    #   inputs:
+    #     PathtoPublish: '$(Build.ArtifactStagingDirectory)/logs'
+    #     ArtifactName: 'output-logs'
+    #   condition: succeededOrFailed()
