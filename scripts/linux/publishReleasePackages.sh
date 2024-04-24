@@ -46,6 +46,10 @@ check_os() {
     elif [[ "$PACKAGE_OS" == "debian11" ]]; then
         OS_NAME="debian"
         OS_VERSION="bullseye"
+        #BEARWASHERE -- Legit change
+    elif [[ "$PACKAGE_OS" == "debian12" ]]; then
+        OS_NAME="debian"
+        OS_VERSION="bookworm"
     elif [[ "$PACKAGE_OS" == "centos7" ]]; then
         OS_NAME="centos"
         OS_VERSION="7"
