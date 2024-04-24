@@ -202,8 +202,14 @@ echo "Pulling PMC CLI Docker Image..."
 docker pull mcr.microsoft.com/pmc/pmc-cli
 PMC_CMD="docker run --volume $WDIR:$DOCKER_CONFIG_DIR --volume $DIR:/packages --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
 echo ""
-REPO_LIST_OUTPUT=$($PMC_CMD repo list)
-echo $REPO_LIST_OUTPUT
+$PMC_CMD repo list --limit 600
+echo "--------------------------"
+$PMC_CMD repo list 
+$PMC_CMD repo list --offset 100
+$PMC_CMD repo list --offset 200
+$PMC_CMD repo list --offset 300
+$PMC_CMD repo list --offset 400
+$PMC_CMD repo list --offset 500
 
 
 # BEARWASHERE -- Temporary disabled
