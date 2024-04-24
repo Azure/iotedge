@@ -433,9 +433,6 @@ async fn run() -> anyhow::Result<()> {
                 args.get_one::<String>("expected-aziot-edged-version")
                     .cloned(),
                 args.get_one::<String>("expected-aziot-version").cloned(),
-                args.get_one::<PathBuf>("aziot-edged")
-                    .expect("arg has a default value")
-                    .into(),
                 args.get_one::<String>("output")
                     .map(|arg| match &**arg {
                         "json" => OutputFormat::Json,
