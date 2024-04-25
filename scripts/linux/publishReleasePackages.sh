@@ -203,35 +203,43 @@ docker pull mcr.microsoft.com/pmc/pmc-cli
 PMC_CMD="docker run --volume $WDIR:$DOCKER_CONFIG_DIR --volume $DIR:/packages --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
 echo ""
 
+echo "Deleteing pkg"
+$PMC_CMD repo package update --remove-packages "content-deb-packages-018f12aa-63ea-731b-b699-284f8c571ff7" "$PMC_REPO_NAME"
+echo "Done deleteing pkg"
+echo " "
+
+echo "Get pkg:"
+$PMC_CMD package deb list --name "aziot-edge" --version "1.4.33-1"
+
 # BEARWASHERE -- Temporary disabled
-#Upload the packages to a storage
-echo "Running command: $PMC_CMD package upload packages/"
-UPLOAD_OUTPUT=$($PMC_CMD package upload packages/)
-echo "$UPLOAD_OUTPUT"
-OUTPUT_STATUS=$(echo "$UPLOAD_OUTPUT" | jq ".state" | tr -d '"')
-#Check result
-if [[ $OUTPUT_STATUS != "completed" ]]; then
-    echo "Upload Status: $OUTPUT_STATUS"
-    #TODO - Uncomment this if the check is valide for multiple pkg upload
-    # Also implement this check for the repo update & repo publish operation
-    # exit 1 
-fi
+# #Upload the packages to a storage
+# echo "Running command: $PMC_CMD package upload packages/"
+# UPLOAD_OUTPUT=$($PMC_CMD package upload packages/)
+# echo "$UPLOAD_OUTPUT"
+# OUTPUT_STATUS=$(echo "$UPLOAD_OUTPUT" | jq ".state" | tr -d '"')
+# #Check result
+# if [[ $OUTPUT_STATUS != "completed" ]]; then
+#     echo "Upload Status: $OUTPUT_STATUS"
+#     #TODO - Uncomment this if the check is valide for multiple pkg upload
+#     # Also implement this check for the repo update & repo publish operation
+#     # exit 1 
+# fi
 
-#Generate Package Id list
-echo ""
-PACKAGE_IDS=$(echo $UPLOAD_OUTPUT | jq '.[]."id"' | tr '\n' ' ' | tr -d '"')
-ID_LIST=""; for ID in $PACKAGE_IDS; do ID_LIST=$ID','$ID_LIST; echo $ID_LIST; done; ID_LIST=${ID_LIST:0:-1}
-echo "Running PMC command for $PMC_REPO_NAME ($PMC_RELEASE) with package IDs: $ID_LIST"
+# #Generate Package Id list
+# echo ""
+# PACKAGE_IDS=$(echo $UPLOAD_OUTPUT | jq '.[]."id"' | tr '\n' ' ' | tr -d '"')
+# ID_LIST=""; for ID in $PACKAGE_IDS; do ID_LIST=$ID','$ID_LIST; echo $ID_LIST; done; ID_LIST=${ID_LIST:0:-1}
+# echo "Running PMC command for $PMC_REPO_NAME ($PMC_RELEASE) with package IDs: $ID_LIST"
 
-#Associate the uploaded artifacts with the linux repo
-$PMC_CMD repo package update --add-packages $ID_LIST $PMC_REPO_NAME $PMC_RELEASE
-#Trigger linux repo to update and ingress new package association
-$PMC_CMD repo publish "$PMC_REPO_NAME"
+# #Associate the uploaded artifacts with the linux repo
+# $PMC_CMD repo package update --add-packages $ID_LIST $PMC_REPO_NAME $PMC_RELEASE
+# #Trigger linux repo to update and ingress new package association
+# $PMC_CMD repo publish "$PMC_REPO_NAME"
 
-echo ""
-echo "Package Upload Complete for"
-#Let's go ahead and print out the two URLs to access PMC repo
-$PMC_CMD distro list --repository "$PMC_REPO_NAME"
+# echo ""
+# echo "Package Upload Complete for"
+# #Let's go ahead and print out the two URLs to access PMC repo
+# $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 
 # (8/24/2023) TODO - Let's monitor and re-enable this check as appropriate
 # #Wait upto 30 Minutes to see if package uploaded
