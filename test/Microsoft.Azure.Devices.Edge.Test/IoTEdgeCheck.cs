@@ -48,6 +48,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
             }
 
+            // TODO: Temporarily override expected aziot version until after we release 1.5.0
+            args += " --expected-aziot-version 1.5.0";
+
             string errors_number = string.Empty;
 
             void OnStdout(string o)
