@@ -54,6 +54,19 @@ stages:
           arch: aarch64
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
+        Debian12-amd64:
+          os: debian12
+          arch: amd64
+          target.iotedged: edgelet/target/release
+        Debian12-arm32v7:
+          os: debian12
+          arch: arm32v7
+          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+        Debian12-aarch64:
+          os: debian12
+          arch: aarch64
+          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+
         Ubuntu2004-amd64:
           arch: amd64
           os: ubuntu20.04
@@ -201,6 +214,14 @@ stages:
           identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           pmcRepoName: microsoft-debian-bullseye-prod-apt
           pmcRelease: bullseye
+
+        Debian12-arm32v7:
+          os: debian12
+          artifactName: iotedged-debian12-arm32v7
+          identityServiceArtifactName: packages_debian-12-slim_arm32v7
+          identityServicePackageFilter: aziot-identity-service_*_armhf.deb
+          pmcRepoName: microsoft-debian-bookworm-prod-apt
+          pmcRelease: bookworm
 
         RedHat8-amd64:
           os: redhat8
