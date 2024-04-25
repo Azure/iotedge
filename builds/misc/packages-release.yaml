@@ -45,7 +45,7 @@ stages:
           identityServiceArtifactName: packages_debian-12-slim_arm32v7
           identityServicePackageFilter: aziot-identity-service_*_armhf.deb
           pmcRepoName: microsoft-debian-bookworm-prod-apt
-          pmcRelease: 12
+          pmcRelease: bookworm
         # Ubuntu2004-amd64:
         #   os: ubuntu20.04
         #   artifactName: iotedged-ubuntu20.04-amd64
