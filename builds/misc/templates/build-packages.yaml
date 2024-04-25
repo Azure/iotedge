@@ -275,7 +275,7 @@ stages:
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-              VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"
+              VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"  # Give deb format here; let Makefile convert to rpm format
               echo "##vso[task.setvariable variable=VERSION;]$VERSION"
               echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
               echo "PACKAGE_OS=$(os)"
