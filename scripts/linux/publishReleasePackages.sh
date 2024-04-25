@@ -203,6 +203,10 @@ docker pull mcr.microsoft.com/pmc/pmc-cli
 PMC_CMD="docker run --volume $WDIR:$DOCKER_CONFIG_DIR --volume $DIR:/packages --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
 echo ""
 
+echo "publish repo"
+$PMC_CMD repo publish "$PMC_REPO_NAME"
+echo ""
+
 echo "Deleteing pkg"
 $PMC_CMD repo package update --remove-packages "content-deb-packages-018f12aa-63ea-731b-b699-284f8c571ff7" "$PMC_REPO_NAME"
 echo "Done deleteing pkg"
