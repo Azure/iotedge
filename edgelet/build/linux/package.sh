@@ -55,6 +55,10 @@ case "$PACKAGE_OS" in
         DOCKER_IMAGE='debian:11-slim'
         ;;
 
+    'debian12')
+        DOCKER_IMAGE='debian:12-slim'
+        ;;
+
     'ubuntu20.04')
         DOCKER_IMAGE='ubuntu:20.04'
         ;;
