@@ -166,8 +166,15 @@ impl AziotEdgedVersion {
                 return Ok(CheckResult::Ignored);
             }
 
-            let actual_semver = Version::parse(&actual_version)
-                .context("could not parse actual version as semver")?;
+            // Nightly builds of debian packages have a '~' which isn't allowed in semver. We're only interested in
+            // parsing the major and minor versions anyway, so we can just truncate the version string.
+            let actual_semver = Version::parse(
+                actual_version
+                    .split(|c| c == '-' || c == '~')
+                    .next()
+                    .unwrap_or(&actual_version),
+            )
+            .context("could not parse actual version as semver")?;
             let versions: Vec<String> = self
                 .get_latest_released_versions(check)
                 .await?
