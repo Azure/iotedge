@@ -98,7 +98,7 @@ stages:
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-              VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+              VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"
               echo "Version: $VERSION"
               echo "##vso[task.setvariable variable=VERSION;]$VERSION"
 
@@ -189,7 +189,7 @@ stages:
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-              VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+              VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"
               echo "##vso[task.setvariable variable=VERSION;]$VERSION"
               echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
               echo "PACKAGE_OS=$(os)"
@@ -205,7 +205,7 @@ stages:
             inputs:
               azureSubscription: $(az.subscription)
               KeyVaultName: 'edgebuildkv'
-              SecretsFilter: >- 
+              SecretsFilter: >-
                 IotEdge1-GitHub-PAT
           - task: PowerShell@2
             displayName: 'Download aziot-identity-service'
@@ -275,7 +275,7 @@ stages:
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-              VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+              VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"  # Give deb format here; let Makefile convert to rpm format
               echo "##vso[task.setvariable variable=VERSION;]$VERSION"
               echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
               echo "PACKAGE_OS=$(os)"
@@ -332,7 +332,7 @@ stages:
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
               sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-debuginfo-$packageVersion-1.cm$(os_version).$(arch).rpm .
               sudo rm -rf iot-identity-service
-          
+
           - bash: |
               sudo docker run --rm \
                 -v "$(Build.SourcesDirectory):/src" \

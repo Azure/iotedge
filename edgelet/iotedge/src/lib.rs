@@ -41,7 +41,23 @@ pub use crate::system::System;
 pub use crate::version::Version;
 
 #[derive(Debug, Deserialize)]
-pub struct LatestVersions {
-    #[serde(rename = "aziot-edge")]
-    pub aziot_edge: String,
+struct LatestVersions {
+    channels: Vec<Channel>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Channel {
+    products: Vec<Product>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Product {
+    id: String,
+    components: Vec<Component>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Component {
+    name: String,
+    version: String,
 }
