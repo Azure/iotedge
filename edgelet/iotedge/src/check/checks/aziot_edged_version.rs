@@ -174,7 +174,9 @@ impl AziotEdgedVersion {
                     .next()
                     .unwrap_or(&actual_version),
             )
-            .context("could not parse actual version as semver")?;
+            .context(format!(
+                "could not parse actual version {actual_version} as semver"
+            ))?;
             let versions: Vec<String> = self
                 .get_latest_released_versions(check)
                 .await?
