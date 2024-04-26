@@ -46,7 +46,7 @@ stages:
       - template: templates/nested-get-secrets.yaml
       - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)" -n 1 -u "amqp"
         env:
-          PAT: "$(IotEdge1-PAT-msazure)"
+          PAT: "$(IotEdgePAT)"
         displayName: Lock agents for nested topology
         name: lock_test_agent
 
