@@ -35,10 +35,46 @@ jobs:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     steps:
+      - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
+          echo '===================================='
+          sudo ls -al /etc/apt/
+          echo '===================================='
+          for file in /etc/apt/*.list; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+          for file in /etc/apt/sources.list.d/*; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+        displayName: '>>>BEFORE: Dump apt sources'
+        condition: always()
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
+      - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
+          echo '===================================='
+          sudo ls -al /etc/apt/
+          echo '===================================='
+          for file in /etc/apt/*.list; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+          for file in /etc/apt/sources.list.d/*; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+        displayName: '>>>AFTER: Dump apt sources'
+        condition: always()
       - script: |
           source $HOME/.cargo/env
           cd edgelet
@@ -65,6 +101,24 @@ jobs:
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
+      - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
+          echo '===================================='
+          sudo ls -al /etc/apt/
+          echo '===================================='
+          for file in /etc/apt/*.list; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+          for file in /etc/apt/sources.list.d/*; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+        displayName: '>>>BEFORE: Dump apt sources'
+        condition: always()
       - bash: 'echo "##vso[task.setvariable variable=PATH;]${CARGO_HOME:-"$HOME/.cargo"}/bin:$PATH"'
         displayName: Modify path
       - bash: |
@@ -74,6 +128,24 @@ jobs:
         displayName: Set Version
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
+      - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
+          echo '===================================='
+          sudo ls -al /etc/apt/
+          echo '===================================='
+          for file in /etc/apt/*.list; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+          for file in /etc/apt/sources.list.d/*; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+        displayName: '>>>AFTER: Dump apt sources'
+        condition: always()
       - script: "cargo install cross --version ^0.2"
         displayName: "Install cross"
       - script: "cross build --target armv7-unknown-linux-gnueabihf"
@@ -97,6 +169,8 @@ jobs:
       IOTEDGE_HOMEDIR: /tmp
     steps:
       - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
           echo '===================================='
           sudo ls -al /etc/apt/
           echo '===================================='
@@ -122,6 +196,8 @@ jobs:
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
           echo '===================================='
           sudo ls -al /etc/apt/
           echo '===================================='
@@ -157,10 +233,46 @@ jobs:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     steps:
+      - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
+          echo '===================================='
+          sudo ls -al /etc/apt/
+          echo '===================================='
+          for file in /etc/apt/*.list; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+          for file in /etc/apt/sources.list.d/*; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+        displayName: '>>>BEFORE: Dump apt sources'
+        condition: always()
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
+      - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
+          echo '===================================='
+          sudo ls -al /etc/apt/
+          echo '===================================='
+          for file in /etc/apt/*.list; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+          for file in /etc/apt/sources.list.d/*; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+        displayName: '>>>AFTER: Dump apt sources'
+        condition: always()
       - bash: scripts/linux/generic-rust/format.sh --project-root "edgelet"
         displayName: Format Code
       - bash: edgelet/build/linux/clippy.sh
@@ -180,12 +292,48 @@ jobs:
         - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     steps:
       - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
+          echo '===================================='
+          sudo ls -al /etc/apt/
+          echo '===================================='
+          for file in /etc/apt/*.list; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+          for file in /etc/apt/sources.list.d/*; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+        displayName: '>>>BEFORE: Dump apt sources'
+        condition: always()
+      - script: |
           echo "##vso[task.setvariable variable=IOTEDGE_HOMEDIR;]/tmp"
           echo "##vso[task.setvariable variable=CARGO;]${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
         displayName: Set env variables
         workingDirectory: edgelet
       - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
+      - script: |
+          echo '===================================='
+          sudo find /etc/apt/ -type f
+          echo '===================================='
+          sudo ls -al /etc/apt/
+          echo '===================================='
+          for file in /etc/apt/*.list; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+          for file in /etc/apt/sources.list.d/*; do
+              echo $file
+              cat $file
+              echo '===================================='
+          done
+        displayName: '>>>AFTER: Dump apt sources'
+        condition: always()
       - script: |
           $CARGO install --locked --version 0.26.1 cargo-tarpaulin
         workingDirectory: edgelet
