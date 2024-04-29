@@ -22,7 +22,7 @@ URL:            https://github.com/azure/iotedge
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
 Requires:       (moby-engine or docker-ce)
-Requires:       aziot-identity-service = 1.4.0~dev-1%{?dist}
+Requires:       aziot-identity-service = 1.5.0-1%{?dist}
 Source0:        aziot-edge-%{version}.tar.gz
 
 %description
@@ -56,7 +56,7 @@ make \
     unitdir=%{_unitdir} \
     presetdir=%{_presetdir} \
     docdir=%{_docdir}/%{name} \
-    install-rpm8
+    install-rpm
 
 %clean
 rm -rf $RPM_BUILD_ROOT

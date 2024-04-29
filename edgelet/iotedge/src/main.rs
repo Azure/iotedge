@@ -106,14 +106,14 @@ async fn run() -> anyhow::Result<()> {
                     Arg::new("expected-aziot-edged-version")
                         .long("expected-aziot-edged-version")
                         .value_name("VERSION")
-                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <https://aka.ms/latest-aziot-edge>")
+                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <https://aka.ms/azure-iotedge-latest-versions>")
                         .num_args(1),
                 )
                 .arg(
                     Arg::new("expected-aziot-version")
                         .long("expected-aziot-version")
                         .value_name("AZIOT_VERSION")
-                        .help("Sets the expected version of the aziot-identity-service package. Defaults to the value contained in <https://aka.ms/latest-aziot-identity-service>")
+                        .help("Sets the expected version of the aziot-identity-service package. Defaults to the value contained in <https://aka.ms/azure-iotedge-latest-versions>")
                         .num_args(1)
                 )
                 .arg(

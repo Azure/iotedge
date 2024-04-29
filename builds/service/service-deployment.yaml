@@ -4,10 +4,10 @@ pr: none
 trigger: none
 schedules:
 - cron: '0 3 * * *'
-  displayName: Nightly run 1.4 LTS
+  displayName: Nightly run 1.5 LTS
   branches:
     include:
-    - release/1.4
+    - main
   always: true
 
 variables:

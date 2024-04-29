@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     class IoTEdgeCheck : SasManualProvisioningFixture
     {
         [Test]
-        [Category("CentOsSafe")]
         public async Task IotEdgeCheck()
         {
             CancellationToken token = this.TestToken;
@@ -48,6 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     "container-local-time",
                 });
             }
+
+            // TODO: Temporarily override expected aziot & iotedge versions until after we release 1.5.0
+            args += " --expected-aziot-version 1.5.0 --expected-aziot-edged-version 1.5.0";
 
             string errors_number = string.Empty;
 
