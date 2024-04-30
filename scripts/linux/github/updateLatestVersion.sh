@@ -175,9 +175,9 @@ update_product_versions_json()
     proposedEdgeletVersion=$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)
     proposedCoreImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq -r '.version')
     proposedIisVersion=$(
-        grep "PACKAGE_VERSION:" $IIS_REPO_PATH/.github/workflows/packages.yaml
-        | awk '{print $2}'
-        | tr -d "'"
+        grep "PACKAGE_VERSION:" $IIS_REPO_PATH/.github/workflows/packages.yaml \
+        | awk '{print $2}' \
+        | tr -d "'" \
         | tr -d '"'
     )
 
