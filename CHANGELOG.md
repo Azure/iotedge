@@ -1,3 +1,32 @@
+# 1.5.0 (2024-05-01)
+
+## What's new in 1.5?
+
+The 1.5 version is the latest long-term servicing (LTS) release for Azure IoT Edge. It will be serviced with fixes for regressions and critical security issues through November 10, 2026 ([product lifecycle](https://learn.microsoft.com/en-us/lifecycle/products/azure-iot-edge)).
+
+## Upgrade notes
+
+If upgrading to 1.5 from 1.1 or earlier, refer to the notes on [updating IoT Edge to the latest release](https://docs.microsoft.com/azure/iot-edge/how-to-update-iot-edge#special-case-update-from-10-or-11-to-latest-release).
+
+## Edge Agent
+* Upgrade to .NET 8 ( [7508ffc](https://github.com/Azure/iotedge/commit/7508ffc6ab9f4d52a3243d0cdce1e52cdfd29912) )
+
+## Edge Agent
+* Upgrade to .NET 8 ( [7508ffc](https://github.com/Azure/iotedge/commit/7508ffc6ab9f4d52a3243d0cdce1e52cdfd29912) )
+
+## aziot-edge
+* Update iotedge CLI to detect latest supported version by querying https://aka.ms/azure-iotedge-latest-versions instead of https://aka.ms/latest-aziot-edge ( [fad7ea1](https://github.com/Azure/iotedge/commit/fad7ea156b398f6244aa5836a6b16ed1196e2d21) )
+* Remove support for CentOS 7 and Debian 10 (support continues in 1.4 through June 2024) ( [c13dabb](https://github.com/Azure/iotedge/commit/c13dabbe6b0810656b04c5144ed3ae27e02f8cca) )
+* Only reprovision when aziot-edged startup errors come from aziot-identityd ( [6f61f95](https://github.com/Azure/iotedge/commit/6f61f95914e7c6251a5c1493f1841a76c7727cf6) )
+* Add an option to find and remove orphaned identities ( [bfb6d2f](https://github.com/Azure/iotedge/commit/bfb6d2f872571021314a13c0a6926969dd56ce00) )
+* Update dependency on mio crate to get security fixes ( [8b5744c](https://github.com/Azure/iotedge/commit/8b5744c536904d8dd90effb21b378f9206461218) )
+
+## aziot-identity-service
+* Update aziotctl CLI to detect the latest supported version by querying https://aka.ms/azure-iotedge-latest-versions instead of https://aka.ms/latest-aziot-identity-service ( [b9fff6b](https://github.com/Azure/iot-identity-service/commit/b9fff6b2fdf9c1593a5a0b7e856a5f01c2c5ad5b) )
+* Remove support for CentOS 7 and Debian 10 (support continues in 1.4 through June 2024) ( [0f93f7a](https://github.com/Azure/iot-identity-service/commit/0f93f7a5442a0303db489a317897501b88189195) )
+* Update dependency on mio crate to get security fixes ( [5d0c44e](https://github.com/Azure/iot-identity-service/commit/5d0c44e5a7babd80ff4523f7287010e6696407c1) )
+* Disable HTTP/2 in http-common ( [1a31efe](https://github.com/Azure/iot-identity-service/commit/1a31efef608e2c202fe7e9c44b41137e65be7d34) )
+
 # 1.4.34 (2024-04-10)
 
 Only Docker images are updated in this release. The daemon remains at version 1.4.33.
