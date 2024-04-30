@@ -319,7 +319,7 @@ stages:
               git clone --recurse-submodules --branch main https://github.com/Azure/iot-identity-service.git
               pushd iot-identity-service
               packageVersion=$(
-                grep "PACKAGE_VERSION:" iot-identity-service/.github/workflows/packages.yaml \
+                grep "PACKAGE_VERSION:" .github/workflows/packages.yaml \
                 | awk '{print $2}' \
                 | tr -d "'" \
                 | tr -d '"'
