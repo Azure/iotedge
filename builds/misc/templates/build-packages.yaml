@@ -70,6 +70,18 @@ stages:
               os: debian11
               arch: aarch64
               target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+            Debian12-amd64:
+              os: debian12
+              arch: amd64
+              target.iotedged: edgelet/target/release
+            Debian12-arm32v7:
+              os: debian12
+              arch: arm32v7
+              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+            Debian12-aarch64:
+              os: debian12
+              arch: aarch64
+              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
             Ubuntu2004-amd64:
               arch: amd64
@@ -170,7 +182,7 @@ stages:
       - job: mariner_linux
     ################################################################################
         displayName: Mariner_Linux
-        condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        condition: ne(variables['build.linux.mariner'], false)
         pool:
           name: $(pool.linux.name)
           demands:
@@ -254,7 +266,7 @@ stages:
       - job: mariner_linux_arm64
     ################################################################################
         displayName: Mariner_Linux on ARM64
-        condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        condition: and(ne(variables['build.linux.mariner'], false), ne(variables['build.linux.arm.mariner'], false))
         timeoutInMinutes: 90
         pool:
           name: $(pool.linux.arm.name)
@@ -318,7 +330,7 @@ stages:
               set -ex
               git clone --recurse-submodules --branch main https://github.com/Azure/iot-identity-service.git
               pushd iot-identity-service
-              packageVersion=$(git tag | grep 1.5.[0-9]*$ | sort --version-sort -r | head -1)
+              packageVersion=$(git describe --tags --abbrev=0 --match "[0-9].[0-9]*" HEAD)
               sudo docker run --rm \
                 -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
                 -e "ARCH=$PACKAGE_ARCH" \
