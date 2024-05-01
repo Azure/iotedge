@@ -203,17 +203,27 @@ docker pull mcr.microsoft.com/pmc/pmc-cli
 PMC_CMD="docker run --volume $WDIR:$DOCKER_CONFIG_DIR --volume $DIR:/packages --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
 echo ""
 
-echo "publish repo"
-$PMC_CMD repo publish "$PMC_REPO_NAME"
-echo ""
-
-echo "Deleteing pkg"
-$PMC_CMD repo package update --remove-packages "content-deb-packages-018f12aa-63ea-731b-b699-284f8c571ff7" "$PMC_REPO_NAME"
+echo "Deleteing pkg for microsoft-debian-bullseye-prod-apt"
+$PMC_CMD repo package update --remove-packages "content-deb-packages-018f3188-6b84-7d54-9851-cb4fa624a6df" "microsoft-debian-bullseye-prod-apt"
+$PMC_CMD repo publish "microsoft-debian-bullseye-prod-apt"
+echo " "
+echo "Deleteing pkg for microsoft-rhel8.0-prod-yum"
+$PMC_CMD repo package update --remove-packages "content-rpm-packages-018f3188-2b3c-7288-ac7d-3f592b219c84" "microsoft-rhel8.0-prod-yum"
+$PMC_CMD repo publish "microsoft-rhel8.0-prod-yum"
+echo " "
+echo "Deleteing pkg for microsoft-rhel9.0-prod-yum"
+$PMC_CMD repo package update --remove-packages "content-rpm-packages-018f3187-62b1-76ac-80f0-dd0b4cc8e04d" "microsoft-rhel9.0-prod-yum"
+$PMC_CMD repo publish "microsoft-rhel9.0-prod-yum"
+echo " "
 echo "Done deleteing pkg"
 echo " "
 
 echo "Get pkg:"
-$PMC_CMD package deb list --name "aziot-edge" --version "1.4.33-1"
+$PMC_CMD package deb list --name "aziot-edge" --version "1.5.0-1"
+
+echo "publish repo"
+$PMC_CMD repo publish "$PMC_REPO_NAME"
+echo ""
 
 # BEARWASHERE -- Temporary disabled
 # #Upload the packages to a storage

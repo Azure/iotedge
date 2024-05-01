@@ -63,10 +63,6 @@ stages:
         secretsFilter: >-
           GitHubAccessToken
     - checkout: self
-    - bash: |
-        mkdir -p $(System.ArtifactsDirectory)/$(artifactName)
-        cd $(System.ArtifactsDirectory)/$(artifactName)
-        wget https://github.com/Azure/azure-iotedge/releases/download/1.4.33/aziot-edge_1.4.33-1_debian11_amd64.deb -O aziot-edge_1.4.33~test_amd64.deb
 
     - task: AzureCLI@2
       displayName: Setup Package Publisher
