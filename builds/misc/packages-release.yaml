@@ -330,7 +330,13 @@ stages:
         azureSubscription: $(az.subscription)
         keyVaultName: $(kv.name)
         secretsFilter: >-
-          GitHubAccessToken,
+          GitHubAccessToken
+    - task: AzureKeyVault@1
+      displayName: Get secrets
+      inputs:
+        azureSubscription: $(az.subscription)
+        keyVaultName: $(kv.name.packages)
+        secretsFilter: >-
           snapcraft-store-credentials
     - task: DownloadPipelineArtifact@2
       displayName: Get azure-iot-edge snaps
