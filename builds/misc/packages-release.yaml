@@ -313,12 +313,12 @@ stages:
       condition: succeededOrFailed()
     - script: |
         $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh \
-        -p "$(os)" \
-        -w "$(System.ArtifactsDirectory)" \
-        -d "$(System.ArtifactsDirectory)/$(artifactName)" \
-        -s "$(package-server-name)" \
-        --pmc-repository "$(pmcRepoName)" \
-        --pmc-release "$(pmcRelease)"
+          -p "$(os)" \
+          -w "$(System.ArtifactsDirectory)" \
+          -d "$(System.ArtifactsDirectory)/$(artifactName)" \
+          -s "$(package-server-name)" \
+          --pmc-repository "$(pmcRepoName)" \
+          --pmc-release "$(pmcRelease)"
       displayName: PMC Package Publication
 
   - job: snaps
@@ -414,14 +414,22 @@ stages:
               echo "iotedge repo path: $IOTEDGE_REPO_PATH"
               echo "iot-identity-service repo path: $IIS_REPO_PATH"
 
-              $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh -p ubuntu20.04 -w $(Build.SourcesDirectory)/iotedge -d $(Build.SourcesDirectory)/iotedge -v "$BASE_VERSION" -s "github.com" -b  $(Build.SourceBranch) --skip-upload true
-
-              # Source the scripts & Update version files
+              # Update the version file
               source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
               update_product_versions_json
 
-              # Update Github and tag
+              # Commit/tag the updated file
               github_update_and_push
+
+              # Create the GitHub release page
+              $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh \
+                -p ubuntu20.04 \
+                -w $(Build.SourcesDirectory)/iotedge \
+                -d $(Build.SourcesDirectory)/iotedge \
+                -v "$BASE_VERSION" \
+                -s "github.com" \
+                -b $(Build.SourceBranch) \
+                --skip-upload true
             env:
               GITHUB_PAT: "$(GitHubAccessToken)"
   - job: linux
@@ -532,12 +540,12 @@ stages:
     - bash: |
         BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
         $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh \
-        -p $(os) \
-        -w $(System.ArtifactsDirectory) \
-        -d $(System.ArtifactsDirectory)/$(artifactName) \
-        -v "$BASE_VERSION" \
-        -s "github.com" \
-        -b $(Build.SourceBranch)
+          -p $(os) \
+          -w $(System.ArtifactsDirectory) \
+          -d $(System.ArtifactsDirectory)/$(artifactName) \
+          -v "$BASE_VERSION" \
+          -s "github.com" \
+          -b $(Build.SourceBranch)
       env:
         GITHUB_PAT: "$(GitHubAccessToken)"
       name: publish_artifacts

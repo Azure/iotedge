@@ -290,63 +290,46 @@ $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 #######################################
 publish_to_github()
 {
-    # Investigate if this can be derived from a commit, Hardcode for now.
-    if [[ -z $BRANCH_NAME ]]; then
-        echo "No Branch Name Provided"
-        exit 1
-    fi
+    . scripts/linux/release-tools.sh
+    get_project_release_info
 
-    branch_name=${BRANCH_NAME/"refs/heads/"/""}
-    echo "Branch Name is $branch_name"
+    local next_version=$(echo "$OUTPUTS" | jq -rc '.version')
+    local previous_version=$(echo "$OUTPUTS" | jq -rc '.previous_version')
+    local changelog
+    printf -v changelog "$(echo "$OUTPUTS" | jq -rc '.changelog')"
+    # Remove 1st line (header) because GitHub Release page has its own header
+    changelog="$(echo "$changelog" | tail -n +2 -)"
 
-    # Using relative path from this script to source the helper script
-    source "$(dirname "$(realpath "$0")")/github/updateLatestVersion.sh"
-    latest_release=$(get_latest_release_per_branch_name)
-    echo "Latest Release is $latest_release"
+    local url="https://api.github.com/repos/Azure/azure-iotedge/releases"
+    local header_content="Accept:application/vnd.github.v3+json"
+    local header_auth="Authorization:token $GITHUB_PAT"
 
-    if [[ -z $latest_release || $latest_release == null ]];then
-        echo "Invalid Response when Querying for Last Release"
-        exit
-    fi
+    # Check if release page exists
+    local release_created=$(
+        curl -X GET -H "$header_content" -H "$header_auth" "$url" \
+        | jq --arg version $next_version '.[] | select(.tag_name == $version)'
+    )
     
-    url="https://api.github.com/repos/Azure/azure-iotedge/releases"
-    header_content="Accept:application/vnd.github.v3+json"
-    header_auth="Authorization:token $GITHUB_PAT"
-    content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
+    if [[ -z $release_created ]]; then
+        # It does not exist, create it
 
-    # Check if Release Page has already been created
-    release_created=$(echo $content | jq --arg version $VERSION '.[] | select(.name==$version)')
-    
-    if [[ -z $release_created ]];then
-        
-        echo "Fetch Changelog"
-        url="https://api.github.com/repos/Azure/iotedge/contents?path=iotedge/&ref=$branch_name"
-        content=$(curl -X GET  -H "$header_content" -H "$header_auth" "$url")
-        download_uri=$(echo $content | jq '.[] | select(.name=="CHANGELOG.md")' | jq '.download_url')
-        download_uri=$(echo $download_uri | tr -d '"')
-        echo "download_url is $download_uri"
-                
-        echo "$(curl -X GET  -H "$header_content" -H "$header_auth" "$download_uri")" > $WDIR/content.txt
-        
-        #Find Content of New Release between (# NEW_VERSION) and (# PREVIOUS_VERSION)
-        
-        echo "$(sed -n "/# $VERSION/,/# $latest_release/p" $WDIR/content.txt)" > $WDIR/content.txt
-        
-        #Remove Last Line
-        sed -i "$ d" $WDIR/content.txt
+        # IS_LTS="$(jq --arg version "$VERSION" -r'
+        # [
+        #     .channels[] | .products[] | select(
+        #     .id=="aziot-edge" and .version==$version
+        #     ) | .name | contains("LTS")
+        # ] | any
+        # ' $AZURE_IOTEDGE_REPO_PATH/product-versions.json)"
 
-        #Create Release Page
-        url="https://api.github.com/repos/Azure/azure-iotedge/releases"
-        reqBody='{tag_name: $version, name: $version, target_commitish:"main", draft: true, body: $body}'
-        if [[ $SKIP_UPLOAD == "false" ]]; then
-            reqBody='{tag_name: $version, name: $version, target_commitish:"main", body: $body}'
-        fi
-        body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" "$reqBody")
-        sudo rm -rf $WDIR/content.txt
-        
-        echo "Body for Release is $body"
-        content=$(curl -X POST -H "$header_content" -H "$header_auth" "$url" -d "$body")
-        release_id=$(echo $content | jq '.id')
+        CHANGELOG="$changelog" \
+        VERSION="$next_version" \
+        GITHUB_TOKEN="$GITHUB_PAT" \
+        # TODO: Don't hard code IS_LTS!!
+        IS_LTS="true" \
+        IS_DRAFT=$([[ $SKIP_UPLOAD == 'false' ]] && echo 'false' || echo 'true') \
+        REPO_NAME="Azure/azure-iotedge" \
+            create_github_release_page_in_product_repo
+        release_id="$RELEASE_ID"
     else
         release_id=$(echo $release_created | jq '.id')
     fi
@@ -361,7 +344,7 @@ publish_to_github()
             echo $upload_url
             name=$f
             case ${f##*.} in 
-                'deb')
+                'deb'|'ddeb')
                     mimetype="application/vnd.debian.binary-package"
                     # Modify Name to be of form {name}_{os}_{arch}.{extension}
                     name="${f%_*}_$PACKAGE_OS"
@@ -389,7 +372,6 @@ publish_to_github()
             fi
         done;
     fi
-
 }
 
 

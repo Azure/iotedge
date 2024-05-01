@@ -350,20 +350,20 @@ get_metrics_collector_release_info() {
 # Globals
 #   BRANCH       Optional. If not given, defaults to 'main'
 #   CHANGELOG    Required. Changelog text to add to the Release page.
-#   CORE_VERSION Required. Version of modules (except diagnostics) that are part of this release
-#   DIAG_VERSION Required. Version of diagnostics module that is part of this release
+#   VERSION      Required. Product version for this release
 #   GITHUB_TOKEN Required. The Authorization token passed to GitHub
 #   IS_LTS       Optional. If not given, defaults to 'false'
+#   IS_DRAFT     Optional. If not given, defaults to 'false'
 #   REPO_NAME    Required. The GitHub product repository, as 'org/repo'
 #
 # Output
 #   RELEASE_URL  The URL of the created Release page
+#   RELEASE_ID   The ID of the created Release page
 #
 create_github_release_page_in_product_repo() {
   if [[
     -z "$CHANGELOG" ||
-    -z "$CORE_VERSION" ||
-    -z "$DIAG_VERSION" ||
+    -z "$VERSION" ||
     -z "$GITHUB_TOKEN" ||
     -z "$REPO_NAME" ]]
   then
@@ -374,20 +374,23 @@ create_github_release_page_in_product_repo() {
   local body="$CHANGELOG"
   local branch=${BRANCH:-main}
   local is_lts=${IS_LTS:-false}
-  local name="$CORE_VERSION"
+  local is_draft=${IS_DRAFT:-false}
+  local name="$VERSION"
   if [ "$is_lts" != "false" ]; then
     name+=" LTS"
   fi
 
   local data=$(jq -nc \
-    --arg version "$CORE_VERSION" \
+    --arg version "$VERSION" \
     --arg name "$name" \
     --arg branch "$branch" \
-    --arg body "$body" '
+    --arg body "$body" \
+    --argjson is_draft $is_draft '
     {
       tag_name: $version,
       name: $name,
       target_commitish: $branch,
+      draft: $is_draft,
       body: $body
     }')
   
@@ -411,6 +414,7 @@ create_github_release_page_in_product_repo() {
   fi
 
   RELEASE_URL=$(echo "$response" | jq -r '.html_url')
+  RELEASE_ID=$(echo "$response" | jq -r '.id')
 }
 
 #
