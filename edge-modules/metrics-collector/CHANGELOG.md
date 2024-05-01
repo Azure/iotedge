@@ -1,3 +1,12 @@
+# 1.2.0 (2024-05-01)
+
+## What's new in 1.2?
+
+The Metrics Collector 1.2 module has been upgraded from .NET 6 to .NET 8. Its functionality remains unchanged and it will work seamlessly in IoT Edge 1.4 LTS or 1.5 LTS environments. Users can confidently update Metrics Collector 1.1 in their IoT Edge deployments to the new 1.2 version. Changes include (see [7508ffc](https://github.com/Azure/iotedge/commit/7508ffc6ab9f4d52a3243d0cdce1e52cdfd29912)):
+* Update the base image from .NET 6 to .NET 8
+* Recompile for .NET 8
+* Upgrade the IoT device SDK to a version that is consistent with the latest (1.5) version of IoT Edge
+
 # 1.1.24 (2024-04-10)
 
 The following Docker images were updated because their base images changed:
