@@ -63,6 +63,9 @@ stages:
         secretsFilter: >-
           GitHubAccessToken
     - checkout: self
+    - bash: |
+        mkdir -p $(System.ArtifactsDirectory)/$(artifactName)
+        cd $(System.ArtifactsDirectory)/$(artifactName)
 
     - task: AzureCLI@2
       displayName: Setup Package Publisher
