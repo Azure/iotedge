@@ -105,20 +105,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public string[] GetInstallCommandsFromMicrosoftProd(Option<Uri> proxy)
         {
-            // we really support only two options for now.
-            string repository = this.os.ToLower() switch
-            {
-                "ubuntu" => $"https://packages.microsoft.com/config/ubuntu/{this.version}/prod.list",
-                "debian" => "https://packages.microsoft.com/config/debian/stretch/multiarch/prod.list",
-                _ => throw new NotImplementedException($"Don't know how to install daemon for '{this.os}'"),
-            };
-
             return this.PackageExtension switch
             {
                 SupportedPackageExtension.Deb => new[]
                 {
-                    $"curl {repository} > /etc/apt/sources.list.d/microsoft-prod.list",
-                    "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
                     $"apt-get update",
                     $"apt-get install --option DPkg::Lock::Timeout=600 --yes aziot-edge"
                 },
