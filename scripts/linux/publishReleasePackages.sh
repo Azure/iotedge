@@ -5,6 +5,7 @@
 #AZ CLI LOGIN
 SCRIPT_NAME=$(basename $0)
 SKIP_UPLOAD="false"
+IS_LTS="false"
 IS_PMC_SETUP_ONLY="false"
 DOCKER_CONFIG_DIR="/root/.config/pmc"
 DOCKER_CERT_FILE="/root/.config/pmc/private-key.pem"
@@ -21,9 +22,8 @@ function usage() {
     echo " -w,  --wdir                   working directory for secrets.Default is $(pwd)."
     echo " -s,  --server                 server name for package upload"
     echo " -g,  --ghubpat                value of github pat. Required only if uploading to github"
-    echo " -v,  --version                version of the release."
     echo " -u,  --skip-upload            Skips Upload and Only Creates Release for Github. Defaults to false"
-    echo " -b,  --branch-name            Git Branch Name"
+    echo " -l,  --is-lts                 Is the release an LTS release. Defaults to false"
     echo " -pro,--pmc-repository         PMC package repository"
     echo " -pre,--pmc-release            Release for PMC (required for *.deb) {\"bullseye\", \"focal\", \"jammy\", \"nightly\", \"\" }"
     echo " --setup-pmc-only              Setup production certificate for PMC publication. No package upload will be done."
@@ -94,21 +94,18 @@ process_args() {
             GITHUB_PAT="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 6 ]; then
-            VERSION="$arg"
-            save_next_arg=0   
-        elif [ $save_next_arg -eq 7 ]; then
             SKIP_UPLOAD="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 8 ]; then
-            BRANCH_NAME="$arg"
+        elif [ $save_next_arg -eq 7 ]; then
+            IS_LTS="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 9 ]; then
+        elif [ $save_next_arg -eq 7 ]; then
             PMC_REPO_NAME="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 10 ]; then
+        elif [ $save_next_arg -eq 8 ]; then
             PMC_RELEASE="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 11 ]; then
+        elif [ $save_next_arg -eq 9 ]; then
             DISCARD="$arg"
             IS_PMC_SETUP_ONLY="true"
             save_next_arg=0
@@ -120,12 +117,11 @@ process_args() {
             "-w" | "--wdir") save_next_arg=3 ;;
             "-s" | "--server") save_next_arg=4 ;;
             "-g" | "--ghubpat") save_next_arg=5 ;;
-            "-v" | "--version") save_next_arg=6 ;;
-            "-u" | "--skip-upload") save_next_arg=7 ;;
-            "-b" | "--branch-name") save_next_arg=8 ;;
-            "-pro" | "--pmc-repository") save_next_arg=9 ;;
-            "-pre" | "--pmc-release") save_next_arg=10 ;;
-            "--setup-pmc-only") save_next_arg=11 ;;
+            "-u" | "--skip-upload") save_next_arg=6 ;;
+            "-l" | "--is-lts") save_next_arg=7 ;;
+            "-pro" | "--pmc-repository") save_next_arg=8 ;;
+            "-pre" | "--pmc-release") save_next_arg=9 ;;
+            "--setup-pmc-only") save_next_arg=10 ;;
             *) usage ;;
             esac
         fi
@@ -174,7 +170,6 @@ sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
 #       the config file an the uploading artifacts.
 #    3. Validate if the artifacts are readily available on PMC.
 # GLOBALS:
-#    BRANCH_NAME ________________ Source Branch name            (string)
 #    CONFIG_DIR _________________ Path to RepoClient config file(string)
 #    OS_NAME ____________________ Operating System name         (string)
 #    OS_VERSION _________________ Operating System version      (string)
@@ -266,27 +261,26 @@ $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 # DESCRIPTION:
 #    The function has two operating mode depending the value of $SKIP_UPLOAD
 #
-#    If SKIP_UPLOAD=false, the script creates a github release page on /azure-iotedge 
-#    repository with a VERSION tag to the latest commit. The release page comprises of
-#      - Change log as a description which is parsed from CHANGELOG.MD
-#      - Renamed production artifacts from the build pipeline in the format of
-#        <component>_<version>_<os>_<architecture>.<fileExtension> 
+#    If SKIP_UPLOAD=false, the script creates a github release page in the Azure/azure-iotedge
+#    repository. The release page is titled with the version and includes:
+#      - The release tag
+#      - The change log, parsed from CHANGELOG.md
+#      - aziot-edge and aziot-identity-service host packages for supported distros, with filenames
+#        in the format: <component>_<version>_<os>_<architecture>.<fileExtension> 
 #        i.e. iotedge_1.1.13-1_debian11_arm64.deb
 #
-#    If SKIP_UPLOAD=true, the script creates a DRAFT github release page on /azure-iotedge
-#    without a github tag AND no production artifacts are uploaded to draft.
+#    If SKIP_UPLOAD=true, the script creates a DRAFT github release page on Azure/azure-iotedge,
+#    but does not upload the host packages.
 #    
 # GLOBALS:
-#    BRANCH_NAME ________________ Source Branch name            (string)
+#    IS_LTS _____________________ Is the release an LTS release (bool)
 #    GITHUB_PAT _________________ Github Personal Access Token  (string)
 #    SKIP_UPLOAD ________________ Skip Github artifact upload   (bool)
-#      if false, upload artifacts to github release page
-#      if true, create the release page in draft mode without artifacts uploaded.
-#    VERSION ____________________ Current release version       (string)
-#    WDIR _______________________ Current work directory        (string)
+#      if false, upload host packages to github release page
+#      if true, create the release page in draft mode without uploading host packages.
 #
 # OUTPUTS:
-#    Github release page on /azure-iotedge repository
+#    Github release page in tje Azure/azure-iotedge repository
 #######################################
 publish_to_github()
 {
@@ -312,20 +306,10 @@ publish_to_github()
     
     if [[ -z $release_created ]]; then
         # It does not exist, create it
-
-        # IS_LTS="$(jq --arg version "$VERSION" -r'
-        # [
-        #     .channels[] | .products[] | select(
-        #     .id=="aziot-edge" and .version==$version
-        #     ) | .name | contains("LTS")
-        # ] | any
-        # ' $AZURE_IOTEDGE_REPO_PATH/product-versions.json)"
-
         CHANGELOG="$changelog" \
         VERSION="$next_version" \
         GITHUB_TOKEN="$GITHUB_PAT" \
-        # TODO: Don't hard code IS_LTS!!
-        IS_LTS="true" \
+        IS_LTS=$([[ $IS_LTS == 'false' ]] && echo 'false' || echo 'true') \
         IS_DRAFT=$([[ $SKIP_UPLOAD == 'false' ]] && echo 'false' || echo 'true') \
         REPO_NAME="Azure/azure-iotedge" \
             create_github_release_page_in_product_repo
@@ -384,6 +368,11 @@ check_dir
 echo "Work Dir is $WDIR"
 echo "Package OS DIR is $DIR"
 
+if [[ "$IS_LTS" != "true" && "$IS_LTS" != "false" ]]; then
+    echo "Invalid value for IS_LTS: $IS_LTS"
+    exit 1
+fi
+
 if [[ $IS_PMC_SETUP_ONLY == "false" ]] ; then
     check_os
     check_server
@@ -398,10 +387,6 @@ ls -al $DIR
 if [[ $SERVER == *"github"* ]]; then
     if [[ -z $GITHUB_PAT ]]; then
         echo "Github PAT Token Not Provider"
-        exit 1
-    fi
-    if [[ -z $VERSION ]]; then
-        echo "Version Not Provided"
         exit 1
     fi
     publish_to_github

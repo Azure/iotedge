@@ -144,10 +144,48 @@ get_version_from_json()
 
 
 #######################################
+# NAME:
+#    version_is_lts
+# DESCRIPTION:
+#    Determine if the given version matches a product in the LTS channel in product-versions.json
+# GLOBALS:
+#    AZURE_IOTEDGE_REPO_PATH __________ Path to /azure-iotedge (string)
+# ARGUMENTS:
+#    $1 _______________________________ Version to search for (string)
+# OUTPUTS:
+#    Prints 'true' to stdout if the given version matches a product in the LTS channel, 'false'
+#    otherwise.
+#######################################
+version_is_lts()
+{
+    [[ -z "$1" ]] && { echo "$FUNCNAME: \$1 is undefined"; exit 1; }
+    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$AZURE_IOTEDGE_REPO_PATH is undefined"; exit 1; }
+
+    local version=$1
+
+    jq -r --arg version "$version" '
+        .channels[]
+        | .products[]
+        | select(.id=="aziot-edge" and .version==$version)
+        | .name
+        | contains("LTS")
+    ' $AZURE_IOTEDGE_REPO_PATH/product-versions.json
+}   
+
+#   IS_LTS="$(jq --arg version "$VERSION" -r'
+#   [
+#       .channels[] | .products[] | select(
+#           .id=="aziot-edge" and .version==$version
+#       ) | .name | contains("LTS")
+#   ] | any
+#   ' $AZURE_IOTEDGE_REPO_PATH/product-versions.json)"
+
+
+#######################################
 # NAME: 
 #    update_product_versions_json
 # DESCRIPTION:
-#    Update the necessary version.json files for the last step of the IoTEdge release.
+#    Update product-versions.json files in the product repo.
 # GLOBALS:
 #    IOTEDGE_REPO_PATH __________ Path to /iotedge directory    (string)
 #        i.e. $(Build.SourcesDirectory)/iotedge
@@ -156,7 +194,7 @@ get_version_from_json()
 #    IIS_REPO_PATH ______________ Path to /iot-identity-service (string)
 #        i.e. $(Build.SourcesDirectory)/iot-identity-service
 # OUTPUTS:
-#    Updated product-versions.json
+#    PRODUCT_VERSION ____________ The product version that was added/updated (string)
 # REMARKS:
 #    Make sure the directories provided have the proper branch/commit checked out
 #######################################
@@ -236,6 +274,8 @@ update_product_versions_json()
     echo "Updated $TARGET_FILE:"
     jq '.' $TARGET_FILE
     echo ""
+
+    PRODUCT_VERSION="$proposedProductVersion"
 }
 
 
