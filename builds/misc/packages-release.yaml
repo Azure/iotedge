@@ -99,11 +99,12 @@ stages:
           *.rpm
           !*-debugsource-*.rpm
         TargetFolder: '$(build.artifactstagingdirectory)'
-    - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@3
+    - task: EsrpCodeSigning@3
       displayName: ESRP Binary CodeSigning
       inputs:
         ConnectedServiceName: "aziotedge-pmc-v4-prod"
         FolderPath: '$(build.artifactstagingdirectory)'
+        UseMinimatch: true
         Pattern: |
           *.deb
           *.ddeb
