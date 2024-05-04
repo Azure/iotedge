@@ -272,6 +272,7 @@ get_project_release_info() {
   # See https://developercommunity.visualstudio.com/t/multiple-lines-variable-in-build-and-release/365667
   readarray -t lines < <(cat "$tmpfile")
   local changelog=$(printf '\\x0A%s' "${lines[@]//$'\r'}")
+  local changelog="${changelog//\"/\\\"}" # Escape double quotes
   local changelog=${changelog:4} # Remove leading newline
 
   rm "$tmpfile"
@@ -326,6 +327,7 @@ get_metrics_collector_release_info() {
   # See https://developercommunity.visualstudio.com/t/multiple-lines-variable-in-build-and-release/365667
   readarray -t lines < <(cat "$tmpfile")
   local changelog=$(printf '\\x0A%s' "${lines[@]//$'\r'}")
+  local changelog="${changelog//\"/\\\"}" # Escape double quotes
   local changelog=${changelog:4} # Remove leading newline
 
   rm "$tmpfile"
