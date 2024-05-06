@@ -397,9 +397,9 @@ stages:
   # TODO: vvv revert job back to ^^^ deployment
   - job: safe_guard
     displayName: Get Approval
-    strategy:
-      runOnce:
-        deploy:
+    # strategy:
+    #   runOnce:
+    #     deploy:
           steps:
           - task: AzureKeyVault@1
             displayName: Get secrets
