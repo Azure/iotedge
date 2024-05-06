@@ -90,7 +90,7 @@ is_major_minor_bump()
 
     # validate that the new version is higher than the current version
     local highVersion=$(echo -e "$curVersion\n$newVersion" | sort --version-sort -r | head -1)
-    if [[ "$highVersion" == "$curVersion" ]]; then
+    if [[ "$newVersion" != "$curVersion" && "$highVersion" == "$curVersion" ]]; then
         echo "Error: New version ($newVersion) is less than current version ($curVersion)"
         return 1
     fi
