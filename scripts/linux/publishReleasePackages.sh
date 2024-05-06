@@ -280,7 +280,7 @@ $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 #      if true, create the release page in draft mode without uploading host packages.
 #
 # OUTPUTS:
-#    Github release page in tje Azure/azure-iotedge repository
+#    Github release page in the Azure/azure-iotedge repository
 #######################################
 publish_to_github()
 {
