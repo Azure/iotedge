@@ -52,14 +52,12 @@ version_ge()
     echo -n "$1: $lhs > $rhs ? "
 
     if [[ "$rhs" == "$lhs" ]]; then
-        echo "In version_ge(): rhs == lhs, warning=$warning"
         if [[ "$warning" != 'true' ]]; then
             echo 'Ok'
         else
             echo 'Warning - versions are equal, was that intended?'
         fi
     else
-        echo "In version_ge(): rhs != lhs"
         highVersion=$(echo -e "$rhs\n$lhs" | sort --version-sort -r | head -1)
         if [[ "$highVersion" == "$lhs" ]]; then # lhs > rhs
             echo 'Ok'
