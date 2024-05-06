@@ -392,8 +392,10 @@ stages:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
   jobs:
-  - deployment: safe_guard
-    environment: 'Azure-IoT-Edge-Core Release Env'
+  # - deployment: safe_guard
+  #   environment: 'Azure-IoT-Edge-Core Release Env'
+  # TODO: vvv revert job back to ^^^ deployment
+  - job: safe_guard
     displayName: Get Approval
     strategy:
       runOnce:
