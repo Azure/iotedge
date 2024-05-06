@@ -61,7 +61,7 @@ version_ge()
     else
         echo "In version_ge(): rhs != lhs"
         highVersion=$(echo -e "$rhs\n$lhs" | sort --version-sort -r | head -1)
-        if [[ "$highVersion" == "$lhs" ]]; then # new > cur
+        if [[ "$highVersion" == "$lhs" ]]; then # lhs > rhs
             echo 'Ok'
         else
             echo 'Failed'
