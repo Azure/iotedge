@@ -455,6 +455,8 @@ stages:
   - job: linux
     displayName: Linux
     dependsOn: safe_guard
+    variables:
+      azure_iotedge_repo_name: $[ resources.repositories.product.name ]
     strategy:
       matrix:
         RedHat8-amd64:
