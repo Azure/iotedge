@@ -389,9 +389,7 @@ if [[ $IS_PMC_SETUP_ONLY == "false" ]] ; then
 fi
 
 #Debug View of Package Dir Path
-ls -al $DIR
-
-set -x
+ls -al $DIR 
 
 if [[ $SERVER == *"github"* ]]; then
     if [[ -z $GITHUB_PAT ]]; then
