@@ -561,7 +561,7 @@ stages:
     - bash: |
         $(Build.SourcesDirectory)/scripts/linux/publishReleasePackages.sh \
           -p $(os) \
-          -w $(System.ArtifactsDirectory) \
+          -w $(Build.SourcesDirectory) \
           -d $(System.ArtifactsDirectory)/$(artifactName) \
           -s "github.com" \
           -r "$(azure_iotedge_repo_name)" \
