@@ -22,7 +22,7 @@ resources:
 variables:
   Codeql.Enabled: false
   DisableDockerDetector: true
-  azure_iotedge_repo_branch: $[ replace(resources.repositories."azure-iotedge".ref, 'refs/heads/', '') ]
+  azure_iotedge_repo_branch: $[ replace(resources.repositories.azure-iotedge.ref, 'refs/heads/', '') ]
 
 stages:
 # ################################################################################
