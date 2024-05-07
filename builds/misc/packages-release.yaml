@@ -445,6 +445,7 @@ stages:
           --is-lts "$IS_LTS" \
           --skip-upload true
       env:
+        GIT_EMAIL: "$(service-account.email)"
         GITHUB_PAT: "$(GitHubAccessToken)"
   - job: linux
     displayName: Linux

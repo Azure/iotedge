@@ -287,8 +287,9 @@ update_product_versions_json()
 # GLOBALS:
 #    AZURE_IOTEDGE_REPO_PATH ____ Path to /azure-iotedge        (string)
 #        i.e. $(Build.SourcesDirectory)/azure-iotedge
-#    VERSION ____________________ Current release version       (string)
+#    GIT_EMAIL __________________ Email address for commit      (string)
 #    GITHUB_PAT _________________ Github Personal Access Token  (string)
+#    VERSION ____________________ Current release version       (string)
 # OUTPUTS:
 #    Updated latest version JSON files
 # REMARK:
@@ -298,11 +299,13 @@ update_product_versions_json()
 github_update_and_push()
 {
     [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$AZURE_IOTEDGE_REPO_PATH is undefined"; exit 1; }
-    [[ -z "$VERSION" ]] && { echo "\$VERSION is undefined"; exit 1; }
+    [[ -z "$GIT_EMAIL" ]] && { echo "\$GIT_EMAIL is undefined"; exit 1; }
     [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
+    [[ -z "$VERSION" ]] && { echo "\$VERSION is undefined"; exit 1; }
 
     cd $AZURE_IOTEDGE_REPO_PATH
-    git config user.name iotedge1
+    git config user.name 'IoT Edge Bot'
+    git config user.email "$GIT_EMAIL"
 
     git checkout main
     git pull
