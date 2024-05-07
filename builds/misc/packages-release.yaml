@@ -21,7 +21,7 @@ resources:
     endpoint: github.com_damonbarry
     # TODO: vvv Change back to azure/iot-identity-service
     name: damonbarry/iot-identity-service
-    ref: main
+    ref: refs/heads/main
 
 stages:
 # ################################################################################
