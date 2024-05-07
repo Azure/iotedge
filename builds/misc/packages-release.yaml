@@ -4,11 +4,11 @@ pr: none
 
 resources:
   repositories:
-  - repository: azure-iotedge
+  - repository: product
     type: github
     # TODO: vvv Change back to azure-iot-edge-iotedge1-github
     endpoint: github.com_damonbarry
-    # TODO: vvv Change back to azure/azure-iotedge
+    # TODO: vvv Change back to Azure/azure-iotedge
     name: damonbarry/azure-iotedge
     ref: refs/heads/main
   - repository: iot-identity-service
@@ -22,7 +22,7 @@ resources:
 variables:
   Codeql.Enabled: false
   DisableDockerDetector: true
-  azure_iotedge_repo_branch: $[ replace(resources.repositories.azure-iotedge.ref, 'refs/heads/', '') ]
+  azure_iotedge_repo_branch: $[ replace(resources.repositories.product.ref, 'refs/heads/', '') ]
 
 stages:
 # ################################################################################
@@ -412,7 +412,7 @@ stages:
         secretsFilter: >-
           GitHubAccessToken
     - checkout: self
-    - checkout: azure-iotedge
+    - checkout: product
       submodules: recursive
     - checkout: iot-identity-service
       submodules: recursive
@@ -594,7 +594,7 @@ stages:
       - $(agent_demands)
 
     steps:
-    - checkout: azure-iotedge
+    - checkout: product
     - checkout: self
     - bash: |
         # Source the scripts & Update version files
