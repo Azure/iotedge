@@ -400,7 +400,7 @@ stages:
   - job: safe_guard
     displayName: Get Approval
     variables:
-      azure_iotedge_repo_branch: $[ replace(resources.repositories.azure-iotedge.ref, 'refs/heads/', '') ]
+      azure_iotedge_repo_branch: $[ replace(resources.repositories."azure-iotedge".ref, 'refs/heads/', '') ]
     # strategy:
     #   runOnce:
     #     deploy:
