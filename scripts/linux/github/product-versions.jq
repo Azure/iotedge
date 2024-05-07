@@ -18,10 +18,10 @@ product_iter | .components[] | select(.name == $component_name);
 def aziotedge_component_version(product_version_or_iter; $component_name):
 if product_version_or_iter | [ strings ] | length == 1 then
   # Arg is the aziot-edge product version
-  component_iter(product_iter("aziot-edge"; product_version_or_iter); $component_name).version
+  [ component_iter(product_iter("aziot-edge"; product_version_or_iter); $component_name).version ] | first
 elif product_version_or_iter | [ objects ] | length != 0 then
   # Arg is a product iterator
-  component_iter(product_version_or_iter; $component_name).version
+  [ component_iter(product_version_or_iter; $component_name).version ] | first
 else
   halt_error(
     [
@@ -33,7 +33,7 @@ end;
 
 # Given the product name and version, return the product's version
 def product_version($product_name; $product_version):
-product_iter($product_name; $product_version) | .version;
+[ product_iter($product_name; $product_version) | .version ] | first;
 
 # Return a new product-versions document whose "aziot-edge" product and component versions have been updated to the
 # given versions
