@@ -290,6 +290,7 @@ update_product_versions_json()
     # TODO: vvv remove temporary logging
     echo ">>> REMOTE URL FROM GIT: $remote_url"
     remote_url="${remote_url/#https:\/\//https:\/\/$GITHUB_TOKEN@}" # add token to URL
+    echo ">>> UPDATED REMOTE URL: ${remote_url/${GITHUB_TOKEN:6}/******}"
 
     # commit changes, tag, and push
     git commit -m "Prepare for release $proposedProductVersion"
