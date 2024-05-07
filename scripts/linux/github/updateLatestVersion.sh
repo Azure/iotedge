@@ -165,10 +165,11 @@ version_is_lts()
 
     jq -r --arg version "$version" '
         .channels[]
+        | select(.name == "lts")
         | .products[]
         | select(.id=="aziot-edge" and .version==$version)
-        | .name
-        | contains("LTS")
+        | isempty(.)
+        | not
     ' $AZURE_IOTEDGE_REPO_PATH/product-versions.json
 }   
 
