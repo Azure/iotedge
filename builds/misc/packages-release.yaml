@@ -436,8 +436,6 @@ stages:
         source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
         update_product_versions_json
 
-        set -x
-
         IS_LTS=$(version_is_lts "$PRODUCT_VERSION")
 
         # Create the GitHub release page
