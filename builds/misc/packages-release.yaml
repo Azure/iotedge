@@ -546,11 +546,10 @@ stages:
           $(artifactName)/*.ddeb
           $(artifactName)/*.rpm
           $(artifactName)/*.snap
-    - task: PowerShell@2
+    - pwsh: |
+        New-Item $env:DOWNLOAD_PATH -ItemType Directory -Force | Out-Null
+        scripts/local/test/DownloadIdentityService.ps1
       displayName: 'Download aziot-identity-service'
-      inputs:
-        filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
-        workingDirectory: $(Build.SourcesDirectory)
       env:
         GITHUB_TOKEN: $(GitHubAccessToken)
         ARTIFACT_NAME: $(identityServiceArtifactName)
