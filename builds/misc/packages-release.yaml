@@ -14,6 +14,7 @@ resources:
     endpoint: github.com_damonbarry
     # TODO: vvv Change back to azure/azure-iotedge
     name: damonbarry/azure-iotedge
+    ref: refs/heads/main
   - repository: iot-identity-service
     type: github
     # TODO: vvv Change back to azure-iot-edge-iotedge1-github
