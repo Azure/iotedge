@@ -51,10 +51,6 @@ version_ge()
 
     echo -n "$1: $lhs > $rhs ? "
 
-    echo "version_ge arguments: $*"
-    echo "version_ge arguments: [$1] [$2] [$3] [$4]"
-    echo "version_ge local vars: lhs=[$lhs] rhs=[$rhs] warning=[$warning]"
-
     if [[ "$rhs" == "$lhs" ]]; then
         if [[ "$warning" != 'true' ]]; then
             echo 'Ok'
