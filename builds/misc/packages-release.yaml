@@ -401,6 +401,7 @@ stages:
     displayName: Get Approval
     variables:
       azure_iotedge_repo_branch: $[ replace(resources.repositories.product.ref, 'refs/heads/', '') ]
+      azure_iotedge_repo_name: $[ resources.repositories.product.name ]
     # strategy:
     #   runOnce:
     #     deploy:
@@ -444,6 +445,7 @@ stages:
           -w $(Build.SourcesDirectory)/iotedge \
           -d $(Build.SourcesDirectory)/iotedge \
           -s "github.com" \
+          -r "$(azure_iotedge_repo_name)" \
           --is-lts "$IS_LTS" \
           --skip-upload true
       displayName: Create GitHub release page in product repo
