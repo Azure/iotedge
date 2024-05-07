@@ -287,8 +287,6 @@ update_product_versions_json()
     git config user.email "$GIT_EMAIL"
 
     remote_url="$(git config --get "remote.$AZURE_IOTEDGE_REPO_REMOTE.url")"
-    # TODO: vvv remove temporary logging
-    echo ">>> REMOTE URL FROM GIT: $remote_url"
     remote_url="${remote_url/#https:\/\//https:\/\/$GITHUB_PAT@}" # add token to URL
 
     # commit changes, tag, and push
