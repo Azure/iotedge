@@ -397,6 +397,8 @@ stages:
   # TODO: vvv revert job back to ^^^ deployment
   - job: safe_guard
     displayName: Get Approval
+    variables:
+      azure_iotedge_repo_branch: $[ replace(resources.repositories.azure-iotedge.ref, 'refs/heads/', '') ]
     # strategy:
     #   runOnce:
     #     deploy:
@@ -417,6 +419,7 @@ stages:
         echo "Approval Complete"
         BASE_VERSION="$(cat $BUILD_SOURCESDIRECTORY/iotedge/edgelet/version.txt)"
         VERSION="$BASE_VERSION"
+        AZURE_IOTEDGE_REPO_REMOTE='origin'
         AZURE_IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/azure-iotedge"
         IOTEDGE_REPO_PATH="$(Build.SourcesDirectory)/iotedge"
         IIS_REPO_PATH="$(Build.SourcesDirectory)/iot-identity-service"
