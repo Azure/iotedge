@@ -427,12 +427,9 @@ stages:
         echo "iotedge repo path: $IOTEDGE_REPO_PATH"
         echo "iot-identity-service repo path: $IIS_REPO_PATH"
 
-        # Update the version file
+        # Update the version file, then commit, tag, and push
         source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
         update_product_versions_json
-
-        # Commit/tag the updated file
-        github_update_and_push
 
         IS_LTS=$(version_is_lts "$PRODUCT_VERSION")
 

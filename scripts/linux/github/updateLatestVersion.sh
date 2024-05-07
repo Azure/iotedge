@@ -172,37 +172,42 @@ version_is_lts()
     ' $AZURE_IOTEDGE_REPO_PATH/product-versions.json
 }   
 
-#   IS_LTS="$(jq --arg version "$VERSION" -r'
-#   [
-#       .channels[] | .products[] | select(
-#           .id=="aziot-edge" and .version==$version
-#       ) | .name | contains("LTS")
-#   ] | any
-#   ' $AZURE_IOTEDGE_REPO_PATH/product-versions.json)"
-
-
 #######################################
 # NAME: 
 #    update_product_versions_json
 # DESCRIPTION:
-#    Update product-versions.json files in the product repo.
+#    Update product-versions.json files in the product repo, then commits the change, tags it, and pushes the change to
+#    the remote repository.
 # GLOBALS:
-#    IOTEDGE_REPO_PATH __________ Path to /iotedge directory    (string)
-#        i.e. $(Build.SourcesDirectory)/iotedge
-#    AZURE_IOTEDGE_REPO_PATH ____ Path to /azure-iotedge        (string)
+#    AZURE_IOTEDGE_REPO_REMOTE __ Optional, defaults to 'origin'        (string)
+#    AZURE_IOTEDGE_REPO_BRANCH __ Optional, defaults to current branch  (string)
+#    AZURE_IOTEDGE_REPO_PATH ____ Path to /azure-iotedge                (string)
 #        i.e. $(Build.SourcesDirectory)/azure-iotedge
-#    IIS_REPO_PATH ______________ Path to /iot-identity-service (string)
+#    IIS_REPO_PATH ______________ Path to /iot-identity-service         (string)
 #        i.e. $(Build.SourcesDirectory)/iot-identity-service
+#    IOTEDGE_REPO_PATH __________ Path to /iotedge directory            (string)
+#        i.e. $(Build.SourcesDirectory)/iotedge
+#    GIT_EMAIL __________________ Email address for commit              (string)
+#    GITHUB_PAT _________________ Github Personal Access Token          (string)
 # OUTPUTS:
 #    PRODUCT_VERSION ____________ The product version that was added/updated (string)
-# REMARKS:
-#    Make sure the directories provided have the proper branch/commit checked out
 #######################################
 update_product_versions_json()
 {
-    [[ -z "$IOTEDGE_REPO_PATH" ]] && { echo "\$IOTEDGE_REPO_PATH is undefined"; exit 1; }
-    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$AZURE_IOTEDGE_REPO_PATH is undefined"; exit 1; }
-    [[ -z "$IIS_REPO_PATH" ]] && { echo "\$IIS_REPO_PATH is undefined"; exit 1; }
+    [[ ! -d "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "Path '$AZURE_IOTEDGE_REPO_PATH' not found"; exit 1; }
+    [[ ! -d "$IIS_REPO_PATH" ]] && { echo "Path '$IIS_REPO_PATH' not found"; exit 1; }
+    [[ ! -d "$IOTEDGE_REPO_PATH" ]] && { echo "Path '$IOTEDGE_REPO_PATH' not found"; exit 1; }
+    [[ -z "$GIT_EMAIL" ]] && { echo "\$GIT_EMAIL is undefined"; exit 1; }
+    [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
+
+    cd "$AZURE_IOTEDGE_REPO_PATH"
+
+    AZURE_IOTEDGE_REPO_REMOTE=${AZURE_IOTEDGE_REPO_REMOTE:-origin}
+    AZURE_IOTEDGE_REPO_BRANCH=${AZURE_IOTEDGE_REPO_BRANCH:-$(git branch --show-current)}
+
+    # in case commits were made after this pipeline started but before we arrived here, sync to
+    # the tip of the branch
+    git checkout "$AZURE_IOTEDGE_REPO_BRANCH"
 
     # Set target version file to be updated
     TARGET_FILE="$AZURE_IOTEDGE_REPO_PATH/product-versions.json"
@@ -275,45 +280,20 @@ update_product_versions_json()
     jq '.' $TARGET_FILE
     echo ""
 
-    PRODUCT_VERSION="$proposedProductVersion"
-}
+    git add product-versions.json
 
-
-#######################################
-# NAME: 
-#    github_update_and_push
-# DESCRIPTION:
-#    The function commits the changes, tag, and push them to remote repository
-# GLOBALS:
-#    AZURE_IOTEDGE_REPO_PATH ____ Path to /azure-iotedge        (string)
-#        i.e. $(Build.SourcesDirectory)/azure-iotedge
-#    GIT_EMAIL __________________ Email address for commit      (string)
-#    GITHUB_PAT _________________ Github Personal Access Token  (string)
-#    VERSION ____________________ Current release version       (string)
-# OUTPUTS:
-#    Updated latest version JSON files
-# REMARK:
-#    Please make sure the directories provided need to have a proper branch/commit 
-#    checked out.
-#######################################
-github_update_and_push()
-{
-    [[ -z "$AZURE_IOTEDGE_REPO_PATH" ]] && { echo "\$AZURE_IOTEDGE_REPO_PATH is undefined"; exit 1; }
-    [[ -z "$GIT_EMAIL" ]] && { echo "\$GIT_EMAIL is undefined"; exit 1; }
-    [[ -z "$GITHUB_PAT" ]] && { echo "\$GITHUB_PAT is undefined"; exit 1; }
-    [[ -z "$VERSION" ]] && { echo "\$VERSION is undefined"; exit 1; }
-
-    cd $AZURE_IOTEDGE_REPO_PATH
+    # configure git
     git config user.name 'IoT Edge Bot'
     git config user.email "$GIT_EMAIL"
 
-    git checkout main
-    git pull
+    remote_url="$(git config --get "remote.$AZURE_IOTEDGE_REPO_REMOTE.url")"
+    remote_url="${remote_url/#https:\/\//https:\/\/$GITHUB_TOKEN@}" # add token to URL
 
-    git commit -am "Prepare for Release $VERSION"
-    lastCommitHash=$(git log -n 1 --pretty=format:"%H")
-    git tag "$VERSION" $lastCommitHash
+    # commit changes, tag, and push
+    git commit -m "Prepare for release $proposedProductVersion"
+    git tag "$proposedProductVersion"
+    git push "$remote_url" "HEAD:$AZURE_IOTEDGE_REPO_BRANCH"
+    git push "$remote_url" "$proposedProductVersion"
 
-    git push --force https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git
-    git push --force https://$GITHUB_PAT@github.com/Azure/azure-iotedge.git "$VERSION"
+    PRODUCT_VERSION="$proposedProductVersion"
 }
