@@ -135,7 +135,7 @@ process_args() {
 }
 
 #######################################
-# NAME: 
+# NAME:
 #    setup_for_microsoft_repo
 #
 # DESCRIPTION:
@@ -162,17 +162,17 @@ sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
 }
 
 #######################################
-# NAME: 
+# NAME:
 #    publish_to_microsoft_repo
 #
 # DESCRIPTION:
-#    The function upload artifacts to Microsoft Linux Package Repository which is multiarch 
+#    The function upload artifacts to Microsoft Linux Package Repository which is multiarch
 #    repository at packages.microsoft.com (PMC). The upload of the artifacts is done via RepoClient
 #    app (which now avaiable as a docker image)
 #
 #    The script simply does the follow:
 #    1. Pull clean docker image for RepoClient app
-#    2. To upload the artifacts, the function runs the RepoClient image against 
+#    2. To upload the artifacts, the function runs the RepoClient image against
 #       the config file an the uploading artifacts.
 #    3. Validate if the artifacts are readily available on PMC.
 # GLOBALS:
@@ -203,7 +203,7 @@ if [[ $OUTPUT_STATUS != "completed" ]]; then
     echo "Upload Status: $OUTPUT_STATUS"
     #TODO - Uncomment this if the check is valide for multiple pkg upload
     # Also implement this check for the repo update & repo publish operation
-    # exit 1 
+    # exit 1
 fi
 
 #Generate Package Id list
@@ -261,7 +261,7 @@ $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 
 
 #######################################
-# NAME: 
+# NAME:
 #    publish_to_github
 #
 # DESCRIPTION:
@@ -272,12 +272,12 @@ $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 #      - The release tag
 #      - The change log, parsed from CHANGELOG.md
 #      - aziot-edge and aziot-identity-service host packages for supported distros, with filenames
-#        in the format: <component>_<version>_<os>_<architecture>.<fileExtension> 
+#        in the format: <component>_<version>_<os>_<architecture>.<fileExtension>
 #        i.e. iotedge_1.1.13-1_debian11_arm64.deb
 #
 #    If SKIP_UPLOAD=true, the script creates a DRAFT github release page on Azure/azure-iotedge,
 #    but does not upload the host packages.
-#    
+#
 # GLOBALS:
 #    IS_LTS _____________________ Is the release an LTS release (bool)
 #    GITHUB_PAT _________________ Github Personal Access Token  (string)
@@ -311,7 +311,7 @@ publish_to_github()
         curl -X GET -H "$header_content" -H "$header_auth" "$url" \
         | jq --arg version $next_version '.[] | select(.tag_name == $version)'
     )
-    
+
     if [[ -z $release_created ]]; then
         # It does not exist, create it
         CHANGELOG="$changelog" \
@@ -330,11 +330,11 @@ publish_to_github()
     if [[ $SKIP_UPLOAD == "false" ]]; then
         #Upload Artifact
         for f in $(sudo ls $DIR);
-        do  
+        do
             echo "File Name is $f, File Extension is ${f##*.}"
             echo $upload_url
             name=$f
-            case ${f##*.} in 
+            case ${f##*.} in
                 'deb'|'ddeb')
                     mimetype="application/vnd.debian.binary-package"
                     # Modify Name to be of form {name}_{os}_{arch}.{extension}
@@ -354,7 +354,7 @@ publish_to_github()
             echo "Mime Type is $mimetype"
 
             response=$(curl -X POST -H "Content-Type:$mimetype" -H "$header_content" -H "$header_auth" "$upload_url" --data-binary @$DIR/$f)
-            
+
             state=$(echo "$response" | jq '.state')
             if [[  $state != "\"uploaded\"" ]]; then
                 echo "failed to Upload Package. Response is"
@@ -389,7 +389,7 @@ if [[ $IS_PMC_SETUP_ONLY == "false" ]] ; then
 fi
 
 #Debug View of Package Dir Path
-ls -al $DIR 
+ls -al $DIR
 
 if [[ $SERVER == *"github"* ]]; then
     if [[ -z $GITHUB_PAT ]]; then

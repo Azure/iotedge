@@ -56,7 +56,7 @@ get_nearest_version() {
     echo "Error: No release tag matching '${tag_prefix}n.n*' reachable from $commit"
     return 1
   fi
-  
+
   echo "${version/$tag_prefix/}"
 }
 
@@ -395,7 +395,7 @@ create_github_release_page_in_product_repo() {
       draft: $is_draft,
       body: $body
     }')
-  
+
   local response=$(curl \
     -sS \
     -X POST \

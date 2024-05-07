@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #######################################
-# NAME: 
+# NAME:
 #    send_github_request
 # DESCRIPTION:
 #    A helper function to send a GET request to a specified GitHub API endpoint
@@ -26,7 +26,7 @@ send_github_request()
 
 
 #######################################
-# NAME: 
+# NAME:
 #    version_ge
 # DESCRIPTION:
 #    Verify that the left version is greater than or equal to the right version
@@ -65,7 +65,7 @@ version_ge()
             echo 'Failed'
             return 1
         fi
-    fi  
+    fi
 }
 
 #######################################
@@ -171,10 +171,10 @@ version_is_lts()
         | isempty(.)
         | not
     ' $AZURE_IOTEDGE_REPO_PATH/product-versions.json
-}   
+}
 
 #######################################
-# NAME: 
+# NAME:
 #    update_product_versions_json
 # DESCRIPTION:
 #    Update product-versions.json files in the product repo, then commits the change, tags it, and pushes the change to
