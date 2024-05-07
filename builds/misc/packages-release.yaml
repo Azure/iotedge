@@ -2,10 +2,6 @@ name: $(VERSION)
 trigger: none
 pr: none
 
-variables:
-  Codeql.Enabled: false
-  DisableDockerDetector: true
-
 resources:
   repositories:
   - repository: azure-iotedge
@@ -22,6 +18,11 @@ resources:
     # TODO: vvv Change back to azure/iot-identity-service
     name: damonbarry/iot-identity-service
     ref: refs/heads/main
+
+variables:
+  Codeql.Enabled: false
+  DisableDockerDetector: true
+  azure_iotedge_repo_branch: $[ replace(resources.repositories."azure-iotedge".ref, 'refs/heads/', '') ]
 
 stages:
 # ################################################################################
@@ -399,8 +400,6 @@ stages:
   # TODO: vvv revert job back to ^^^ deployment
   - job: safe_guard
     displayName: Get Approval
-    variables:
-      azure_iotedge_repo_branch: $[ replace(resources.repositories."azure-iotedge".ref, 'refs/heads/', '') ]
     # strategy:
     #   runOnce:
     #     deploy:
