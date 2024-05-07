@@ -284,6 +284,7 @@ $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 #######################################
 publish_to_github()
 {
+    cd $WDIR
     . scripts/linux/release-tools.sh
     get_project_release_info
 
