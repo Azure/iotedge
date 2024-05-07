@@ -5,6 +5,7 @@
 #AZ CLI LOGIN
 SCRIPT_NAME=$(basename $0)
 SKIP_UPLOAD="false"
+GH_REPO_NAME="Azure/azure-iotedge"
 IS_LTS="false"
 IS_PMC_SETUP_ONLY="false"
 DOCKER_CONFIG_DIR="/root/.config/pmc"
@@ -21,6 +22,7 @@ function usage() {
     echo " -d,  --dir                    package directory to publish"
     echo " -w,  --wdir                   working directory for secrets.Default is $(pwd)."
     echo " -s,  --server                 server name for package upload"
+    echo " -r,  --repo-name              GitHub repository name. Default is Azure/azure-iotedge"
     echo " -g,  --ghubpat                value of github pat. Required only if uploading to github"
     echo " -u,  --skip-upload            Skips Upload and Only Creates Release for Github. Defaults to false"
     echo " -l,  --is-lts                 Is the release an LTS release. Defaults to false"
@@ -91,21 +93,24 @@ process_args() {
             SERVER="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 5 ]; then
-            GITHUB_PAT="$arg"
+            GH_REPO_NAME="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 6 ]; then
+            GITHUB_PAT="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 7 ]; then
             SKIP_UPLOAD="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 7 ]; then
+        elif [ $save_next_arg -eq 8 ]; then
             IS_LTS="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 7 ]; then
+        elif [ $save_next_arg -eq 9 ]; then
             PMC_REPO_NAME="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 8 ]; then
+        elif [ $save_next_arg -eq 10 ]; then
             PMC_RELEASE="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 9 ]; then
+        elif [ $save_next_arg -eq 11 ]; then
             DISCARD="$arg"
             IS_PMC_SETUP_ONLY="true"
             save_next_arg=0
@@ -116,12 +121,13 @@ process_args() {
             "-d" | "--dir") save_next_arg=2 ;;
             "-w" | "--wdir") save_next_arg=3 ;;
             "-s" | "--server") save_next_arg=4 ;;
-            "-g" | "--ghubpat") save_next_arg=5 ;;
-            "-u" | "--skip-upload") save_next_arg=6 ;;
-            "-l" | "--is-lts") save_next_arg=7 ;;
-            "-pro" | "--pmc-repository") save_next_arg=8 ;;
-            "-pre" | "--pmc-release") save_next_arg=9 ;;
-            "--setup-pmc-only") save_next_arg=10 ;;
+            "-r" | "--repo-name") save_next_arg=5 ;;
+            "-g" | "--ghubpat") save_next_arg=6 ;;
+            "-u" | "--skip-upload") save_next_arg=7 ;;
+            "-l" | "--is-lts") save_next_arg=8 ;;
+            "-pro" | "--pmc-repository") save_next_arg=9 ;;
+            "-pre" | "--pmc-release") save_next_arg=10 ;;
+            "--setup-pmc-only") save_next_arg=11 ;;
             *) usage ;;
             esac
         fi
@@ -275,6 +281,7 @@ $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 # GLOBALS:
 #    IS_LTS _____________________ Is the release an LTS release (bool)
 #    GITHUB_PAT _________________ Github Personal Access Token  (string)
+#    GH_REPO_NAME _______________ Repository name               (string)
 #    SKIP_UPLOAD ________________ Skip Github artifact upload   (bool)
 #      if false, upload host packages to github release page
 #      if true, create the release page in draft mode without uploading host packages.
@@ -295,7 +302,7 @@ publish_to_github()
     # Remove 1st line (header) because GitHub Release page has its own header
     changelog="$(echo "$changelog" | tail -n +2 -)"
 
-    local url="https://api.github.com/repos/Azure/azure-iotedge/releases"
+    local url="https://api.github.com/repos/$GH_REPO_NAME/releases"
     local header_content="Accept:application/vnd.github.v3+json"
     local header_auth="Authorization:token $GITHUB_PAT"
 
@@ -312,8 +319,7 @@ publish_to_github()
         GITHUB_TOKEN="$GITHUB_PAT" \
         IS_LTS=$([[ $IS_LTS == 'false' ]] && echo 'false' || echo 'true') \
         IS_DRAFT=$([[ $SKIP_UPLOAD == 'false' ]] && echo 'false' || echo 'true') \
-        REPO_NAME="Azure/azure-iotedge" \
-            create_github_release_page_in_product_repo
+        REPO_NAME="$GH_REPO_NAME" create_github_release_page_in_product_repo
         release_id="$RELEASE_ID"
     else
         release_id=$(echo $release_created | jq '.id')
@@ -343,7 +349,7 @@ publish_to_github()
                     ;;
             esac
 
-            upload_url="https://uploads.github.com/repos/Azure/azure-iotedge/releases/$release_id/assets?name=$name"
+            upload_url="https://uploads.github.com/repos/$GH_REPO_NAME/releases/$release_id/assets?name=$name"
             echo "Upload URL is $upload_url"
             echo "Mime Type is $mimetype"
 
