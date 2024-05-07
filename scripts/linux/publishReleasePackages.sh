@@ -20,7 +20,7 @@ function usage() {
     echo " -h,  --help                   Print this help and exit."
     echo " -p,  --packageos              Package OS"
     echo " -d,  --dir                    package directory to publish"
-    echo " -w,  --wdir                   working directory for secrets.Default is $(pwd)."
+    echo " -w,  --wdir                   working directory. Default is $(pwd)."
     echo " -s,  --server                 server name for package upload"
     echo " -r,  --repo-name              GitHub repository name. Default is Azure/azure-iotedge"
     echo " -g,  --ghubpat                value of github pat. Required only if uploading to github"
@@ -176,12 +176,12 @@ sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
 #       the config file an the uploading artifacts.
 #    3. Validate if the artifacts are readily available on PMC.
 # GLOBALS:
-#    CONFIG_DIR _________________ Path to RepoClient config file(string)
-#    OS_NAME ____________________ Operating System name         (string)
-#    OS_VERSION _________________ Operating System version      (string)
-#    PACKAGE_DIR ________________ Path to artifact directory    (string)
-#    SERVER _____________________ Server name for package upload(string)
-#    WDIR _______________________ Working directory for secrets (string)
+#    CONFIG_DIR _________________ Path to RepoClient config file (string)
+#    OS_NAME ____________________ Operating System name          (string)
+#    OS_VERSION _________________ Operating System version       (string)
+#    PACKAGE_DIR ________________ Path to artifact directory     (string)
+#    SERVER _____________________ Server name for package upload (string)
+#    WDIR _______________________ Working directory              (string)
 #
 # OUTPUTS:
 #    Uploaded linux artifacts in packages.microsoft.com
@@ -317,9 +317,10 @@ publish_to_github()
         CHANGELOG="$changelog" \
         VERSION="$next_version" \
         GITHUB_TOKEN="$GITHUB_PAT" \
-        IS_LTS=$([[ $IS_LTS == 'false' ]] && echo 'false' || echo 'true') \
+        IS_LTS="$IS_LTS" \
         IS_DRAFT=$([[ $SKIP_UPLOAD == 'false' ]] && echo 'false' || echo 'true') \
-        REPO_NAME="$GH_REPO_NAME" create_github_release_page_in_product_repo
+        REPO_NAME="$GH_REPO_NAME" \
+            create_github_release_page_in_product_repo
         release_id="$RELEASE_ID"
     else
         release_id=$(echo $release_created | jq '.id')

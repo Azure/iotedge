@@ -562,6 +562,7 @@ stages:
           -w $(System.ArtifactsDirectory) \
           -d $(System.ArtifactsDirectory)/$(artifactName) \
           -s "github.com" \
+          -r "$(azure_iotedge_repo_name)" \
       env:
         GITHUB_PAT: "$(GitHubAccessToken)"
       name: publish_artifacts
