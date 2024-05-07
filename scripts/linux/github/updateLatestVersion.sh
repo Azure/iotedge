@@ -142,7 +142,7 @@ get_version_from_json()
 
     $JQ -r --arg version "$version" --arg name "$component" '
         include "product-versions";
-        aziotedge_component_version($version; $name)
+        [ aziotedge_component_version($version; $name) ] | first
     ' $json
 }
 
