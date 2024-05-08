@@ -24,158 +24,158 @@ resources:
     ref: refs/heads/main
 
 stages:
-################################################################################
-- stage: BuildPackages
-################################################################################
-  displayName: Build Packages
-  pool:
-    name: $(pool.linux.name)
-    demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-  jobs:
-  - job: linux
-    displayName: Linux
-    strategy:
-      matrix:
-        RedHat8-amd64:
-          arch: amd64
-          os: redhat8
-          target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
-        RedHat9-amd64:
-          arch: amd64
-          os: redhat9
-          target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+# ################################################################################
+# - stage: BuildPackages
+# ################################################################################
+#   displayName: Build Packages
+#   pool:
+#     name: $(pool.linux.name)
+#     demands:
+#     - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+#   jobs:
+#   - job: linux
+#     displayName: Linux
+#     strategy:
+#       matrix:
+#         RedHat8-amd64:
+#           arch: amd64
+#           os: redhat8
+#           target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+#         RedHat9-amd64:
+#           arch: amd64
+#           os: redhat9
+#           target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
 
-        Debian11-amd64:
-          os: debian11
-          arch: amd64
-          target.iotedged: edgelet/target/release
-        Debian11-arm32v7:
-          os: debian11
-          arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        Debian11-aarch64:
-          os: debian11
-          arch: aarch64
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+#         Debian11-amd64:
+#           os: debian11
+#           arch: amd64
+#           target.iotedged: edgelet/target/release
+#         Debian11-arm32v7:
+#           os: debian11
+#           arch: arm32v7
+#           target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+#         Debian11-aarch64:
+#           os: debian11
+#           arch: aarch64
+#           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
-        Ubuntu2004-amd64:
-          arch: amd64
-          os: ubuntu20.04
-          target.iotedged: edgelet/target/release
-        Ubuntu2004-arm32v7:
-          arch: arm32v7
-          os: ubuntu20.04
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        Ubuntu2004-aarch64:
-          arch: aarch64
-          os: ubuntu20.04
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-        Ubuntu2204-amd64:
-          arch: amd64
-          os: ubuntu22.04
-          target.iotedged: edgelet/target/release
-        Ubuntu2204-arm32v7:
-          arch: arm32v7
-          os: ubuntu22.04
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        Ubuntu2204-aarch64:
-          arch: aarch64
-          os: ubuntu22.04
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-    steps:
-    - bash: |
-        BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-        VERSION="$BASE_VERSION"
-        echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+#         Ubuntu2004-amd64:
+#           arch: amd64
+#           os: ubuntu20.04
+#           target.iotedged: edgelet/target/release
+#         Ubuntu2004-arm32v7:
+#           arch: arm32v7
+#           os: ubuntu20.04
+#           target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+#         Ubuntu2004-aarch64:
+#           arch: aarch64
+#           os: ubuntu20.04
+#           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+#         Ubuntu2204-amd64:
+#           arch: amd64
+#           os: ubuntu22.04
+#           target.iotedged: edgelet/target/release
+#         Ubuntu2204-arm32v7:
+#           arch: arm32v7
+#           os: ubuntu22.04
+#           target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+#         Ubuntu2204-aarch64:
+#           arch: aarch64
+#           os: ubuntu22.04
+#           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+#     steps:
+#     - bash: |
+#         BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+#         VERSION="$BASE_VERSION"
+#         echo "##vso[task.setvariable variable=VERSION;]$VERSION"
 
-        echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
-        echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
-      displayName: Set Version
-    - script: edgelet/build/linux/package.sh
-      displayName: Create aziot-edge packages
-    - task: CopyFiles@2
-      displayName: Copy aziot-edge Files to Artifact Staging
-      inputs:
-        SourceFolder: $(target.iotedged)
-        Contents: |
-          *.deb
-          *.ddeb
-          *.rpm
-          !*-debugsource-*.rpm
-        TargetFolder: '$(build.artifactstagingdirectory)'
-    - task: EsrpCodeSigning@3
-      displayName: ESRP Binary CodeSigning
-      inputs:
-        ConnectedServiceName: "aziotedge-pmc-v4-prod"
-        FolderPath: '$(build.artifactstagingdirectory)'
-        UseMinimatch: true
-        Pattern: |
-          *.deb
-          *.ddeb
-          *.rpm
-        SessionTimeout: 20
-        inlineOperation: |
-          [
-            {
-              "KeyCode": "CP-450779-Pgp",
-              "OperationCode": "LinuxSign",
-              "Parameters": {},
-              "ToolName": "sign",
-              "toolVersion": "1.0"
-            }
-          ]
-        signConfigType: inlineSignParams
-    - bash: |
-        cd $(build.artifactstagingdirectory)
-        rm -f ./CodeSignSummary*
-      displayName: Remove CodeSign Summary
-    - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
-      displayName: 'Generate SBOM'
-      inputs:
-        BuildDropPath: '$(build.artifactstagingdirectory)'
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Artifacts
-      inputs:
-        PathtoPublish: '$(build.artifactstagingdirectory)'
-        ArtifactName: 'iotedged-$(os)-$(arch)'
-      condition: succeededOrFailed()
+#         echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+#         echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
+#       displayName: Set Version
+#     - script: edgelet/build/linux/package.sh
+#       displayName: Create aziot-edge packages
+#     - task: CopyFiles@2
+#       displayName: Copy aziot-edge Files to Artifact Staging
+#       inputs:
+#         SourceFolder: $(target.iotedged)
+#         Contents: |
+#           *.deb
+#           *.ddeb
+#           *.rpm
+#           !*-debugsource-*.rpm
+#         TargetFolder: '$(build.artifactstagingdirectory)'
+#     - task: EsrpCodeSigning@3
+#       displayName: ESRP Binary CodeSigning
+#       inputs:
+#         ConnectedServiceName: "aziotedge-pmc-v4-prod"
+#         FolderPath: '$(build.artifactstagingdirectory)'
+#         UseMinimatch: true
+#         Pattern: |
+#           *.deb
+#           *.ddeb
+#           *.rpm
+#         SessionTimeout: 20
+#         inlineOperation: |
+#           [
+#             {
+#               "KeyCode": "CP-450779-Pgp",
+#               "OperationCode": "LinuxSign",
+#               "Parameters": {},
+#               "ToolName": "sign",
+#               "toolVersion": "1.0"
+#             }
+#           ]
+#         signConfigType: inlineSignParams
+#     - bash: |
+#         cd $(build.artifactstagingdirectory)
+#         rm -f ./CodeSignSummary*
+#       displayName: Remove CodeSign Summary
+#     - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+#       displayName: 'Generate SBOM'
+#       inputs:
+#         BuildDropPath: '$(build.artifactstagingdirectory)'
+#     - task: PublishBuildArtifacts@1
+#       displayName: Publish Artifacts
+#       inputs:
+#         PathtoPublish: '$(build.artifactstagingdirectory)'
+#         ArtifactName: 'iotedged-$(os)-$(arch)'
+#       condition: succeededOrFailed()
 
-  - job: snaps
-    displayName: Snaps
-    strategy:
-      matrix:
-        amd64:
-          arch: amd64
-          pool: $(pool.linux.name)
-          image: agent-aziotedge-ubuntu-22.04
-        aarch64:
-          arch: aarch64
-          pool: $(pool.linux.arm.name)
-          image: agent-aziotedge-ubuntu-22.04-arm64
-    pool:
-      name: $(pool)
-      demands:
-      - ImageOverride -equals $(image)
-    steps:
-    - script: |
-        sudo snap install snapcraft --classic
-        lxd init --minimal
-        SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
-      displayName: Build snap
-      env:
-        SNAPCRAFT_BUILD_INFO: 1
-    - task: CopyFiles@2
-      displayName: Stage snap
-      inputs:
-        Contents: '*.snap'
-        SourceFolder: '$(build.sourcesdirectory)'
-        TargetFolder: '$(build.artifactstagingdirectory)'
-    - task: PublishBuildArtifacts@1
-      displayName: Publish snap as build artifact
-      inputs:
-        ArtifactName: 'iotedged-snap-$(arch)'
-        PathtoPublish: '$(build.artifactstagingdirectory)'
+#   - job: snaps
+#     displayName: Snaps
+#     strategy:
+#       matrix:
+#         amd64:
+#           arch: amd64
+#           pool: $(pool.linux.name)
+#           image: agent-aziotedge-ubuntu-22.04
+#         aarch64:
+#           arch: aarch64
+#           pool: $(pool.linux.arm.name)
+#           image: agent-aziotedge-ubuntu-22.04-arm64
+#     pool:
+#       name: $(pool)
+#       demands:
+#       - ImageOverride -equals $(image)
+#     steps:
+#     - script: |
+#         sudo snap install snapcraft --classic
+#         lxd init --minimal
+#         SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
+#       displayName: Build snap
+#       env:
+#         SNAPCRAFT_BUILD_INFO: 1
+#     - task: CopyFiles@2
+#       displayName: Stage snap
+#       inputs:
+#         Contents: '*.snap'
+#         SourceFolder: '$(build.sourcesdirectory)'
+#         TargetFolder: '$(build.artifactstagingdirectory)'
+#     - task: PublishBuildArtifacts@1
+#       displayName: Publish snap as build artifact
+#       inputs:
+#         ArtifactName: 'iotedged-snap-$(arch)'
+#         PathtoPublish: '$(build.artifactstagingdirectory)'
 
 # ################################################################################
 # - stage: PublishPackagesMicrosoft
@@ -387,7 +387,8 @@ stages:
 - stage: PublishPackagesGithub
 ##############################################################################
   displayName: Publish Packages Github
-  dependsOn: [BuildPackages]
+  # TODO: vvv uncomment the following line
+  # dependsOn: [BuildPackages]
   pool:
     name: $(pool.linux.name)
     demands:
