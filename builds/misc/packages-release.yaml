@@ -565,7 +565,7 @@ stages:
 ##############################################################################
   displayName: Post-release Smoke Tests
   dependsOn:
-  # - PublishPackagesMicrosoft
+  - PublishPackagesMicrosoft
   - PublishPackagesGithub
   jobs:
   - job: smokeTests
