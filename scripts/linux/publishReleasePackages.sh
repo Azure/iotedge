@@ -326,8 +326,6 @@ publish_to_github()
         release_id=$(echo $release_created | jq '.id')
     fi
 
-    echo "Release ID is $release_id"
-
     if [[ $SKIP_UPLOAD == "false" ]]; then
         #Upload Artifact
         for f in $(sudo ls $DIR);
