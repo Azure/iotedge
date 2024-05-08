@@ -27,6 +27,55 @@ send_github_request()
 
 #######################################
 # NAME:
+#    version_highest
+# DESCRIPTION:
+#    Return the highest of two versions
+# ARGUMENTS:
+#    $1 __________ Left version  (string)
+#    $2 __________ Right version (string)
+# OUTPUTS:
+#    The highest version will be printed to stdout
+#######################################
+version_highest()
+{
+    [[ -z "$1" ]] && { echo "$FUNCNAME: \$1 is undefined"; exit 1; }
+    [[ -z "$2" ]] && { echo "$FUNCNAME: \$2 is undefined"; exit 1; }
+
+    echo -e "$1\n$2" | sort --version-sort -r | head -1
+}
+
+
+#######################################
+# NAME:
+#    version_gt
+# DESCRIPTION:
+#    Verify that the left version is greater than the right version
+# ARGUMENTS:
+#    $1 __________ Name of versioned thing          (string)
+#    $2 __________ Left version                     (string)
+#    $3 __________ Right version                    (string)
+# OUTPUTS:
+#    Exit status is 0 if left > right, 1 otherwise.
+#######################################
+version_gt()
+{
+    [[ -z "$1" ]] && { echo "$FUNCNAME: \$1 is undefined"; exit 1; }
+    [[ -z "$2" ]] && { echo "$FUNCNAME: \$2 is undefined"; exit 1; }
+    [[ -z "$3" ]] && { echo "$FUNCNAME: \$3 is undefined"; exit 1; }
+
+    echo -n "$1: $2 > $3 ? "
+
+    if [[ "$2" == "$3" || "$(version_highest "$2" "$3")" == "$3" ]]; then # lhs <= rhs
+        echo 'Failed'
+        return 1
+    fi
+
+    echo 'Ok'
+}
+
+
+#######################################
+# NAME:
 #    version_ge
 # DESCRIPTION:
 #    Verify that the left version is greater than or equal to the right version
@@ -34,10 +83,8 @@ send_github_request()
 #    $1 __________ Name of versioned thing          (string)
 #    $2 __________ Left version                     (string)
 #    $3 __________ Right version                    (string)
-#    $4 __________ Optional(true): Print warning    (boolean)
 # OUTPUTS:
-#    Exit status is 0 if left >= right, 1 otherwise. A warning is printed to
-#    stdout if left == right, unless the optional 4th argument is set to false.
+#    Exit status is 0 if left >= right, 1 otherwise.
 #######################################
 version_ge()
 {
@@ -45,28 +92,16 @@ version_ge()
     [[ -z "$2" ]] && { echo "$FUNCNAME: \$2 is undefined"; exit 1; }
     [[ -z "$3" ]] && { echo "$FUNCNAME: \$3 is undefined"; exit 1; }
 
-    local lhs=$2
-    local rhs=$3
-    local warning=${4:-true}
+    echo -n "$1: $2 >= $3 ? "
 
-    echo -n "$1: $lhs > $rhs ? "
-
-    if [[ "$rhs" == "$lhs" ]]; then
-        if [[ "$warning" != 'true' ]]; then
-            echo 'Ok'
-        else
-            echo 'Warning - versions are equal, was that intended?'
-        fi
-    else
-        highVersion=$(echo -e "$rhs\n$lhs" | sort --version-sort -r | head -1)
-        if [[ "$highVersion" == "$lhs" ]]; then # lhs > rhs
-            echo 'Ok'
-        else
-            echo 'Failed'
-            return 1
-        fi
+    if [[ "$2" != "$3" && "$(version_highest "$2" "$3")" == "$3" ]]; then # lhs < rhs
+        echo 'Failed'
+        return 1
     fi
+
+    echo 'Ok'
 }
+
 
 #######################################
 # NAME:
@@ -86,18 +121,14 @@ is_major_minor_bump()
 
     local newVersion=$1
     local curVersion=$2
-    local newParts curParts
 
-    # validate that the new version is higher than the current version
-    local highVersion=$(echo -e "$curVersion\n$newVersion" | sort --version-sort -r | head -1)
-    if [[ "$newVersion" != "$curVersion" && "$highVersion" == "$curVersion" ]]; then
-        echo "Error: New version ($newVersion) is less than current version ($curVersion)"
-        return 1
+    if ! version_ge "major_minor" "$newVersion" "$curVersion"; then
+        exit 1
     fi
 
+    local newParts curParts
     IFS='.' read -a newParts <<< "$newVersion"
     IFS='.' read -a curParts <<< "$curVersion"
-
     newVersion="${newParts[0]}.${newParts[1]}"
     curVersion="${curParts[0]}.${curParts[1]}"
 
@@ -203,82 +234,82 @@ update_product_versions_json()
 
     cd "$AZURE_IOTEDGE_REPO_PATH"
 
-    AZURE_IOTEDGE_REPO_REMOTE=${AZURE_IOTEDGE_REPO_REMOTE:-origin}
-    AZURE_IOTEDGE_REPO_BRANCH=${AZURE_IOTEDGE_REPO_BRANCH:-$(git branch --show-current)}
+    local remote="${AZURE_IOTEDGE_REPO_REMOTE:-origin}"
+    local branch="${AZURE_IOTEDGE_REPO_BRANCH:-$(git branch --show-current)}"
 
     # in case commits were made after this pipeline started but before we arrived here, sync to
     # the tip of the branch
-    git checkout "$AZURE_IOTEDGE_REPO_BRANCH"
+    git checkout "$branch"
 
     # Set target version file to be updated
-    TARGET_FILE="$AZURE_IOTEDGE_REPO_PATH/product-versions.json"
+    local json_file="$AZURE_IOTEDGE_REPO_PATH/product-versions.json"
 
     # Get new versions. The new product version comes from the latest tag in the iotedge repo. The other versions come
     # from the respective version files.
-    proposedProductVersion=$(cd $IOTEDGE_REPO_PATH; git describe --tags --abbrev=0 --match "[0-9].[0-9]*" HEAD)
-    proposedEdgeletVersion=$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)
-    proposedCoreImageVersion=$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq -r '.version')
-    proposedIisVersion=$(
+    local new_product_ver="$(cd $IOTEDGE_REPO_PATH; git describe --tags --abbrev=0 --match "[0-9].[0-9]*" HEAD)"
+    local new_edgelet_ver="$(cat $IOTEDGE_REPO_PATH/edgelet/version.txt)"
+    local new_image_ver="$(cat $IOTEDGE_REPO_PATH/versionInfo.json | jq -r '.version')"
+    local new_identity_ver="$(
         grep "PACKAGE_VERSION:" $IIS_REPO_PATH/.github/workflows/packages.yaml \
         | awk '{print $2}' \
         | tr -d "'" \
         | tr -d '"'
-    )
+    )"
 
-    JQ="jq -L $IOTEDGE_REPO_PATH/scripts/linux/github"
+    local JQ="jq -L $IOTEDGE_REPO_PATH/scripts/linux/github"
 
     # Get current versions. The current product version comes from the latest tag in the azure-iotedge repo. The other
     # versions come from product-versions.json.
-    latestProductVersion=$(cd $AZURE_IOTEDGE_REPO_PATH; git describe --tags --abbrev=0 --match "[0-9].[0-9]*" HEAD)
-    latestEdgeletVersion=$(get_version_from_json $latestProductVersion "aziot-edge")
-    latestIisVersion=$(get_version_from_json $latestProductVersion "aziot-identity-service")
-    latestAgentVersion=$(get_version_from_json $latestProductVersion "azureiotedge-agent")
-    latestHubVersion=$(get_version_from_json $latestProductVersion "azureiotedge-hub")
-    latestTempSensorVersion=$(get_version_from_json $latestProductVersion "azureiotedge-simulated-temperature-sensor")
-    latestDiagnosticsVersion=$(get_version_from_json $latestProductVersion "azureiotedge-diagnostics")
+    local cur_product_ver="$(cd $AZURE_IOTEDGE_REPO_PATH; git describe --tags --abbrev=0 --match '[0-9].[0-9]*' HEAD)"
+    local cur_edgelet_ver="$(get_version_from_json $cur_product_ver 'aziot-edge')"
+    local cur_identity_ver="$(get_version_from_json $cur_product_ver 'aziot-identity-service')"
+    local cur_agent_ver="$(get_version_from_json $cur_product_ver 'azureiotedge-agent')"
+    local cur_hub_ver="$(get_version_from_json $cur_product_ver 'azureiotedge-hub')"
+    local cur_tempsensor_ver="$(get_version_from_json $cur_product_ver 'azureiotedge-simulated-temperature-sensor')"
+    local cur_diagnostics_ver="$(get_version_from_json $cur_product_ver 'azureiotedge-diagnostics')"
 
     # Verify new versions
-    version_ge "product" $proposedProductVersion $latestProductVersion
-    version_ge "aziot-edge" $proposedEdgeletVersion $latestEdgeletVersion
-    version_ge "aziot-identity-service" $proposedIisVersion $latestIisVersion
-    version_ge "azureiotedge-agent" $proposedCoreImageVersion $latestAgentVersion
-    version_ge "azureiotedge-hub" $proposedCoreImageVersion $latestHubVersion
-    version_ge "azureiotedge-simulated-temperature-sensor" $proposedCoreImageVersion $latestTempSensorVersion
+    version_gt 'product' "$new_product_ver" "$cur_product_ver"
+    version_gt 'aziot-edge' "$new_edgelet_ver" "$cur_edgelet_ver"
+    version_gt 'aziot-identity-service' "$new_identity_ver" "$cur_identity_ver"
+    version_gt 'azureiotedge-agent' "$new_image_ver" "$cur_agent_ver"
+    version_gt 'azureiotedge-hub' "$new_image_ver" "$cur_hub_ver"
+    version_gt 'azureiotedge-simulated-temperature-sensor' "$new_image_ver" "$cur_tempsensor_ver"
     # The diagnostics image is always versioned to match edgelet, not the other core images
-    version_ge "azureiotedge-diagnostics" $proposedEdgeletVersion $latestDiagnosticsVersion
+    version_gt 'azureiotedge-diagnostics' "$new_edgelet_ver" "$cur_diagnostics_ver"
     # The product version should be >= all the other versions
-    version_ge "product v. aziot-edge & diagnostics" $proposedProductVersion $proposedEdgeletVersion false
-    version_ge "product v. aziot-identity-service" $proposedProductVersion $proposedIisVersion false
-    version_ge "product v. core images" $proposedProductVersion $proposedCoreImageVersion false
+    version_ge 'product v. aziot-edge & diagnostics' "$new_product_ver" "$new_edgelet_ver"
+    version_ge 'product v. aziot-identity-service' "$new_product_ver" "$new_identity_ver"
+    version_ge 'product v. core images' "$new_product_ver" "$new_image_ver"
 
     # Update product-versions.json
-    if is_major_minor_bump $proposedProductVersion $latestProductVersion; then
-        echo "Adding new product entries for aziot-edge version $proposedProductVersion"
+    if is_major_minor_bump "$new_product_ver" "$cur_product_ver"; then
+        echo "Adding new product entries for aziot-edge version $new_product_ver"
         echo "$($JQ \
-            --arg current_product_ver "$latestProductVersion" \
-            --arg new_product_ver "$proposedProductVersion" \
-            --arg edgelet_ver "$proposedEdgeletVersion" \
-            --arg identity_ver "$proposedIisVersion" \
-            --arg core_image_ver "$proposedCoreImageVersion" '
+            --arg current_product_ver "$cur_product_ver" \
+            --arg new_product_ver "$new_product_ver" \
+            --arg edgelet_ver "$new_edgelet_ver" \
+            --arg identity_ver "$new_identity_ver" \
+            --arg core_image_ver "$new_image_ver" '
             include "product-versions";
             add_aziotedge_products($current_product_ver; $new_product_ver; $edgelet_ver; $identity_ver; $core_image_ver)
-        ' $TARGET_FILE)" > $TARGET_FILE
+        ' $json_file)" > "$json_file"
     else
-        echo "Updating existing product entries for aziot-edge version $proposedProductVersion"
+        echo "Updating existing product entries for aziot-edge version $new_product_ver"
         echo "$($JQ \
-            --arg current_product_ver "$latestProductVersion" \
-            --arg new_product_ver "$proposedProductVersion" \
-            --arg edgelet_ver "$proposedEdgeletVersion" \
-            --arg identity_ver "$proposedIisVersion" \
-            --arg core_image_ver "$proposedCoreImageVersion" '
+            --arg current_product_ver "$cur_product_ver" \
+            --arg new_product_ver "$new_product_ver" \
+            --arg edgelet_ver "$new_edgelet_ver" \
+            --arg identity_ver "$new_identity_ver" \
+            --arg core_image_ver "$new_image_ver" '
             include "product-versions";
             update_aziotedge_versions($current_product_ver; $new_product_ver; $edgelet_ver; $identity_ver; $core_image_ver)
-        ' $TARGET_FILE)" > $TARGET_FILE
+        ' $json_file)" > "$json_file"
     fi
 
     # Print log for debugging
-    echo "Updated $TARGET_FILE:"
-    jq '.' $TARGET_FILE
+    echo "Updated $json_file:"
+    jq '.' "$json_file"
     echo ""
 
     git add product-versions.json
@@ -287,14 +318,14 @@ update_product_versions_json()
     git config user.name 'IoT Edge Bot'
     git config user.email "$GIT_EMAIL"
 
-    remote_url="$(git config --get "remote.$AZURE_IOTEDGE_REPO_REMOTE.url")"
+    local remote_url="$(git config --get "remote.$remote.url")"
     remote_url="${remote_url/#https:\/\//https:\/\/$GITHUB_PAT@}" # add token to URL
 
     # commit changes, tag, and push
-    git commit -m "Prepare for release $proposedProductVersion"
-    git tag "$proposedProductVersion"
-    git push "$remote_url" "HEAD:$AZURE_IOTEDGE_REPO_BRANCH"
-    git push "$remote_url" "$proposedProductVersion"
+    git commit -m "Prepare for release $new_product_ver"
+    git tag "$new_product_ver"
+    git push "$remote_url" "HEAD:$branch"
+    git push "$remote_url" "$new_product_ver"
 
-    PRODUCT_VERSION="$proposedProductVersion"
+    PRODUCT_VERSION="$new_product_ver"
 }
