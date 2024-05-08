@@ -430,8 +430,6 @@ stages:
               source $(Build.SourcesDirectory)/iotedge/scripts/linux/github/updateLatestVersion.sh
               update_product_versions_json
 
-              IS_LTS=$(version_is_lts "$PRODUCT_VERSION")
-
               # Create the GitHub release page
               $(Build.SourcesDirectory)/iotedge/scripts/linux/publishReleasePackages.sh \
                 -p ubuntu20.04 \
@@ -439,7 +437,7 @@ stages:
                 -d $(Build.SourcesDirectory)/iotedge \
                 -s "github.com" \
                 -r "$(azure_iotedge_repo_name)" \
-                --is-lts "$IS_LTS" \
+                --is-lts "$(version_is_lts "$PRODUCT_VERSION")" \
                 --skip-upload true
             displayName: Create GitHub release page in product repo
             env:
