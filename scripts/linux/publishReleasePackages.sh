@@ -23,7 +23,7 @@ function usage() {
     echo " -w,  --wdir                   Working directory. Default is $(pwd)."
     echo " -s,  --server                 Server name for package upload"
     echo " -r,  --repo-name              GitHub repository name. Default is Azure/azure-iotedge"
-    echo " -g,  --ghubpat                Value of GitHub PAT. Required only if uploading to GitHub"
+    echo " -g,  --gh-pat                 Value of GitHub PAT. Required only if uploading to GitHub"
     echo " -u,  --skip-upload            Create draft GitHub release, do not upload assets. Defaults to false"
     echo " -l,  --is-lts                 Is this an LTS release? Defaults to false"
     echo " -pro,--pmc-repository         PMC package repository"
@@ -122,7 +122,7 @@ process_args() {
             "-w" | "--wdir") save_next_arg=3 ;;
             "-s" | "--server") save_next_arg=4 ;;
             "-r" | "--repo-name") save_next_arg=5 ;;
-            "-g" | "--ghubpat") save_next_arg=6 ;;
+            "-g" | "--gh-pat") save_next_arg=6 ;;
             "-u" | "--skip-upload") save_next_arg=7 ;;
             "-l" | "--is-lts") save_next_arg=8 ;;
             "-pro" | "--pmc-repository") save_next_arg=9 ;;
@@ -392,7 +392,7 @@ ls -al $DIR
 
 if [[ $SERVER == *"github"* ]]; then
     if [[ -z $GITHUB_PAT ]]; then
-        echo "Github PAT Token Not Provider"
+        echo "GitHub PAT not provided"
         exit 1
     fi
     publish_to_github
