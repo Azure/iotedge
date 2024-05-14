@@ -151,16 +151,16 @@ make_project_release_commit_for_core_image_refresh() {
 
   local remote_url=$(get_push_url)
 
-  # commit changes, merge, and push
+  # commit changes and tag
   git commit -m "Prepare for release $next"
+  git tag "$next"
+  
+  # merge and push
   git fetch --prune "$remote"
   # check out the very latest to minimize possibility of a rejected push
   git checkout "refs/remotes/$remote/$branch"
   git merge "$next" -m "Merge tag '$next' into $branch"
   git push "$remote_url" "HEAD:$branch"
-
-  # tag the release commit
-  git tag "$next"
   git push "$remote_url" "$next"
 }
 
@@ -220,16 +220,16 @@ make_project_release_commit_for_metrics_collector_image_refresh() {
   local remote_url=$(get_push_url)
   local git_tag="${git_tag_prefix}${next}"
 
-  # commit changes, merge, and push
+  # commit changes and tag
   git commit -m "Prepare for Metrics Collector release $next"
+  git tag "$git_tag"
+
+  # merge and push
   git fetch --prune "$remote"
   # check out the very latest to minimize possibility of a rejected push
   git checkout "refs/remotes/$remote/$branch"
   git merge "$git_tag" -m "Merge tag '$git_tag' into $branch"
   git push "$remote_url" "HEAD:$branch"
-
-  # tag the release commit
-  git tag "$git_tag"
   git push "$remote_url" "$git_tag"
 }
 
