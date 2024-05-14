@@ -9,6 +9,8 @@ steps:
   - task: AzureCLI@2
     displayName: 'Deployment iotedge on agent'
     name: "deployIoTEdge${{ parameters.name }}"
+    env:
+      AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
     inputs:
       azureSubscription: 'IoTEdge1-msazure'
       scriptType: 'bash'
