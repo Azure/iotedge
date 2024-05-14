@@ -151,17 +151,17 @@ make_project_release_commit_for_core_image_refresh() {
 
   local remote_url=$(get_push_url)
 
-  # commit changes, tag, and push
+  # commit changes, merge, and push
   git commit -m "Prepare for release $next"
-  git tag "$next"
-  git push "$remote_url" "$next"
-
-  # merge release commit and push
   git fetch --prune "$remote"
   # check out the very latest to minimize possibility of a rejected push
   git checkout "refs/remotes/$remote/$branch"
   git merge "$next" -m "Merge tag '$next' into $branch"
   git push "$remote_url" "HEAD:$branch"
+
+  # Tag the release commit
+  git tag "$next"
+  git push "$remote_url" "$next"
 }
 
 #
