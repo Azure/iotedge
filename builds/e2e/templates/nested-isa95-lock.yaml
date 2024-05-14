@@ -3,19 +3,15 @@ parameters:
   lvl: ''
 
 steps:
-  - task: Bash@3
+  - task: AzureCLI@2
     name: isa95_lock_lvl${{ parameters.lvl }}
     displayName: 'Locking network of ${{ parameters.agentName }}'
     inputs:
+      azureSubscription: 'IoTEdge1-msazure'
+      scriptType: 'bash'
       targetType: inline
       script: |
         set -e
-
-        az login \
-          --service-principal \
-          --password '$(edgebuild-service-principal-secret)' \
-          --username '$(servicePrincipal.clientId)' \
-          --tenant '$(servicePrincipal.tenantId)'
 
         echo 'Get Network Interface'
         nic_resource=$(
