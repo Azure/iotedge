@@ -5,8 +5,8 @@ steps:
     inputs:
       azureSubscription: 'IoTEdge1-msazure'
       scriptType: 'bash'
-      targetType: inline
-      script: |
+      scriptLocation: 'inlineScript'
+      inlineScript: |
         set -e
 
         echo "Extracting hub name from connection string"

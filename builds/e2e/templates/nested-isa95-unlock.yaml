@@ -9,8 +9,8 @@ steps:
     inputs:
       azureSubscription: 'IoTEdge1-msazure'
       scriptType: 'bash'
-      targetType: inline
-      script: |
+      scriptLocation: 'inlineScript'
+      inlineScript: |
         az network nsg rule delete \
           --resource-group '$(resourceGroup)' \
           --nsg-name '${{ parameters.nsgName }}' \
