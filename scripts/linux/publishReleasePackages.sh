@@ -5,6 +5,8 @@
 #AZ CLI LOGIN
 SCRIPT_NAME=$(basename $0)
 SKIP_UPLOAD="false"
+GH_REPO_NAME="Azure/azure-iotedge"
+IS_LTS="false"
 IS_PMC_SETUP_ONLY="false"
 DOCKER_CONFIG_DIR="/root/.config/pmc"
 DOCKER_CERT_FILE="/root/.config/pmc/private-key.pem"
@@ -17,13 +19,13 @@ function usage() {
     echo "options"
     echo " -h,  --help                   Print this help and exit."
     echo " -p,  --packageos              Package OS"
-    echo " -d,  --dir                    package directory to publish"
-    echo " -w,  --wdir                   working directory for secrets.Default is $(pwd)."
-    echo " -s,  --server                 server name for package upload"
-    echo " -g,  --ghubpat                value of github pat. Required only if uploading to github"
-    echo " -v,  --version                version of the release."
-    echo " -u,  --skip-upload            Skips Upload and Only Creates Release for Github. Defaults to false"
-    echo " -b,  --branch-name            Git Branch Name"
+    echo " -d,  --dir                    Package directory to publish"
+    echo " -w,  --wdir                   Working directory. Default is $(pwd)."
+    echo " -s,  --server                 Server name for package upload"
+    echo " -r,  --repo-name              GitHub repository name. Default is Azure/azure-iotedge"
+    echo " -g,  --gh-pat                 Value of GitHub PAT. Required only if uploading to GitHub"
+    echo " -u,  --skip-upload            Create draft GitHub release, do not upload assets. Defaults to false"
+    echo " -l,  --is-lts                 Is this an LTS release? Defaults to false"
     echo " -pro,--pmc-repository         PMC package repository"
     echo " -pre,--pmc-release            Release for PMC (required for *.deb) {\"bullseye\", \"focal\", \"jammy\", \"nightly\", \"\" }"
     echo " --setup-pmc-only              Setup production certificate for PMC publication. No package upload will be done."
@@ -91,16 +93,16 @@ process_args() {
             SERVER="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 5 ]; then
-            GITHUB_PAT="$arg"
+            GH_REPO_NAME="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 6 ]; then
-            VERSION="$arg"
-            save_next_arg=0   
+            GITHUB_PAT="$arg"
+            save_next_arg=0
         elif [ $save_next_arg -eq 7 ]; then
             SKIP_UPLOAD="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 8 ]; then
-            BRANCH_NAME="$arg"
+            IS_LTS="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 9 ]; then
             PMC_REPO_NAME="$arg"
@@ -119,10 +121,10 @@ process_args() {
             "-d" | "--dir") save_next_arg=2 ;;
             "-w" | "--wdir") save_next_arg=3 ;;
             "-s" | "--server") save_next_arg=4 ;;
-            "-g" | "--ghubpat") save_next_arg=5 ;;
-            "-v" | "--version") save_next_arg=6 ;;
+            "-r" | "--repo-name") save_next_arg=5 ;;
+            "-g" | "--gh-pat") save_next_arg=6 ;;
             "-u" | "--skip-upload") save_next_arg=7 ;;
-            "-b" | "--branch-name") save_next_arg=8 ;;
+            "-l" | "--is-lts") save_next_arg=8 ;;
             "-pro" | "--pmc-repository") save_next_arg=9 ;;
             "-pre" | "--pmc-release") save_next_arg=10 ;;
             "--setup-pmc-only") save_next_arg=11 ;;
@@ -133,7 +135,7 @@ process_args() {
 }
 
 #######################################
-# NAME: 
+# NAME:
 #    setup_for_microsoft_repo
 #
 # DESCRIPTION:
@@ -160,27 +162,26 @@ sed -i -e "s@PROD_CERT_PATH@$DOCKER_CERT_FILE@g" "$SETTING_FILE"
 }
 
 #######################################
-# NAME: 
+# NAME:
 #    publish_to_microsoft_repo
 #
 # DESCRIPTION:
-#    The function upload artifacts to Microsoft Linux Package Repository which is multiarch 
+#    The function upload artifacts to Microsoft Linux Package Repository which is multiarch
 #    repository at packages.microsoft.com (PMC). The upload of the artifacts is done via RepoClient
 #    app (which now avaiable as a docker image)
 #
 #    The script simply does the follow:
 #    1. Pull clean docker image for RepoClient app
-#    2. To upload the artifacts, the function runs the RepoClient image against 
+#    2. To upload the artifacts, the function runs the RepoClient image against
 #       the config file an the uploading artifacts.
 #    3. Validate if the artifacts are readily available on PMC.
 # GLOBALS:
-#    BRANCH_NAME ________________ Source Branch name            (string)
-#    CONFIG_DIR _________________ Path to RepoClient config file(string)
-#    OS_NAME ____________________ Operating System name         (string)
-#    OS_VERSION _________________ Operating System version      (string)
-#    PACKAGE_DIR ________________ Path to artifact directory    (string)
-#    SERVER _____________________ Server name for package upload(string)
-#    WDIR _______________________ Working directory for secrets (string)
+#    CONFIG_DIR _________________ Path to RepoClient config file (string)
+#    OS_NAME ____________________ Operating System name          (string)
+#    OS_VERSION _________________ Operating System version       (string)
+#    PACKAGE_DIR ________________ Path to artifact directory     (string)
+#    SERVER _____________________ Server name for package upload (string)
+#    WDIR _______________________ Working directory              (string)
 #
 # OUTPUTS:
 #    Uploaded linux artifacts in packages.microsoft.com
@@ -202,7 +203,7 @@ if [[ $OUTPUT_STATUS != "completed" ]]; then
     echo "Upload Status: $OUTPUT_STATUS"
     #TODO - Uncomment this if the check is valide for multiple pkg upload
     # Also implement this check for the repo update & repo publish operation
-    # exit 1 
+    # exit 1
 fi
 
 #Generate Package Id list
@@ -260,108 +261,80 @@ $PMC_CMD distro list --repository "$PMC_REPO_NAME"
 
 
 #######################################
-# NAME: 
+# NAME:
 #    publish_to_github
 #
 # DESCRIPTION:
 #    The function has two operating mode depending the value of $SKIP_UPLOAD
 #
-#    If SKIP_UPLOAD=false, the script creates a github release page on /azure-iotedge 
-#    repository with a VERSION tag to the latest commit. The release page comprises of
-#      - Change log as a description which is parsed from CHANGELOG.MD
-#      - Renamed production artifacts from the build pipeline in the format of
-#        <component>_<version>_<os>_<architecture>.<fileExtension> 
+#    If SKIP_UPLOAD=false, the script creates a github release page in the Azure/azure-iotedge
+#    repository. The release page is titled with the version and includes:
+#      - The release tag
+#      - The change log, parsed from CHANGELOG.md
+#      - aziot-edge and aziot-identity-service host packages for supported distros, with filenames
+#        in the format: <component>_<version>_<os>_<architecture>.<fileExtension>
 #        i.e. iotedge_1.1.13-1_debian11_arm64.deb
 #
-#    If SKIP_UPLOAD=true, the script creates a DRAFT github release page on /azure-iotedge
-#    without a github tag AND no production artifacts are uploaded to draft.
-#    
+#    If SKIP_UPLOAD=true, the script creates a DRAFT github release page on Azure/azure-iotedge,
+#    but does not upload the host packages.
+#
 # GLOBALS:
-#    BRANCH_NAME ________________ Source Branch name            (string)
+#    IS_LTS _____________________ Is the release an LTS release (bool)
 #    GITHUB_PAT _________________ Github Personal Access Token  (string)
+#    GH_REPO_NAME _______________ Repository name               (string)
 #    SKIP_UPLOAD ________________ Skip Github artifact upload   (bool)
-#      if false, upload artifacts to github release page
-#      if true, create the release page in draft mode without artifacts uploaded.
-#    VERSION ____________________ Current release version       (string)
-#    WDIR _______________________ Current work directory        (string)
+#      if false, upload host packages to github release page
+#      if true, create the release page in draft mode without uploading host packages.
 #
 # OUTPUTS:
-#    Github release page on /azure-iotedge repository
+#    Github release page in the Azure/azure-iotedge repository
 #######################################
 publish_to_github()
 {
-    # Investigate if this can be derived from a commit, Hardcode for now.
-    if [[ -z $BRANCH_NAME ]]; then
-        echo "No Branch Name Provided"
-        exit 1
-    fi
+    cd $WDIR
+    . scripts/linux/release-tools.sh
+    get_project_release_info
 
-    branch_name=${BRANCH_NAME/"refs/heads/"/""}
-    echo "Branch Name is $branch_name"
+    local next_version=$(echo "$OUTPUTS" | jq -rc '.version')
+    local previous_version=$(echo "$OUTPUTS" | jq -rc '.previous_version')
+    local changelog
+    printf -v changelog "$(echo "$OUTPUTS" | jq -rc '.changelog')"
+    # Remove 1st line (header) because GitHub Release page has its own header
+    changelog="$(echo "$changelog" | tail -n +2 -)"
 
-    # Using relative path from this script to source the helper script
-    source "$(dirname "$(realpath "$0")")/github/updateLatestVersion.sh"
-    latest_release=$(get_latest_release_per_branch_name)
-    echo "Latest Release is $latest_release"
+    local url="https://api.github.com/repos/$GH_REPO_NAME/releases"
+    local header_content="Accept:application/vnd.github.v3+json"
+    local header_auth="Authorization:token $GITHUB_PAT"
 
-    if [[ -z $latest_release || $latest_release == null ]];then
-        echo "Invalid Response when Querying for Last Release"
-        exit
-    fi
-    
-    url="https://api.github.com/repos/Azure/azure-iotedge/releases"
-    header_content="Accept:application/vnd.github.v3+json"
-    header_auth="Authorization:token $GITHUB_PAT"
-    content=$(curl -X GET -H "$header_content" -H "$header_auth" "$url")
+    # Check if release page exists
+    local release_created=$(
+        curl -X GET -H "$header_content" -H "$header_auth" "$url" \
+        | jq --arg version $next_version '.[] | select(.tag_name == $version)'
+    )
 
-    # Check if Release Page has already been created
-    release_created=$(echo $content | jq --arg version $VERSION '.[] | select(.name==$version)')
-    
-    if [[ -z $release_created ]];then
-        
-        echo "Fetch Changelog"
-        url="https://api.github.com/repos/Azure/iotedge/contents?path=iotedge/&ref=$branch_name"
-        content=$(curl -X GET  -H "$header_content" -H "$header_auth" "$url")
-        download_uri=$(echo $content | jq '.[] | select(.name=="CHANGELOG.md")' | jq '.download_url')
-        download_uri=$(echo $download_uri | tr -d '"')
-        echo "download_url is $download_uri"
-                
-        echo "$(curl -X GET  -H "$header_content" -H "$header_auth" "$download_uri")" > $WDIR/content.txt
-        
-        #Find Content of New Release between (# NEW_VERSION) and (# PREVIOUS_VERSION)
-        
-        echo "$(sed -n "/# $VERSION/,/# $latest_release/p" $WDIR/content.txt)" > $WDIR/content.txt
-        
-        #Remove Last Line
-        sed -i "$ d" $WDIR/content.txt
-
-        #Create Release Page
-        url="https://api.github.com/repos/Azure/azure-iotedge/releases"
-        reqBody='{tag_name: $version, name: $version, target_commitish:"main", draft: true, body: $body}'
-        if [[ $SKIP_UPLOAD == "false" ]]; then
-            reqBody='{tag_name: $version, name: $version, target_commitish:"main", body: $body}'
-        fi
-        body=$(jq -n --arg version "$VERSION" --arg body "$(cat $WDIR/content.txt)" "$reqBody")
-        sudo rm -rf $WDIR/content.txt
-        
-        echo "Body for Release is $body"
-        content=$(curl -X POST -H "$header_content" -H "$header_auth" "$url" -d "$body")
-        release_id=$(echo $content | jq '.id')
+    if [[ -z $release_created ]]; then
+        # It does not exist, create it
+        CHANGELOG="$changelog" \
+        VERSION="$next_version" \
+        GITHUB_TOKEN="$GITHUB_PAT" \
+        IS_LTS="$IS_LTS" \
+        IS_DRAFT=$([[ $SKIP_UPLOAD == 'false' ]] && echo 'false' || echo 'true') \
+        REPO_NAME="$GH_REPO_NAME" \
+            create_github_release_page_in_product_repo
+        release_id="$RELEASE_ID"
     else
         release_id=$(echo $release_created | jq '.id')
     fi
 
-    echo "Release ID is $release_id"
-
     if [[ $SKIP_UPLOAD == "false" ]]; then
         #Upload Artifact
         for f in $(sudo ls $DIR);
-        do  
+        do
             echo "File Name is $f, File Extension is ${f##*.}"
             echo $upload_url
             name=$f
-            case ${f##*.} in 
-                'deb')
+            case ${f##*.} in
+                'deb'|'ddeb')
                     mimetype="application/vnd.debian.binary-package"
                     # Modify Name to be of form {name}_{os}_{arch}.{extension}
                     name="${f%_*}_$PACKAGE_OS"
@@ -375,12 +348,12 @@ publish_to_github()
                     ;;
             esac
 
-            upload_url="https://uploads.github.com/repos/Azure/azure-iotedge/releases/$release_id/assets?name=$name"
+            upload_url="https://uploads.github.com/repos/$GH_REPO_NAME/releases/$release_id/assets?name=$name"
             echo "Upload URL is $upload_url"
             echo "Mime Type is $mimetype"
 
             response=$(curl -X POST -H "Content-Type:$mimetype" -H "$header_content" -H "$header_auth" "$upload_url" --data-binary @$DIR/$f)
-            
+
             state=$(echo "$response" | jq '.state')
             if [[  $state != "\"uploaded\"" ]]; then
                 echo "failed to Upload Package. Response is"
@@ -389,7 +362,6 @@ publish_to_github()
             fi
         done;
     fi
-
 }
 
 
@@ -402,6 +374,11 @@ check_dir
 echo "Work Dir is $WDIR"
 echo "Package OS DIR is $DIR"
 
+if [[ "$IS_LTS" != "true" && "$IS_LTS" != "false" ]]; then
+    echo "Invalid value for IS_LTS: $IS_LTS"
+    exit 1
+fi
+
 if [[ $IS_PMC_SETUP_ONLY == "false" ]] ; then
     check_os
     check_server
@@ -411,15 +388,11 @@ if [[ $IS_PMC_SETUP_ONLY == "false" ]] ; then
 fi
 
 #Debug View of Package Dir Path
-ls -al $DIR 
+ls -al $DIR
 
 if [[ $SERVER == *"github"* ]]; then
     if [[ -z $GITHUB_PAT ]]; then
-        echo "Github PAT Token Not Provider"
-        exit 1
-    fi
-    if [[ -z $VERSION ]]; then
-        echo "Version Not Provided"
+        echo "GitHub PAT not provided"
         exit 1
     fi
     publish_to_github
