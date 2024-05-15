@@ -123,7 +123,7 @@ function prepare_test_from_artifacts() {
     sudo cat ${deployment_working_file}
     #BEARWASHERE
     #deploy the config in azure portal
-    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
+    sudo az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 }
 
 function process_args() {
