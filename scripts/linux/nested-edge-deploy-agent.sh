@@ -121,7 +121,9 @@ function prepare_test_from_artifacts() {
     fi
 
     sudo cat ${deployment_working_file}
-    #BEARWASHERE
+    
+    echo "BEARWASHERE - after deployment file setup"
+    az account show
     #deploy the config in azure portal
     sudo az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 }
