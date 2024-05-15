@@ -47,3 +47,10 @@ steps:
           -changeDeployConfigOnly "${{ parameters.changeDeployConfigOnly }}" \
           -waitForTestComplete \
           -cleanAll
+
+          echo "BEARWASHERE - post script test"
+          E2E_TEST_DIR="$(Agent.HomeDirectory)/.."
+          DEVICE_ID=
+          working_folder="$E2E_TEST_DIR/working"
+          deployment_working_file="$working_folder/deployment.json"
+          az iot edge set-modules --device-id "${{ parameters.deviceId }}" --hub-name "$(iotHubName)" --content ${deployment_working_file} --output none
