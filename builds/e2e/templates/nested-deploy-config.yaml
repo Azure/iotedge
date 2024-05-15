@@ -21,7 +21,7 @@ steps:
 
         chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
 
-        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
+        $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
           -artifactImageBuildNumber "$BuildNumber" \
