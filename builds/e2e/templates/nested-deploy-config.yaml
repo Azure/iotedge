@@ -20,10 +20,6 @@ steps:
         . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
 
         chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
-
-        echo "BEARWASHERE - main script"
-        az account show
-
         sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
@@ -41,16 +37,13 @@ steps:
           -level "${{ parameters.level }}" \
           -parentName "$(parentName)" \
           -connectionString "$(connectionString)" \
-          -iotHubName "$(iotHubName)" \
-          -deviceId "${{ parameters.deviceId }}" \
           -proxyAddress "$(proxyAddress)" \
           -changeDeployConfigOnly "${{ parameters.changeDeployConfigOnly }}" \
           -waitForTestComplete \
           -cleanAll
+          # -iotHubName "$(iotHubName)" \
+          # -deviceId "${{ parameters.deviceId }}" \
 
-          echo "BEARWASHERE - post script test"
-          E2E_TEST_DIR="$(Agent.HomeDirectory)/.."
-          DEVICE_ID=
-          working_folder="$E2E_TEST_DIR/working"
-          deployment_working_file="$working_folder/deployment.json"
+          # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
+          deployment_working_file="$(Agent.HomeDirectory)/../working/deployment.json"
           az iot edge set-modules --device-id "${{ parameters.deviceId }}" --hub-name "$(iotHubName)" --content ${deployment_working_file} --output none

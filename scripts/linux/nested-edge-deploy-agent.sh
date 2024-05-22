@@ -122,8 +122,6 @@ function prepare_test_from_artifacts() {
 
     sudo cat ${deployment_working_file}
 
-    echo "BEARWASHERE - after deployment file setup"
-    az account show
     #deploy the config in azure portal
     #az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 }
@@ -181,12 +179,12 @@ function process_args() {
         elif [ $saveNextArg -eq 16 ]; then
             CONNECTION_STRING="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 17 ]; then
-            DEVICE_ID="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 18 ]; then
-            IOT_HUB_NAME="$arg"
-            saveNextArg=0
+        # elif [ $saveNextArg -eq 17 ]; then
+        #     DEVICE_ID="$arg"
+        #     saveNextArg=0
+        # elif [ $saveNextArg -eq 18 ]; then
+        #     IOT_HUB_NAME="$arg"
+        #     saveNextArg=0
         elif [ $saveNextArg -eq 19 ]; then
             PROXY_ADDRESS="$arg"
             saveNextArg=0
@@ -228,7 +226,7 @@ function process_args() {
     done
 
     # Required parameters
-    [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }
+    # [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
