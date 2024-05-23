@@ -40,7 +40,7 @@ steps:
           -proxyAddress "$(proxyAddress)" \
           -changeDeployConfigOnly "${{ parameters.changeDeployConfigOnly }}" \
           -waitForTestComplete \
-          -cleanAll
+          -cleanAll 
           # -iotHubName "$(iotHubName)" \
           # -deviceId "${{ parameters.deviceId }}" \
 

@@ -122,6 +122,7 @@ function prepare_test_from_artifacts() {
 
     sudo cat ${deployment_working_file}
 
+    # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
     #deploy the config in azure portal
     #az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 }
@@ -179,6 +180,7 @@ function process_args() {
         elif [ $saveNextArg -eq 16 ]; then
             CONNECTION_STRING="$arg"
             saveNextArg=0
+        # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection                
         # elif [ $saveNextArg -eq 17 ]; then
         #     DEVICE_ID="$arg"
         #     saveNextArg=0
@@ -226,6 +228,7 @@ function process_args() {
     done
 
     # Required parameters
+    # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
     # [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
