@@ -68,11 +68,11 @@ DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
     'ubuntu20.04')
-        DOCKER_IMAGE='ubuntu:20.04'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:20.04'
         ;;
 
     'alpine')
-        DOCKER_IMAGE='ubuntu:20.04'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:20.04'
         ;;       
 esac
 
