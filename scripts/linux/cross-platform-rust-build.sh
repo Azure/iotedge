@@ -68,11 +68,11 @@ DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
     'debian12')
-        DOCKER_IMAGE='debian:12-slim'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/debian:bookworm-slim'
         ;;
 
     'alpine')
-        DOCKER_IMAGE='ubuntu:20.04'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:20.04'
         ;;       
 esac
 
