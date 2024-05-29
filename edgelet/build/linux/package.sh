@@ -74,15 +74,15 @@ case "$PACKAGE_OS" in
         ;;
 
     'debian11')
-        DOCKER_IMAGE='debian:11-slim'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/debian:bullseye-slim'
         ;;
 
     'ubuntu20.04')
-        DOCKER_IMAGE='ubuntu:20.04'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:20.04'
         ;;
 
     'ubuntu22.04')
-        DOCKER_IMAGE='ubuntu:22.04'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:22.04'
         ;;
 esac
 
