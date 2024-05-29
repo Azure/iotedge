@@ -3,13 +3,15 @@ parameters:
   deviceId: ''
   lvl: ''
 
-steps:  
-  - task: Bash@3
+steps:
+  - task: AzureCLI@2
     displayName: 'Clean identity  ${{ parameters.lvl }}'
     condition: always()
     inputs:
-      targetType: inline
-      script: |
+      azureSubscription: 'IoTEdge1-msazure'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
         deviceId="${{ parameters.deviceId }}"
 
         if [ -z $deviceId ]; then
