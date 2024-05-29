@@ -47,14 +47,13 @@ jobs:
         azureSubscription: $(az.subscription)
         KeyVaultName: $(az.keyvault)
         SecretsFilter: >-
-          edgebuild-service-principal-secret,
-    - task: Bash@3
-      displayName: 'Az login'
+          edgebuild-service-principal-secret
+    - task: AzureCLI@2
       inputs:
+        azureSubscription: 'IoTEdge1-msazure'
+        scriptType: 'bash'
         targetType: inline
         script: |
-          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
-    - bash: |
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
           mkdir -p $(Build.ArtifactStagingDirectory)/compat
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
