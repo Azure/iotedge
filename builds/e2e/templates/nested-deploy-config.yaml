@@ -5,18 +5,21 @@ parameters:
   level: ''
   name: ''
 
-steps: 
-  - task: Bash@3
+steps:
+  - task: AzureCLI@2
     displayName: 'Deployment iotedge on agent'
     name: "deployIoTEdge${{ parameters.name }}"
+    env:
+      AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
     inputs:
-      targetType: inline
-      script: |
+      azureSubscription: 'IoTEdge1-msazure'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
         declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
         . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
 
         chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
-
         sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
@@ -34,9 +37,13 @@ steps:
           -level "${{ parameters.level }}" \
           -parentName "$(parentName)" \
           -connectionString "$(connectionString)" \
-          -iotHubName "$(iotHubName)" \
-          -deviceId "${{ parameters.deviceId }}" \
           -proxyAddress "$(proxyAddress)" \
           -changeDeployConfigOnly "${{ parameters.changeDeployConfigOnly }}" \
           -waitForTestComplete \
-          -cleanAll
+          -cleanAll 
+          # -iotHubName "$(iotHubName)" \
+          # -deviceId "${{ parameters.deviceId }}" \
+
+          # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
+          deployment_working_file="$(Agent.HomeDirectory)/../working/deployment.json"
+          az iot edge set-modules --device-id "${{ parameters.deviceId }}" --hub-name "$(iotHubName)" --content ${deployment_working_file} --output none
