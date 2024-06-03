@@ -59,7 +59,6 @@ jobs:
           metricsCollector.hostPlatform: '$(hostPlatform)'
           longHaul.parentHostname: '$(parentName)'
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           quickstart.package.name: '$(quickstart.package.name)'
           testInfo.testName: "${{ parameters['testInfo.testName'] }}"
           upstream.protocol: "${{ parameters['upstream.protocol'] }}"

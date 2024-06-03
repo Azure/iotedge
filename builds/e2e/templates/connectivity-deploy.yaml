@@ -20,7 +20,6 @@ parameters:
   logAnalyticsWorkspaceId: ''
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
-  testResultCoordinator.storageAccountConnectionString: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -132,7 +131,6 @@ steps:
           -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
           -EdgeHubRestartTestRestartPeriod "${{ parameters['edgeHubRestartTest.restartPeriod'] }}" \
           -EdgeHubRestartTestSdkOperationTimeout "${{ parameters['edgeHubRestartTest.sdkOperationTimeout'] }}" \
-          -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
           -devOpsAccessToken "$(System.AccessToken)" \
           -devOpsBuildId "$(Build.BuildId)" \
           -edgeRuntimeBuildNumber "${{ parameters['edgeRuntime.buildNumber'] }}" \

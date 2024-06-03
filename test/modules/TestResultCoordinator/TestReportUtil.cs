@@ -5,6 +5,7 @@ namespace TestResultCoordinator
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Azure.Storage.Blobs;
     using Azure.Storage.Sas;
     using Microsoft.Azure.Devices;
@@ -128,10 +129,15 @@ namespace TestResultCoordinator
             return reportMetadataList;
         }
 
-        internal static async Task<Uri> GetOrCreateBlobContainerSasUriForLogAsync(string storageAccountConnectionString)
+        internal static async Task<Uri> GetOrCreateBlobContainerSasUriForLogAsync()
         {
-            string containerName = GetAzureBlobContainerNameForLog();
-            var containerClient = new BlobContainerClient(storageAccountConnectionString, containerName);
+            // TODO: Replace <storage-account-name> with your actual storage account name
+            var blobServiceClient = new BlobServiceClient(
+                new Uri("https://<storage-account-name>.blob.core.windows.net"),
+                new DefaultAzureCredential());
+                
+            // Create the container and return a container client object
+            BlobContainerClient containerClient = await blobServiceClient.CreateBlobContainerAsync(GetAzureBlobContainerNameForLog());
 
             if (!await containerClient.ExistsAsync())
             {

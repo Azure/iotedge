@@ -97,7 +97,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           clientModuleTransportType: 'All'
 
 ################################################################################
@@ -158,7 +157,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           clientModuleTransportType: 'amqp'
 
 ################################################################################
@@ -219,7 +217,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           clientModuleTransportType: 'mqtt'
 
 ################################################################################
@@ -281,7 +278,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           clientModuleTransportType: 'amqp'
 
 ################################################################################
@@ -343,7 +339,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           clientModuleTransportType: 'mqtt'
 
 ################################################################################
@@ -409,6 +404,5 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           clientModuleTransportType: 'All'
           packageType: 'rpm'
