@@ -385,6 +385,9 @@
               "logUploadEnabled": {
                 "value": "<TestResultCoordinator.logUploadEnabled>"
               },
+              "STORAGE_ACCOUNT_NAME": {
+                "value": "<TestResultCoordinator.StorageAccountName>"
+              },
               "NetworkControllerRunProfile": {
                 "value": "<NetworkController.RunProfile>"
               },

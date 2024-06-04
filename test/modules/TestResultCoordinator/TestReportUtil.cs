@@ -129,11 +129,11 @@ namespace TestResultCoordinator
             return reportMetadataList;
         }
 
-        internal static async Task<Uri> GetOrCreateBlobContainerSasUriForLogAsync()
+        internal static async Task<Uri> GetOrCreateBlobContainerSasUriForLogAsync(string storageAccountName)
         {
             // TODO: Replace <storage-account-name> with your actual storage account name
             var blobServiceClient = new BlobServiceClient(
-                new Uri("https://<storage-account-name>.blob.core.windows.net"),
+                new Uri($"https://{storageAccountName}.blob.core.windows.net"),
                 new DefaultAzureCredential());
                 
             // Create the container and return a container client object

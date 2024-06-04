@@ -203,7 +203,7 @@ function process_args() {
                 '-containerRegistryUsername' ) saveNextArg=5;;
                 '-containerRegistryPassword' ) saveNextArg=6;;
                 '-iotHubConnectionString' ) saveNextArg=7;;
-                '-changeDeployConfigOnly' ) saveNextArg=8;;
+                '-storageAccountName' ) saveNextArg=8;;
                 '-deploymentFileName' ) saveNextArg=9;;
                 '-edgeRuntimeBuildNumber' ) saveNextArg=10;;
                 '-customEdgeAgentImage' ) saveNextArg=11;;
@@ -215,6 +215,7 @@ function process_args() {
                 '-deviceId' ) saveNextArg=17;;
                 '-iotHubName' ) saveNextArg=18;;
                 '-proxyAddress' ) saveNextArg=19;;
+                '-changeDeployConfigOnly' ) saveNextArg=20;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 

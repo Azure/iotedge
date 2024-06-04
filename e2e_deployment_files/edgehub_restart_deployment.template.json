@@ -229,6 +229,9 @@
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
+              "STORAGE_ACCOUNT_NAME": {
+                "value": "<TestResultCoordinator.StorageAccountName>"
+              },
               "NetworkControllerRunProfile": {
                 "value": "<NetworkController.RunProfile>"
               },

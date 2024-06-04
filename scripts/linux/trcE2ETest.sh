@@ -33,10 +33,10 @@ function usage() {
     echo ' -metricsEndpointsCSV                     Csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs            Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget                     Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
-    echo ' -packageType                             Package type to be used [deb, rpm]'
     echo ' -deploymentFileName                      Deployment file name'
     echo ' -EdgeHubRestartTestRestartPeriod         EdgeHub restart period (must be greater than 1 minutes)'
     echo ' -EdgeHubRestartTestSdkOperationTimeout   SDK retry timeout'
+    echo ' -storageAccountName                      Azure storage account name with privilege to create blob container.'
     echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
     echo ' -testRuntimeLogLevel                     RuntimeLogLevel given to Quickstart, which is given to edgeAgent and edgeHub.'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
@@ -55,6 +55,7 @@ function usage() {
     echo " -clientModuleTransportType               Value for contrained long haul specifying transport type for all client modules."
     echo " -trackingId                              Tracking id used to tag test events. Needed if running nested tests and test events are sent to TRC from L4 node. Otherwise generated."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
+    echo ' -packageType                             Package type to be used [deb, rpm]'
     exit 1;
 }
 
@@ -192,6 +193,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.StorageAccountName>@$STORAGE_ACCOUNT_NAME@g" "$deployment_working_file"
     sed -i -e "s@<TestInfo>@$TEST_INFO@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.RunProfile>@$NETWORK_CONTROLLER_RUNPROFILE@g" "$deployment_working_file"
@@ -512,7 +514,7 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=21;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=22;;
                 '-metricsUploadTarget' ) saveNextArg=23;;
-                '-packageType' ) saveNextArg=24;;
+                '-storageAccountName' ) saveNextArg=24;;
                 '-devOpsAccessToken' ) saveNextArg=25;;
                 '-devOpsBuildId' ) saveNextArg=26;;
                 '-deploymentFileName' ) saveNextArg=27;;
@@ -537,6 +539,7 @@ function process_args() {
                 '-clientModuleTransportType' ) saveNextArg=46;;
                 '-trackingId' ) saveNextArg=47;;
                 '-topology' ) saveNextArg=48;;
+                '-packageType' ) saveNextArg=49;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
