@@ -237,7 +237,7 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
-    [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
+    [[ -z "$STORAGE_ACCOUNT_NAME" ]] && { print_error 'Storage account name is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }
