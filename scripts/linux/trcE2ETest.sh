@@ -193,7 +193,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
-    sed -i -e "s@<EdgeLonghaulStorageAccountName>@$STORAGE_ACCOUNT_NAME@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeConnectivityStorageAccountName>@$STORAGE_ACCOUNT_NAME@g" "$deployment_working_file"
     sed -i -e "s@<TestInfo>@$TEST_INFO@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.RunProfile>@$NETWORK_CONTROLLER_RUNPROFILE@g" "$deployment_working_file"
@@ -944,7 +944,6 @@ TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
 EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:02:00}"
 TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:02:00}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
-STORAGE_ACCOUNT_NAME=${STORAGE_ACCOUNT_NAME}
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"

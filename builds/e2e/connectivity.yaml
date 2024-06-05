@@ -125,7 +125,6 @@ jobs:
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-            EdgeConnectivityStorageAccountConnString,
             GitHubAccessToken
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault: $(azure.keyVault)'
@@ -318,7 +317,6 @@ jobs:
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-            EdgeConnectivityStorageAccountConnString,
             GitHubAccessToken
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault: $(azure.keyVault)'
