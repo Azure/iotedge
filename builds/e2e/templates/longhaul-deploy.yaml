@@ -91,7 +91,7 @@ steps:
             -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
             -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
             -deploymentFileName "${{ parameters['test.deploymentFileName'] }}" \
-            -storageAccountName "${{ parameters['testResultCoordinator.storageAccountName'] }}" \
+            -storageAccountName "${{ parameters['EdgeLonghaulStorageAccountName'] }}" \
             -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
             -testInfo "$testInfo" \
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
