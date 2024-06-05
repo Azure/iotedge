@@ -154,7 +154,7 @@ function process_args() {
             IOT_HUB_CONNECTION_STRING="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 8 ]; then
-            STORAGE_ACCOUNT_CONNECTION_STRING="$arg"
+            STORAGE_ACCOUNT_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 9 ]; then
             DEPLOYMENT_FILE_NAME="$arg"

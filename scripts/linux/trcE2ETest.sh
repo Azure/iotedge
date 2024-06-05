@@ -411,7 +411,7 @@ function process_args() {
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 24 ]; then
-            STORAGE_ACCOUNT_CONNECTION_STRING="$arg"
+            STORAGE_ACCOUNT_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 25 ]; then
             DEVOPS_ACCESS_TOKEN="$arg"
