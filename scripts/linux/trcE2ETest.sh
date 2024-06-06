@@ -193,7 +193,8 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
-    sed -i -e "s@<StorageAccountName>@$STORAGE_ACCOUNT_NAME@Ig" "$deployment_working_file"
+# TODO: re-enable post MSI testing
+#    sed -i -e "s@<StorageAccountName>@$STORAGE_ACCOUNT_NAME@Ig" "$deployment_working_file"
     sed -i -e "s@<TestInfo>@$TEST_INFO@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.RunProfile>@$NETWORK_CONTROLLER_RUNPROFILE@g" "$deployment_working_file"
