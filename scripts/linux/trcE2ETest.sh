@@ -193,8 +193,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
-# TODO: re-enable post MSI testing
-#    sed -i -e "s@<StorageAccountName>@$STORAGE_ACCOUNT_NAME@Ig" "$deployment_working_file"
+    sed -i -e "s@<StorageAccountName>@$STORAGE_ACCOUNT_NAME@Ig" "$deployment_working_file"
     sed -i -e "s@<TestInfo>@$TEST_INFO@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.RunProfile>@$NETWORK_CONTROLLER_RUNPROFILE@g" "$deployment_working_file"
@@ -566,7 +565,8 @@ function process_args() {
     [[ -z "$METRICS_ENDPOINTS_CSV" ]] && { print_error 'Metrics endpoints csv is required'; exit 1; }
     [[ -z "$METRICS_SCRAPE_FREQUENCY_IN_SECS" ]] && { print_error 'Metrics scrape frequency is required'; exit 1; }
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
-    [[ -z "$STORAGE_ACCOUNT_NAME" ]] && { print_error 'Storage account name is required'; exit 1; }
+    # TODO: re-enable post MSI testing
+    #[[ -z "$STORAGE_ACCOUNT_NAME" ]] && { print_error 'Storage account name is required'; exit 1; }
     [[ -z "$TEST_INFO" ]] && { print_error 'Test info is required'; exit 1; }
     [[ -z "$REPO_PATH" ]] && { print_error 'Repo path is required'; exit 1; }
     [[ (-z "${TEST_NAME,,}") || ("${TEST_NAME,,}" != "${LONGHAUL_TEST_NAME,,}" && "${TEST_NAME,,}" != "${CONNECTIVITY_TEST_NAME,,}") ]] && { print_error 'Invalid test name'; exit 1; }
