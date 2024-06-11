@@ -918,7 +918,7 @@ function configure_connectivity_settings() {
 
     TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
 
-    log_upload_enabled=false
+    log_upload_enabled=true
 }
 
 LONGHAUL_TEST_NAME="LongHaul"
