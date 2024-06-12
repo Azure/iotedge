@@ -385,7 +385,7 @@ where
             }
 
             inner.get_mut().set_cx(cx);
-            let message = inner.read_message();
+            let message = inner.read();
             inner.get_mut().set_cx(std::ptr::null_mut());
 
             match message {
@@ -418,12 +418,12 @@ where
         let message = tungstenite::Message::Binary(buf.to_owned());
 
         inner.get_mut().set_cx(cx);
-        let result = inner.write_message(message);
+        let result = inner.send(message);
         inner.get_mut().set_cx(std::ptr::null_mut());
 
         match result {
             Ok(()) => std::task::Poll::Ready(Ok(buf.len())),
-            Err(tungstenite::Error::SendQueueFull(_)) => std::task::Poll::Pending, // Hope client calls `poll_flush()` before retrying
+            Err(tungstenite::Error::WriteBufferFull(_)) => std::task::Poll::Pending, // Hope client calls `poll_flush()` before retrying
             Err(err) => poll_from_tungstenite_error(err),
         }
     }
@@ -438,7 +438,7 @@ where
         };
 
         inner.get_mut().set_cx(cx);
-        let result = inner.write_pending();
+        let result = inner.flush();
         inner.get_mut().set_cx(std::ptr::null_mut());
         match result {
             Ok(()) => std::task::Poll::Ready(Ok(())),
