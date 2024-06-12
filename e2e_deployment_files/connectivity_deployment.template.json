@@ -389,7 +389,7 @@
                 "value": "<TestResultCoordinator.logUploadEnabled>"
               },
               "STORAGE_ACCOUNT_NAME": {
-                "value": "<EdgeConnectivityStorageAccountName>"
+                "value": "iotedgeconnectivitytest"
               },
               "NetworkControllerRunProfile": {
                 "value": "<NetworkController.RunProfile>"
