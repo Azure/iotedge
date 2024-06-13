@@ -3,18 +3,14 @@ parameters:
   nsgName: ''
 
 steps: 
-  - task: Bash@3
+  - task: AzureCLI@2
     condition: always()
     displayName: 'Unlocking network of ${{ parameters.agentName }}'
     inputs:
-      targetType: inline
-      script: |     
-        az login \
-          --service-principal \
-          --password '$(edgebuild-service-principal-secret)' \
-          --username '$(servicePrincipal.clientId)' \
-          --tenant '$(servicePrincipal.tenantId)'
- 
+      azureSubscription: 'IoTEdge1-msazure'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
         az network nsg rule delete \
           --resource-group '$(resourceGroup)' \
           --nsg-name '${{ parameters.nsgName }}' \
