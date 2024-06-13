@@ -105,9 +105,7 @@ namespace TestResultCoordinator.Services
             {
                 try
                 {
-                    logger.LogInformation($"LOG ACCOUNT NAME IS {this.serviceSpecificSettings.StorageAccountName}");
                     Uri blobContainerWriteUriForLog = await TestReportUtil.GetOrCreateBlobContainerSasUriForLogAsync(this.serviceSpecificSettings.StorageAccountName);
-                    logger.LogInformation($"SAS URI IS {blobContainerWriteUriForLog}");
                     blobContainerUri = $"{blobContainerWriteUriForLog.Scheme}{Uri.SchemeDelimiter}{blobContainerWriteUriForLog.Authority}{blobContainerWriteUriForLog.AbsolutePath}";
 
                     await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, blobContainerWriteUriForLog, this.logUploadDuration, this.logger);
