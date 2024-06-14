@@ -46,7 +46,7 @@ namespace TestResultCoordinator
             TimeSpan verificationDelay,
             TimeSpan sendReportFrequency,
             bool logUploadEnabled,
-            Uri TestBlobStoreSasUri,
+            Uri BlobStoreSasUri,
             string networkControllerRunProfileName,
             ushort unmatchedResultsMaxSize,
             string testInfo,

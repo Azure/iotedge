@@ -203,7 +203,7 @@ function process_args() {
                 '-containerRegistryUsername' ) saveNextArg=5;;
                 '-containerRegistryPassword' ) saveNextArg=6;;
                 '-iotHubConnectionString' ) saveNextArg=7;;
-                '-testBlobStoreSasUri' ) saveNextArg=8;;
+                '-blobStoreSasUri' ) saveNextArg=8;;
                 '-deploymentFileName' ) saveNextArg=9;;
                 '-edgeRuntimeBuildNumber' ) saveNextArg=10;;
                 '-customEdgeAgentImage' ) saveNextArg=11;;
