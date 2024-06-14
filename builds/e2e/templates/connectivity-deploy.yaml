@@ -132,7 +132,7 @@ steps:
           -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
           -EdgeHubRestartTestRestartPeriod "${{ parameters['edgeHubRestartTest.restartPeriod'] }}" \
           -EdgeHubRestartTestSdkOperationTimeout "${{ parameters['edgeHubRestartTest.sdkOperationTimeout'] }}" \
-          -storageAccountName "${{ parameters['EdgeConnectivityStorageAccountName'] }}" \
+          -testBlobStoreSasUri "${{ parameters['testBlobStoreSas'] }}" \
           -devOpsAccessToken "$(System.AccessToken)" \
           -devOpsBuildId "$(Build.BuildId)" \
           -edgeRuntimeBuildNumber "${{ parameters['edgeRuntime.buildNumber'] }}" \

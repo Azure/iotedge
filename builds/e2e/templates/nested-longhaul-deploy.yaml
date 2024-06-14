@@ -176,7 +176,7 @@ steps:
             -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
             -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
             -deploymentFileName "${{ parameters['test.deploymentFileName'] }}" \
-            -storageAccountName "${{ parameters['testResultCoordinator.blobStoreSasUri'] }}" \
+            -testBlobStoreSasUri "${{ parameters['testResultCoordinator.blobStoreSasUri'] }}" \
             -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
             -testInfo "$testInfo" \
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
