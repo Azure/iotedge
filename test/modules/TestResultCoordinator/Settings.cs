@@ -46,7 +46,7 @@ namespace TestResultCoordinator
             TimeSpan verificationDelay,
             TimeSpan sendReportFrequency,
             bool logUploadEnabled,
-            string storageAccountName,
+            Uri TestBlobStoreSasUri,
             string networkControllerRunProfileName,
             ushort unmatchedResultsMaxSize,
             string testInfo,
@@ -71,7 +71,6 @@ namespace TestResultCoordinator
             {
                 this.TestResultReportingServiceSettings = Option.Some(new TestResultReportingServiceSettings()
                 {
-                    StorageAccountName = Preconditions.CheckNonWhiteSpace(storageAccountName, nameof(storageAccountName)),
                     LogAnalyticsLogType = Preconditions.CheckNonWhiteSpace(logAnalyticsLogType, nameof(logAnalyticsLogType)),
                     LogAnalyticsSharedKey = Preconditions.CheckNonWhiteSpace(logAnalyticsSharedKey, nameof(logAnalyticsSharedKey)),
                     LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId)),
@@ -164,7 +163,7 @@ namespace TestResultCoordinator
                 configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
                 configuration.GetValue("sendReportFrequency", TimeSpan.FromHours(24)),
                 configuration.GetValue<bool>("logUploadEnabled", true),
-                configuration.GetValue<string>("STORAGE_ACCOUNT_NAME"),
+                configuration.GetValue<Uri>("BLOB_STORE_SAS"),
                 configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
                 configuration.GetValue<ushort>("UNMATCHED_RESULTS_MAX_SIZE", DefaultUnmatchedResultsMaxSize),
                 configuration.GetValue<string>("TEST_INFO"),
@@ -282,7 +281,7 @@ namespace TestResultCoordinator
 
     internal struct TestResultReportingServiceSettings
     {
-        public string StorageAccountName;
+        public Uri BlobStoreSasUri;
         public string LogAnalyticsWorkspaceId;
         public string LogAnalyticsSharedKey;
         public string LogAnalyticsLogType;

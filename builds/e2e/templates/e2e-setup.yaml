@@ -18,8 +18,7 @@ steps:
         TestIotHubResourceId,
         TestRootCaCertificate,
         TestRootCaKey,
-        TestRootCaPassword,
-        TestBlobStoreSas
+        TestRootCaPassword
 
   - bash: | 
       echo "Built Images Result is '$(builtImages)'"
@@ -162,6 +161,26 @@ steps:
 
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
+
+      # Hardcoded resource group and storage account name
+      $resourceGroup = "EdgeBuilds"
+      $storageAccount = "e2eteststorageedge"
+      
+      # Set container name with current date
+      $containerName = "logs$((Get-Date).ToString('yyyyMMdd'))"
+      
+      # Set expiry time for the SAS token
+      $expiryTime = (Get-Date).ToUniversalTime().AddDays(2).ToString("yyyy-MM-ddTHH:mmZ")
+      
+      # Generate the SAS token for the container
+      $sasToken = az storage container generate-sas --account-name "$storageAccount" --as-user --auth-mode login --https-only --expiry "$expiryTime" --name "$containerName" --permissions dlrw --output tsv
+      if ($LastExitCode -ne 0) {
+        Write-Host "Failed to generate SAS token."
+        exit 1
+        
+      # Construct the SAS URI
+      $endpoint = az storage account show --name "$storageAccount" --resource-group "$resourceGroup" --query 'primaryEndpoints.blob' -o tsv
+      $sasUrl = "$endpoint$containerName?$sasToken"
   
       $context = @{
         nestededge = "$nestededge";
@@ -179,6 +198,7 @@ steps:
         loadGenImage = "$imagePrefix-load-gen:$imageTag";
         relayerImage = "$imagePrefix-relayer:$imageTag";
         networkControllerImage = "$imagePrefix-network-controller:$imageTag";
+        testBlobStoreSas = $sasUrl;
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
         metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag";
         iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";

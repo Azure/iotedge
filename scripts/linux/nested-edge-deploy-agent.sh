@@ -154,7 +154,7 @@ function process_args() {
             IOT_HUB_CONNECTION_STRING="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 8 ]; then
-            STORAGE_ACCOUNT_NAME="$arg"
+            BLOB_STORE_SAS="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 9 ]; then
             DEPLOYMENT_FILE_NAME="$arg"
@@ -237,7 +237,7 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
-    [[ -z "$STORAGE_ACCOUNT_NAME" ]] && { print_error 'Storage account name is required'; exit 1; }
+    [[ -z "$BLOB_STORE_SAS" ]] && { print_error 'Blob storage URI is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }

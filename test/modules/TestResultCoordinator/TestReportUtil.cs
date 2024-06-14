@@ -5,7 +5,6 @@ namespace TestResultCoordinator
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using Azure.Identity;
     using Azure.Storage.Blobs;
     using Azure.Storage.Sas;
     using Microsoft.Azure.Devices;
@@ -127,23 +126,6 @@ namespace TestResultCoordinator
             }
 
             return reportMetadataList;
-        }
-
-        internal static async Task<Uri> GetOrCreateBlobContainerSasUriForLogAsync(string storageAccountName)
-        {
-            var blobServiceClient = new BlobServiceClient(
-                new Uri($"https://{storageAccountName}.blob.core.windows.net"),
-                new DefaultAzureCredential());
-                
-            // Create the container and return a container client object
-            BlobContainerClient containerClient = await blobServiceClient.CreateBlobContainerAsync(GetAzureBlobContainerNameForLog());
-
-            if (!await containerClient.ExistsAsync())
-            {
-                await containerClient.CreateAsync();
-            }
-
-            return GetContainerSasUri(containerClient);
         }
 
         internal static async Task UploadLogsAsync(string iotHubConnectionString, Uri blobContainerWriteUri, Option<TimeSpan> logUploadDuration, ILogger logger)

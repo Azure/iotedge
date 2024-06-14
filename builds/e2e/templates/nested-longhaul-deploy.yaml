@@ -30,7 +30,7 @@ parameters:
   test.runtimeLogLevel: ''
   longHaul.parentHostname: ''
   longHaul.parentEdgeDevice: ''
-  testResultCoordinator.storageAccountName: ''
+  testResultCoordinator.blobStoreSasUri: ''
   quickstart.package.name: ''
   upstream.protocol: ''
 
@@ -176,7 +176,7 @@ steps:
             -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
             -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
             -deploymentFileName "${{ parameters['test.deploymentFileName'] }}" \
-            -storageAccountName "${{ parameters['testResultCoordinator.storageAccountName'] }}" \
+            -storageAccountName "${{ parameters['testResultCoordinator.blobStoreSasUri'] }}" \
             -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
             -testInfo "$testInfo" \
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \

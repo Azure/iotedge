@@ -32,7 +32,7 @@ parameters:
   test.testMode: ''
   test.useTRC: ''
   test.deploymentFileName: ''
-  testResultCoordinator.storageAccountName: ''
+  testResultCoordinator.blobStoreSasUri: ''
   clientModuleTransportType: ''
   packageType: 'deb' 
 

@@ -406,8 +406,8 @@
               "logUploadEnabled": {
                 "value": "<TestResultCoordinator.logUploadEnabled>"
               },
-              "STORAGE_ACCOUNT_NAME": {
-                "value": "<TestResultCoordinator.StorageAccountName>"
+              "BLOB_STORE_SAS": {
+                "value": "<TestBlobStoreSas>"
               },
               "NetworkControllerRunProfile": {
                 "value": "<NetworkController.RunProfile>"

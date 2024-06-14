@@ -20,7 +20,7 @@ parameters:
   logAnalyticsWorkspaceId: ''
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
-  testResultCoordinator.storageAccountName: ''
+  testResultCoordinator.blobStoreSasUri: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''

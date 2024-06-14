@@ -36,7 +36,7 @@ function usage() {
     echo ' -deploymentFileName                      Deployment file name'
     echo ' -EdgeHubRestartTestRestartPeriod         EdgeHub restart period (must be greater than 1 minutes)'
     echo ' -EdgeHubRestartTestSdkOperationTimeout   SDK retry timeout'
-    echo ' -storageAccountName                      Azure storage account name with privilege to create blob container.'
+    echo ' -testBlobStoreSasUri                     Azure storage account blob store SAS Uri.'
     echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
     echo ' -testRuntimeLogLevel                     RuntimeLogLevel given to Quickstart, which is given to edgeAgent and edgeHub.'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
@@ -193,7 +193,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
-    sed -i -e "s@<StorageAccountName>@$STORAGE_ACCOUNT_NAME@Ig" "$deployment_working_file"
+    sed -i -e "s@<TestBlobStoreSasUri>@$BLOB_STORE_SAS@Ig" "$deployment_working_file"
     sed -i -e "s@<TestInfo>@$TEST_INFO@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.RunProfile>@$NETWORK_CONTROLLER_RUNPROFILE@g" "$deployment_working_file"
@@ -411,7 +411,7 @@ function process_args() {
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 24 ]; then
-            STORAGE_ACCOUNT_NAME="$arg"
+            BLOB_STORE_SAS="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 25 ]; then
             DEVOPS_ACCESS_TOKEN="$arg"
@@ -514,7 +514,7 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=21;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=22;;
                 '-metricsUploadTarget' ) saveNextArg=23;;
-                '-storageAccountName' ) saveNextArg=24;;
+                '-testBlobStoreSasUri' ) saveNextArg=24;;
                 '-devOpsAccessToken' ) saveNextArg=25;;
                 '-devOpsBuildId' ) saveNextArg=26;;
                 '-deploymentFileName' ) saveNextArg=27;;
