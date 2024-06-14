@@ -171,6 +171,8 @@ steps:
       
       # Set expiry time for the SAS token
       $expiryTime = (Get-Date).ToUniversalTime().AddDays(2).ToString("yyyy-MM-ddTHH:mmZ")
+
+      az login
       
       # Generate the SAS token for the container
       $sasToken = az storage container generate-sas --account-name "$storageAccount" --as-user --auth-mode login --https-only --expiry "$expiryTime" --name "$containerName" --permissions dlrw --output tsv
