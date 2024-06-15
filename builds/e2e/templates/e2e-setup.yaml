@@ -251,7 +251,7 @@ steps:
         expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
 
         # Generate the SAS token for the container
-        sasToken = az storage container generate-sas --account-name "$storageAccount" --https-only --expiry "$expiryTime" --name "$containerName" --permissions dlrw --output tsv
+        sasToken=$(az storage container generate-sas --account-name "$storage_account" --https-only --expiry "$expiry_time" --name "$container_name" --permissions dlrw --output tsv)
         if [ $? -ne 0 ]; then
           echo "Failed to generate SAS token."
           exit 1
@@ -260,8 +260,8 @@ steps:
         echo "SAS token for Azure Storage account acquired.  Expires $expiryTime"
         
         # Construct the SAS URI
-        endpoint = az storage account show --name "$storageAccount" --resource-group "$resourceGroup" --query 'primaryEndpoints.blob' -o tsv
-        sasUrl = "$endpoint$containerName?$sasToken"
+        endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
+        sasUrl="$endpoint$containerName?$sasToken"
         
         echo "Endpoint for Azure Storage account: $endpoint"
         echo "##vso[task.setvariable variable=TestBlobStoreSas;issecret=true]$sasToken"
