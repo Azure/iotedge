@@ -241,26 +241,27 @@ steps:
       scriptLocation: 'inlineScript'
       inlineScript: |
         # Hardcoded resource group and storage account name
-        $resourceGroup = "EdgeBuilds"
-        $storageAccount = "e2eteststorageedge"
-      
+        resource_group="EdgeBuilds"
+        storage_account="e2eteststorageedge"
+        
         # Set container name with current date
-        $containerName = "logs$((Get-Date).ToString('yyyyMMdd'))"
-      
+        container_name="logs$(date +%Y%m%d)"
+        
         # Set expiry time for the SAS token
-        $expiryTime = (Get-Date).ToUniversalTime().AddDays(2).ToString("yyyy-MM-ddTHH:mmZ")
+        expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
 
         # Generate the SAS token for the container
-        $sasToken = az storage container generate-sas --account-name "$storageAccount" --https-only --expiry "$expiryTime" --name "$containerName" --permissions dlrw --output tsv
-        if ($LastExitCode -ne 0) {
-          Write-Host "Failed to generate SAS token."
+        sasToken = az storage container generate-sas --account-name "$storageAccount" --https-only --expiry "$expiryTime" --name "$containerName" --permissions dlrw --output tsv
+        if [ $? -ne 0 ]; then
+          echo "Failed to generate SAS token."
           exit 1
-        }
-        echo "SAS token for Azure Storage account acquired.  Expires $(echo $expiryTime)"
+        fi
+        
+        echo "SAS token for Azure Storage account acquired.  Expires $expiryTime"
         
         # Construct the SAS URI
-        $endpoint = az storage account show --name "$storageAccount" --resource-group "$resourceGroup" --query 'primaryEndpoints.blob' -o tsv
-        $sasUrl = "$endpoint$containerName?$sasToken"
+        endpoint = az storage account show --name "$storageAccount" --resource-group "$resourceGroup" --query 'primaryEndpoints.blob' -o tsv
+        sasUrl = "$endpoint$containerName?$sasToken"
         
-        echo "Endpoint for Azure Storage account: $(echo $endpoint)"
+        echo "Endpoint for Azure Storage account: $endpoint"
         echo "##vso[task.setvariable variable=TestBlobStoreSas;issecret=true]$sasToken"
