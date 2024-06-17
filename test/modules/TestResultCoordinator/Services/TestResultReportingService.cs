@@ -105,10 +105,7 @@ namespace TestResultCoordinator.Services
             {
                 try
                 {
-                    Uri blobContainerWriteUriForLog = this.serviceSpecificSettings.BlobStorageAccountUriWithSasToken;
-                    blobContainerUri = $"{blobContainerWriteUriForLog.Scheme}{Uri.SchemeDelimiter}{blobContainerWriteUriForLog.Authority}{blobContainerWriteUriForLog.AbsolutePath}";
-
-                    await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, blobContainerWriteUriForLog, this.logUploadDuration, this.logger);
+                    await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, this.serviceSpecificSettings.BlobStorageAccountUriWithSasToken, this.logUploadDuration, this.logger);
                 }
                 catch (Exception ex)
                 {
