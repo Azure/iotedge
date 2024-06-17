@@ -199,6 +199,9 @@ steps:
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
 
+      # TODO: remove before check-in
+      echo "SAS Uri: $TestBlobStoreSas"
+
       $context = @{
         nestededge = "$nestededge";
         dpsIdScope = '$(dps.idScope)';
@@ -215,7 +218,7 @@ steps:
         loadGenImage = "$imagePrefix-load-gen:$imageTag";
         relayerImage = "$imagePrefix-relayer:$imageTag";
         networkControllerImage = "$imagePrefix-network-controller:$imageTag";
-        testBlobStoreSas = $sasUri;
+        testBlobStoreSas = $TestBlobStoreSas;
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
         metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag";
         iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
