@@ -113,12 +113,7 @@ steps:
         
         # Construct the SAS URI
         endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
-
-        # remove potential trailing /
-        storageendpoint=$(echo $endpoint | sed 's_net/_net_')
-        echo "Endpoint for Azure Storage account: $storageendpoint"
-
-        sasUri="$storageendpoint?$sasToken"
+        sasUri="$endpoint$container_name?$sasToken"
         
         echo "##vso[task.setvariable variable=TestBlobStoreSas;issecret=true]$sasUri"
   
