@@ -264,7 +264,7 @@ steps:
         # remove potential trailing /
         storageendpoint=$(echo $endpoint | sed 's_net/_net_')
         echo "Endpoint for Azure Storage account: $storageendpoint"
-        
-        sasUri="$endpoint?$sasToken"
+
+        sasUri="$storageendpoint?$sasToken"
         
         echo "##vso[task.setvariable variable=TestBlobStoreSas;issecret=true]$sasUri"
