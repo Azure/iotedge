@@ -208,14 +208,6 @@ namespace TestResultCoordinator
             return $"logs{DateTime.UtcNow.ToString("yyyyMMdd")}";
         }
 
-        static Uri GetContainerSasUri(BlobContainerClient container)
-        {
-            var permissions = BlobContainerSasPermissions.Write | BlobContainerSasPermissions.List;
-            // When the start time for the SAS is omitted, the start time is assumed to be the time when the storage service receives the request.
-            // Omitting the start time for a SAS that is effective immediately helps to avoid clock skew.
-            return container.GenerateSasUri(permissions, DateTime.UtcNow.AddHours(1));
-        }
-
         enum UploadLogResponseStatus
         {
             NotStarted,

@@ -46,7 +46,7 @@ namespace TestResultCoordinator
             TimeSpan verificationDelay,
             TimeSpan sendReportFrequency,
             bool logUploadEnabled,
-            Uri BlobStoreSasUri,
+            Uri BlobStorageAccountUriWithSasToken,
             string networkControllerRunProfileName,
             ushort unmatchedResultsMaxSize,
             string testInfo,
@@ -281,7 +281,7 @@ namespace TestResultCoordinator
 
     internal struct TestResultReportingServiceSettings
     {
-        public Uri BlobStoreSasUri;
+        public Uri BlobStorageAccountUriWithSasToken;
         public string LogAnalyticsWorkspaceId;
         public string LogAnalyticsSharedKey;
         public string LogAnalyticsLogType;
