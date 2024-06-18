@@ -97,13 +97,13 @@ steps:
         storage_account="e2eteststorageedge"
         
         # Set container name with current date
-        container_name="logs$(date +%Y%m%d)"
+        container_name="e2etest"
         
         # Set expiry time for the SAS token
         expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
 
         # Generate the SAS token for the container
-        sasToken=$(az storage blob generate-sas --account-name "$storage_account" --container-name "$container_name" --name e2etest --https-only --expiry "$expiry_time" --permissions drwace --output tsv)
+        sasToken=$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --permissions drwace --output tsv)
         if [ $? -ne 0 ]; then
           echo "Failed to generate SAS token."
           exit 1
@@ -193,9 +193,6 @@ steps:
 
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
-
-      # TODO: remove before check-in
-      echo "SAS Uri: $TestBlobStoreSas"
 
       $context = @{
         nestededge = "$nestededge";
