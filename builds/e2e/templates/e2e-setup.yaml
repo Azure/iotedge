@@ -103,7 +103,7 @@ steps:
         expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
 
         # Generate the SAS token for the container
-        sasToken=$(az storage blob generate-sas --account-name "$storage_account" --container-name "$container_name" --name e2etest --https-only --expiry "$expiry_time" --permissions drw --output tsv)
+        sasToken=$(az storage blob generate-sas --account-name "$storage_account" --container-name "$container_name" --name e2etest --https-only --expiry "$expiry_time" --permissions drwace --output tsv)
         if [ $? -ne 0 ]; then
           echo "Failed to generate SAS token."
           exit 1
