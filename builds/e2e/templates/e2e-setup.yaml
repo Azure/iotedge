@@ -96,7 +96,7 @@ steps:
         resource_group="EdgeBuilds"
         storage_account="e2eteststorageedge"
 
-        # Set container name with current date
+        # Set container name with name of storage account container
         container_name="e2etest"
 
         # Set expiry time for the SAS token
