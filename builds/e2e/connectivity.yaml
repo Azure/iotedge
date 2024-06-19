@@ -171,7 +171,7 @@ jobs:
       - task: AzureCLI@2
         displayName: 'Get SAS URI for Blob Storage Account'
         inputs:
-          azureSubscription: $(az.subscription)
+          azureSubscription: $(azure.subscription)
           scriptType: 'bash'
           scriptLocation: 'inlineScript'
           inlineScript: |
@@ -390,7 +390,7 @@ jobs:
       - task: AzureCLI@2
         displayName: 'Get SAS URI for Blob Storage Account'
         inputs:
-          azureSubscription: $(az.subscription)
+          azureSubscription: $(azure.subscription)
           scriptType: 'bash'
           scriptLocation: 'inlineScript'
           inlineScript: |
