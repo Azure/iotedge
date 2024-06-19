@@ -389,7 +389,7 @@
                 "value": "<TestResultCoordinator.logUploadEnabled>"
               },
               "BLOB_STORE_SAS": {
-                "value": "<TestBlobStoreSas>"
+                "value": "<testBlobStoreSas>"
               },
               "NetworkControllerRunProfile": {
                 "value": "<NetworkController.RunProfile>"
