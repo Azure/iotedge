@@ -1,11 +1,13 @@
 steps:
-  - task: Bash@3
-    displayName: 'Get rootCA'
+  - task: AzureCLI@2
     condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
+    displayName: 'Get rootCA'
     inputs:
-      targetType: inline
-      script: |
-        az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string "$(edgebuild-blob-core-connection-string)"
+      azureSubscription: 'IoTEdge1-msazure'
+      scriptType: 'bash'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        az storage blob download --auth-mode login --blob-url 'https://edgebuild.blob.core.windows.net/test-certificates/test-certs.tar.bz2' --file rootCA.tar.bz2 
         tar -xjvf rootCA.tar.bz2
 
         #delete previous certs.
