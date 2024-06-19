@@ -175,29 +175,29 @@ jobs:
           scriptType: 'bash'
           scriptLocation: 'inlineScript'
           inlineScript: |
-          # Hardcoded resource group and storage account name
-          resource_group="iotedge-deploy"
-          storage_account="iotedgeconnectivitytest"
+            # Hardcoded resource group and storage account name
+            resource_group="iotedge-deploy"
+            storage_account="iotedgeconnectivitytest"
           
-          # Set container name with current date
-          container_name="logs$(date +%Y%m%d)"
-          
-          # Set expiry time for the SAS token
-          expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
-          
-          # Generate the SAS token for the container
-          sasToken=$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)
-          if [ $? -ne 0 ]; then
-            echo "Failed to generate SAS token."
-            exit 1
-          fi
-          
-          echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
-          
-          # Construct the SAS URI
-          endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
-          sasUri="$endpoint$container_name?$sasToken"
-          echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
+            # Set container name with current date
+            container_name="logs$(date +%Y%m%d)"
+            
+            # Set expiry time for the SAS token
+            expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
+            
+            # Generate the SAS token for the container
+            sasToken=$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)
+            if [ $? -ne 0 ]; then
+              echo "Failed to generate SAS token."
+              exit 1
+            fi
+            
+            echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
+            
+            # Construct the SAS URI
+            endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
+            sasUri="$endpoint$container_name?$sasToken"
+            echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
       - task: PowerShell@2
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download aziot-identity-service'
@@ -394,30 +394,29 @@ jobs:
           scriptType: 'bash'
           scriptLocation: 'inlineScript'
           inlineScript: |
-          # Hardcoded resource group and storage account name
-          resource_group="iotedge-deploy"
-          storage_account="iotedgeconnectivitytest"
-          
-          # Set container name with current date
-          container_name="logs$(date +%Y%m%d)"
-          
-          # Set expiry time for the SAS token
-          expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
-          
-          # Generate the SAS token for the container
-          sasToken=$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)
-          if [ $? -ne 0 ]; then
-            echo "Failed to generate SAS token."
-            exit 1
-          fi
-          
-          echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
-          
-          # Construct the SAS URI
-          endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
-          sasUri="$endpoint$container_name?$sasToken"
-          echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
-
+            # Hardcoded resource group and storage account name
+            resource_group="iotedge-deploy"
+            storage_account="iotedgeconnectivitytest"
+            
+            # Set container name with current date
+            container_name="logs$(date +%Y%m%d)"
+            
+            # Set expiry time for the SAS token
+            expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
+            
+            # Generate the SAS token for the container
+            sasToken=$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)
+            if [ $? -ne 0 ]; then
+              echo "Failed to generate SAS token."
+              exit 1
+            fi
+            
+            echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
+            
+            # Construct the SAS URI
+            endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
+            sasUri="$endpoint$container_name?$sasToken"
+            echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
