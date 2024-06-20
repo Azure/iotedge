@@ -20,7 +20,7 @@ parameters:
   logAnalyticsWorkspaceId: ''
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
-  testResultCoordinator.blobStorageAccountUriWithSasToken: ''
+  blobStorageAccountUriWithSasToken: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -108,10 +108,13 @@ steps:
         testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }}"
         testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }}"
         testInfo="$testInfo,ClientProtocol=All"
-
+        
+        length=${#blobStorageAccountUriWithSasToken}
+        echo "SAS token3 length: $length"
+        
         sasToken=${{ parameters['testBlobStoreSas'] }}
         length=${#sasToken}
-        echo "SAS token3 length: $length"
+        echo "SAS token4 length: $length"
 
         sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
           -testName 'Connectivity' \
