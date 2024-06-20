@@ -112,10 +112,6 @@ steps:
         sasToken='$(testBlobStoreSas)'
         length=${#sasToken}
         echo "SAS token3 length: $length"
-        
-        sasToken=${{ parameters['testBlobStoreSas'] }}
-        length=${#sasToken}
-        echo "SAS token4 length: $length"
 
         sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
           -testName 'Connectivity' \
@@ -140,7 +136,7 @@ steps:
           -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
           -EdgeHubRestartTestRestartPeriod "${{ parameters['edgeHubRestartTest.restartPeriod'] }}" \
           -EdgeHubRestartTestSdkOperationTimeout "${{ parameters['edgeHubRestartTest.sdkOperationTimeout'] }}" \
-          -blobStorageAccountUriWithSasToken "${{ parameters['testBlobStoreSas'] }}" \
+          -blobStorageAccountUriWithSasToken "$(testBlobStoreSas)" \
           -devOpsAccessToken "$(System.AccessToken)" \
           -devOpsBuildId "$(Build.BuildId)" \
           -edgeRuntimeBuildNumber "${{ parameters['edgeRuntime.buildNumber'] }}" \
