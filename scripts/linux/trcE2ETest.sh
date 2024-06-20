@@ -412,6 +412,8 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 24 ]; then
             BLOB_STORE_SAS="$arg"
+            length=${#BLOB_STORE_SAS}
+            echo "SAS token4 length: $length"
             saveNextArg=0
         elif [ $saveNextArg -eq 25 ]; then
             DEVOPS_ACCESS_TOKEN="$arg"

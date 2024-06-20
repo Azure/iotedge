@@ -109,6 +109,10 @@ steps:
         testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }}"
         testInfo="$testInfo,ClientProtocol=All"
 
+        sasToken=${{ parameters['testBlobStoreSas'] }}
+        length=${#sasToken}
+        echo "SAS token3 length: $length"
+
         sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
           -testName 'Connectivity' \
           -testDir "$(Agent.BuildDirectory)/.." \
