@@ -191,13 +191,14 @@ jobs:
               echo "Failed to generate SAS token."
               exit 1
             fi
-          
+
             echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
-          
+     
             # Construct the SAS URI
             endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
             sasUri="$endpoint$container_name?$sasToken"
             echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
+
       - task: PowerShell@2
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download aziot-identity-service'
@@ -237,7 +238,7 @@ jobs:
           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(testBlobStoreSas)'
+          blobStorageAccountUriWithSasToken: '$(testBlobStoreSas)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
@@ -397,7 +398,7 @@ jobs:
             # Hardcoded resource group and storage account name
             resource_group="iotedge-deploy"
             storage_account="iotedgeconnectivitytest"
-          
+         
             # Set container name with current date
             container_name="logs$(date +%Y%m%d)"
           
@@ -446,7 +447,7 @@ jobs:
           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(testBlobStoreSas)'
+          blobStorageAccountUriWithSasToken: '$(testBlobStoreSas)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
