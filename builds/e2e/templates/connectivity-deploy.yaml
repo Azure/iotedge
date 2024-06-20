@@ -116,6 +116,10 @@ steps:
         length=${#sasToken}
         echo "SAS token4 length: $length"
 
+        sasToken=$(testBlobStoreSas)
+        length=${#sasToken}
+        echo "SAS token6 length: $length"
+
         sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
           -testName 'Connectivity' \
           -testDir "$(Agent.BuildDirectory)/.." \
