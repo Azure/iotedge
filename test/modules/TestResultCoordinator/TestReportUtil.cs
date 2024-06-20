@@ -128,19 +128,6 @@ namespace TestResultCoordinator
             return reportMetadataList;
         }
 
-        internal static async Task<Uri> GetOrCreateBlobContainerSasUriForLogAsync(string storageAccountConnectionString)
-        {
-            string containerName = GetAzureBlobContainerNameForLog();
-            var containerClient = new BlobContainerClient(storageAccountConnectionString, containerName);
-
-            if (!await containerClient.ExistsAsync())
-            {
-                await containerClient.CreateAsync();
-            }
-
-            return GetContainerSasUri(containerClient);
-        }
-
         internal static async Task UploadLogsAsync(string iotHubConnectionString, Uri blobContainerWriteUri, Option<TimeSpan> logUploadDuration, ILogger logger)
         {
             Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
@@ -219,14 +206,6 @@ namespace TestResultCoordinator
         static string GetAzureBlobContainerNameForLog()
         {
             return $"logs{DateTime.UtcNow.ToString("yyyyMMdd")}";
-        }
-
-        static Uri GetContainerSasUri(BlobContainerClient container)
-        {
-            var permissions = BlobContainerSasPermissions.Write | BlobContainerSasPermissions.List;
-            // When the start time for the SAS is omitted, the start time is assumed to be the time when the storage service receives the request.
-            // Omitting the start time for a SAS that is effective immediately helps to avoid clock skew.
-            return container.GenerateSasUri(permissions, DateTime.UtcNow.AddHours(1));
         }
 
         enum UploadLogResponseStatus
