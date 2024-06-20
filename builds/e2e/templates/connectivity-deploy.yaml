@@ -20,7 +20,7 @@ parameters:
   logAnalyticsWorkspaceId: ''
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
-  blobStorageAccountUriWithSasToken: ''
+  blobStorageAccountUriWithSasToken: '$(testBlobStoreSas)'
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
