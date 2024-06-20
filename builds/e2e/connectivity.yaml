@@ -205,7 +205,7 @@ jobs:
             sasUri="$endpoint$container_name?$sasToken"
             echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
 
-            length=${#sasUri}
+            length=${#testBlobStoreSas}
             echo "SAS URI2 length: $length"
       - task: PowerShell@2
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -419,21 +419,16 @@ jobs:
               echo "Failed to generate SAS token."
               exit 1
             fi
-
-            length=${#sasToken}
-            echo "SAS token1 length: $length"
             
-            echo "SAS token1 for Azure Storage account acquired.  Expires $expiry_time"
+            echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
             
             # Construct the SAS URI
             endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
-            length=${#endpoint}
-            echo "Endpoint1 length: $length"
 
             sasUri="$endpoint$container_name?$sasToken"
             echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
 
-            length=${#sasUri}
+            length=${#testBlobStoreSas}
             echo "SAS URI1 length: $length"
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
