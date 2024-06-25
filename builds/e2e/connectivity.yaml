@@ -403,10 +403,10 @@ jobs:
             container_name="logs$(date +%Y%m%d)"
           
             # Set expiry time for the SAS token
-            expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
+            expiry_time="$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")"
           
             # Generate the SAS token for the container
-            sasToken=$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)
+            sasToken="$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)"
             if [ $? -ne 0 ]; then
               echo "Failed to generate SAS token."
               exit 1
