@@ -60,6 +60,36 @@ jobs:
           aziotis.artifact.name: 'packages_ubuntu-20.04_amd64'
           aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
+      - task: AzureCLI@2
+        displayName: 'Get SAS URI for Blob Storage Account'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            # Hardcoded resource group and storage account name
+            resource_group="iotedge-deploy"
+            storage_account="iotedgeconnectivitytest"
+
+            # Set container name with current date
+            container_name="logs$(date +%Y%m%d)"
+
+            # Set expiry time for the SAS token
+            expiry_time="$(date --utc --date "+12 hours" +"%Y-%m-%dT%H:%MZ")"
+
+            # Generate the SAS token for the container
+            sasToken="$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)"
+            if [ $? -ne 0 ]; then
+              echo "Failed to generate SAS token: $sasToken"
+              exit 1
+            fi
+
+            echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
+
+            # Construct the SAS URI
+            endpoint="$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)"
+            sasUri="$endpoint$container_name?$sasToken"
+            echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -122,6 +152,36 @@ jobs:
           aziotis.artifact.name: 'packages_debian-11-slim_arm32v7'
           aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm.tar.gz'
+      - task: AzureCLI@2
+        displayName: 'Get SAS URI for Blob Storage Account'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            # Hardcoded resource group and storage account name
+            resource_group="iotedge-deploy"
+            storage_account="iotedgeconnectivitytest"
+
+            # Set container name with current date
+            container_name="logs$(date +%Y%m%d)"
+
+            # Set expiry time for the SAS token
+            expiry_time="$(date --utc --date "+12 hours" +"%Y-%m-%dT%H:%MZ")"
+
+            # Generate the SAS token for the container
+            sasToken="$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)"
+            if [ $? -ne 0 ]; then
+              echo "Failed to generate SAS token."
+              exit 1
+            fi
+
+            echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
+
+            # Construct the SAS URI
+            endpoint="$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)"
+            sasUri="$endpoint$container_name?$sasToken"
+            echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -183,6 +243,36 @@ jobs:
           aziotis.artifact.name: 'packages_debian-11-slim_arm32v7'
           aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm.tar.gz'
+      - task: AzureCLI@2
+        displayName: 'Get SAS URI for Blob Storage Account'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            # Hardcoded resource group and storage account name
+            resource_group="iotedge-deploy"
+            storage_account="iotedgeconnectivitytest"
+
+            # Set container name with current date
+            container_name="logs$(date +%Y%m%d)"
+
+            # Set expiry time for the SAS token
+            expiry_time="$(date --utc --date "+12 hours" +"%Y-%m-%dT%H:%MZ")"
+
+            # Generate the SAS token for the container
+            sasToken="$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)"
+            if [ $? -ne 0 ]; then
+              echo "Failed to generate SAS token."
+              exit 1
+            fi
+
+            echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
+
+            # Construct the SAS URI
+            endpoint="$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)"
+            sasUri="$endpoint$container_name?$sasToken"
+            echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -244,6 +334,36 @@ jobs:
           aziotis.artifact.name: 'packages_ubuntu-20.04_aarch64'
           aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm64.tar.gz'
+      - task: AzureCLI@2
+        displayName: 'Get SAS URI for Blob Storage Account'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            # Hardcoded resource group and storage account name
+            resource_group="iotedge-deploy"
+            storage_account="iotedgeconnectivitytest"
+
+            # Set container name with current date
+            container_name="logs$(date +%Y%m%d)"
+
+            # Set expiry time for the SAS token
+            expiry_time="$(date --utc --date "+12 hours" +"%Y-%m-%dT%H:%MZ")"
+
+            # Generate the SAS token for the container
+            sasToken="$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)"
+            if [ $? -ne 0 ]; then
+              echo "Failed to generate SAS token."
+              exit 1
+            fi
+
+            echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
+
+            # Construct the SAS URI
+            endpoint="$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)"
+            sasUri="$endpoint$container_name?$sasToken"
+            echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -306,6 +426,36 @@ jobs:
           aziotis.artifact.name: 'packages_ubuntu-20.04_aarch64'
           aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm64.tar.gz'
+      - task: AzureCLI@2
+        displayName: 'Get SAS URI for Blob Storage Account'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            # Hardcoded resource group and storage account name
+            resource_group="iotedge-deploy"
+            storage_account="iotedgeconnectivitytest"
+
+            # Set container name with current date
+            container_name="logs$(date +%Y%m%d)"
+
+            # Set expiry time for the SAS token
+            expiry_time="$(date --utc --date "+12 hours" +"%Y-%m-%dT%H:%MZ")"
+
+            # Generate the SAS token for the container
+            sasToken="$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)"
+            if [ $? -ne 0 ]; then
+              echo "Failed to generate SAS token."
+              exit 1
+            fi
+
+            echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
+
+            # Construct the SAS URI
+            endpoint="$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)"
+            sasUri="$endpoint$container_name?$sasToken"
+            echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -367,6 +517,36 @@ jobs:
           aziotis.package.filter: 'aziot-identity-service-?.*.x86_64.rpm'
           identityServiceArtifactName: packages_mariner-2_amd64
           quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
+      - task: AzureCLI@2
+        displayName: 'Get SAS URI for Blob Storage Account'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            # Hardcoded resource group and storage account name
+            resource_group="iotedge-deploy"
+            storage_account="iotedgeconnectivitytest"
+
+            # Set container name with current date
+            container_name="logs$(date +%Y%m%d)"
+
+            # Set expiry time for the SAS token
+            expiry_time="$(date --utc --date "+12 hours" +"%Y-%m-%dT%H:%MZ")"
+
+            # Generate the SAS token for the container
+            sasToken="$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)"
+            if [ $? -ne 0 ]; then
+              echo "Failed to generate SAS token."
+              exit 1
+            fi
+
+            echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
+
+            # Construct the SAS URI
+            endpoint="$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)"
+            sasUri="$endpoint$container_name?$sasToken"
+            echo "##vso[task.setvariable variable=testBlobStoreSas;issecret=true]$sasUri"
       - task: DeleteFiles@1
         inputs:
           SourceFolder: '$(Agent.HomeDirectory)/../artifacts/'
