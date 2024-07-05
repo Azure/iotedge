@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 if (configuration.GetValue<bool>("EnableSdkDebugLogs", false))
                 {
-                    // Enable SDK debug logs, see ConsoleEventListener for details
+                    // Enable SDK debug logs, see ConsoleEventListener for details.
                     string[] eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
                     using var sdk = new ConsoleEventListener(eventFilter, logger);
 
