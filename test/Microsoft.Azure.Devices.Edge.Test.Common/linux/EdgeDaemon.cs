@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         readonly PackageManagement packageManagement;
         readonly Option<string> packagesPath;
         readonly IServiceManager serviceManager;
-        readonly bool isCentOs;
         readonly string certsPath;
 
         public static async Task<EdgeDaemon> CreateAsync(Option<string> packagesPath, CancellationToken token)
@@ -46,17 +45,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             SupportedPackageExtension packageExtension;
 
+            void ThrowUnsupportedOs() =>
+                throw new NotImplementedException($"Operating system '{os} {version}' not supported");
+
             switch (os)
             {
                 case "ubuntu":
+                    if (version != "20.04" && version != "22.04")
+                    {
+                        ThrowUnsupportedOs();
+                    }
+
                     // if we find .deb and .snap files on an Ubuntu 22.04 host, prefer snap
                     packageExtension = detectedSnap && version == "22.04"
                         ? SupportedPackageExtension.Snap
                         : SupportedPackageExtension.Deb;
                     break;
-                case "raspbian":
-                    os = "debian";
-                    version = "stretch";
+                case "debian":
+                    if (version != "11")
+                    {
+                        ThrowUnsupportedOs();
+                    }
+
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
                 case "rhel":
@@ -65,21 +75,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     if (version != "8" && version != "9")
                     {
-                        throw new NotImplementedException($"Operating system '{os} {version}' not supported");
-                    }
-
-                    break;
-                case "centos":
-                    version = version.Split('.')[0];
-                    packageExtension = SupportedPackageExtension.Rpm;
-
-                    if (version != "7")
-                    {
-                        throw new NotImplementedException($"Operating system '{os} {version}' not supported");
+                        ThrowUnsupportedOs();
                     }
 
                     break;
                 case "mariner":
+                    if (version != "2.0")
+                    {
+                        ThrowUnsupportedOs();
+                    }
+
                     packageExtension = SupportedPackageExtension.Rpm;
                     break;
                 default:
@@ -92,17 +97,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"Snap package was detected but isn't supported on operating system '{os} {version}'");
             }
 
-            return new EdgeDaemon(packagesPath, new PackageManagement(os, version, packageExtension), os == "centos");
+            return new EdgeDaemon(packagesPath, new PackageManagement(os, version, packageExtension));
         }
 
-        EdgeDaemon(Option<string> packagesPath, PackageManagement packageManagement, bool isCentOs)
+        EdgeDaemon(Option<string> packagesPath, PackageManagement packageManagement)
         {
             this.packagesPath = packagesPath;
             this.packageManagement = packageManagement;
             this.serviceManager = packageManagement.PackageExtension == SupportedPackageExtension.Snap
                 ? new SnapServiceManager()
                 : new SystemdServiceManager();
-            this.isCentOs = isCentOs;
             this.certsPath = Path.Combine(Path.GetDirectoryName(this.serviceManager.ConfigurationPath()), "e2e_tests");
         }
 
@@ -145,15 +149,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     await this.InternalStopAsync(token);
 
                     var conf = new DaemonConfiguration(this.serviceManager.ConfigurationPath());
-                    if (this.isCentOs)
-                    {
-                        // The recommended way to set up [listen] sockets in config.toml is to use the 'fd://...' URL
-                        // scheme, which will make use of systemd socket activation. CentOS 7 supports systemd but does
-                        // not support socket activation, so for that platform use the 'unix://...' scheme.
-                        conf.SetConnectSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
-                        conf.SetListenSockets("unix:///var/lib/iotedge/workload.sock", "unix:///var/lib/iotedge/mgmt.sock");
-                    }
-
                     if (this.packageManagement.PackageExtension == SupportedPackageExtension.Snap)
                     {
                         conf.SetDeviceHomedir("/var/snap/azure-iot-edge/common/var/lib/aziot/edged");

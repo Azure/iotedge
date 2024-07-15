@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     class IoTEdgeCheck : SasManualProvisioningFixture
     {
         [Test]
-        [Category("CentOsSafe")]
         public async Task IotEdgeCheck()
         {
             CancellationToken token = this.TestToken;
