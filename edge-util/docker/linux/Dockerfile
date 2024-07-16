@@ -1,7 +1,6 @@
 ﻿# syntax=docker/dockerfile:1.4
 
-# We don't need dotnet/runtime-deps, but we do need alpine. This is an easy way to get it from mcr.microsoft.com.
-FROM mcr.microsoft.com/dotnet/runtime-deps:8.0-alpine
+FROM mcr.microsoft.com/mirror/docker/library/alpine:3.14
 
 ARG num_procs=4
 ARG TARGETPLATFORM
