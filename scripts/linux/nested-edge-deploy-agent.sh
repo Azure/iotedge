@@ -12,7 +12,7 @@ function create_certificates() {
 
     /certs/certGen.sh create_edge_device_certificate ${device_name}
 }
-#@TODO this might not be compatible for CENTOS
+
 function setup_iotedge() {
     sudo touch /etc/aziot/config.toml
 

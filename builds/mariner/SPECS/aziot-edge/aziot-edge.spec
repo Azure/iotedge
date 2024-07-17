@@ -62,7 +62,7 @@ make \
     docdir=%{_docdir}/%{name} \
     install-mariner
 
-install -D contrib/centos/00-aziot-edged.preset %{buildroot}%{_presetdir}/00-aziot-edged.preset
+install -D contrib/mariner/00-aziot-edged.preset %{buildroot}%{_presetdir}/00-aziot-edged.preset
 
 %clean
 rm -rf $RPM_BUILD_ROOT
