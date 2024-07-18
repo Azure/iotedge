@@ -60,7 +60,7 @@ jobs:
           # Construct the SAS URI
           endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
           sasUri="$endpoint$container_name?$sasToken"
-          echo "##vso[job.setvariable variable=TestBlobStoreSas;issecret=true;isoutput=true]$sasUri"
+          echo "##vso[task.setvariable variable=TestBlobStoreSas;issecret=true;isoutput=true]$sasUri"
 
 ################################################################################
   - job: debian_11_arm32v7
