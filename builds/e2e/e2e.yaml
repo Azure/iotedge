@@ -38,6 +38,7 @@ jobs:
     steps:
     - task: AzureCLI@2
       displayName: 'Get SAS URI for Blob Storage Account'
+      name: GetSASUri
       inputs:
         azureSubscription: $(az.subscription)
         scriptType: 'bash'
@@ -79,7 +80,7 @@ jobs:
       artifactName: iotedged-debian11-arm32v7
       identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      TestBlobStoreSas: $[ dependencies.SetSASUri.outputs['TestBlobStoreSas'] ]
+      TestBlobStoreSas: $[ dependencies.SetSASUri.outputs['GetSASUri.TestBlobStoreSas'] ]
 
     timeoutInMinutes: 120
 
