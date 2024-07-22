@@ -33,7 +33,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmobydebian_11_arm32v7:    
 
     steps:
     - task: AzureCLI@2
@@ -81,13 +81,11 @@ jobs:
       artifactName: iotedged-debian11-arm32v7
       identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      TestBlobStoreSasVar: $TestBlobStoreSas
+      TestBlobStoreSas: $[ dependencies.SetSASUri.outputs['GetSASUri.TestBlobStoreSas'] ]
 
     timeoutInMinutes: 120
 
     steps:
-    - script: |
-        echo "TestBlobStoreSasVar length: ${#TestBlobStoreSasVar}"
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
