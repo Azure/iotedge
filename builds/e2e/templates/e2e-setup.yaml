@@ -1,3 +1,6 @@
+parameters:
+  containerSasUri: ''
+
 steps:
   - checkout: self
     clean: true
@@ -161,7 +164,7 @@ steps:
 
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
-      echo "Length of token in setup: ${#container_sas_uri}"
+      echo "Length of token in setup: ${#containerSasUri}"
   
       $context = @{
         nestededge = "$nestededge";
@@ -179,7 +182,7 @@ steps:
         loadGenImage = "$imagePrefix-load-gen:$imageTag";
         relayerImage = "$imagePrefix-relayer:$imageTag";
         networkControllerImage = "$imagePrefix-network-controller:$imageTag";
-        testBlobStoreSas = '$(container_sas_uri)';
+        testBlobStoreSas = '$(containerSasUri)';
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
         metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag";
         iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";

@@ -26,7 +26,7 @@ variables:
 
 jobs:
 
-  - job: SetSASUri
+  - job: Token
     displayName: 'Get SAS URI for Blob Storage Account'
     dependsOn: []
 
@@ -38,7 +38,7 @@ jobs:
     steps:
     - task: AzureCLI@2
       displayName: 'Get SAS URI for Blob Storage Account'
-      name: GetSASUri
+      name: generate
       inputs:
         azureSubscription: $(az.subscription)
         scriptType: 'bash'
@@ -68,7 +68,7 @@ jobs:
   - job: debian_11_arm32v7
 ################################################################################
     displayName: Debian 11 arm32v7
-    dependsOn: SetSASUri
+    dependsOn: Token
 
     pool:
       name: $(pool.custom.name)
@@ -80,13 +80,15 @@ jobs:
       artifactName: iotedged-debian11-arm32v7
       identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      container_sas_uri: $[ dependencies.SetSASUri.outputs['GetSASUri.sasUri'] ]
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     timeoutInMinutes: 120
 
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: ${{ variables.container_sas_uri }}
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
@@ -94,7 +96,7 @@ jobs:
   - job: ubuntu_2004_msmoby
 ################################################################################
     displayName: Ubuntu 20.04 with iotedge-moby
-    dependsOn: SetSASUri
+    dependsOn: Token
 
     pool:
       name: $(pool.linux.name)
@@ -118,7 +120,7 @@ jobs:
   - job: ubuntu_2004_docker
 ################################################################################
     displayName: Ubuntu 20.04 with Docker (minimal)
-    dependsOn: SetSASUri
+    dependsOn: Token
 
     pool:
       name: $(pool.linux.name)
@@ -141,7 +143,7 @@ jobs:
   - job: ubuntu_2004_arm64v8
 ################################################################################
     displayName: Ubuntu 20.04 on arm64v8
-    dependsOn: SetSASUri
+    dependsOn: Token
     pool:
       name: $(pool.linux.arm.name)
       demands:
@@ -164,7 +166,7 @@ jobs:
   - job: ubuntu_2204
 ################################################################################
     displayName: Ubuntu 22.04 on amd64
-    dependsOn: SetSASUri
+    dependsOn: Token
 
     pool:
       name: $(pool.linux.name)
@@ -188,7 +190,7 @@ jobs:
   - job: ubuntu_2204_arm64v8
 ################################################################################
     displayName: Ubuntu 22.04 on arm64v8
-    dependsOn: SetSASUri
+    dependsOn: Token
 
     pool:
       name: $(pool.linux.arm.name)
@@ -212,7 +214,7 @@ jobs:
   - job: snaps
 ################################################################################
     displayName: Snaps
-    dependsOn: SetSASUri
+    dependsOn: Token
 
     variables:
       os: linux
@@ -250,7 +252,7 @@ jobs:
   - job: redhat8_amd64
   ################################################################################
     displayName: RedHat8 amd64
-    dependsOn: SetSASUri
+    dependsOn: Token
 
     pool:
       name: $(pool.linux.name)
@@ -272,7 +274,7 @@ jobs:
   - job: redhat9_amd64
   ################################################################################
     displayName: RedHat9 amd64
-    dependsOn: SetSASUri
+    dependsOn: Token
 
     pool:
       name: $(pool.linux.name)
@@ -294,7 +296,7 @@ jobs:
   - job: linux_amd64_proxy
 ################################################################################
     displayName: Linux amd64 behind a proxy
-    dependsOn: SetSASUri
+    dependsOn: Token
 
     pool:
       name: $(pool.custom.name)
@@ -328,7 +330,7 @@ jobs:
   - job: mariner2_amd64
 ################################################################################
     displayName: Mariner 2.0 amd64
-    dependsOn: SetSASUri
+    dependsOn: Token
     condition: eq(variables['run.EFLOW.amd64'], true)
     pool:
       name: $(pool.linux.name)
@@ -352,7 +354,7 @@ jobs:
   - job: mariner2_arm64
 ################################################################################
     displayName: Mariner 2.0 arm64
-    dependsOn: SetSASUri
+    dependsOn: Token
     condition: eq(variables['run.EFLOW.arm64'], true)
     pool:
       name: $(pool.linux.arm.name)
