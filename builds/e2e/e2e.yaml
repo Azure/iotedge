@@ -69,6 +69,7 @@ jobs:
 ################################################################################
     displayName: Debian 11 arm32v7
     dependsOn: SetSASUri
+    condition: succeeded()
 
     pool:
       name: $(pool.custom.name)
@@ -80,13 +81,13 @@ jobs:
       artifactName: iotedged-debian11-arm32v7
       identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      TestBlobStoreSas: $[ dependencies.SetSASUri.outputs['GetSASUri.TestBlobStoreSas'] ]
+      TestBlobStoreSasVar: $[ dependencies.SetSASUri.outputs['GetSASUri.TestBlobStoreSas'] ]
 
     timeoutInMinutes: 120
 
     steps:
     - script: |
-        echo "TestBlobStoreSas length: ${#TestBlobStoreSas}"
+        echo "TestBlobStoreSasVar length: ${#TestBlobStoreSasVar}"
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
