@@ -62,14 +62,13 @@ jobs:
           endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
           sasUri="$endpoint$container_name?$sasToken"
           echo "Length of token: ${#sasUri}"
-          echo "##vso[task.setvariable variable=TestBlobStoreSas;issecret=true;isOutput=true]$sasUri"
+          echo "##vso[task.setvariable variable=sasUri;issecret=true;isOutput=true]$sasUri"
 
 ################################################################################
   - job: debian_11_arm32v7
 ################################################################################
     displayName: Debian 11 arm32v7
     dependsOn: SetSASUri
-    condition: succeeded()
 
     pool:
       name: $(pool.custom.name)
@@ -81,7 +80,7 @@ jobs:
       artifactName: iotedged-debian11-arm32v7
       identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      TestBlobStoreSas: $[ dependencies.SetSASUri.outputs['GetSASUri.TestBlobStoreSas'] ]
+      container_sas_uri: $[ dependencies.SetSASUri.outputs['GetSASUri.sasUri'] ]
 
     timeoutInMinutes: 120
 
