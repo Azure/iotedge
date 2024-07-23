@@ -60,7 +60,7 @@ jobs:
           echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
           # Construct the SAS URI
           endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
-          sasUri="$endpoint$container_name?$sasToken"
+          sasUri="$endpoint$container_name"
           echo "Length of token: ${#sasUri}"
           echo "##vso[task.setvariable variable=sasUri;issecret=true;isOutput=true]$sasUri"
 
@@ -88,7 +88,7 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
       parameters:
-        containerSasUri: $((variables.container_sas_uri))
+        containerSasUri: $(container_sas_uri)
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
@@ -114,9 +114,13 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
+    - script: |
+        echo ${{ variables.container_sas_uri }}
+        echo $(container_sas_uri)
+      displayName: Print variable
     - template: templates/e2e-setup.yaml
       parameters:
-        containerSasUri: $((variables.container_sas_uri))
+        containerSasUri: $(container_sas_uri)
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -247,11 +251,15 @@ jobs:
 
     steps:
     - script: |
+        echo ${{ variables.container_sas_uri }}
+        echo $(container_sas_uri)
+      displayName: Print variable
+    - script: |
         sudo snap install docker
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
       parameters:
-        containerSasUri: $((container_sas_uri))
+        containerSasUri: $(container_sas_uri)
     - template: templates/e2e-run.yaml
 
   ################################################################################
