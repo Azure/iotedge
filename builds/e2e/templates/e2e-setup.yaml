@@ -164,7 +164,7 @@ steps:
 
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
-      echo "URI in setup: $containerSasUri"
+      echo "URI in setup: ${{ parameters.containerSasUri }}"
   
       $context = @{
         nestededge = "$nestededge";
@@ -182,7 +182,7 @@ steps:
         loadGenImage = "$imagePrefix-load-gen:$imageTag";
         relayerImage = "$imagePrefix-relayer:$imageTag";
         networkControllerImage = "$imagePrefix-network-controller:$imageTag";
-        testBlobStoreSas = '$(containerSasUri)';
+        testBlobStoreSas = ${{ parameters.containerSasUri }};
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
         metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag";
         iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
