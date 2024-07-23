@@ -34,8 +34,6 @@ Once the packages are built, they will be found somewhere under the `edgelet/tar
 
 If you want to run another build for a different combination of `PACKAGE_OS` and `PACKAGE_ARCH`, make sure to clean the repository first with `sudo git clean -xffd` so that artifacts from the previous build don't get reused for the next one.
 
-This is because these targets do not have functional cross-compilers, so their builds are done as native builds emulated using qemu. Be aware that these builds are much slower - where a native build might take 15m, a qemu build might take 2h30m.
-
 
 ## Building daemon binaries
 
