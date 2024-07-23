@@ -98,7 +98,7 @@ stages:
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
           parameters:
-            containerSasUri: '$(sasUri)'
+            containerSasUri: '$(container_sas_uri)'
         - template: ../e2e/templates/e2e-run.yaml
 
     
