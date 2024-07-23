@@ -60,9 +60,8 @@ jobs:
           echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
           # Construct the SAS URI
           endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
-          sasUri="$endpoint$container_name"
-          echo "Length of token: ${#sasUri}"
-          echo "##vso[task.setvariable variable=sasUri;isoutput=true]$sasUri"
+          sasUri="$endpoint$container_name?$sasToken"
+          echo "##vso[task.setvariable variable=sasUri;issecret=true;isoutput=true]$sasUri"
 
 ################################################################################
   - job: debian_11_arm32v7
@@ -114,9 +113,6 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
-    - script: |
-        echo number 2: $(container_sas_uri)
-      displayName: Print variable
     - template: templates/e2e-setup.yaml
       parameters:
         containerSasUri: '$(container_sas_uri)'
@@ -139,10 +135,13 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
       minimal: true
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -161,11 +160,14 @@ jobs:
       artifactName: iotedged-ubuntu20.04-aarch64
       identityServiceArtifactName: packages_ubuntu-20.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     timeoutInMinutes: 120
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -185,11 +187,14 @@ jobs:
       artifactName: iotedged-ubuntu22.04-amd64
       identityServiceArtifactName: packages_ubuntu-22.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -209,11 +214,14 @@ jobs:
       artifactName: iotedged-ubuntu22.04-aarch64
       identityServiceArtifactName: packages_ubuntu-22.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -250,9 +258,6 @@ jobs:
 
     steps:
     - script: |
-        echo number 2: $(container_sas_uri)
-      displayName: Print variable
-    - script: |
         sudo snap install docker
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
@@ -277,9 +282,12 @@ jobs:
       artifactName: iotedged-redhat8-amd64
       identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
       identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml
 
   ################################################################################
@@ -299,9 +307,12 @@ jobs:
       artifactName: iotedged-redhat9-amd64
       identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
       identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -320,6 +331,7 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true
       'agent.disablelogplugin.testresultlogplugin': true
@@ -333,6 +345,8 @@ jobs:
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
@@ -355,11 +369,14 @@ jobs:
       artifactName: iotedged-mariner2-amd64
       identityServiceArtifactName: packages_mariner-2_amd64
       identityServicePackageFilter: aziot-identity-service-?.*.cm2.x86_64.rpm
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -377,9 +394,12 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-mariner2-aarch64
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml

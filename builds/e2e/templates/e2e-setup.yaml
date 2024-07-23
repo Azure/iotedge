@@ -164,7 +164,6 @@ steps:
 
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
-      echo "URI in setup: ${{ parameters.containerSasUri }}"
   
       $context = @{
         nestededge = "$nestededge";
