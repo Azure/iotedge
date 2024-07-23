@@ -109,11 +109,14 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: ${{ variables.container_sas_uri }}
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -218,6 +221,7 @@ jobs:
 
     variables:
       os: linux
+      container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
 
     strategy:
       matrix:
@@ -246,6 +250,8 @@ jobs:
         sudo snap install docker
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
+      parameters:
+        containerSasUri: ${{ variables.container_sas_uri }}
     - template: templates/e2e-run.yaml
 
   ################################################################################
