@@ -115,8 +115,8 @@ jobs:
 
     steps:
     - script: |
-        echo ${{ variables.container_sas_uri }}
-        echo $(container_sas_uri)
+        echo number 1: ${{ variables.container_sas_uri }}
+        echo number 2: $(container_sas_uri)
       displayName: Print variable
     - template: templates/e2e-setup.yaml
       parameters:
@@ -251,8 +251,8 @@ jobs:
 
     steps:
     - script: |
-        echo ${{ variables.container_sas_uri }}
-        echo $(container_sas_uri)
+        echo number 1: ${{ variables.container_sas_uri }}
+        echo number 2: $(container_sas_uri)
       displayName: Print variable
     - script: |
         sudo snap install docker
