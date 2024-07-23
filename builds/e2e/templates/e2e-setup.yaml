@@ -164,6 +164,8 @@ steps:
 
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
+      $length = $parameters.containerSasUri.Length
+      echo "Length of URI is $length"
   
       $context = @{
         nestededge = "$nestededge";
