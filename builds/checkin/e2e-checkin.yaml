@@ -82,8 +82,9 @@ stages:
               echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
               # Construct the SAS URI
               endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
-              sasUri="$endpoint$container_name?$sasToken"
-              echo "##vso[task.setvariable variable=sasUri;issecret=true;isOutput=true]$sasUri"
+              sasUri="$endpoint$container_name"
+              echo "SAS URI: $sasUri"
+              echo "##vso[task.setvariable variable=sasUri;issecret=false;isOutput=true]$sasUri"
 
       - job: ubuntu_2004_msmoby
         displayName: Ubuntu 20.04 with iotedge-moby
@@ -96,6 +97,8 @@ stages:
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
         steps:
+        - script: |
+            echo "Container SAS URI: $(container_sas_uri)"
         - template: ../e2e/templates/e2e-setup.yaml
           parameters:
             containerSasUri: '$(container_sas_uri)'
