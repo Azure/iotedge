@@ -62,7 +62,7 @@ jobs:
           endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
           sasUri="$endpoint$container_name"
           echo "Length of token: ${#sasUri}"
-          echo "##vso[task.setvariable variable=sasUri;issecret=true;isOutput=true]$sasUri"
+          echo "##vso[task.setvariable variable=sasUri;isoutput=true]$sasUri"
 
 ################################################################################
   - job: debian_11_arm32v7
