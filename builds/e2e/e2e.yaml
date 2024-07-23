@@ -88,7 +88,7 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
       parameters:
-        containerSasUri: $(container_sas_uri)
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
@@ -115,12 +115,11 @@ jobs:
 
     steps:
     - script: |
-        echo number 1: ${{ variables.container_sas_uri }}
         echo number 2: $(container_sas_uri)
       displayName: Print variable
     - template: templates/e2e-setup.yaml
       parameters:
-        containerSasUri: $(container_sas_uri)
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml
 
 ################################################################################
@@ -251,7 +250,6 @@ jobs:
 
     steps:
     - script: |
-        echo number 1: ${{ variables.container_sas_uri }}
         echo number 2: $(container_sas_uri)
       displayName: Print variable
     - script: |
@@ -259,7 +257,7 @@ jobs:
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
       parameters:
-        containerSasUri: $(container_sas_uri)
+        containerSasUri: '$(container_sas_uri)'
     - template: templates/e2e-run.yaml
 
   ################################################################################
