@@ -85,7 +85,7 @@ stages:
               # Construct the SAS URI
               endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
               sasUri="$endpoint$container_name?$sasToken"
-              echo "##vso[task.setvariable variable=sasUri;issecret=true]$sasUri"
+              echo "##vso[task.setvariable variable=sasUri]$sasUri"
         - template: ../e2e/templates/e2e-setup.yaml
           parameters:
             containerSasUri: '$(sasUri)'
