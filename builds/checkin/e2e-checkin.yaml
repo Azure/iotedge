@@ -56,7 +56,6 @@ stages:
         steps:
         - task: AzureCLI@2
           displayName: 'Get Storage URI'
-          name: generate
           inputs:
             azureSubscription: $(az.subscription)
             scriptType: 'bash'
@@ -80,6 +79,7 @@ stages:
               endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
               sas_uri="$endpoint$container_name?$sasToken"
               echo "##vso[task.setvariable variable=sas_uri;issecret=true;isoutput=true]$sas_uri"
+            name: generate
 
       - job: ubuntu_2004_msmoby
         displayName: Ubuntu 20.04 with iotedge-moby
@@ -95,7 +95,7 @@ stages:
           container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
         steps:
         - script: |
-            echo "Container SAS URI length: $(container_sas_uri.Length)"
+            echo "Container SAS URI length: ${#container_sas_uri}"
         - template: ../e2e/templates/e2e-setup.yaml
           parameters:
             containerSasUri: $(container_sas_uri)

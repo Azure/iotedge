@@ -164,7 +164,7 @@ steps:
 
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
-      echo "Length of sas uri: ${#containerSasUri}"
+      echo "Length of sas uri: ${#parameters.containerSasUri}"
   
       $context = @{
         nestededge = "$nestededge";
