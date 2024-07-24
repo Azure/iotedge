@@ -60,10 +60,10 @@ stages:
         steps:
         - task: AzureCLI@2
           displayName: 'Get SAS URI for Blob Storage Account'
-          name: generate
           inputs:
             azureSubscription: $(az.subscription)
             scriptType: 'bash'
+            name: generate
             scriptLocation: 'inlineScript'
             inlineScript: |
               # Hardcoded resource group and storage account name
