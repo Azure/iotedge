@@ -49,16 +49,14 @@ stages:
       builtImages: $[stageDependencies.CheckBuildImages.check_source_change_runtime.outputs['check_files.RUNTIMECHANGES']]
       builtPackages: $[stageDependencies.CheckBuildPackages.check_source_change_edgelet.outputs['check_files.EDGELETCHANGES']]
     jobs:
-      - job: ubuntu_2004_msmoby
-        displayName: Ubuntu 20.04 with iotedge-moby
-        variables:
-          verbose: false
-          os: linux
-          arch: amd64
-          artifactName: iotedged-ubuntu20.04-amd64
-          identityServiceArtifactName: packages_ubuntu-20.04_amd64
-          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
+      - job: Token
+        displayName: 'Get SAS URI for Blob Storage Account'
+
+        pool:
+          name: $(pool.linux.name)
+          demands:
+            - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+
         steps:
         - task: AzureCLI@2
           displayName: 'Get SAS URI for Blob Storage Account'
@@ -85,12 +83,26 @@ stages:
               # Construct the SAS URI
               endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
               sasUri="$endpoint$container_name?$sasToken"
-              echo "##vso[task.setvariable variable=sasUri]$sasUri"
+              echo "SAS URI: $sasUri"
+              echo "##vso[task.setvariable variable=sasUri;issecret=true;isoutput=true]$sasUri"
+
+      - job: ubuntu_2004_msmoby
+        displayName: Ubuntu 20.04 with iotedge-moby
+        dependsOn: Token
+        variables:
+          verbose: false
+          os: linux
+          arch: amd64
+          artifactName: iotedged-ubuntu20.04-amd64
+          identityServiceArtifactName: packages_ubuntu-20.04_amd64
+          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          container_sas_uri: $[ dependencies.Token.outputs['generate.sasUri'] ]
+        steps:
         - script: |
-            echo "URI length is ${#sasUri}"
-        - template: ../e2e/templates/e2e-setup.yaml          
+            echo "Container SAS URI length: $(container_sas_uri.Length)"
+        - template: ../e2e/templates/e2e-setup.yaml
           parameters:
-            containerSasUri: $sasUri
+            containerSasUri: $(container_sas_uri)
         - template: ../e2e/templates/e2e-run.yaml
 
     
