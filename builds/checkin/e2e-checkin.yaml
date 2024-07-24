@@ -84,9 +84,8 @@ stages:
               echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
               # Construct the SAS URI
               endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
-              sasUri="$endpoint$container_name"
-              echo "SAS URI: $sasUri"
-              echo "##vso[task.setvariable variable=sasUri;issecret=false]$sasUri"
+              sasUri="$endpoint$container_name?$sasToken"
+              echo "##vso[task.setvariable variable=sasUri;issecret=true]$sasUri"
         - template: ../e2e/templates/e2e-setup.yaml
           parameters:
             containerSasUri: '$(sasUri)'
