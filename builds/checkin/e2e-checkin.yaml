@@ -87,8 +87,10 @@ stages:
               sasUri="$endpoint$container_name?$sasToken"
               echo "##vso[task.setvariable variable=sasUri]$sasUri"
         - template: ../e2e/templates/e2e-setup.yaml
+          -script: |
+            echo "URI length is ${#sasUri}"
           parameters:
-            containerSasUri: '$(sasUri)'
+            containerSasUri: $sasUri
         - template: ../e2e/templates/e2e-run.yaml
 
     
