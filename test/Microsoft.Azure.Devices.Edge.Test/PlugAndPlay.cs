@@ -11,17 +11,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.VisualStudio.TestPlatform.ObjectModel;
-    using NUnit.Framework;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     public class PlugAndPlay : SasManualProvisioningFixture
     {
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
         const string LoadGenModuleName = "loadGenModule";
 
-        [TestCase(Protocol.Mqtt)]
-        [TestCase(Protocol.Amqp)]
-        [Category("LegacyMqttRequired")]
+        [TestMethod, TestCategory("LegacyMqttRequired")]
+        [DataRow(Protocol.Mqtt)]
+        [DataRow(Protocol.Amqp)]
         public async Task PlugAndPlayDeviceClient(Protocol protocol)
         {
             CancellationToken token = this.TestToken;
@@ -62,10 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [TestCase(Protocol.Mqtt)]
-        [TestCase(Protocol.Amqp)]
-        [Category("LegacyMqttRequired")]
-        [Test]
+        [TestMethod, TestCategory("LegacyMqttRequired")]
+        [DataRow(Protocol.Mqtt)]
+        [DataRow(Protocol.Amqp)]
         public async Task PlugAndPlayModuleClient(Protocol protocol)
         {
             CancellationToken token = this.TestToken;

@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Newtonsoft.Json.Linq;
-    using NUnit.Framework;
     using Serilog;
 
     public class TestResultCoordinatorUtil

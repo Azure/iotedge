@@ -6,13 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using NUnit.Framework;
     using Serilog;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     class IoTEdgeCheck : SasManualProvisioningFixture
     {
-        [Test]
+        [TestMethod]
         public async Task IotEdgeCheck()
         {
             CancellationToken token = this.TestToken;

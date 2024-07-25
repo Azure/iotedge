@@ -10,13 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
-    using NUnit.Framework;
     using Serilog;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     class Device : SasManualProvisioningFixture
     {
-        [Test]
+        [TestMethod]
         public async Task QuickstartCerts()
         {
             CancellationToken token = this.TestToken;
@@ -53,9 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [Test]
-        [Category("NestedEdgeOnly")]
-        [Category("FlakyOnNested")]
+        [TestMethod, TestCategory("NestedEdgeOnly"), TestCategory("FlakyOnNested")]
         public async Task QuickstartChangeSasKey()
         {
             CancellationToken token = this.TestToken;
@@ -124,9 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [Test]
-        [Category("NestedEdgeOnly")]
-        [Category("NestedEdgeAmqpOnly")]
+        [TestMethod, TestCategory("NestedEdgeOnly"), TestCategory("NestedEdgeAmqpOnly")]
         public async Task RouteMessageL3LeafToL4Module()
         {
             CancellationToken token = this.TestToken;
@@ -191,8 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [Test]
-        [Category("Flaky")]
+        [TestMethod, TestCategory("Flaky")]
         public async Task DisableReenableParentEdge()
         {
             CancellationToken token = this.TestToken;

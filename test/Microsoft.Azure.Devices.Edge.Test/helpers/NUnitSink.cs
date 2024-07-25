@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
     using System.IO;
-    using NUnit.Framework;
     using Serilog;
     using Serilog.Configuration;
     using Serilog.Core;

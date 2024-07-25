@@ -8,13 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
-    using NUnit.Framework;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
-        [Test]
-        [Category("Flaky")]
+        [TestMethod, TestCategory("Flaky")]
         public async Task TransparentGateway(
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
@@ -72,9 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [Test]
-        [Category("NestedEdgeOnly")]
-        [Category("FlakyOnNested")]
+        [TestMethod, TestCategory("NestedEdgeOnly"), TestCategory("FlakyOnNested")]
         [Description("A test to verify a leaf device can be registered under grandparent device scope.")]
         public async Task GrandparentScopeDevice(
             [Values(

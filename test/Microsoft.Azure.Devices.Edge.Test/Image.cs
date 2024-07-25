@@ -7,16 +7,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
-    using NUnit.Framework;
     using Serilog;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     public class Image : SasManualProvisioningFixture
     {
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.5";
 
-        [Test]
+        [TestMethod]
         public async Task ImageGarbageCollection()
         {
             CancellationToken token = this.TestToken;

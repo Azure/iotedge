@@ -8,16 +8,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using NUnit.Framework;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     public class Module : SasManualProvisioningFixture
     {
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.5";
 
-        [TestCase(Protocol.Mqtt)]
-        [TestCase(Protocol.Amqp)]
+        [TestMethod]
+        [DataRow(Protocol.Mqtt)]
+        [DataRow(Protocol.Amqp)]
         public async Task CertRenew(Protocol protocol)
         {
             CancellationToken token = this.TestToken;
@@ -56,8 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
         }
 
-        [Test]
-        [Category("nestededge_isa95")]
+        [TestMethod, TestCategory("nestededge_isa95")]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
@@ -90,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await sensor.WaitForEventsReceivedAsync(startTime, token);
         }
 
-        [Test]
+        [TestMethod]
         public async Task TempFilter()
         {
             const string filterName = "tempFilter";
@@ -127,8 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
 
-        [Test]
-        [Category("Amd64Only")]
+        [TestMethod, TestCategory("Amd64Only")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
@@ -167,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
 
-        [Test]
+        [TestMethod]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {

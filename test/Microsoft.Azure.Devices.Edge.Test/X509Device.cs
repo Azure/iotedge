@@ -9,13 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
-    using NUnit.Framework;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     class X509Device : X509ManualProvisioningFixture
     {
-        [Test]
-        [Category("Flaky")]
+        [TestMethod, TestCategory("Flaky")]
         public async Task X509ManualProvision()
         {
             CancellationToken token = this.TestToken;

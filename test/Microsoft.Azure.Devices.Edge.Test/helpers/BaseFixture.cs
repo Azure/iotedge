@@ -6,8 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using NUnit.Framework;
-    using NUnit.Framework.Interfaces;
     using Serilog;
 
     public class BaseFixture

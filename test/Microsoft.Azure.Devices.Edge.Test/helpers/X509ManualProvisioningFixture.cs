@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
-    using NUnit.Framework;
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {

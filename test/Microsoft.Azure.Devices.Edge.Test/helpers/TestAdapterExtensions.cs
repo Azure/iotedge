@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Collections.Generic;
     using System.Linq;
     using System.Text.RegularExpressions;
-    using NUnit.Framework;
 
     public static class TestAdapterExtensions
     {

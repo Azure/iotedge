@@ -13,15 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
-    using NUnit.Framework;
 
     using ConfigModuleName = Microsoft.Azure.Devices.Edge.Test.Common.Config.ModuleName;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     public class EdgeAgentDirectMethods : SasManualProvisioningFixture
     {
-        [Test]
-        [Category("nestededge_isa95")]
+        [TestMethod, TestCategory("nestededge_isa95")]
         public async Task TestPing()
         {
             CancellationToken token = this.TestToken;
@@ -38,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.AreEqual("null", result.GetPayloadAsJson());
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestGetModuleLogs()
         {
             string moduleName = "NumberLogger";
@@ -110,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.AreEqual((int)HttpStatusCode.BadRequest, result.Status);
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestGetModuleLogsNo500Tail()
         {
             string moduleName = "NumberLogger";
@@ -141,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.AreEqual(expected, response.Payload);
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestRestartModule()
         {
             string moduleName = "NumberLogger";
@@ -184,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.That(response.Payload.StartsWith(expected));
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestUploadModuleLogs()
         {
             string moduleName = "NumberLogger";
@@ -226,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.WaitForTaskCompletion(response.CorrelationId, token);
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestUploadSupportBundle()
         {
             string moduleName = "NumberLogger";

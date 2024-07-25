@@ -11,9 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
-    using NUnit.Framework;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     public class Provisioning : DeviceProvisioningFixture
     {
         protected readonly IotHub iotHub;
@@ -34,8 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        [Test]
-        [Category("FlakyOnArm")]
+        [TestMethod, TestCategory("FlakyOnArm")]
         public async Task DpsSymmetricKey()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() =>
@@ -79,8 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     $"Device '{deviceId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
 
-        [Test]
-        [Category("FlakyOnArm")]
+        [TestMethod, TestCategory("FlakyOnArm")]
         public async Task DpsX509()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() =>

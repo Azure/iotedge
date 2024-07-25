@@ -17,10 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using NUnit.Framework;
     using Serilog;
 
-    [EndToEnd]
+    [TestClass, TestCategory("EndToEnd")]
     public class PriorityQueues : SasManualProvisioningFixture
     {
         const string TrcModuleName = "testResultCoordinator";
@@ -31,8 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string LoadGenTestDuration = "00:00:20";
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
-        [Test]
-        [Category("Flaky")]
+        [TestMethod, TestCategory("Flaky")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
             CancellationToken token = this.TestToken;
@@ -53,8 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
         }
 
-        [Test]
-        [Category("Flaky")]
+        [TestMethod, TestCategory("Flaky")]
         public async Task PriorityQueueModuleToHubMessages()
         {
             CancellationToken token = this.TestToken;
@@ -87,8 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
         }
 
-        [Test]
-        [Category("Flaky")]
+        [TestMethod, TestCategory("Flaky")]
         public async Task PriorityQueueTimeToLive()
         {
             CancellationToken token = this.TestToken;
