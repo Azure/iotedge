@@ -1,6 +1,3 @@
-parameters:
-  containerSasUri: ''
-
 steps:
   - checkout: self
     clean: true
@@ -235,5 +232,5 @@ steps:
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
     env:
-      E2E_BLOB_STORE_SAS: $(containerSasUri)
+      E2E_BLOB_STORE_SAS: $(container_sas_uri)
       IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)

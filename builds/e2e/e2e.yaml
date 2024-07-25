@@ -193,8 +193,6 @@ jobs:
 
     steps:
     - template: templates/e2e-setup.yaml
-      parameters:
-        containerSasUri: $(container_sas_uri)
     - template: templates/e2e-run.yaml
 
 ################################################################################
