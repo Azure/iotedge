@@ -78,8 +78,8 @@ stages:
               # Construct the SAS URI
               endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
               sas_uri="$endpoint$container_name?$sasToken"
+              echo "Built SAS URI length: ${#container_sas_uri}"
               echo "##vso[task.setvariable variable=sas_uri;issecret=true;isoutput=true]$sas_uri"
-            name: generate
 
       - job: ubuntu_2004_msmoby
         displayName: Ubuntu 20.04 with iotedge-moby
@@ -92,7 +92,7 @@ stages:
           artifactName: iotedged-ubuntu20.04-amd64
           identityServiceArtifactName: packages_ubuntu-20.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+          container_sas_uri: $[ dependencies.Token.outputs['sas_uri'] ]
         steps:
         - script: |
             echo "Container SAS URI length: ${#container_sas_uri}"
