@@ -182,7 +182,7 @@ steps:
         loadGenImage = "$imagePrefix-load-gen:$imageTag";
         relayerImage = "$imagePrefix-relayer:$imageTag";
         networkControllerImage = "$imagePrefix-network-controller:$imageTag";
-        testBlobStoreSas = '${{ parameters.containerSasUri }}';
+        testBlobStoreSas = "$env:E2E_BLOB_STORE_SAS";
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
         metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag";
         iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
@@ -235,4 +235,5 @@ steps:
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
     env:
+      E2E_BLOB_STORE_SAS: $(containerSasUri)
       IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
