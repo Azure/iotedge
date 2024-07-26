@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
-    using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common;
@@ -16,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using Serilog;
 
     [TestClass, TestCategory("EndToEnd")]

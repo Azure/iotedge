@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.IO;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading;

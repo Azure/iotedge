@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
-    using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 
     [TestClass, TestCategory("EndToEnd")]
     public class PlugAndPlay : SasManualProvisioningFixture
