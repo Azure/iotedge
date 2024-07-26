@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 : LogEventLevel.Information;
             var loggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
-                .WriteTo.Console(restrictedToMinimumLevel: consoleLevel);
+                .WriteTo.Console(consoleLevel);
             Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
             Log.Logger = loggerConfig.CreateLogger();
 
