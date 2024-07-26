@@ -100,7 +100,5 @@ stages:
             echo "Length of envt variable E2E_BLOB_STORE_SAS: $env:E2E_BLOB_STORE_SAS.Length"
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
-          env:
-            E2E_BLOB_STORE_SAS: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-
-    
+          parameters:
+            E2E_BLOB_STORE_SAS: $(sas_uri)
