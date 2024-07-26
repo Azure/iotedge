@@ -94,6 +94,7 @@ stages:
           artifactName: iotedged-ubuntu20.04-amd64
           identityServiceArtifactName: packages_ubuntu-20.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
         steps:
         - script: |
             echo "Length of envt variable E2E_BLOB_STORE_SAS: ${#sas_uri}"
