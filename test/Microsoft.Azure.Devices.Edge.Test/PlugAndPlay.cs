@@ -11,13 +11,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
 
-    [TestClass, TestCategory("EndToEnd")]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class PlugAndPlay : SasManualProvisioningFixture
     {
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
         const string LoadGenModuleName = "loadGenModule";
 
-        [TestMethod, TestCategory("LegacyMqttRequired")]
+        [TestMethod]
+        [TestCategory("LegacyMqttRequired")]
         [DataRow(Protocol.Mqtt)]
         [DataRow(Protocol.Amqp)]
         public async Task PlugAndPlayDeviceClient(Protocol protocol)
@@ -60,7 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [TestMethod, TestCategory("LegacyMqttRequired")]
+        [TestMethod]
+        [TestCategory("LegacyMqttRequired")]
         [DataRow(Protocol.Mqtt)]
         [DataRow(Protocol.Amqp)]
         public async Task PlugAndPlayModuleClient(Protocol protocol)

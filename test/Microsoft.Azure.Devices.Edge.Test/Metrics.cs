@@ -14,7 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     using ConfigModuleName = Microsoft.Azure.Devices.Edge.Test.Common.Config.ModuleName;
 
-    [TestClass, TestCategory("EndToEnd")]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class Metrics : SasManualProvisioningFixture
     {
         public const string ValidatorModuleName = "metricsValidator";
@@ -65,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.IsTrue(iotHubMetrics.Count > 0);
         }
 
-        [TestMethod, TestCategory("FlakyOnArm")]
+        [TestMethod]
+        [TestCategory("FlakyOnArm")]
         public async Task ValidateMetrics()
         {
             CancellationToken token = TestToken;

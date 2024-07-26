@@ -9,10 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    [TestClass, TestCategory("EndToEnd")]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
-        [TestMethod, TestCategory("Flaky")]
+        [TestMethod]
+        [TestCategory("Flaky")]
         [DataRow(TestAuthenticationType.SasInScope, Protocol.Mqtt)]
         [DataRow(TestAuthenticationType.SasOutOfScope, Protocol.Mqtt)]
         [DataRow(TestAuthenticationType.CertificateAuthority, Protocol.Mqtt)]
@@ -78,7 +80,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [TestMethod, TestCategory("NestedEdgeOnly"), TestCategory("FlakyOnNested")]
+        [TestMethod]
+        [TestCategory("NestedEdgeOnly")]
+        [TestCategory("FlakyOnNested")]
         [Description("A test to verify a leaf device can be registered under grandparent device scope.")]
         [DataRow(TestAuthenticationType.SasInScope, Protocol.Mqtt)]
         [DataRow(TestAuthenticationType.SelfSignedPrimary, Protocol.Mqtt)]

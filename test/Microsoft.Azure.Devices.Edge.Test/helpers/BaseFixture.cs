@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         [TestInitialize]
         public async Task BeforeEachTestAsync()
         {
-            await BeforeTestTimerStarts();
+            await this.BeforeTestTimerStarts();
             cts = new CancellationTokenSource(Context.Current.TestTimeout);
             testStartTime = DateTime.Now;
             profiler = Profiler.Start();

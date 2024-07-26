@@ -9,7 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
 
-    [TestClass, TestCategory("EndToEnd")]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class Module : SasManualProvisioningFixture
     {
         const string SensorName = "tempSensor";
@@ -56,7 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
         }
 
-        [TestMethod, TestCategory("nestededge_isa95")]
+        [TestMethod]
+        [TestCategory("nestededge_isa95")]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
@@ -126,7 +128,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
 
-        [TestMethod, TestCategory("Amd64Only")]
+        [TestMethod]
+        [TestCategory("Amd64Only")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {

@@ -16,10 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     using ConfigModuleName = Microsoft.Azure.Devices.Edge.Test.Common.Config.ModuleName;
 
-    [TestClass, TestCategory("EndToEnd")]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class EdgeAgentDirectMethods : SasManualProvisioningFixture
     {
-        [TestMethod, TestCategory("nestededge_isa95")]
+        [TestMethod]
+        [TestCategory("nestededge_isa95")]
         public async Task TestPing()
         {
             CancellationToken token = TestToken;

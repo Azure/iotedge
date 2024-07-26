@@ -8,7 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Serilog;
 
-    [TestClass, TestCategory("EndToEnd")]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class IoTEdgeCheck : SasManualProvisioningFixture
     {
         [TestMethod]
