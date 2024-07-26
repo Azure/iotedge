@@ -20,20 +20,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [DataRow(Protocol.Amqp)]
         public async Task CertRenew(Protocol protocol)
         {
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                     builder =>
                     {
                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                     },
-                    this.cli,
+                    cli,
                     token,
                     Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
-            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
+            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, cli, token);
             EdgeModule edgeAgent = deployment.Modules[ModuleName.EdgeAgent];
             // certificate renew should stop edgeHub and then it should be started by edgeAgent
             await edgeAgent.WaitForReportedPropertyUpdatesAsync(
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
             EdgeModule sensor;
             DateTime startTime;
@@ -68,13 +68,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // This is a temporary solution see ticket: 9288683
             if (!Context.Current.ISA95Tag)
             {
-                EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                     builder =>
                     {
                         builder.AddModule(SensorName, sensorImage)
                             .WithEnvironment(new[] { ("MessageCount", "-1") });
                     },
-                    this.cli,
+                    cli,
                     token,
                     Context.Current.NestedEdge);
                 sensor = deployment.Modules[SensorName];
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
             else
             {
-                sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
+                sensor = new EdgeModule(SensorName, runtime.DeviceId, IotHub);
                 startTime = DateTime.Now;
             }
 
@@ -99,9 +99,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string sensorImage = Context.Current.TempSensorImage.Expect(
                 () => new ArgumentException("tempSensorImage parameter is required for TempFilter test"));
 
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule(SensorName, sensorImage)
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                this.cli,
+                cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -138,9 +138,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string sensorImage = Context.Current.TempSensorImage.Expect(
                 () => new ArgumentException("tempSensorImage parameter is required for TempFilterFunc test"));
 
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule(SensorName, sensorImage)
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                this.cli,
+                cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -166,17 +166,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [TestMethod]
-        public async Task ModuleToModuleDirectMethod(
-            [Values] Protocol protocol)
+        [DataRow(Protocol.Amqp)]
+        [DataRow(Protocol.AmqpWs)]
+        [DataRow(Protocol.Mqtt)]
+        [DataRow(Protocol.MqttWs)]
+        public async Task ModuleToModuleDirectMethod(Protocol protocol)
         {
             string senderImage = Context.Current.MethodSenderImage.Expect(() => new InvalidOperationException("Missing Direct Method Sender image"));
             string receiverImage = Context.Current.MethodReceiverImage.Expect(() => new InvalidOperationException("Missing Direct Method Receiver image"));
             string methodSender = $"methodSender-{protocol.ToString()}";
             string methodReceiver = $"methodReceiver-{protocol.ToString()}";
 
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     string clientTransport = protocol.ToTransportType().ToString();
@@ -191,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(methodReceiver, receiverImage)
                         .WithEnvironment(new[] { ("ClientTransportType", clientTransport) });
                 },
-                this.cli,
+                cli,
                 token,
                 Context.Current.NestedEdge);
 

@@ -13,11 +13,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         // creating a new device for every permutation of the Transparent Gateway tests.
         protected override Task BeforeTestTimerStarts() => Task.CompletedTask;
 
-        [OneTimeSetUp]
-        public async Task SetUpCustomCertificatesAsync()
+        [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
+        public static async Task SetUpCustomCertificatesAsync(TestContext testContext)
         {
             await Profiler.Run(
-                () => this.SasProvisionEdgeAsync(true),
+                () => SasProvisionEdgeAsync(true),
                 "Completed edge manual provisioning with SAS token");
         }
     }

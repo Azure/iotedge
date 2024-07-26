@@ -9,14 +9,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class DeviceProvisioningFixture : BaseFixture
     {
-        protected IEdgeDaemon daemon;
+        protected static IEdgeDaemon daemon;
 
-        [OneTimeSetUp]
-        protected async Task BeforeAllTestsAsync()
+        [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
+        public static async Task BeforeAllTestsAsync(TestContext testContext)
         {
+            msTestContext = testContext;
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
-            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, cts.Token);
-            this.cli = this.daemon.GetCli();
+            daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, cts.Token);
+            cli = daemon.GetCli();
         }
     }
 }

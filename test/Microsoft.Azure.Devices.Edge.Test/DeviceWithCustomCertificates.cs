@@ -10,22 +10,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
 
     [TestClass, TestCategory("EndToEnd")]
-    class DeviceWithCustomCertificates : CustomCertificatesFixture
+    public class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
         [TestMethod, TestCategory("Flaky")]
-        public async Task TransparentGateway(
-            [Values] TestAuthenticationType testAuth,
-            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
+        [DataRow(TestAuthenticationType.SasInScope, Protocol.Mqtt)]
+        [DataRow(TestAuthenticationType.SasOutOfScope, Protocol.Mqtt)]
+        [DataRow(TestAuthenticationType.CertificateAuthority, Protocol.Mqtt)]
+        [DataRow(TestAuthenticationType.SelfSignedPrimary, Protocol.Mqtt)]
+        [DataRow(TestAuthenticationType.SelfSignedSecondary, Protocol.Mqtt)]
+        [DataRow(TestAuthenticationType.SasInScope, Protocol.Amqp)]
+        [DataRow(TestAuthenticationType.SasOutOfScope, Protocol.Amqp)]
+        [DataRow(TestAuthenticationType.CertificateAuthority, Protocol.Amqp)]
+        [DataRow(TestAuthenticationType.SelfSignedPrimary, Protocol.Amqp)]
+        [DataRow(TestAuthenticationType.SelfSignedSecondary, Protocol.Amqp)]
+        public async Task TransparentGateway(TestAuthenticationType testAuth, Protocol protocol)
         {
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
+            await runtime.DeployConfigurationAsync(cli, token, device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
             Option<string> parentId = testAuth == TestAuthenticationType.SasOutOfScope
                 ? Option.None<string>()
-                : Option.Some(this.runtime.DeviceId);
+                : Option.Some(runtime.DeviceId);
 
             LeafDevice leaf = null;
             try
@@ -36,13 +44,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     testAuth.ToAuthenticationType(),
                     parentId,
                     testAuth.UseSecondaryCertificate(),
-                    this.ca,
-                    this.daemon.GetCertificatesPath(),
-                    this.IotHub,
-                    this.device.NestedEdge.DeviceHostname,
+                    ca,
+                    daemon.GetCertificatesPath(),
+                    IotHub,
+                    device.NestedEdge.DeviceHostname,
                     token,
                     Option.None<string>(),
-                    this.device.NestedEdge.IsNestedEdge);
+                    device.NestedEdge.IsNestedEdge);
             }
             catch (Exception) when (!parentId.HasValue)
             {
@@ -54,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.Fail("Expected to fail when not in scope.");
             }
 
-            Assert.NotNull(leaf);
+            Assert.IsNotNull(leaf);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -72,23 +80,24 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [TestMethod, TestCategory("NestedEdgeOnly"), TestCategory("FlakyOnNested")]
         [Description("A test to verify a leaf device can be registered under grandparent device scope.")]
-        public async Task GrandparentScopeDevice(
-            [Values(
-                TestAuthenticationType.SasInScope,
-                TestAuthenticationType.SelfSignedPrimary,
-                TestAuthenticationType.SelfSignedSecondary)] TestAuthenticationType testAuth,
-            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
+        [DataRow(TestAuthenticationType.SasInScope, Protocol.Mqtt)]
+        [DataRow(TestAuthenticationType.SelfSignedPrimary, Protocol.Mqtt)]
+        [DataRow(TestAuthenticationType.SelfSignedSecondary, Protocol.Mqtt)]
+        [DataRow(TestAuthenticationType.SasInScope, Protocol.Amqp)]
+        [DataRow(TestAuthenticationType.SelfSignedPrimary, Protocol.Amqp)]
+        [DataRow(TestAuthenticationType.SelfSignedSecondary, Protocol.Amqp)]
+        public async Task GrandparentScopeDevice(TestAuthenticationType testAuth, Protocol protocol)
         {
-            if (!this.device.NestedEdge.IsNestedEdge)
+            if (!device.NestedEdge.IsNestedEdge)
             {
-                Assert.Ignore("The test can only be run in the nested edge topology");
+                Assert.Inconclusive("The test can only be run in the nested edge topology");
             }
 
-            Option<string> parentId = Option.Some(this.runtime.DeviceId);
+            Option<string> parentId = Option.Some(runtime.DeviceId);
 
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            await this.runtime.DeployConfigurationAsync(this.cli, token, Context.Current.NestedEdge);
+            await runtime.DeployConfigurationAsync(cli, token, Context.Current.NestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -101,13 +110,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     testAuth.ToAuthenticationType(),
                     parentId,
                     testAuth.UseSecondaryCertificate(),
-                    this.ca,
-                    this.daemon.GetCertificatesPath(),
-                    this.IotHub,
-                    this.device.NestedEdge.ParentHostname,
+                    ca,
+                    daemon.GetCertificatesPath(),
+                    IotHub,
+                    device.NestedEdge.ParentHostname,
                     token,
                     Option.None<string>(),
-                    this.device.NestedEdge.IsNestedEdge);
+                    device.NestedEdge.IsNestedEdge);
             }
             catch (Exception) when (!parentId.HasValue)
             {
@@ -119,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.Fail("Expected to fail when not in scope.");
             }
 
-            Assert.NotNull(leaf);
+            Assert.IsNotNull(leaf);
 
             await TryFinally.DoAsync(
                 async () =>

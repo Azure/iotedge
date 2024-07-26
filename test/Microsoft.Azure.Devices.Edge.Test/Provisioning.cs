@@ -44,14 +44,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), deviceId);
 
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
             (var certs, _) = await TestCertificates.GenerateEdgeCaCertsAsync(
                 deviceId,
-                this.daemon.GetCertificatesPath(),
+                daemon.GetCertificatesPath(),
                 token);
 
-            await this.daemon.ConfigureAsync(
+            await daemon.ConfigureAsync(
                 async config =>
                 {
                     config.SetCertificates(certs);
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
 
             var agent = new EdgeAgent(deviceId, this.iotHub);
-            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, cli, token);
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
@@ -84,13 +84,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
             string deviceId = DeviceId.Current.Generate();
 
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            var certsPath = this.daemon.GetCertificatesPath();
+            var certsPath = daemon.GetCertificatesPath();
             var idCerts = await TestCertificates.GenerateIdentityCertificatesAsync(deviceId, certsPath, token);
             (var edgeCaCerts, _) = await TestCertificates.GenerateEdgeCaCertsAsync(deviceId, certsPath, token);
 
-            await this.daemon.ConfigureAsync(
+            await daemon.ConfigureAsync(
                 async config =>
                 {
                     config.SetCertificates(edgeCaCerts);
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
 
             var agent = new EdgeAgent(deviceId, this.iotHub);
-            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, cli, token);
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(

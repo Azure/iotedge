@@ -11,11 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
-        protected EdgeRuntime runtime;
-        protected EdgeDevice device;
+        protected static EdgeRuntime runtime;
+        protected static EdgeDevice device;
 
-        [OneTimeSetUp]
-        public async Task X509ProvisionEdgeAsync()
+        [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
+        public static async Task X509ProvisionEdgeAsync(TestContext testContext)
         {
             await Profiler.Run(
                 async () =>
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
                         string deviceId = DeviceId.Current.Generate();
-                        string certsPath = this.daemon.GetCertificatesPath();
+                        string certsPath = daemon.GetCertificatesPath();
 
                         var idCerts = await TestCertificates.GenerateIdentityCertificatesAsync(
                             deviceId,
@@ -40,34 +40,34 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
-                            this.GetNestedEdgeConfig(this.IotHub),
-                            this.IotHub,
+                            GetNestedEdgeConfig(IotHub),
+                            IotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,
                             token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
 
-                        this.runtime = new EdgeRuntime(
+                        runtime = new EdgeRuntime(
                             device.Id,
                             Context.Current.EdgeAgentImage,
                             Context.Current.EdgeHubImage,
                             Context.Current.EdgeProxy,
                             Context.Current.Registries,
                             Context.Current.OptimizeForPerformance,
-                            this.IotHub);
+                            IotHub);
 
-                        (var certs, this.ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
+                        (var certs, ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
                             device.Id,
                             certsPath,
                             token);
 
-                        await this.ConfigureDaemonAsync(
+                        await ConfigureDaemonAsync(
                             async config =>
                             {
                                 config.SetCertificates(certs);
                                 config.SetDeviceManualX509(
-                                    this.IotHub.Hostname,
+                                    IotHub.Hostname,
                                     Context.Current.ParentHostname,
                                     device.Id,
                                     idCerts.CertificatePath,

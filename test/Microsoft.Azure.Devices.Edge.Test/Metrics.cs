@@ -23,12 +23,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestMethod]
         public async Task MetricsCollector()
         {
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
             string metricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
             string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("iotHubResourceId is required for MetricsCollector test"));
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule(CollectorModuleName, metricsCollectorImage)
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                this.cli,
+                cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -62,22 +62,22 @@ namespace Microsoft.Azure.Devices.Edge.Test
             List<IoTHubMetric> iotHubMetrics = new List<IoTHubMetric>() { };
             iotHubMetrics.AddRange(JsonConvert.DeserializeObject<IoTHubMetric[]>(output, settings));
 
-            Assert.True(iotHubMetrics.Count > 0);
+            Assert.IsTrue(iotHubMetrics.Count > 0);
         }
 
         [TestMethod, TestCategory("FlakyOnArm")]
         public async Task ValidateMetrics()
         {
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
             await this.DeployAsync(token);
 
-            var agent = new EdgeAgent(this.runtime.DeviceId, this.IotHub);
+            var agent = new EdgeAgent(runtime.DeviceId, IotHub);
             await agent.PingAsync(token);
 
             // This method can take a long time to process in the nested case.
             // So have a long response timeout but short connection timeout.
-            var result = await this.IotHub.InvokeMethodAsync(
-                this.runtime.DeviceId,
+            var result = await IotHub.InvokeMethodAsync(
+                runtime.DeviceId,
                 Metrics.ValidatorModuleName,
                 new CloudToDeviceMethod(
                     "ValidateMetrics",
@@ -88,27 +88,27 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string body = result.GetPayloadAsJson();
             Report report = JsonConvert.DeserializeObject<Report>(body, new JsonSerializerSettings() { DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate });
-            Assert.Zero(report.Failed, report.ToString());
+            Assert.AreEqual(report.Failed, 0, report.ToString());
         }
 
         async Task DeployAsync(CancellationToken token)
         {
             // First deploy everything needed for this test, including a temporary image that will be removed later to bump the "stopped" metric
             string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
-            await this.runtime.DeployConfigurationAsync(
+            await runtime.DeployConfigurationAsync(
                 builder =>
                     {
                         builder.AddTemporaryModule();
                         builder.AddMetricsValidatorConfig(metricsValidatorImage);
                     },
-                this.cli,
+                cli,
                 token,
                 Context.Current.NestedEdge);
 
             // Next remove the temporary image from the deployment
-            await this.runtime.DeployConfigurationAsync(
+            await runtime.DeployConfigurationAsync(
                 builder => { builder.AddMetricsValidatorConfig(metricsValidatorImage); },
-                this.cli,
+                cli,
                 token,
                 Context.Current.NestedEdge);
         }

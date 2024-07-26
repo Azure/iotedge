@@ -13,14 +13,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Serilog;
 
     [TestClass, TestCategory("EndToEnd")]
-    class Device : SasManualProvisioningFixture
+    public class Device : SasManualProvisioningFixture
     {
         [TestMethod]
         public async Task QuickstartCerts()
         {
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
+            await runtime.DeployConfigurationAsync(cli, token, device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -28,15 +28,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
-                Option.Some(this.runtime.DeviceId),
+                Option.Some(runtime.DeviceId),
                 false,
-                this.ca,
-                this.daemon.GetCertificatesPath(),
-                this.IotHub,
-                this.device.NestedEdge.DeviceHostname,
+                ca,
+                daemon.GetCertificatesPath(),
+                IotHub,
+                device.NestedEdge.DeviceHostname,
                 token,
                 Option.None<string>(),
-                this.device.NestedEdge.IsNestedEdge);
+                device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -55,9 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestMethod, TestCategory("NestedEdgeOnly"), TestCategory("FlakyOnNested")]
         public async Task QuickstartChangeSasKey()
         {
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
+            await runtime.DeployConfigurationAsync(cli, token, device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -66,15 +66,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
-                Option.Some(this.runtime.DeviceId),
+                Option.Some(runtime.DeviceId),
                 false,
-                this.ca,
-                this.daemon.GetCertificatesPath(),
-                this.IotHub,
-                this.device.NestedEdge.DeviceHostname,
+                ca,
+                daemon.GetCertificatesPath(),
+                IotHub,
+                device.NestedEdge.DeviceHostname,
                 token,
                 Option.None<string>(),
-                this.device.NestedEdge.IsNestedEdge);
+                device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -96,15 +96,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
-                Option.Some(this.runtime.DeviceId),
+                Option.Some(runtime.DeviceId),
                 false,
-                this.ca,
-                this.daemon.GetCertificatesPath(),
-                this.IotHub,
-                this.device.NestedEdge.DeviceHostname,
+                ca,
+                daemon.GetCertificatesPath(),
+                IotHub,
+                device.NestedEdge.DeviceHostname,
                 token,
                 Option.None<string>(),
-                this.device.NestedEdge.IsNestedEdge);
+                device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -124,9 +124,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestMethod, TestCategory("NestedEdgeOnly"), TestCategory("NestedEdgeAmqpOnly")]
         public async Task RouteMessageL3LeafToL4Module()
         {
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
-            await this.runtime.DeployConfigurationAsync(this.cli, token, Context.Current.NestedEdge);
+            await runtime.DeployConfigurationAsync(cli, token, Context.Current.NestedEdge);
 
             // These must match the IDs in nestededge_middleLayerBaseDeployment_amqp.json,
             // which defines a route that filters by deviceId to forwards the message
@@ -140,11 +140,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
-                Option.Some(this.runtime.DeviceId),
+                Option.Some(runtime.DeviceId),
                 false,
-                this.ca,
-                this.daemon.GetCertificatesPath(),
-                this.IotHub,
+                ca,
+                daemon.GetCertificatesPath(),
+                IotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.None<string>(),
@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Verify that the message was received/resent by the relayer module on L4
                     await Profiler.Run(
-                        () => this.IotHub.ReceiveEventsAsync(
+                        () => IotHub.ReceiveEventsAsync(
                             parentDeviceId,
                             seekTime,
                             data =>
@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             token),
                         "Received events from module '{Device}' on Event Hub '{EventHub}'",
                         parentDeviceId + "/" + relayerModuleId,
-                        this.IotHub.EntityPath);
+                        IotHub.EntityPath);
                 },
                 async () =>
                 {
@@ -189,19 +189,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestMethod, TestCategory("Flaky")]
         public async Task DisableReenableParentEdge()
         {
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
             Log.Verbose("Deploying L3 Edge");
-            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
+            await runtime.DeployConfigurationAsync(cli, token, device.NestedEdge.IsNestedEdge);
 
             // Disable the parent Edge device
             Log.Verbose("Disabling Edge device");
-            await this.IotHub.UpdateEdgeEnableStatus(this.runtime.DeviceId, false);
+            await IotHub.UpdateEdgeEnableStatus(runtime.DeviceId, false);
             await Task.Delay(TimeSpan.FromSeconds(10));
 
             // Re-enable parent Edge
             Log.Verbose("Re-enabling Edge device");
-            await this.IotHub.UpdateEdgeEnableStatus(this.runtime.DeviceId, true);
+            await IotHub.UpdateEdgeEnableStatus(runtime.DeviceId, true);
             await Task.Delay(TimeSpan.FromSeconds(10));
 
             // Try connecting
@@ -210,15 +210,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
-                Option.Some(this.runtime.DeviceId),
+                Option.Some(runtime.DeviceId),
                 false,
-                this.ca,
-                this.daemon.GetCertificatesPath(),
-                this.IotHub,
-                this.device.NestedEdge.DeviceHostname,
+                ca,
+                daemon.GetCertificatesPath(),
+                IotHub,
+                device.NestedEdge.DeviceHostname,
                 token,
                 Option.None<string>(),
-                this.device.NestedEdge.IsNestedEdge);
+                device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>

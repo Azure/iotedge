@@ -18,29 +18,29 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestMethod]
         public async Task ImageGarbageCollection()
         {
-            CancellationToken token = this.TestToken;
+            CancellationToken token = TestToken;
 
             // Create initial deployment with simulated temperature sensor
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
-            EdgeDeployment deployment1 = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment1 = await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule(SensorName, sensorImage);
                 },
-                this.cli,
+                cli,
                 token,
                 Context.Current.NestedEdge);
             EdgeModule sensor = deployment1.Modules[SensorName];
-            await sensor.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
+            await sensor.WaitForStatusAsync(EdgeModuleStatus.Running, cli, token);
 
             // Create second deployment without simulated temperature sensor
-            EdgeDeployment deployment2 = await this.runtime.DeployConfigurationAsync(
-                this.cli,
+            EdgeDeployment deployment2 = await runtime.DeployConfigurationAsync(
+                cli,
                 token,
                 Context.Current.NestedEdge);
 
             // Configure image garbage collection to happen in 2 minutes
-            await this.daemon.ConfigureAsync(
+            await daemon.ConfigureAsync(
                 async config =>
                 {
                     config.SetImageGarbageCollection(2);

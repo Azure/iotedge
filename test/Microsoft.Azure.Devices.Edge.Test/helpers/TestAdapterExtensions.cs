@@ -8,12 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public static class TestAdapterExtensions
     {
-        public static string NormalizedName(this TestContext.TestAdapter test)
+        public static string NormalizedName(this TestContext context)
         {
             // e.g. -
             // 'ModuleToModuleDirectMethod("Mqtt","Amqp")' ==>
             //     'moduletomoduledirectmethod-mqtt-amqp'
-            IEnumerable<string> parts = Regex.Split(test.Name, @"[^\w]")
+            IEnumerable<string> parts = Regex.Split(context.TestName, @"[^\w]")
                 .Where(s => !string.IsNullOrEmpty(s));
             return string.Join("-", parts).ToLowerInvariant();
         }
