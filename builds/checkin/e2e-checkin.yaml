@@ -86,6 +86,8 @@ stages:
         displayName: Ubuntu 20.04 with iotedge-moby
         dependsOn: Token
         condition: succeeded('Token')
+        env:
+          E2E_BLOB_STORE_SAS: $[ dependencies.Token.outputs['generate.sas_uri'] ]
         variables:
           verbose: false
           os: linux
@@ -93,8 +95,9 @@ stages:
           artifactName: iotedged-ubuntu20.04-amd64
           identityServiceArtifactName: packages_ubuntu-20.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-          container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
         steps:
+        - script: |
+            echo "Length of envt variable E2E_BLOB_STORE_SAS: $env:E2E_BLOB_STORE_SAS.Length"
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
 

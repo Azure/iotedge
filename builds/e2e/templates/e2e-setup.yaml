@@ -161,7 +161,6 @@ steps:
 
       echo "Edge agent image: $edgeAgentImage"
       echo "Edge hub image: $edgeHubImage"
-      echo "Length of sas uri: ${#container_sas_uri}"
   
       $context = @{
         nestededge = "$nestededge";
@@ -231,5 +230,4 @@ steps:
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
     env:
-      E2E_BLOB_STORE_SAS: $(container_sas_uri)
       IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
