@@ -362,7 +362,7 @@ jobs:
 ################################################################################
     displayName: Mariner 2.0 amd64
     dependsOn: Token
-    condition: succeeded('Token') and eq(variables['run.EFLOW.amd64'], true)
+    condition: and(succeeded(), eq(variables['run.EFLOW.amd64'], 'true'))
     pool:
       name: $(pool.linux.name)
       demands:
@@ -389,7 +389,7 @@ jobs:
 ################################################################################
     displayName: Mariner 2.0 arm64
     dependsOn: Token
-    condition: succeeded('Token') and eq(variables['run.EFLOW.amd64'], true)
+    condition: and(succeeded(), eq(variables['run.EFLOW.amd64'], 'true'))
     pool:
       name: $(pool.linux.arm.name)
       demands:
