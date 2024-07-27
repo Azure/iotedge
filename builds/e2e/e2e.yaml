@@ -89,7 +89,7 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2004_msmoby
@@ -116,7 +116,7 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2004_docker
@@ -142,7 +142,7 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2004_arm64v8
@@ -168,7 +168,7 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2204
@@ -195,7 +195,7 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2204_arm64v8
@@ -222,7 +222,7 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
 ################################################################################
   - job: snaps
@@ -263,7 +263,7 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
   ################################################################################
   - job: redhat8_amd64
@@ -288,7 +288,7 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
   ################################################################################
   - job: redhat9_amd64
@@ -313,7 +313,7 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
 ################################################################################
   - job: linux_amd64_proxy
@@ -349,7 +349,7 @@ jobs:
     - template: templates/e2e-run.yaml
       parameters:
         test_type: http_proxy
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
 ################################################################################
   - job: mariner2_amd64
@@ -376,7 +376,7 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
 
 ################################################################################
   - job: mariner2_arm64
@@ -401,4 +401,4 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(container_sas_uri)
+        container_sas_uri: $(sas_uri)
