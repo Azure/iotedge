@@ -29,12 +29,7 @@ jobs:
   - job: Token
     displayName: 'Get SAS URI for Blob Storage Account'
     dependsOn: []
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
-
+    
     steps:
     - task: AzureCLI@2
       name: generate
@@ -68,6 +63,7 @@ jobs:
 ################################################################################
     displayName: Debian 11 arm32v7
     dependsOn: Token
+    condition: succeeded('Token')
 
     pool:
       name: $(pool.custom.name)
@@ -79,7 +75,7 @@ jobs:
       artifactName: iotedged-debian11-arm32v7
       identityServiceArtifactName: packages_debian-11-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 120
 
@@ -89,13 +85,14 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2004_msmoby
 ################################################################################
     displayName: Ubuntu 20.04 with iotedge-moby
     dependsOn: Token
+    condition: succeeded('Token')
 
     pool:
       name: $(pool.linux.name)
@@ -108,7 +105,7 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
 
@@ -116,13 +113,14 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2004_docker
 ################################################################################
     displayName: Ubuntu 20.04 with Docker (minimal)
     dependsOn: Token
+    condition: succeeded('Token')
 
     pool:
       name: $(pool.linux.name)
@@ -135,20 +133,22 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       minimal: true
 
     steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2004_arm64v8
 ################################################################################
     displayName: Ubuntu 20.04 on arm64v8
     dependsOn: Token
+    condition: succeeded('Token')
+
     pool:
       name: $(pool.linux.arm.name)
       demands:
@@ -160,7 +160,7 @@ jobs:
       artifactName: iotedged-ubuntu20.04-aarch64
       identityServiceArtifactName: packages_ubuntu-20.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 120
 
@@ -168,13 +168,14 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2204
 ################################################################################
     displayName: Ubuntu 22.04 on amd64
     dependsOn: Token
+    condition: succeeded('Token')
 
     pool:
       name: $(pool.linux.name)
@@ -187,7 +188,7 @@ jobs:
       artifactName: iotedged-ubuntu22.04-amd64
       identityServiceArtifactName: packages_ubuntu-22.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
 
@@ -195,13 +196,14 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2204_arm64v8
 ################################################################################
     displayName: Ubuntu 22.04 on arm64v8
     dependsOn: Token
+    condition: succeeded('Token')
 
     pool:
       name: $(pool.linux.arm.name)
@@ -214,7 +216,7 @@ jobs:
       artifactName: iotedged-ubuntu22.04-aarch64
       identityServiceArtifactName: packages_ubuntu-22.04_aarch64
       identityServicePackageFilter: aziot-identity-service_*_arm64.deb
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
 
@@ -222,17 +224,18 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
 ################################################################################
   - job: snaps
 ################################################################################
     displayName: Snaps
     dependsOn: Token
+    condition: succeeded('Token')
 
     variables:
       os: linux
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     strategy:
       matrix:
@@ -263,13 +266,14 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
   ################################################################################
   - job: redhat8_amd64
   ################################################################################
     displayName: RedHat8 amd64
     dependsOn: Token
+    condition: succeeded('Token')
 
     pool:
       name: $(pool.linux.name)
@@ -282,19 +286,20 @@ jobs:
       artifactName: iotedged-redhat8-amd64
       identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
       identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
   ################################################################################
   - job: redhat9_amd64
   ################################################################################
     displayName: RedHat9 amd64
     dependsOn: Token
+    condition: succeeded('Token')
 
     pool:
       name: $(pool.linux.name)
@@ -307,19 +312,20 @@ jobs:
       artifactName: iotedged-redhat9-amd64
       identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
       identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
 ################################################################################
   - job: linux_amd64_proxy
 ################################################################################
     displayName: Linux amd64 behind a proxy
     dependsOn: Token
+    condition: succeeded('Token')
 
     pool:
       name: $(pool.custom.name)
@@ -331,7 +337,7 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true
       'agent.disablelogplugin.testresultlogplugin': true
@@ -349,14 +355,14 @@ jobs:
     - template: templates/e2e-run.yaml
       parameters:
         test_type: http_proxy
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
 ################################################################################
   - job: mariner2_amd64
 ################################################################################
     displayName: Mariner 2.0 amd64
     dependsOn: Token
-    condition: eq(variables['run.EFLOW.amd64'], true)
+    condition: succeeded('Token') and eq(variables['run.EFLOW.amd64'], true)
     pool:
       name: $(pool.linux.name)
       demands:
@@ -368,7 +374,7 @@ jobs:
       artifactName: iotedged-mariner2-amd64
       identityServiceArtifactName: packages_mariner-2_amd64
       identityServicePackageFilter: aziot-identity-service-?.*.cm2.x86_64.rpm
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
 
@@ -376,14 +382,14 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
 
 ################################################################################
   - job: mariner2_arm64
 ################################################################################
     displayName: Mariner 2.0 arm64
     dependsOn: Token
-    condition: eq(variables['run.EFLOW.arm64'], true)
+    condition: succeeded('Token') and eq(variables['run.EFLOW.amd64'], true)
     pool:
       name: $(pool.linux.arm.name)
       demands:
@@ -393,7 +399,7 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-mariner2-aarch64
-      container_sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
 
@@ -401,4 +407,4 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        container_sas_uri: $(sas_uri)
+        sas_uri: $(sas_uri)
