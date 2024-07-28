@@ -49,7 +49,7 @@ stages:
       builtImages: $[stageDependencies.CheckBuildImages.check_source_change_runtime.outputs['check_files.RUNTIMECHANGES']]
       builtPackages: $[stageDependencies.CheckBuildPackages.check_source_change_edgelet.outputs['check_files.EDGELETCHANGES']]
     jobs:
-      - template: ../e2e/templates/get-sas-uri.yaml
+      - template: ../e2e/templates/get-storage-uri.yaml
         parameters:
           azureSubscription: $(az.subscription)
 
