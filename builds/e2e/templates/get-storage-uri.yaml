@@ -9,7 +9,6 @@ jobs:
       - task: AzureCLI@2
         name: generate
         displayName: 'Get Storage URI'
-        dependsOn: []
         inputs:
           azureSubscription: ${{ parameters.azureSubscription }}
           scriptType: 'bash'
