@@ -2,6 +2,7 @@ parameters:
   EventHubCompatibleEndpoint: '$(TestEventHubCompatibleEndpoint)'
   IotHubConnectionString: '$(TestIotHubConnectionString)'
   test_type: ''
+  sas_uri: ''
 
 steps:
 # This E2E test pipeline uses the following filters in order to skip certain tests:
@@ -72,7 +73,7 @@ steps:
     E2E_IOT_HUB_CONNECTION_STRING: ${{ parameters['IotHubConnectionString'] }}
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
-    E2E_BLOB_STORE_SAS: $(sas_uri)
+    E2E_BLOB_STORE_SAS: ${{ parameters['sas_uri'] }} 
     no_proxy: 'localhost'
 
 - task: PublishTestResults@2
