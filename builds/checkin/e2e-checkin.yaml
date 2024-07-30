@@ -49,8 +49,14 @@ stages:
       builtImages: $[stageDependencies.CheckBuildImages.check_source_change_runtime.outputs['check_files.RUNTIMECHANGES']]
       builtPackages: $[stageDependencies.CheckBuildPackages.check_source_change_edgelet.outputs['check_files.EDGELETCHANGES']]
     jobs:
+      - template: ../e2e/templates/get-storage-uri.yaml
+        parameters:
+          azureSubscription: $(az.subscription)
+
       - job: ubuntu_2004_msmoby
         displayName: Ubuntu 20.04 with iotedge-moby
+        dependsOn: Token
+        condition: succeeded('Token')
         variables:
           verbose: false
           os: linux
@@ -58,8 +64,9 @@ stages:
           artifactName: iotedged-ubuntu20.04-amd64
           identityServiceArtifactName: packages_ubuntu-20.04_amd64
           identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+          sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
-
-    
+          parameters:
+            sas_uri: $(sas_uri)
