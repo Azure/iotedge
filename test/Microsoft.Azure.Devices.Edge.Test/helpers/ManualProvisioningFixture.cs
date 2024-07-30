@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         protected static IEdgeDaemon daemon;
         protected static CertificateAuthority ca;
+        protected static TestContext msTestContext;
 
         [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
         public static async Task BeforeAllTestsAsync(TestContext testContext)
