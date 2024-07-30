@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected static IEdgeDaemon daemon;
 
         [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
-        public static async Task BeforeAllTestsAsync(TestContext testContext)
+        public static async Task BeforeAllTestsAsync(TestContext msTestContext)
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, cts.Token);

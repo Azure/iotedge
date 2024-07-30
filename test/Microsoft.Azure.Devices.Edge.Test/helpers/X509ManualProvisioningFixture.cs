@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected static EdgeDevice device;
 
         [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
-        public static async Task X509ProvisionEdgeAsync(TestContext testContext)
+        public static async Task X509ProvisionEdgeAsync(TestContext msTestContext)
         {
             await Profiler.Run(
                 async () =>

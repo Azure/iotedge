@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected override Task BeforeTestTimerStarts() => Task.CompletedTask;
 
         [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
-        public static async Task SetUpCustomCertificatesAsync(TestContext testContext)
+        public static async Task SetUpCustomCertificatesAsync(TestContext msTestContext)
         {
             await Profiler.Run(
                 () => SasProvisionEdgeAsync(true),
