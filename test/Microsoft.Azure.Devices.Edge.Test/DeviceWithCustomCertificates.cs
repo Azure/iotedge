@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [DataRow(TestAuthenticationType.SelfSignedSecondary, Protocol.Amqp)]
         public async Task TransparentGateway(TestAuthenticationType testAuth, Protocol protocol)
         {
+            this.TestContext.Properties.Add("Row", $"{testAuth},{protocol}");
             CancellationToken token = TestToken;
 
             await runtime.DeployConfigurationAsync(cli, token, device.NestedEdge.IsNestedEdge);
@@ -92,6 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [DataRow(TestAuthenticationType.SelfSignedSecondary, Protocol.Amqp)]
         public async Task GrandparentScopeDevice(TestAuthenticationType testAuth, Protocol protocol)
         {
+            this.TestContext.Properties.Add("Row", $"{testAuth},{protocol}");
             if (!device.NestedEdge.IsNestedEdge)
             {
                 Assert.Inconclusive("The test can only be run in the nested edge topology");

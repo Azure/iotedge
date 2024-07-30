@@ -28,14 +28,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             await this.BeforeTestTimerStarts();
             cts = new CancellationTokenSource(Context.Current.TestTimeout);
             testStartTime = DateTime.Now;
+            string name = this.TestContext.TestName;
+            if (this.TestContext.ManagedMethod.EndsWith(")"))
+            {
+                // Can't find a way to see the arguments to a DataRow test inside [TestInitialize],
+                // so we'll just add elipses to indicate this is a DataRow test. The [TestCleanup]
+                // method below will list the arguments, so at least there's that.
+                name += "(...)";
+            }
+
             profiler = Profiler.Start();
-            Log.Information("Running test '{Name}'", this.TestContext.TestName);
+            Log.Information("Running test '{Name}'", name);
         }
 
         [TestCleanup]
         public async Task AfterEachTestAsync()
         {
-            profiler.Stop("Completed test '{Name}'", this.TestContext.TestName);
+            string name = this.TestContext.TestName;
+            if (this.TestContext.Properties.Contains("Row"))
+            {
+                name += $"({this.TestContext.Properties["Row"]})";
+            }
+
+            profiler.Stop("Completed test '{Name}'", name);
             await Profiler.Run(
                 async () =>
                 {

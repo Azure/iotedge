@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [DataRow(Protocol.Amqp)]
         public async Task CertRenew(Protocol protocol)
         {
+            this.TestContext.Properties.Add("Row", protocol.ToString());
             CancellationToken token = TestToken;
 
             EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
@@ -175,6 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [DataRow(Protocol.MqttWs)]
         public async Task ModuleToModuleDirectMethod(Protocol protocol)
         {
+            this.TestContext.Properties.Add("Row", $"{protocol}");
             string senderImage = Context.Current.MethodSenderImage.Expect(() => new InvalidOperationException("Missing Direct Method Sender image"));
             string receiverImage = Context.Current.MethodReceiverImage.Expect(() => new InvalidOperationException("Missing Direct Method Receiver image"));
             string methodSender = $"methodSender-{protocol.ToString()}";
