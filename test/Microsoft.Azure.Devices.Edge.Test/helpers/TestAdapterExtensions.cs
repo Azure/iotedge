@@ -13,7 +13,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             // e.g. -
             // 'ModuleToModuleDirectMethod("Mqtt","Amqp")' ==>
             //     'moduletomoduledirectmethod-mqtt-amqp'
-            IEnumerable<string> parts = Regex.Split(context.TestName, @"[^\w]")
+            string name = context.TestName;
+            if (context.Properties.Contains("Row"))
+            {
+                name += $"({context.Properties["Row"]})";
+            }
+
+            IEnumerable<string> parts = Regex.Split(name, @"[^\w]")
                 .Where(s => !string.IsNullOrEmpty(s));
             return string.Join("-", parts).ToLowerInvariant();
         }
