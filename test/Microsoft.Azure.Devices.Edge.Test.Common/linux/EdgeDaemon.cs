@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     if (!detectedSnap)
                     {
                         throw new ArgumentException(
-                            "packagesPath paramter is required on Ubuntu Core, and it must point to snap packages");
+                            "packagesPath parameter is required on Ubuntu Core, and it must point to snap packages");
                     }
 
                     packageExtension = SupportedPackageExtension.Snap;
