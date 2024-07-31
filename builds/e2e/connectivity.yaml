@@ -99,6 +99,7 @@ jobs:
       edgelet.artifact.name: 'iotedged-ubuntu22.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-22.04_amd64'
       aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters
@@ -292,6 +293,7 @@ jobs:
         - run-connectivity -equals true
     variables:
       edgelet.artifact.name: 'iotedged-debian11-arm32v7'
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters

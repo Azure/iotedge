@@ -11,6 +11,7 @@ parameters:
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
+  testResultCoordinator.blobStorageAccountUriWithSasToken: ''
   iotHub.connectionString: ''
   eventHub.connectionString: ''
   upstream.protocol: ''
@@ -20,7 +21,6 @@ parameters:
   logAnalyticsWorkspaceId: ''
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
-  testResultCoordinator.blobStorageAccountUriWithSasToken: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -117,7 +117,6 @@ steps:
           -containerRegistry "${{ parameters['container.registry'] }}" \
           -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
           -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
-          -blobStorageAccountUriWithSasToken "${{ parameters['testResultCoordinator.blobStorageAccountUriWithSasToken'] }}" \
           -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
           -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
           -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
@@ -130,6 +129,7 @@ steps:
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+          -blobStorageAccountUriWithSasToken "${{ parameters['testResultCoordinator.blobStorageAccountUriWithSasToken'] }}" \
           -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
           -EdgeHubRestartTestRestartPeriod "${{ parameters['edgeHubRestartTest.restartPeriod'] }}" \
           -EdgeHubRestartTestSdkOperationTimeout "${{ parameters['edgeHubRestartTest.sdkOperationTimeout'] }}" \
