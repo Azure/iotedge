@@ -360,58 +360,58 @@ function process_args() {
             CONTAINER_REGISTRY_PASSWORD="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 7 ]; then
-            IOT_HUB_CONNECTION_STRING="$arg"
+            BLOB_STORE_SAS="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 8 ]; then
-            EVENTHUB_CONNECTION_STRING="$arg"
+            IOT_HUB_CONNECTION_STRING="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 9 ]; then
-            EVENT_HUB_CONSUMER_GROUP_ID="$arg"
+            EVENTHUB_CONNECTION_STRING="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 10 ]; then
-            TEST_DURATION="$arg"
+            EVENT_HUB_CONSUMER_GROUP_ID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 11 ]; then
-            TEST_START_DELAY="$arg"
+            TEST_DURATION="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 12 ]; then
-            NETWORK_CONTROLLER_FREQUENCIES=($arg)
+            TEST_START_DELAY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 13 ]; then
-            NETWORK_CONTROLLER_RUNPROFILE="$arg"
+            NETWORK_CONTROLLER_FREQUENCIES=($arg)
             saveNextArg=0
         elif [ $saveNextArg -eq 14 ]; then
-            LOG_ANALYTICS_WORKSPACEID="$arg"
+            NETWORK_CONTROLLER_RUNPROFILE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 15 ]; then
-            LOG_ANALYTICS_SHAREDKEY="$arg"
+            LOG_ANALYTICS_WORKSPACEID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 16 ]; then
-            LOG_ANALYTICS_LOGTYPE="$arg"
+            LOG_ANALYTICS_SHAREDKEY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 17 ]; then
-            VERIFICATION_DELAY="$arg"
+            LOG_ANALYTICS_LOGTYPE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 18 ]; then
-            UPSTREAM_PROTOCOL="$arg"
+            VERIFICATION_DELAY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 19 ]; then
-            DEPLOYMENT_TEST_UPDATE_PERIOD="$arg"
+            UPSTREAM_PROTOCOL="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 20 ]; then
-            TIME_FOR_REPORT_GENERATION="$arg"
+            DEPLOYMENT_TEST_UPDATE_PERIOD="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 21 ]; then
-            METRICS_ENDPOINTS_CSV="$arg"
+            TIME_FOR_REPORT_GENERATION="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 22 ]; then
-            METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
+            METRICS_ENDPOINTS_CSV="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 23 ]; then
-            METRICS_UPLOAD_TARGET="$arg"
+            METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 24 ]; then
-            BLOB_STORE_SAS="$arg"
+            METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 25 ]; then
             DEVOPS_ACCESS_TOKEN="$arg"
