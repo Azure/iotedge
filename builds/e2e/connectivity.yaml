@@ -33,6 +33,10 @@ jobs:
   - template: templates/get-storage-uri.yaml
     parameters:
       azureSubscription: $(azure.subscription)
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
 
 ################################################################################
   - job: linux_amd64_moby
