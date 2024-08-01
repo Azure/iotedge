@@ -36,11 +36,16 @@ resources:
     branch: 'release/1.4'
 
 jobs:
+  - template: templates/get-storage-uri.yaml
+    parameters:
+      azureSubscription: $(azure.subscription)
+
 ################################################################################
   - job: linux_amd64_moby
 ################################################################################
     displayName: Linux AMD64 Moby
-    condition: and(eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
+    dependsOn: Token
+    condition: and(succeeded('Token'), eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
     timeoutInMinutes: 240
     strategy:
       matrix:
@@ -100,6 +105,7 @@ jobs:
       edgelet.artifact.name: 'iotedged-ubuntu22.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-22.04_amd64'
       aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters
@@ -131,7 +137,6 @@ jobs:
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-            EdgeConnectivityStorageAccountConnString,
             GitHubAccessToken
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault: $(azure.keyVault)'
@@ -214,7 +219,7 @@ jobs:
           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
@@ -231,7 +236,8 @@ jobs:
   - job: linux_arm32v7_moby
 ################################################################################
     displayName: Linux ARM32v7 Moby
-    condition: and(eq(variables['run.linux.arm32v7.moby'], 'true'), ne(variables['agent.group'], ''))
+    dependsOn: Token
+    condition: and(succeeded('Token'), eq(variables['run.linux.arm32v7.moby'], 'true'), ne(variables['agent.group'], ''))
     timeoutInMinutes: 240 
     strategy:
       matrix:
@@ -293,6 +299,7 @@ jobs:
         - run-connectivity -equals true
     variables:
       edgelet.artifact.name: 'iotedged-debian11-arm32v7'
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters
@@ -324,7 +331,6 @@ jobs:
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-            EdgeConnectivityStorageAccountConnString,
             GitHubAccessToken
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault: $(azure.keyVault)'
@@ -393,7 +399,7 @@ jobs:
           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
