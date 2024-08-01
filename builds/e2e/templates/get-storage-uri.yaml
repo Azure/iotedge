@@ -5,6 +5,10 @@ parameters:
 jobs:
   - job: Token
     displayName: 'Get SAS URI for Blob Storage Account'
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     steps:
       - task: AzureCLI@2
         name: generate
