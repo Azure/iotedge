@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             }
                             catch (Exception ex)
                             {
-                                Log.Error($"Failed to Get Support Bundle  Log with Error:{ex}");
+                                Log.Error($"Failed to get support bundle log, error: {ex}");
                             }
                         }
                     }
