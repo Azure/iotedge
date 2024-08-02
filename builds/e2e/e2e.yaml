@@ -334,7 +334,7 @@ jobs:
 ################################################################################
     displayName: Mariner 2.0 amd64
     dependsOn: Token
-    condition: and(succeeded(), eq(variables['run.EFLOW.amd64'], 'true'))
+    condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'))
     pool:
       name: $(pool.linux.name)
       demands:
@@ -361,7 +361,7 @@ jobs:
 ################################################################################
     displayName: Mariner 2.0 arm64
     dependsOn: Token
-    condition: and(succeeded(), eq(variables['run.EFLOW.amd64'], 'true'))
+    condition: and(succeeded('Token'), eq(variables['run.EFLOW.arm64'], 'true'))
     pool:
       name: $(pool.linux.arm.name)
       demands:
@@ -369,7 +369,7 @@ jobs:
 
     variables:
       os: linux
-      arch: amd64
+      arch: arm64
       artifactName: iotedged-mariner2-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
