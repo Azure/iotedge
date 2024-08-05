@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
 
-    public static class NUnitLogs
+    public static class TestLogs
     {
         public static async Task CollectAsync(DateTime testStartTime, TestContext msTestContext, CancellationToken token)
         {

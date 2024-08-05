@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     if ((!Context.Current.ISA95Tag) && (this.TestContext.CurrentTestOutcome != UnitTestOutcome.Inconclusive))
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
-                        await NUnitLogs.CollectAsync(this.testStartTime, this.TestContext, cts.Token);
+                        await TestLogs.CollectAsync(this.testStartTime, this.TestContext, cts.Token);
                         if (Context.Current.GetSupportBundle)
                         {
                             try
