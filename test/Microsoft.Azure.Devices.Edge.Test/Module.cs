@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task CertRenew(Protocol protocol)
         {
             this.TestContext.Properties.Add("Row", protocol.ToString());
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                     builder =>
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             EdgeModule sensor;
             DateTime startTime;
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string sensorImage = Context.Current.TempSensorImage.Expect(
                 () => new ArgumentException("tempSensorImage parameter is required for TempFilter test"));
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                 builder =>
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string sensorImage = Context.Current.TempSensorImage.Expect(
                 () => new ArgumentException("tempSensorImage parameter is required for TempFilterFunc test"));
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                 builder =>
@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string methodSender = $"methodSender-{protocol.ToString()}";
             string methodReceiver = $"methodReceiver-{protocol.ToString()}";
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                 builder =>

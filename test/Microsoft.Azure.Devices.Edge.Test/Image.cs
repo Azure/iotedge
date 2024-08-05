@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestMethod]
         public async Task ImageGarbageCollection()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             // Create initial deployment with simulated temperature sensor
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);

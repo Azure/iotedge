@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCategory("Flaky")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
             string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCategory("Flaky")]
         public async Task PriorityQueueModuleToHubMessages()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
             string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCategory("Flaky")]
         public async Task PriorityQueueTimeToLive()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
             string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));

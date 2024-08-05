@@ -10,11 +10,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class BaseFixture
     {
-        static CancellationTokenSource cts;
-        static Profiler profiler;
-        static DateTime testStartTime;
+        CancellationTokenSource cts;
+        Profiler profiler;
+        DateTime testStartTime;
 
-        protected static CancellationToken TestToken => cts.Token;
+        protected CancellationToken TestToken => this.cts.Token;
 
         protected virtual Task BeforeTestTimerStarts() => Task.CompletedTask;
         protected virtual Task AfterTestTimerEnds() => Task.CompletedTask;
@@ -25,8 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public async Task BeforeEachTestAsync()
         {
             await this.BeforeTestTimerStarts();
-            cts = new CancellationTokenSource(Context.Current.TestTimeout);
-            testStartTime = DateTime.Now;
+            this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
+            this.testStartTime = DateTime.Now;
             string name = this.TestContext.TestName;
             if (this.TestContext.ManagedMethod.EndsWith(")"))
             {
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 name += "(...)";
             }
 
-            profiler = Profiler.Start();
+            this.profiler = Profiler.Start();
             Log.Information("Running test '{Name}'", name);
         }
 
@@ -49,15 +49,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 name += $"({this.TestContext.Properties["Row"]})";
             }
 
-            profiler.Stop("Completed test '{Name}'", name);
+            this.profiler.Stop("Completed test '{Name}'", name);
             await Profiler.Run(
                 async () =>
                 {
-                    cts.Dispose();
+                    this.cts.Dispose();
                     if ((!Context.Current.ISA95Tag) && (this.TestContext.CurrentTestOutcome != UnitTestOutcome.Inconclusive))
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
-                        await NUnitLogs.CollectAsync(testStartTime, this.TestContext, cts.Token);
+                        await NUnitLogs.CollectAsync(this.testStartTime, this.TestContext, cts.Token);
                         if (Context.Current.GetSupportBundle)
                         {
                             try
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                 var supportBundlePath = Context.Current.LogFile.Match((file) => Path.GetDirectoryName(file), () => AppDomain.CurrentDomain.BaseDirectory);
                                 await Process.RunAsync(
                                     "iotedge",
-                                    $"support-bundle -o {supportBundlePath}/supportbundle-{this.TestContext.TestName} --since \"{testStartTime:yyyy-MM-ddTHH:mm:ssZ}\"",
+                                    $"support-bundle -o {supportBundlePath}/supportbundle-{this.TestContext.TestName} --since \"{this.testStartTime:yyyy-MM-ddTHH:mm:ssZ}\"",
                                     cts.Token);
                             }
                             catch (Exception ex)

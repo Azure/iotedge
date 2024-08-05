@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestMethod]
         public async Task MetricsCollector()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             string metricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
             string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("iotHubResourceId is required for MetricsCollector test"));
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCategory("FlakyOnArm")]
         public async Task ValidateMetrics()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
             await this.DeployAsync(token);
 
             var agent = new EdgeAgent(runtime.DeviceId, IotHub);

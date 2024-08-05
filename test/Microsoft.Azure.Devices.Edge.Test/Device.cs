@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestMethod]
         public async Task QuickstartCerts()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             await runtime.DeployConfigurationAsync(token, device.NestedEdge.IsNestedEdge);
 
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCategory("FlakyOnNested")]
         public async Task QuickstartChangeSasKey()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             await runtime.DeployConfigurationAsync(token, device.NestedEdge.IsNestedEdge);
 
@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCategory("NestedEdgeAmqpOnly")]
         public async Task RouteMessageL3LeafToL4Module()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCategory("Flaky")]
         public async Task DisableReenableParentEdge()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             Log.Verbose("Deploying L3 Edge");
             await runtime.DeployConfigurationAsync(token, device.NestedEdge.IsNestedEdge);

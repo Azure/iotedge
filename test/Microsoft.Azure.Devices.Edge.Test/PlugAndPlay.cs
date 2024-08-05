@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task PlugAndPlayDeviceClient(Protocol protocol)
         {
             this.TestContext.Properties.Add("Row", $"{protocol}");
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
             string leafDeviceId = DeviceId.Current.Generate();
 
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol);
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task PlugAndPlayModuleClient(Protocol protocol)
         {
             this.TestContext.Properties.Add("Row", $"{protocol}");
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
 

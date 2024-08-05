@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), deviceId);
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             (var certs, _) = await TestCertificates.GenerateEdgeCaCertsAsync(
                 deviceId,
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
             string deviceId = DeviceId.Current.Generate();
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             var certsPath = daemon.GetCertificatesPath();
             var idCerts = await TestCertificates.GenerateIdentityCertificatesAsync(deviceId, certsPath, token);

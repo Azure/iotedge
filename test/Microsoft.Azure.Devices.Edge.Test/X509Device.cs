@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCategory("Flaky")]
         public async Task X509ManualProvision()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 

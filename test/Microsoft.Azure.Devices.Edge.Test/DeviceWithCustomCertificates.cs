@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task TransparentGateway(TestAuthenticationType testAuth, Protocol protocol)
         {
             this.TestContext.Properties.Add("Row", $"{testAuth},{protocol}");
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             await runtime.DeployConfigurationAsync(token, device.NestedEdge.IsNestedEdge);
 
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Option<string> parentId = Option.Some(runtime.DeviceId);
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 

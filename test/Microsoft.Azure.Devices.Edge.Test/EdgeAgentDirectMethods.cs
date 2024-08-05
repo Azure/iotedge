@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCategory("nestededge_isa95")]
         public async Task TestPing()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             // This is a temporary solution see ticket: 9288683
             if (!Context.Current.ISA95Tag)
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string moduleName = "NumberLogger";
             int count = 10;
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
             await runtime.DeployConfigurationAsync(
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string moduleName = "NumberLogger";
             int count = 1000;
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
             await runtime.DeployConfigurationAsync(
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string moduleName = "NumberLogger";
             int count = 10;
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
             await runtime.DeployConfigurationAsync(
@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             int count = 10;
             string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Blob SAS url"));
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
             await runtime.DeployConfigurationAsync(
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             int count = 10;
             string sasUrl = Context.Current.BlobSasUrl.Expect(() => new InvalidOperationException("Missing Blob SAS url"));
 
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
             await runtime.DeployConfigurationAsync(

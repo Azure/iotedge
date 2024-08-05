@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestMethod]
         public async Task IotEdgeCheck()
         {
-            CancellationToken token = TestToken;
+            CancellationToken token = this.TestToken;
             // Need to deploy edgeHub or one check will fail
             await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
