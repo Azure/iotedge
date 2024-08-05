@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // This is a temporary solution see ticket: 9288683
             if (!Context.Current.ISA95Tag)
             {
-                await runtime.DeployConfigurationAsync(cli, token, Context.Current.NestedEdge);
+                await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
             }
 
             var result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("Ping", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
@@ -53,7 +53,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(30000);
@@ -125,7 +124,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(30000);
@@ -156,7 +154,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(10000);
@@ -200,7 +197,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(10000);
@@ -242,7 +238,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(10000);

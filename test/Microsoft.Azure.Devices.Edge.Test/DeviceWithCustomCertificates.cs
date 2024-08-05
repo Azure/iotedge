@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             this.TestContext.Properties.Add("Row", $"{testAuth},{protocol}");
             CancellationToken token = TestToken;
 
-            await runtime.DeployConfigurationAsync(cli, token, device.NestedEdge.IsNestedEdge);
+            await runtime.DeployConfigurationAsync(token, device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = TestToken;
 
-            await runtime.DeployConfigurationAsync(cli, token, Context.Current.NestedEdge);
+            await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 

@@ -30,7 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             msTestContext = msTestContextObj;
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, cts.Token);
-            cli = daemon.GetCli();
         }
 
         protected static async Task ConfigureDaemonAsync(
@@ -44,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             try
             {
                 var agent = new EdgeAgent(device.Id, IotHub);
-                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, cli, token);
+                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
                 await agent.PingAsync(token);
             }
 
@@ -56,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             finally
             {
                 using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
-                await NUnitLogs.CollectAsync(startTime, msTestContext, cli, cts.Token);
+                await NUnitLogs.CollectAsync(startTime, msTestContext, cts.Token);
             }
         }
 

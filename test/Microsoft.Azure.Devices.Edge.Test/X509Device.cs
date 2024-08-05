@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = TestToken;
 
-            await runtime.DeployConfigurationAsync(cli, token, Context.Current.NestedEdge);
+            await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 

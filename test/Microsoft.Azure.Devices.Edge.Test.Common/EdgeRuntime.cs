@@ -38,7 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // receive it and start up all the modules.
         public async Task<EdgeDeployment> DeployConfigurationAsync(
             Action<EdgeConfigBuilder> addConfig,
-            IotedgeCli cli,
             CancellationToken token,
             bool nestedEdge)
         {
@@ -77,12 +76,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
                 .ToArray();
-            await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, cli, token);
+            await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
             await edgeConfiguration.VerifyAsync(this.iotHub, token);
             return new EdgeDeployment(deployTime, modules);
         }
 
-        public Task<EdgeDeployment> DeployConfigurationAsync(IotedgeCli cli, CancellationToken token, bool nestedEdge) =>
-            this.DeployConfigurationAsync(_ => { }, cli, token, nestedEdge);
+        public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token, bool nestedEdge) =>
+            this.DeployConfigurationAsync(_ => { }, token, nestedEdge);
     }
 }

@@ -43,10 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
             Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName, false);
 
-            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, cli, token, Context.Current.NestedEdge);
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, cli, token, Context.Current.NestedEdge);
+            deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             Assert.IsTrue(await TestResultCoordinatorUtil.IsResultValidAsync());
         }
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, "hubtest", false);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = TestResultCoordinatorUtil.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
 
-            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addNetworkControllerConfig, cli, token, Context.Current.NestedEdge);
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addNetworkControllerConfig, token, Context.Current.NestedEdge);
             bool networkOn = true;
             await this.ToggleConnectivity(!networkOn, NetworkControllerModuleName, token);
             await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(testInfo.LoadGenStartDelay) + TimeSpan.FromSeconds(10));
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
             Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName, false);
 
-            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, cli, token, Context.Current.NestedEdge);
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
             await Profiler.Run(
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 "Waited for message TTL to expire");
 
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, cli, token, Context.Current.NestedEdge);
+            deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             Assert.IsTrue(await TestResultCoordinatorUtil.IsResultValidAsync());
         }

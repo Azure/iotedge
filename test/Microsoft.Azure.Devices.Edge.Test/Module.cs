@@ -30,12 +30,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                     },
-                    cli,
                     token,
                     Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
-            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, cli, token);
+            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
             EdgeModule edgeAgent = deployment.Modules[ModuleName.EdgeAgent];
             // certificate renew should stop edgeHub and then it should be started by edgeAgent
             await edgeAgent.WaitForReportedPropertyUpdatesAsync(
@@ -77,7 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         builder.AddModule(SensorName, sensorImage)
                             .WithEnvironment(new[] { ("MessageCount", "-1") });
                     },
-                    cli,
                     token,
                     Context.Current.NestedEdge);
                 sensor = deployment.Modules[SensorName];
@@ -121,7 +119,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -161,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -199,7 +195,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(methodReceiver, receiverImage)
                         .WithEnvironment(new[] { ("ClientTransportType", clientTransport) });
                 },
-                cli,
                 token,
                 Context.Current.NestedEdge);
 

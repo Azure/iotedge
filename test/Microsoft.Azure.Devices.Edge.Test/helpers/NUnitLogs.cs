@@ -9,10 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public static class NUnitLogs
     {
-        public static async Task CollectAsync(DateTime testStartTime, TestContext msTestContext, IotedgeCli cli, CancellationToken token)
+        public static async Task CollectAsync(DateTime testStartTime, TestContext msTestContext, CancellationToken token)
         {
             string prefix = $"{DeviceId.Current.BaseId}-{msTestContext.NormalizedName()}";
-            IEnumerable<string> paths = await EdgeLogs.CollectAsync(testStartTime, prefix, cli, token);
+            IEnumerable<string> paths = await EdgeLogs.CollectAsync(testStartTime, prefix, token);
             foreach (string path in paths)
             {
                 msTestContext.AddResultFile(path);

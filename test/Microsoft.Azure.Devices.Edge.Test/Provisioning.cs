@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
 
             var agent = new EdgeAgent(deviceId, this.iotHub);
-            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, cli, token);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
 
             var agent = new EdgeAgent(deviceId, this.iotHub);
-            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, cli, token);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(

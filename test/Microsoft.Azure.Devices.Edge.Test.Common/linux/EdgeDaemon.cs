@@ -191,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Retry.Do(
                 async () =>
                 {
-                    string[] output = await this.GetCli().RunAsync("list", token);
+                    string[] output = await Process.RunAsync("iotedge", "list", token);
                     return output;
                 },
                 output => true,
@@ -254,10 +254,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         }
 
         public string GetCertificatesPath() => this.certsPath;
-
-        public IotedgeCli GetCli()
-        {
-            return new IotedgeCli(this.serviceManager.GetCliName());
-        }
     }
 }

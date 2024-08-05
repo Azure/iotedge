@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, cts.Token);
-            cli = daemon.GetCli();
         }
     }
 }

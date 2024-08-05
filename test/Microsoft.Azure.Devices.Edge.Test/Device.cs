@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = TestToken;
 
-            await runtime.DeployConfigurationAsync(cli, token, device.NestedEdge.IsNestedEdge);
+            await runtime.DeployConfigurationAsync(token, device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = TestToken;
 
-            await runtime.DeployConfigurationAsync(cli, token, device.NestedEdge.IsNestedEdge);
+            await runtime.DeployConfigurationAsync(token, device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = TestToken;
 
-            await runtime.DeployConfigurationAsync(cli, token, Context.Current.NestedEdge);
+            await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
             // These must match the IDs in nestededge_middleLayerBaseDeployment_amqp.json,
             // which defines a route that filters by deviceId to forwards the message
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = TestToken;
 
             Log.Verbose("Deploying L3 Edge");
-            await runtime.DeployConfigurationAsync(cli, token, device.NestedEdge.IsNestedEdge);
+            await runtime.DeployConfigurationAsync(token, device.NestedEdge.IsNestedEdge);
 
             // Disable the parent Edge device
             Log.Verbose("Disabling Edge device");
