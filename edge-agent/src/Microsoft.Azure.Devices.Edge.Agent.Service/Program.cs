@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Diagnostics.Tracing;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -21,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
@@ -51,7 +53,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 // Bring up the logger before anything else so we can log errors ASAP
                 logger = SetupLogger(configuration);
 
-                return MainAsync(configuration, logger).Result;
+                if (configuration.GetValue<bool>("EnableSdkDebugLogs", false))
+                {
+                    // Enable SDK debug logs, see ConsoleEventListener for details.
+                    string[] eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
+                    using var sdk = new ConsoleEventListener(eventFilter, logger);
+
+                    return MainAsync(configuration, logger).Result;
+                }
+                else
+                {
+                    return MainAsync(configuration, logger).Result;
+                }
             }
             catch (Exception ex)
             {
