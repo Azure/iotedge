@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var patches = new List<TwinCollection>();
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patches.Add(tc))
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
                 var deploymentConfig = new DeploymentConfig(
@@ -305,7 +305,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -485,7 +485,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -680,7 +680,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -857,7 +857,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -1030,7 +1030,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     versionInfo);
                 edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -1170,7 +1170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // build current module set
                 ModuleSet currentModuleSet = ModuleSet.Create(
@@ -1245,7 +1245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var edgeHubDesiredModule = new EdgeHubDockerModule(
@@ -1424,7 +1424,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
@@ -1468,7 +1468,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
@@ -1515,7 +1515,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -1659,7 +1659,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -1777,7 +1777,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var registryCreds = new Dictionary<string, RegistryCredentials>

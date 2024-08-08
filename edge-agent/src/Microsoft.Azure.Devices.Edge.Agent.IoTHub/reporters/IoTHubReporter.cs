@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                 if (patch.HasValues)
                 {
                     // send reported props
-                    bool isCached = this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString())).await();
+                    bool isCached = await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
 
                     if (isCached)
                     {
