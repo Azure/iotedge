@@ -170,7 +170,7 @@ stages:
       - job: mariner_linux
     ################################################################################
         displayName: Mariner_Linux
-        condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        condition: or(eq(variables['build.mariner.amd64'], ''), eq(variables['build.mariner.amd64'], true))
         pool:
           name: $(pool.linux.name)
           demands:
@@ -254,7 +254,7 @@ stages:
       - job: mariner_linux_arm64
     ################################################################################
         displayName: Mariner_Linux on ARM64
-        condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        condition: or(eq(variables['build.mariner.arm64'], ''), eq(variables['build.mariner.arm64'], true))
         timeoutInMinutes: 90
         pool:
           name: $(pool.linux.arm.name)
