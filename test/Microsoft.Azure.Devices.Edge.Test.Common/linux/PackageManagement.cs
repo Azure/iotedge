@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 SupportedPackageExtension.Snap => new[]
                 {
                     "set -e",
-                    $"snap install {string.Join(' ', packages)} --dangerous",
+                    $"snap install {string.Join(' ', packages)} --dangerous --devmode",
                     "snap connect azure-iot-identity:hostname-control",
                     "snap connect azure-iot-identity:log-observe",
                     "snap connect azure-iot-identity:mount-observe",
