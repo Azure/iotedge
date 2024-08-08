@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         : SupportedPackageExtension.Deb;
                     break;
                 case "debian":
-                    if (version != "11")
+                    if (version != "11" && version != "12")
                     {
                         ThrowUnsupportedOs();
                     }

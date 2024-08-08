@@ -55,6 +55,10 @@ case "$PACKAGE_OS" in
         DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/debian:bullseye-slim'
         ;;
 
+    'debian12')
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/debian:bookworm-slim'
+        ;;
+
     'ubuntu20.04')
         DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:20.04'
         ;;
