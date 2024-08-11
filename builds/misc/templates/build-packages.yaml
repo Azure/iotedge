@@ -266,7 +266,7 @@ stages:
       - job: mariner_linux_arm64
     ################################################################################
         displayName: Mariner_Linux on ARM64
-        condition: and(ne(variables['build.linux.mariner'], false), ne(variables['build.linux.arm.mariner'], false))
+        condition: or(ne(variables['build.linux.mariner'], false), ne(variables['build.linux.arm.mariner'], false))
         timeoutInMinutes: 90
         pool:
           name: $(pool.linux.arm.name)
