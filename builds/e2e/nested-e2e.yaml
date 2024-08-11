@@ -22,8 +22,8 @@ variables:
   Codeql.Enabled: false
   DisableDockerDetector: true
   # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
-  # environments that are very similar to other platforms/environments in our matrix, Ubuntu 20.04
-  # with the 'docker-ce' package vs. Ubuntu 20.04 with the 'iotedge-moby' package vs. the same
+  # environments that are very similar to other platforms/environments in our matrix, e.g., Ubuntu
+  # 20.04 with the 'docker-ce' package vs. Ubuntu 20.04 with the 'iotedge-moby' package vs. the same
   # variations in Ubuntu 22.04. In these instances the platforms/environments are so similar that we
   # don't reasonably expect to encounter differences--if we do, it would likely manifest during
   # installation, or in running a very basic test. We don't need to repeat the entire test suite.

@@ -66,6 +66,10 @@ case "$PACKAGE_OS" in
     'ubuntu22.04')
         DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:22.04'
         ;;
+    
+    'ubuntu24.04')
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:24.04'
+        ;;
 esac
 
 if [ -z "$DOCKER_IMAGE" ]; then
@@ -170,7 +174,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu20.04.amd64|ubuntu22.04.amd64)
+    ubuntu20.04.amd64|ubuntu22.04.amd64|ubuntu24.04.amd64)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
             libcurl4-openssl-dev libssl-dev pkg-config uuid-dev'
         case "$PACKAGE_OS" in
@@ -190,7 +194,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         "
         ;;
 
-    ubuntu20.04.arm32v7|ubuntu22.04.arm32v7)
+    ubuntu20.04.arm32v7|ubuntu22.04.arm32v7|ubuntu24.04.arm32v7)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
             gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libcurl4-openssl-dev:armhf \
             libssl-dev:armhf uuid-dev:armhf'
@@ -227,7 +231,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         "
         ;;
 
-    ubuntu20.04.aarch64|ubuntu22.04.aarch64)
+    ubuntu20.04.aarch64|ubuntu22.04.aarch64|ubuntu24.04.aarch64)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc \
             g++ gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libcurl4-openssl-dev:arm64 \
             libssl-dev:arm64 uuid-dev:arm64'
