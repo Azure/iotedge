@@ -107,14 +107,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
                     if (isCached)
                     {
-                        Events.IsCachedTrue(); // BEARWASHERE -- Remove this after test
                         // update our cached copy of reported properties
                         this.SetReported(currentState);
                         Events.UpdatedReportedProperties();
-                    }
-                    else
-                    { // BEARWASHERE -- Remove this after test
-                        Events.IsCachedFalse();
                     }
                 }
                 else
@@ -257,19 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             UpdateErrorInfoFailed,
             ClearedReportedProperties,
             ReportedPropertiesPatchEmpty,
-            UpdatingReportedPropertiesCache,
-            IsCachedTrue, // BEARWASHERE -- Remove this after test
-            IsCachedFalse // BEARWASHERE -- Remove this after test
-        }
-
-        public static void IsCachedTrue()
-        {
-            Log.LogInformation((int)EventIds.IsCachedTrue, "isCached: True");
-        }
-
-        public static void IsCachedFalse()
-        {
-            Log.LogInformation((int)EventIds.IsCachedFalse, "isCached: False");
+            UpdatingReportedPropertiesCache
         }
 
         public static void NoSavedReportedProperties()
@@ -309,8 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
         public static void UpdatingReportedPropertiesCache()
         {
-            // BEARWASHERE -- Change to Debug for testing
-            Log.LogInformation((int)EventIds.UpdatingReportedPropertiesCache, "Updating reported properties cache");
+            Log.LogDebug((int)EventIds.UpdatingReportedPropertiesCache, "Updating reported properties cache");
         }
     }
 }
