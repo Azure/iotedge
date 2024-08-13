@@ -425,6 +425,192 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
+        public async void ReportedPatchWithFailedReportedPropertiesUpdateTest()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                // const string SchemaVersion = "1.0";
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
+                const string OperatingSystemType = "linux";
+                const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
+                var versionInfo = new VersionInfo("v1", "b1", "c1");
+
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                // Starting with an `Some(empty)` reported properties
+                var reportedState = new AgentState();
+                edgeAgentConnection
+                    .SetupGet(c => c.ReportedProperties)
+                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+
+                // Attempt to set a state to not be empty, but failed to do so.
+                var patchState = new AgentState(
+                    1,
+                    DeploymentStatus.Unknown,
+                    null,
+                    null,
+                    ModuleSet.Create(
+                        new TestRuntimeModule(
+                            "mod1",
+                            "1.0",
+                            RestartPolicy.OnUnhealthy,
+                            "test",
+                            ModuleStatus.Running,
+                            new TestConfig("image1"),
+                            0,
+                            string.Empty,
+                            DateTime.MinValue,
+                            DateTime.MinValue,
+                            0,
+                            DateTime.MinValue,
+                            ModuleStatus.Running),
+                        new TestRuntimeModule(
+                            "extra_mod",
+                            "1.0",
+                            RestartPolicy.OnUnhealthy,
+                            "test",
+                            ModuleStatus.Running,
+                            new TestConfig("image1"),
+                            0,
+                            string.Empty,
+                            DateTime.MinValue,
+                            DateTime.MinValue,
+                            0,
+                            DateTime.MinValue,
+                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                    string.Empty,
+                    versionInfo);
+                TwinCollection patch = new TwinCollection(JsonConvert.SerializeObject(patchState));
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.FromResult(false));
+
+                // prepare AgentConfig
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    new SystemModules(null, null),
+                    new Dictionary<string, IModule>(),
+                    null);
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig);
+
+                IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
+                    RuntimeType,
+                    (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
+                IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
+
+                // build current module set
+                ModuleSet currentModuleSet = ModuleSet.Create(
+                    edgeAgentModule,
+                    new TestRuntimeModule(
+                        "mod1",
+                        "1.0",
+                        RestartPolicy.OnUnhealthy,
+                        "test",
+                        ModuleStatus.Running,
+                        new TestConfig("image1"),
+                        0,
+                        string.Empty,
+                        DateTime.MinValue,
+                        DateTime.MinValue,
+                        0,
+                        DateTime.MinValue,
+                        ModuleStatus.Backoff),
+                    new TestRuntimeModule(
+                        "mod2",
+                        "1.0",
+                        RestartPolicy.OnUnhealthy,
+                        "test",
+                        ModuleStatus.Running,
+                        new TestConfig("image1"),
+                        0,
+                        string.Empty,
+                        DateTime.MinValue,
+                        DateTime.MinValue,
+                        0,
+                        DateTime.MinValue,
+                        ModuleStatus.Running));
+
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Returns(reportedState);
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
+
+                // Assert
+
+                // The patch isn't empty but the update reported properties failed.
+                Assert.NotNull(patch);
+                Assert.False(reporter.ReportedState.HasValue);
+
+                // JObject patchJson = JObject.Parse(patch.ToJson());
+                // JObject expectedPatchJson = JObject.FromObject(
+                //     new
+                //     {
+                //         schemaVersion = SchemaVersion,
+                //         lastDesiredVersion = DesiredVersion,
+                //         lastDesiredStatus = new
+                //         {
+                //             code = (int)DeploymentStatusCode.Successful
+                //         },
+                //         runtime = new
+                //         {
+                //             type = RuntimeType,
+                //             settings = new
+                //             {
+                //                 minDockerVersion = MinDockerVersion,
+                //                 loggingOptions = LoggingOptions,
+                //                 registryCredentials = new { }
+                //             },
+                //             platform = new
+                //             {
+                //                 os = OperatingSystemType,
+                //                 architecture = Architecture,
+                //                 version = Version
+                //             }
+                //         },
+                //         systemModules = new
+                //         {
+                //             edgeAgent = new
+                //             {
+                //                 type = "docker",
+                //                 startupOrder = 0,
+                //                 settings = new
+                //                 {
+                //                     image = "EdgeAgentImage"
+                //                 },
+                //                 imagePullPolicy = "on-create"
+                //             }
+                //         },
+                //         modules = new Dictionary<string, object>
+                //         {
+                //             {
+                //                 currentModuleSet.Modules["mod1"].Name,
+                //                 new
+                //                 {
+                //                     runtimeStatus = "backoff"
+                //                 }
+                //             },
+                //             { currentModuleSet.Modules["mod2"].Name, currentModuleSet.Modules["mod2"] },
+                //             { "extra_mod", null }
+                //         }
+                //     });
+
+                // Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
+            }
+        }
+
+        [Fact]
         public async void ReportedPatchNoneStatusTest()
         {
             using (var cts = new CancellationTokenSource())

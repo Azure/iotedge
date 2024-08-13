@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         readonly AsyncLock sync;
         readonly ISerde<AgentState> agentStateSerde;
         readonly VersionInfo versionInfo;
-        Option<AgentState> reportedState;
+        internal Option<AgentState> ReportedState;
 
         public IoTHubReporter(
             IEdgeAgentConnection edgeAgentConnection,
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
 
             this.sync = new AsyncLock();
-            this.reportedState = Option.None<AgentState>();
+            this.ReportedState = Option.None<AgentState>();
         }
 
         public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, DeploymentStatus updatedStatus)
@@ -107,11 +107,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
                     if (isCached)
                     {
+                        Events.IsCachedTrue(); // BEARWASHERE -- Remove this after test
                         // update our cached copy of reported properties
                         this.SetReported(currentState);
+                        Events.UpdatedReportedProperties();
                     }
-
-                    Events.UpdatedReportedProperties();
+                    else
+                    { // BEARWASHERE -- Remove this after test
+                        Events.IsCachedFalse();
+                    }
                 }
                 else
                 {
@@ -131,9 +135,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         {
             try
             {
-                this.reportedState = this.reportedState
+                this.ReportedState = this.ReportedState
                     .Else(() => this.edgeAgentConnection.ReportedProperties.Map(coll => this.agentStateSerde.Deserialize(coll.ToJson())));
-                return this.reportedState;
+                return this.ReportedState;
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -165,9 +169,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         void SetReported(AgentState reported)
         {
             Events.UpdatingReportedPropertiesCache();
-            if (this.reportedState.OrDefault() != reported)
+            if (this.ReportedState.OrDefault() != reported)
             {
-                this.reportedState = Option.Some(reported);
+                this.ReportedState = Option.Some(reported);
             }
         }
 
@@ -253,7 +257,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             UpdateErrorInfoFailed,
             ClearedReportedProperties,
             ReportedPropertiesPatchEmpty,
-            UpdatingReportedPropertiesCache
+            UpdatingReportedPropertiesCache,
+            IsCachedTrue, // BEARWASHERE -- Remove this after test
+            IsCachedFalse // BEARWASHERE -- Remove this after test
+        }
+
+        public static void IsCachedTrue()
+        {
+            Log.LogInformation((int)EventIds.IsCachedTrue, "isCached: True");
+        }
+
+        public static void IsCachedFalse()
+        {
+            Log.LogInformation((int)EventIds.IsCachedFalse, "isCached: False");
         }
 
         public static void NoSavedReportedProperties()
@@ -293,7 +309,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
         public static void UpdatingReportedPropertiesCache()
         {
-            Log.LogDebug((int)EventIds.UpdatingReportedPropertiesCache, "Updating reported properties cache");
+            // BEARWASHERE -- Change to Debug for testing
+            Log.LogInformation((int)EventIds.UpdatingReportedPropertiesCache, "Updating reported properties cache");
         }
     }
 }
