@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Moq;
@@ -430,7 +431,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
             using (var cts = new CancellationTokenSource(Timeout))
             {
                 // Arrange
-                // const string SchemaVersion = "1.0";
                 const long DesiredVersion = 10;
                 const string RuntimeType = "docker";
                 const string MinDockerVersion = "1.25";
@@ -578,7 +578,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
             using (var cts = new CancellationTokenSource(Timeout))
             {
                 // Arrange
-                // const string SchemaVersion = "1.0";
                 const long DesiredVersion = 10;
                 const string RuntimeType = "docker";
                 const string MinDockerVersion = "1.25";
@@ -596,7 +595,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     .SetupGet(c => c.ReportedProperties)
                     .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
 
-                // Attempt to apply a patch, but failed to do so.
+                // Apply a patch
                 var patchState = new AgentState(
                     1,
                     DeploymentStatus.Unknown,
@@ -634,8 +633,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     string.Empty,
                     versionInfo);
                 TwinCollection patch = new TwinCollection(JsonConvert.SerializeObject(patchState));
-
-                // The patch failed to apply here with "false" return value.
+                // Setup the patch to be successful
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
@@ -695,27 +693,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
-                // Trigger the failed patch
+                // Trigger the patch apply
                 await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
                 // The patch didn't go through, so the reporter should not have updated the reported properties.
                 Assert.NotNull(patch);
-
                 JObject patchJson = JObject.Parse(patch.ToJson());
 
-                TwinCollection expectedReport = new TwinCollection(JsonConvert.SerializeObject(reportedState));
-                JObject expectedReportJson = JObject.Parse(expectedReport.ToJson());
-
-                // Confirm the patch didn't go through
-                Assert.False(JToken.DeepEquals(expectedReportJson, patchJson));
-                // Confirm the reported properties didn't change from the original `Some<AgentState>` state.
+                // Confirm the reported properties changed from the original `Some<AgentState>` state.
                 Assert.True(reporter.ReportedState.HasValue);
                 reporter.ReportedState.ForEach(
                     s =>
                     {
                         JObject reportedJson = JObject.Parse(JsonConvert.SerializeObject(s));
-                        Assert.True(JToken.DeepEquals(expectedReportJson, reportedJson));
+                        // The patch should be the same as the reported properties. Removing the verbose fields.
+                        reportedJson.SelectToken("lastDesiredStatus.description")?.Parent.Remove();
+                        reportedJson.SelectToken("systemModules.edgeHub")?.Parent.Remove();
+                        reportedJson.SelectToken("systemModules.edgeAgent.env")?.Parent.Remove();
+                        Assert.True(JToken.DeepEquals(reportedJson, patchJson));
                     });
             }
         }
