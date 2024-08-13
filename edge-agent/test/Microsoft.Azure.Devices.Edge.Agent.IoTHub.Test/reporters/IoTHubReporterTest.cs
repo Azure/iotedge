@@ -442,13 +442,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // prepare IEdgeAgentConnection mock
                 var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
-                // Starting with an `Some(empty)` reported properties
+                // Starting with an `Some<AgentState>` reported properties
                 var reportedState = new AgentState();
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
                     .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
 
-                // Attempt to set a state to not be empty, but failed to do so.
+                // Attempt to apply a patch, but failed to do so.
                 var patchState = new AgentState(
                     1,
                     DeploymentStatus.Unknown,
@@ -486,6 +486,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     string.Empty,
                     versionInfo);
                 TwinCollection patch = new TwinCollection(JsonConvert.SerializeObject(patchState));
+
+                // The patch failed to apply here with "false" return value.
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(false));
@@ -545,68 +547,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
+                // Trigger the failed patch
                 await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
-
-                // The patch isn't empty but the update reported properties failed.
+                // The patch didn't go through, so the reporter should not have updated the reported properties.
                 Assert.NotNull(patch);
-                Assert.False(reporter.ReportedState.HasValue);
 
-                // JObject patchJson = JObject.Parse(patch.ToJson());
-                // JObject expectedPatchJson = JObject.FromObject(
-                //     new
-                //     {
-                //         schemaVersion = SchemaVersion,
-                //         lastDesiredVersion = DesiredVersion,
-                //         lastDesiredStatus = new
-                //         {
-                //             code = (int)DeploymentStatusCode.Successful
-                //         },
-                //         runtime = new
-                //         {
-                //             type = RuntimeType,
-                //             settings = new
-                //             {
-                //                 minDockerVersion = MinDockerVersion,
-                //                 loggingOptions = LoggingOptions,
-                //                 registryCredentials = new { }
-                //             },
-                //             platform = new
-                //             {
-                //                 os = OperatingSystemType,
-                //                 architecture = Architecture,
-                //                 version = Version
-                //             }
-                //         },
-                //         systemModules = new
-                //         {
-                //             edgeAgent = new
-                //             {
-                //                 type = "docker",
-                //                 startupOrder = 0,
-                //                 settings = new
-                //                 {
-                //                     image = "EdgeAgentImage"
-                //                 },
-                //                 imagePullPolicy = "on-create"
-                //             }
-                //         },
-                //         modules = new Dictionary<string, object>
-                //         {
-                //             {
-                //                 currentModuleSet.Modules["mod1"].Name,
-                //                 new
-                //                 {
-                //                     runtimeStatus = "backoff"
-                //                 }
-                //             },
-                //             { currentModuleSet.Modules["mod2"].Name, currentModuleSet.Modules["mod2"] },
-                //             { "extra_mod", null }
-                //         }
-                //     });
+                JObject patchJson = JObject.Parse(patch.ToJson());
 
-                // Assert.True(JToken.DeepEquals(expectedPatchJson, patchJson));
+                TwinCollection expectedReport = new TwinCollection(JsonConvert.SerializeObject(reportedState));
+                JObject expectedReportJson = JObject.Parse(expectedReport.ToJson());
+
+                // Confirm the patch didn't go through
+                Assert.False(JToken.DeepEquals(expectedReportJson, patchJson));
+                // Confirm the reported properties didn't change from the original `Some<AgentState>` state.
+                Assert.True(reporter.ReportedState.HasValue);
+                reporter.ReportedState.ForEach(
+                    s =>
+                    {
+                        JObject reportedJson = JObject.Parse(JsonConvert.SerializeObject(s));
+                        Assert.True(JToken.DeepEquals(expectedReportJson, reportedJson));
+                    });
             }
         }
 
