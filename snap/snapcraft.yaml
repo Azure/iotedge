@@ -1,5 +1,5 @@
 name: azure-iot-edge
-base: core22 # the base snap is the execution environment for this snap
+base: core24 # the base snap is the execution environment for this snap
 summary: Managed solution for deploying and configuring software on IoT devices
 description: |
   Azure IoT Edge is a fully managed service that delivers cloud intelligence
