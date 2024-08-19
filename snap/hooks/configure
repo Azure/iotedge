@@ -22,12 +22,6 @@ mkdir -p /etc/aziot/edged/config.d
 snapctl get raw-config > /etc/aziot/config.toml
 
 {
-	toml_kvp "hostname" "$(hostnamectl hostname)"
-} | tee /etc/aziot/keyd/config.d/01-snap.toml /etc/aziot/certd/config.d/01-snap.toml /etc/aziot/identityd/config.d/01-snap.toml /etc/aziot/tpmd/config.d/01-snap.toml
-
-{
-	toml_kvp "hostname" "$(hostnamectl hostname)"
-
 	toml_new_section "agent"
 	toml_kvp "name" "edgeAgent"
 	toml_kvp "type" "docker"
