@@ -21,6 +21,6 @@ done
 # socket exists or not otherwise the snap installation will fail.
 # This is a better UX as the user can now fix the issue themselves.. say
 # they installed iotedge before docker.
-systemd-notify --ready
-
-$SNAP/usr/bin/socat UNIX-LISTEN:$SNAP_COMMON/docker-proxy.sock,reuseaddr,fork,unlink-early,user=snap_aziotedge,group=snap_aziotedge UNIX-CONNECT:$docker_socket
+exec systemd-notify --exec --ready \; $SNAP/usr/bin/socat \
+    UNIX-LISTEN:$SNAP_COMMON/docker-proxy.sock,reuseaddr,fork,unlink-early,user=snap_aziotedge,group=snap_aziotedge \
+    UNIX-CONNECT:$docker_socket
