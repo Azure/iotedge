@@ -57,6 +57,7 @@ stages:
       variables:
         Codeql.Enabled: true
       steps:
+      - task: NuGetAuthenticate@1
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
         displayName: Build ($(Build.Configuration)) dotnet artifacts
