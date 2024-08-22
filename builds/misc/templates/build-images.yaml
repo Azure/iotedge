@@ -159,6 +159,7 @@ stages:
     # Product images
     - job: BuildImageEdgeAgent
       steps:
+      - task: NuGetAuthenticate@1
       - template: image-linux.yaml
         parameters:
           displayName: Edge Agent
