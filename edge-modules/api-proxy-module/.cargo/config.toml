@@ -1,0 +1,5 @@
+[registries]
+One_PublicPackages = { index = "sparse+https://msazure.pkgs.visualstudio.com/One/_packaging/One_PublicPackages/Cargo/index/" }
+
+[source.crates-io]
+replace-with = "One_PublicPackages"
