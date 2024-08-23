@@ -17,6 +17,9 @@ jobs:
         arm64:
           arch: "aarch64"
     steps:
+    - task: CargoAuthenticate@0
+      inputs:
+        configFile: $(Build.SourcesDirectory)/.cargo/config.toml
     - script: |
         scripts/linux/buildAPIProxy.sh \
           -P ${{ parameters.project }} \
