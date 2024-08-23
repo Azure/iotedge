@@ -17,6 +17,7 @@ jobs:
         arm64:
           arch: "aarch64"
     steps:
+    - task: CargoAuthenticate@0
     - script: |
         scripts/linux/buildAPIProxy.sh \
           -P ${{ parameters.project }} \
