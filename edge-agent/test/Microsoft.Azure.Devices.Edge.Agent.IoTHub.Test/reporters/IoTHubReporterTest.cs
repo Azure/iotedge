@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Moq;
@@ -707,7 +706,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     s =>
                     {
                         JObject reportedJson = JObject.Parse(JsonConvert.SerializeObject(s));
-                        // The patch should be the same as the reported properties. Removing the verbose fields.
+                        // The patch should be the same as the reported properties. Removing the verbose fields output.
                         reportedJson.SelectToken("lastDesiredStatus.description")?.Parent.Remove();
                         reportedJson.SelectToken("systemModules.edgeHub")?.Parent.Remove();
                         reportedJson.SelectToken("systemModules.edgeAgent.env")?.Parent.Remove();
