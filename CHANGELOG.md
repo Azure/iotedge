@@ -1,4 +1,4 @@
-# 1.4.41 (2024-08-13)
+# 1.4.41 (2024-08-26)
 
 ## Base image updates
 
@@ -10,23 +10,25 @@ The following Docker images were updated because their base images changed:
 
 ## aziot-edge
 ### OS support
-- Remove support for CentOS 7 and Debian 10 ( [7ecff38](https://github.com/Azure/iotedge/commit/7ecff38a1182b0e133c07b6ab6ad9fe19c76fc0f) )
-- Update snap builds to generate SBOM ( [40e4fdd](https://github.com/Azure/iotedge/commit/40e4fdd22ea6785cd7a74daf50846c7c07b02308) )
+* Remove support for CentOS 7 and Debian 10 ( [7ecff38](https://github.com/Azure/iotedge/commit/7ecff38a1182b0e133c07b6ab6ad9fe19c76fc0f) )
+* Update snap builds to generate SBOM ( [40e4fdd](https://github.com/Azure/iotedge/commit/40e4fdd22ea6785cd7a74daf50846c7c07b02308) )
 
 ### Features
-- Add packages for debug symbols ( [53bd7ab](https://github.com/Azure/iotedge/commit/53bd7ab7a450d6a6220174d81499352071af3d97) )
+* Add packages for debug symbols ( [53bd7ab](https://github.com/Azure/iotedge/commit/53bd7ab7a450d6a6220174d81499352071af3d97) )
 
 ### Bug fixes
-- Fix docker-proxy startup issue in snaps @st3v3nmw ( [f21493c](https://github.com/Azure/iotedge/commit/f21493c45fbc6b6bb419e551133d26c57138c3d1) )
-- Update mio dependency to patch security vulnerabilities ( [d548d7d](https://github.com/Azure/iotedge/commit/d548d7d1362480ba6b3b78cec25f6146b30c14d8) )
-- Update snap builds to honor rust-toolchain.toml @st3v3nmw ( [d8c63f0](https://github.com/Azure/iotedge/commit/d8c63f0d5ef7a8c2ffc4d94982433a0e93d2c3c9) )
+* Fix docker-proxy startup issue in snaps @st3v3nmw ( [f21493c](https://github.com/Azure/iotedge/commit/f21493c45fbc6b6bb419e551133d26c57138c3d1) )
+* Fix snap startup error ( [436c1cc](https://github.com/Azure/iotedge/commit/436c1cc1d9cfdd04e3e501c809cf399131af90eb) )
+* Update mio dependency to patch security vulnerabilities ( [d548d7d](https://github.com/Azure/iotedge/commit/d548d7d1362480ba6b3b78cec25f6146b30c14d8) )
+* Update snap builds to honor rust-toolchain.toml @st3v3nmw ( [d8c63f0](https://github.com/Azure/iotedge/commit/d8c63f0d5ef7a8c2ffc4d94982433a0e93d2c3c9) )
 
 ## aziot-identity-service
 ### OS support
-- Remove support for CentOS 7 and Debian 10 ( [cf73150](https://github.com/Azure/iot-identity-service/commit/cf73150ca1d4ab7a1b6203a65b394468976a9bd4) )
+* Remove support for CentOS 7 and Debian 10 ( [cf73150](https://github.com/Azure/iot-identity-service/commit/cf73150ca1d4ab7a1b6203a65b394468976a9bd4) )
 
 ### Bug fixes
-- Build snaps without debug symbols ( [4b4f7cd](https://github.com/Azure/iot-identity-service/commit/4b4f7cd179e97c45177fd7cab2663a36a624c105) )
+* Update snap base image and remove unnecessary config ( [4cd3296](https://github.com/Azure/iot-identity-service/commit/4cd3296984b5ac2711f63f1fea002ff969569cd5) )
+* Build snaps without debug symbols ( [4b4f7cd](https://github.com/Azure/iot-identity-service/commit/4b4f7cd179e97c45177fd7cab2663a36a624c105) )
 
 # 1.4.40 (2024-07-23)
 
