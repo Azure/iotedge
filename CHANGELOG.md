@@ -1,3 +1,15 @@
+# 1.5.8 (2024-08-19)
+
+This release only updates aziot-edge and aziot-identity-service. The Docker images remain at 1.5.7.
+
+## aziot-edge
+### Bug fixes
+* Fix snap startup error ( [d950b62](https://github.com/Azure/iotedge/commit/d950b624e62063f2458dd1a9ca64371f73d8a045) )
+
+## aziot-identity-service
+### Bug fixes
+* Update snap base image and remove unnecessary config ( [c66b5c7](https://github.com/Azure/iot-identity-service/commit/c66b5c727ab7ec9726191c98c9d1509dab71be85) )
+
 # 1.5.7 (2024-08-12)
 
 ## Base image updates
@@ -10,19 +22,19 @@ The following Docker images were updated because their base images changed:
 
 ## Edge Hub
 ### Bug fixes
-- Correctly close & dispose SDK client when it fails to open ( [df2f019](https://github.com/Azure/iotedge/commit/df2f0191e77a9452f14006ae2de0c1bdbfbb0fcc) )
+* Correctly close & dispose SDK client when it fails to open ( [df2f019](https://github.com/Azure/iotedge/commit/df2f0191e77a9452f14006ae2de0c1bdbfbb0fcc) )
 
 ## aziot-edge
 ### Bug fixes
-- Fix docker-proxy startup issue in snaps @st3v3nmw ( [80e3465](https://github.com/Azure/iotedge/commit/80e3465c70a79893561a4b8ba432e0d5a37ace65) )
+* Fix docker-proxy startup issue in snaps @st3v3nmw ( [80e3465](https://github.com/Azure/iotedge/commit/80e3465c70a79893561a4b8ba432e0d5a37ace65) )
 
 ## aziot-identity-service
 ### OS support
-- Add support for Debian 12 (identity service only) ( [d1cf0f5](https://github.com/Azure/iot-identity-service/commit/d1cf0f5f3eca25560f5a0101491ac87bc6bf6a90) )
+* Add support for Debian 12 (identity service only) ( [d1cf0f5](https://github.com/Azure/iot-identity-service/commit/d1cf0f5f3eca25560f5a0101491ac87bc6bf6a90) )
 
 ### Bug fixes
-- Treat malformed key(pair) as missing in create-key(pair) code paths ( [0351353](https://github.com/Azure/iot-identity-service/commit/0351353d852f59a270c7e4cd585138ee00caa5d8) )
-- Update shlex dependency to patch security vulnerabilities ( [bcc83b4](https://github.com/Azure/iot-identity-service/commit/bcc83b4cc2bc858a085b11bb4095fc993f8be87d) )
+* Treat malformed key(pair) as missing in create-key(pair) code paths ( [0351353](https://github.com/Azure/iot-identity-service/commit/0351353d852f59a270c7e4cd585138ee00caa5d8) )
+* Update shlex dependency to patch security vulnerabilities ( [bcc83b4](https://github.com/Azure/iot-identity-service/commit/bcc83b4cc2bc858a085b11bb4095fc993f8be87d) )
 
 # 1.5.6 (2024-07-23)
 
