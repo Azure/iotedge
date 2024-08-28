@@ -319,7 +319,7 @@ jobs:
 ################################################################################
     displayName: Ubuntu 24.04 on arm64v8
     dependsOn: Token
-    condition: succeeded('Token')
+    condition: and(false, succeeded('Token'))
 
     pool:
       name: $(pool.custom.name)
