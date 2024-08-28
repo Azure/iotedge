@@ -40,11 +40,15 @@ variables:
   #test.useTRC
 
 jobs:
+  - template: templates/get-storage-uri.yaml
+    parameters:
+      azureSubscription: $(azure.subscription)
 ################################################################################
   - job: linux_amd64_moby
 ################################################################################
     displayName: Linux AMD64 Moby
-    condition: eq(variables['run.linux.amd64.moby'], 'true')
+    dependsOn: Token
+    condition: and(succeeded('Token'), eq(variables['run.linux.amd64.moby'], 'true'))
     pool:
       name: $(pool.name)
       demands:
@@ -52,6 +56,8 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-long-haul -equals true
+    variables:
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -97,14 +103,14 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
           clientModuleTransportType: 'All'
 
 ################################################################################
   - job: linux_arm32v7_moby_amqp
 ################################################################################
     displayName: Linux ARM32v7 Moby (Amqp Client-Protocol)
-    condition: eq(variables['run.linux.arm32v7.moby'], 'true')
+    condition: and(succeeded('Token'), eq(variables['run.linux.arm32v7.moby'], 'true'))
     pool:
       name: $(pool.name)
       demands:
@@ -114,6 +120,8 @@ jobs:
         - agent-osbits -equals 32
         - run-long-haul -equals true
         - client-transport -equals amqp
+    variables:
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -158,14 +166,14 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
           clientModuleTransportType: 'amqp'
 
 ################################################################################
   - job: linux_arm32v7_moby_mqtt
 ################################################################################
     displayName: Linux ARM32v7 Moby (Mqtt Client-Protocol)
-    condition: eq(variables['run.linux.arm32v7.moby'], 'true')
+    condition: and(succeeded('Token'), eq(variables['run.linux.arm32v7.moby'], 'true'))
     pool:
       name: $(pool.name)
       demands:
@@ -175,6 +183,8 @@ jobs:
         - agent-osbits -equals 32
         - run-long-haul -equals true
         - client-transport -equals mqtt
+    variables:
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -219,14 +229,14 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
           clientModuleTransportType: 'mqtt'
 
 ################################################################################
   - job: linux_arm64v8_docker_amqp
 ################################################################################
     displayName: Linux ARM64v8 Docker (Amqp Client-Protocol)
-    condition: eq(variables['run.linux.arm64v8.docker'], 'true')
+    condition: and(succeeded('Token'), eq(variables['run.linux.arm64v8.docker'], 'true'))
     pool:
       name: $(pool.name)
       demands:
@@ -236,6 +246,8 @@ jobs:
         - agent-osbits -equals 64
         - run-long-haul -equals true
         - client-transport -equals amqp
+    variables:
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -281,14 +293,14 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
           clientModuleTransportType: 'amqp'
 
 ################################################################################
   - job: linux_arm64v8_docker_mqtt
 ################################################################################
     displayName: Linux ARM64v8 Docker (Mqtt Client-Protocol)
-    condition: eq(variables['run.linux.arm64v8.docker'], 'true')
+    condition: and(succeeded('Token'), eq(variables['run.linux.arm64v8.docker'], 'true'))
     pool:
       name: $(pool.name)
       demands:
@@ -298,6 +310,8 @@ jobs:
         - agent-osbits -equals 64
         - run-long-haul -equals true
         - client-transport -equals mqtt
+    variables:
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -343,14 +357,14 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
           clientModuleTransportType: 'mqtt'
 
 ################################################################################
   - job: Mariner2_amd64
 ################################################################################
     displayName: Mariner 2.0 AMD64
-    condition: and(eq(variables['run.EFLOW.amd64'], 'true'), eq(variables['useTRC'], 'true'))
+    condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'), eq(variables['useTRC'], 'true'))  
     pool:
       name: $(pool.name)
       demands:
@@ -409,6 +423,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment.template.json'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
           clientModuleTransportType: 'All'
           packageType: 'rpm'
