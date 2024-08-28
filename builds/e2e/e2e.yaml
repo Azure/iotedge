@@ -293,9 +293,8 @@ jobs:
     condition: succeeded('Token')
 
     pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
+      name: $(pool.custom.name)
+      demands: ubuntu2404-amd64-e2e-tests
 
     variables:
       os: linux
