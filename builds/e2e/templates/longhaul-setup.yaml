@@ -28,7 +28,6 @@ steps:
         SnitchLongHaulAlertUrl,
         kvLogAnalyticWorkspaceId,
         kvLogAnalyticSharedKey,
-        EdgeLonghaulStorageAccountConnString,
         GitHubAccessToken
   - task: AzureKeyVault@1
     displayName: 'Azure Key Vault: $(azure.keyVault)'
