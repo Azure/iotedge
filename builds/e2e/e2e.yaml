@@ -27,8 +27,6 @@ variables:
 jobs:
 
   - template: templates/get-storage-uri.yaml
-    parameters:
-      azureSubscription: $(az.subscription)
 
 ################################################################################
   - job: debian_11_arm32v7

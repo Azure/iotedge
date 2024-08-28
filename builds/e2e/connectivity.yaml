@@ -31,8 +31,6 @@ resources:
 
 jobs:
   - template: templates/get-storage-uri.yaml
-    parameters:
-      azureSubscription: $(azure.subscription)
 
 ################################################################################
   - job: linux_amd64_moby

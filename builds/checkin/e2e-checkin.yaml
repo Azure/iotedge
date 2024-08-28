@@ -50,8 +50,6 @@ stages:
       builtPackages: $[stageDependencies.CheckBuildPackages.check_source_change_edgelet.outputs['check_files.EDGELETCHANGES']]
     jobs:
       - template: ../e2e/templates/get-storage-uri.yaml
-        parameters:
-          azureSubscription: $(az.subscription)
 
       - job: ubuntu_2004_msmoby
         displayName: Ubuntu 20.04 with iotedge-moby
