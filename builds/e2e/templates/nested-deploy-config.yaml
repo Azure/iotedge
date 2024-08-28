@@ -33,7 +33,7 @@ steps:
           -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
           -customEdgeAgentImage "$(customEdgeAgent.image)" \
           -customEdgeHubImage "$(customEdgeHub.image)" \
-          -subscription "$(azure.subscription)" \
+          -subscription "$(azure.subscriptionName)" \
           -level "${{ parameters.level }}" \
           -parentName "$(parentName)" \
           -connectionString "$(connectionString)" \

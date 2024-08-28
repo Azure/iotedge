@@ -16,11 +16,11 @@ steps:
         iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')
         echo "Found Hub name: ${iotHubName}"
 
-        az account set --subscription $(azure.subscription)
+        az account set --subscription $(azure.subscriptionName)
         az config set extension.use_dynamic_install=yes_without_prompt
         deviceId="level_$(level)_$(Build.BuildId)$(upstreamProtocol)"
 
-        echo "Creating ${deviceId} iotedge in iothub: ${iotHubName}, in subscription $(azure.subscription)"
+        echo "Creating ${deviceId} iotedge in iothub: ${iotHubName}, in subscription $(azure.subscriptionName)"
         if [ "$LEVEL" = "5" ]; then
             az iot hub device-identity create -n ${iotHubName} -d ${deviceId} --ee --output none
         else
