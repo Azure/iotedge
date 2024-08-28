@@ -249,7 +249,7 @@ macro_rules! api_call {
                 let request = api_call!(@inner build_request builder $(body $btype)?)?;
 
                 let response = ::tokio::time::timeout(
-                    ::std::time::Duration::from_secs(30),
+                    ::std::time::Duration::from_secs(60),
                     self.client.request(request)
                 )
                 .await??;
