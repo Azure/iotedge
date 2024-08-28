@@ -3,7 +3,7 @@ parameters:
   testInfo.testName: ''
 
 jobs:
-  - template: templates/get-storage-uri.yaml
+  - template: get-storage-uri.yaml
     parameters:
       azureSubscription: $(azure.subscription)
   - job:  Deploy_Longhaul_Linux_Amd64_${{ parameters['upstream.protocol'] }}
