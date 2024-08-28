@@ -53,8 +53,6 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-long-haul -equals true
-    variables:
-      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
@@ -118,9 +116,8 @@ jobs:
         - agent-osbits -equals 32
         - run-long-haul -equals true
         - client-transport -equals amqp
-    variables:
-      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
+      - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
           edgelet.artifact.name: 'iotedged-debian11-arm32v7'
@@ -181,9 +178,8 @@ jobs:
         - agent-osbits -equals 32
         - run-long-haul -equals true
         - client-transport -equals mqtt
-    variables:
-      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
+      - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
           edgelet.artifact.name: 'iotedged-debian11-arm32v7'
@@ -244,9 +240,8 @@ jobs:
         - agent-osbits -equals 64
         - run-long-haul -equals true
         - client-transport -equals amqp
-    variables:
-      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
+      - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
           edgelet.artifact.name: 'iotedged-ubuntu20.04-aarch64'
@@ -308,9 +303,8 @@ jobs:
         - agent-osbits -equals 64
         - run-long-haul -equals true
         - client-transport -equals mqtt
-    variables:
-      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
+      - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
           edgelet.artifact.name: 'iotedged-ubuntu20.04-aarch64'
@@ -371,6 +365,7 @@ jobs:
         - mariner-version -equals 2.0
         - run-long-haul-eflow -equals true
     steps:
+      - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
           edgelet.artifact.name: 'iotedged-mariner2-amd64'
