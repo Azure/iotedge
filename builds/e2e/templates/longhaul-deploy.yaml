@@ -53,6 +53,15 @@ steps:
         echo "##vso[task.setvariable variable=DeviceCaKey]$(pwd)/private/iot-edge-device-ca-ConnectivityTestDeviceCA.key.pem"
 
   - task: Bash@3
+    displayName: 'Read the secrets'
+    inputs:
+      targetType: inline
+      script: |
+        echo "param output: ${{ parameters['testResultCoordinator.blobStorageAccountUriWithSasToken'] }}"
+        echo "var output: $(sas_uri)"
+
+
+  - task: Bash@3
     displayName: 'Run Long Haul Deployment'
     inputs:
       targetType: inline
