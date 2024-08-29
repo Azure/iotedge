@@ -1,12 +1,10 @@
 steps:
-  - task: AzureCLI@2
-    name: azcli
-    displayName: 'Install Az CLI'
+  - task: Bash@3
+    name: InstallAzCli
+    displayName: 'Install Azure CLI'
     inputs:
-      azureSubscription: $(az.subscription)
-      scriptType: 'bash'
-      scriptLocation: 'inlineScript'
-      inlineScript: |
+      targetType: inline
+      script: |
         echo "Get packages needed for the installation process:"
         sudo apt-get update -y
         sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
