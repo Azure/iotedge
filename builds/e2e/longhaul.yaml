@@ -44,8 +44,7 @@ jobs:
   - job: linux_amd64_moby
 ################################################################################
     displayName: Linux AMD64 Moby
-    dependsOn: Token
-    condition: and(succeeded('Token'), eq(variables['run.linux.amd64.moby'], 'true'))
+    condition: eq(variables['run.linux.amd64.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -106,7 +105,7 @@ jobs:
   - job: linux_arm32v7_moby_amqp
 ################################################################################
     displayName: Linux ARM32v7 Moby (Amqp Client-Protocol)
-    condition: and(succeeded('Token'), eq(variables['run.linux.arm32v7.moby'], 'true'))
+    condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -168,7 +167,7 @@ jobs:
   - job: linux_arm32v7_moby_mqtt
 ################################################################################
     displayName: Linux ARM32v7 Moby (Mqtt Client-Protocol)
-    condition: and(succeeded('Token'), eq(variables['run.linux.arm32v7.moby'], 'true'))
+    condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -230,7 +229,7 @@ jobs:
   - job: linux_arm64v8_docker_amqp
 ################################################################################
     displayName: Linux ARM64v8 Docker (Amqp Client-Protocol)
-    condition: and(succeeded('Token'), eq(variables['run.linux.arm64v8.docker'], 'true'))
+    condition: eq(variables['run.linux.arm64v8.docker'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -293,7 +292,7 @@ jobs:
   - job: linux_arm64v8_docker_mqtt
 ################################################################################
     displayName: Linux ARM64v8 Docker (Mqtt Client-Protocol)
-    condition: and(succeeded('Token'), eq(variables['run.linux.arm64v8.docker'], 'true'))
+    condition: eq(variables['run.linux.arm64v8.docker'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -356,7 +355,7 @@ jobs:
   - job: Mariner2_amd64
 ################################################################################
     displayName: Mariner 2.0 AMD64
-    condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'), eq(variables['useTRC'], 'true'))  
+    condition: eq(variables['run.EFLOW.amd64'], 'true'), eq(variables['useTRC'], 'true')
     pool:
       name: $(pool.name)
       demands:
