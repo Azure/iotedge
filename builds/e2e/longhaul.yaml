@@ -53,6 +53,7 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - run-long-haul -equals true
     steps:
+      - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -116,6 +117,7 @@ jobs:
         - run-long-haul -equals true
         - client-transport -equals amqp
     steps:
+      - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -178,6 +180,7 @@ jobs:
         - run-long-haul -equals true
         - client-transport -equals mqtt
     steps:
+      - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -240,6 +243,7 @@ jobs:
         - run-long-haul -equals true
         - client-transport -equals amqp
     steps:
+      - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -303,6 +307,7 @@ jobs:
         - run-long-haul -equals true
         - client-transport -equals mqtt
     steps:
+      - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
@@ -364,6 +369,7 @@ jobs:
         - mariner-version -equals 2.0
         - run-long-haul-eflow -equals true
     steps:
+      - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
         parameters:
