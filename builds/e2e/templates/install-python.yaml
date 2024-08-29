@@ -1,6 +1,6 @@
 steps:
   - task: Bash@3
-    name: InstallAzCli
+    name: InstallPython
     displayName: 'Install Python'
     inputs:
       targetType: inline
