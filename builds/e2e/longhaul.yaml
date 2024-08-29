@@ -99,7 +99,7 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'All'
 
 ################################################################################
@@ -117,6 +117,7 @@ jobs:
         - run-long-haul -equals true
         - client-transport -equals amqp
     steps:
+      - template: templates/install-python.yaml
       - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
@@ -162,7 +163,7 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'amqp'
 
 ################################################################################
@@ -180,6 +181,7 @@ jobs:
         - run-long-haul -equals true
         - client-transport -equals mqtt
     steps:
+      - template: templates/install-python.yaml
       - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
@@ -225,7 +227,7 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'mqtt'
 
 ################################################################################
@@ -243,6 +245,7 @@ jobs:
         - run-long-haul -equals true
         - client-transport -equals amqp
     steps:
+      - template: templates/install-python.yaml
       - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
@@ -289,7 +292,7 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'amqp'
 
 ################################################################################
@@ -307,6 +310,7 @@ jobs:
         - run-long-haul -equals true
         - client-transport -equals mqtt
     steps:
+      - template: templates/install-python.yaml
       - template: templates/install-az-cli.yaml
       - template: templates/get-storage-uri-task.yaml
       - template: templates/longhaul-setup.yaml
@@ -353,7 +357,7 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'mqtt'
 
 ################################################################################
@@ -421,6 +425,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: '$(sas_uri)'
+          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'All'
           packageType: 'rpm'
