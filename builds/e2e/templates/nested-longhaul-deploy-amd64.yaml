@@ -4,13 +4,10 @@ parameters:
 
 jobs:
   - template: get-storage-uri.yaml
-    parameters:
-      azureSubscription: $(azure.subscription)
   - job:  Deploy_Longhaul_Linux_Amd64_${{ parameters['upstream.protocol'] }}
     displayName: Set up and run longhaul tests on Linux Amd64 for ${{ parameters['upstream.protocol'] }}
     dependsOn:
       - SetupVM_level4_${{ parameters['upstream.protocol'] }}
-      - Token
     condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
     pool:
       name: $(pool.name)
@@ -28,7 +25,6 @@ jobs:
       hostPlatform: 'linux_amd64_moby'
       quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
       nestededge: true
-      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:   
       - template: nested-get-secrets.yaml     
       - template: nested-get-root-ca.yaml 
