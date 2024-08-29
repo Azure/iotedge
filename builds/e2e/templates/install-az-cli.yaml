@@ -31,3 +31,6 @@ steps:
         sudo apt-get update -y
         sudo apt-get install -y azure-cli
         echo " "
+
+        echo "Verify the installation:"
+        az --version
