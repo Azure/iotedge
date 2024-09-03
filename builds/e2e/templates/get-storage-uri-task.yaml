@@ -32,8 +32,8 @@ steps:
     inputs:
       targetType: inline
       script: |
-        echo "param output: ${{ parameters['testResultCoordinator.blobStorageAccountUriWithSasToken'] }}"
+        echo "param output: ${{ parameters['generate.testvar'] }}"
+        echo "var output: $(generate.testvar)"
         echo "var output: $(testvar)"
-        echo "var output: $testvar"
         echo "generate_testvar output: $generate_testvar"
         echo "generate_testvar output: ${generate_testvar}"
