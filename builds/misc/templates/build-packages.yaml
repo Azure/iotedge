@@ -107,6 +107,18 @@ stages:
               arch: aarch64
               os: ubuntu22.04
               target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+            Ubuntu2404-amd64:
+              arch: amd64
+              os: ubuntu24.04
+              target.iotedged: edgelet/target/release
+            Ubuntu2404-arm32v7:
+              arch: arm32v7
+              os: ubuntu24.04
+              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+            Ubuntu2404-aarch64:
+              arch: aarch64
+              os: ubuntu24.04
+              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
