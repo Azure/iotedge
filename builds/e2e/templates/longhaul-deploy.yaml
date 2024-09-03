@@ -58,8 +58,10 @@ steps:
       targetType: inline
       script: |
         echo "param output: ${{ parameters['testResultCoordinator.blobStorageAccountUriWithSasToken'] }}"
-        echo "var output: $(sas_uri)"
-        echo "var output: $sas_uri"
+        echo "var output: $(testvar)"
+        echo "var output: $testvar"
+        echo "generate_testvar output: $generate_testvar"
+        echo "generate_testvar output: ${generate_testvar}"
 
   - task: Bash@3
     displayName: 'Run Long Haul Deployment'
