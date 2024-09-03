@@ -59,6 +59,7 @@ steps:
       script: |
         echo "param output: ${{ parameters['testResultCoordinator.blobStorageAccountUriWithSasToken'] }}"
         echo "var output: $(sas_uri)"
+        echo "var output: $sas_uri"
 
   - task: Bash@3
     displayName: 'Run Long Haul Deployment'
