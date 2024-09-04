@@ -16,21 +16,6 @@ steps:
     clean: true
     fetchDepth: 100
     submodules: recursive
-  - task: Bash@3
-    displayName: 'BEARWASHERE'
-    inputs:
-      targetType: inline
-      script: |
-        echo "param output: $param_testvar"
-        echo "var output: $(generate.testvar)"
-        echo "var output: $(testvar)"
-        echo "generate_testvar output: $generate_testvar"
-        echo "generate_testvar output: ${generate_testvar}"
-    env:
-      generate_testvar: ${{ parameters['generate.testvar'] }}
-      testvar: $(testvar)
-      generate.testvar: $(generate.testvar)
-      param_testvar: ${{ parameters['generate.testvar'] }}
   - task: AzureKeyVault@1
     displayName: 'Azure Key Vault: EdgeBuildkv'
     inputs:
