@@ -63,6 +63,9 @@ jobs:
           aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
       - template: templates/longhaul-deploy.yaml
+        dependsOn: generate
+        variables:
+          testvar: $[ dependencies.A.outputs['generate.testvar'] ]  
         parameters:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
