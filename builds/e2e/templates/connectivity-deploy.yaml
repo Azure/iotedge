@@ -11,6 +11,7 @@ parameters:
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
+  testResultCoordinator.blobStorageAccountUriWithSasToken: ''
   iotHub.connectionString: ''
   eventHub.connectionString: ''
   upstream.protocol: ''
@@ -20,7 +21,6 @@ parameters:
   logAnalyticsWorkspaceId: ''
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
-  testResultCoordinator.storageAccountConnectionString: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -129,10 +129,10 @@ steps:
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+          -blobStorageAccountUriWithSasToken "${{ parameters['testResultCoordinator.blobStorageAccountUriWithSasToken'] }}" \
           -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
           -EdgeHubRestartTestRestartPeriod "${{ parameters['edgeHubRestartTest.restartPeriod'] }}" \
           -EdgeHubRestartTestSdkOperationTimeout "${{ parameters['edgeHubRestartTest.sdkOperationTimeout'] }}" \
-          -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
           -devOpsAccessToken "$(System.AccessToken)" \
           -devOpsBuildId "$(Build.BuildId)" \
           -edgeRuntimeBuildNumber "${{ parameters['edgeRuntime.buildNumber'] }}" \

@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         readonly AsyncLock sync;
         readonly ISerde<AgentState> agentStateSerde;
         readonly VersionInfo versionInfo;
-        Option<AgentState> reportedState;
+        internal Option<AgentState> ReportedState;
 
         public IoTHubReporter(
             IEdgeAgentConnection edgeAgentConnection,
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
 
             this.sync = new AsyncLock();
-            this.reportedState = Option.None<AgentState>();
+            this.ReportedState = Option.None<AgentState>();
         }
 
         public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, DeploymentStatus updatedStatus)
@@ -103,12 +103,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                 if (patch.HasValues)
                 {
                     // send reported props
-                    await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
+                    bool updated = await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
 
-                    // update our cached copy of reported properties
-                    this.SetReported(currentState);
-
-                    Events.UpdatedReportedProperties();
+                    if (updated)
+                    {
+                        // update our cached copy of reported properties
+                        this.SetReported(currentState);
+                        Events.UpdatedReportedProperties();
+                    }
                 }
                 else
                 {
@@ -128,9 +130,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         {
             try
             {
-                this.reportedState = this.reportedState
+                this.ReportedState = this.ReportedState
                     .Else(() => this.edgeAgentConnection.ReportedProperties.Map(coll => this.agentStateSerde.Deserialize(coll.ToJson())));
-                return this.reportedState;
+                return this.ReportedState;
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -162,9 +164,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
         void SetReported(AgentState reported)
         {
             Events.UpdatingReportedPropertiesCache();
-            if (this.reportedState.OrDefault() != reported)
+            if (this.ReportedState.OrDefault() != reported)
             {
-                this.reportedState = Option.Some(reported);
+                this.ReportedState = Option.Some(reported);
             }
         }
 
