@@ -58,8 +58,8 @@ steps:
       targetType: inline
       script: |
         echo "param output: $param_testvar"
-        echo "var output: $(generate.testvar)"
-        echo "var output: $(testvar)"
+        echo "generate.testvar output: $(generate.testvar)"
+        echo "testvar output: $(testvar)"
         echo "generate_testvar output: $generate_testvar"
         echo "generate_testvar output: ${generate_testvar}"
     env:
