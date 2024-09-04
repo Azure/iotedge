@@ -32,7 +32,6 @@ parameters:
   test.testMode: ''
   test.useTRC: ''
   test.deploymentFileName: ''
-  testResultCoordinator.blobStorageAccountUriWithSasToken: ''
   clientModuleTransportType: ''
   packageType: 'deb' 
 
@@ -105,7 +104,7 @@ steps:
             -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
             -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
             -deploymentFileName "${{ parameters['test.deploymentFileName'] }}" \
-            -blobStorageAccountUriWithSasToken "${{ parameters['testResultCoordinator.blobStorageAccountUriWithSasToken'] }}" \
+            -blobStorageAccountUriWithSasToken "$(generate.sas_uri)" \
             -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
             -testInfo "$testInfo" \
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \

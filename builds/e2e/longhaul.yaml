@@ -100,7 +100,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'All'
 
 ################################################################################
@@ -164,7 +163,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'amqp'
 
 ################################################################################
@@ -228,7 +226,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'mqtt'
 
 ################################################################################
@@ -293,7 +290,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'amqp'
 
 ################################################################################
@@ -358,7 +354,6 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment_constrained.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'mqtt'
 
 ################################################################################
@@ -426,6 +421,5 @@ jobs:
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment.template.json'
-          testResultCoordinator.blobStorageAccountUriWithSasToken: "variables['generate.sas_uri']"
           clientModuleTransportType: 'All'
           packageType: 'rpm'
