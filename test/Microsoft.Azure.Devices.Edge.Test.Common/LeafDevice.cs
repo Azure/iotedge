@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -316,14 +317,51 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
-            DeviceClient client = clientFactory();
+            DeviceClient client;
+            ConnectionStatus status = ConnectionStatus.Disconnected;
+            ConnectionStatusChangeReason reason = ConnectionStatusChangeReason.Connection_Ok;
 
-            client.SetConnectionStatusChangesHandler((status, reason) =>
+            while (true)
             {
-                Log.Verbose($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
-            });
+                client = clientFactory();
 
-            await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
+                client.SetConnectionStatusChangesHandler((s, r) =>
+                {
+                    status = s;
+                    reason = r;
+                    Log.Verbose($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+                });
+
+                using var innerCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(innerCts.Token, token);
+                try
+                {
+                    await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, linkedCts.Token);
+                    break;
+                }
+                catch (OperationCanceledException e)
+                {
+                    Log.Information($"1 ### Caught exception: {e.GetType()}");
+                    await client.CloseAsync();
+                    client.Dispose();
+
+                    if (token.IsCancellationRequested)
+                    {
+                        token.ThrowIfCancellationRequested();
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Information($"2 ### Caught exception: {e.GetType()}");
+                    await client.CloseAsync();
+                    client.Dispose();
+
+                    if (status != ConnectionStatus.Disconnected || reason != ConnectionStatusChangeReason.Retry_Expired)
+                    {
+                        throw;
+                    }
+                }
+            }
 
             return new LeafDevice(device, client, iotHub);
         }
