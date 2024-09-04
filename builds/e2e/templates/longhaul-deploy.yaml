@@ -58,7 +58,7 @@ steps:
       script: |
         echo "param output: $param_testvar"
         echo "generate.testvar output: $(generate.testvar)"
-        echo "\$(generate.sas_uri): $(generate.sas_uri)"
+        echo "generate.sas_uri: $(generate.sas_uri)"
     env:
       generate.testvar: $(generate.testvar)
           
