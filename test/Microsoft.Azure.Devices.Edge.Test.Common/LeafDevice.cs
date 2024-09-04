@@ -339,7 +339,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, linkedCts.Token);
                     break;
                 }
-                catch (OperationCanceledException e)
+                catch (OperationCanceledException)
                 {
                     await client.CloseAsync();
                     client.Dispose();
@@ -351,7 +351,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         token.ThrowIfCancellationRequested();
                     }
                 }
-                catch (IotHubCommunicationException e)
+                catch (IotHubCommunicationException)
                 {
                     await client.CloseAsync();
                     client.Dispose();
