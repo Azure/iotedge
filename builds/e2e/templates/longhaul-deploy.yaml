@@ -71,13 +71,11 @@ steps:
 
   - task: Bash@3
     displayName: 'Run Long Haul Deployment'
-    env:
-      blobStorageAccountUriWithSasToken: $(generate.sas_uri)
     inputs:
       targetType: inline
       script: |
         echo "blobStorageAccountUriWithSasToken: $(blobStorageAccountUriWithSasToken)"
-        
+
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         testName="LongHaul"
@@ -165,3 +163,4 @@ steps:
       E2E_trustedCaCerts: $(TrustBundle)
       E2E_deviceCaCert: $(DeviceCaCert)
       E2E_deviceCaPrivateKey: $(DeviceCaKey)
+      blobStorageAccountUriWithSasToken: $(generate.sas_uri)
