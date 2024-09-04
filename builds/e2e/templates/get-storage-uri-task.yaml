@@ -26,14 +26,19 @@ steps:
         sas_uri="$endpoint$container_name?$sasToken"
         echo "##vso[task.setvariable variable=sas_uri;issecret=true;isoutput=true]$sas_uri"
         testvar="BEARWASHERE"
-        echo "##vso[task.setvariable variable=testvar;issecret=true;isoutput=true]$testvar"
+        echo "##vso[task.setvariable variable=testvar;issecret=false;isoutput=true]$testvar"
   - task: Bash@3
     displayName: 'BEARWASHERE'
     inputs:
       targetType: inline
       script: |
-        echo "param output: ${{ parameters['generate.testvar'] }}"
+        echo "param output: $param_testvar"
         echo "var output: $(generate.testvar)"
         echo "var output: $(testvar)"
         echo "generate_testvar output: $generate_testvar"
         echo "generate_testvar output: ${generate_testvar}"
+    env:
+      generate_testvar: ${{ parameters['generate.testvar'] }}
+      testvar: $(testvar)
+      generate.testvar: $(generate.testvar)
+      param_testvar: ${{ parameters['generate.testvar'] }}
