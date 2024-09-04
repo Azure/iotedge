@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `redhat8`, `redhat9`, `debian11`, `ubuntu20.04`, or `ubuntu22.04`.
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `redhat8`, `redhat9`, `debian11`, `debian12`, `ubuntu20.04`, `ubuntu22.04`, or `ubuntu24.04`.
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -23,7 +23,7 @@ For example:
 git clone --recurse-submodules 'https://github.com/Azure/iotedge'
 cd iotedge/
 
-PACKAGE_OS='debian11' PACKAGE_ARCH='arm32v7' ./edgelet/build/linux/package.sh
+PACKAGE_OS='debian12' PACKAGE_ARCH='arm32v7' ./edgelet/build/linux/package.sh
 ```
 
 The packages are built inside a Docker container, so no build dependencies are installed on the device running the script. However the user running the script does need to have permissions to invoke the `docker` command.
@@ -33,8 +33,6 @@ Note that the script must be run on an `amd64` device. The `PACKAGE_ARCH=arm32v7
 Once the packages are built, they will be found somewhere under the `edgelet/target/` directory. (The exact path under that directory depends on the combination of `PACKAGE_OS` and `PACKAGE_ARCH`. See `builds/misc/templates/build-packages.yaml` for the exact paths.)
 
 If you want to run another build for a different combination of `PACKAGE_OS` and `PACKAGE_ARCH`, make sure to clean the repository first with `sudo git clean -xffd` so that artifacts from the previous build don't get reused for the next one.
-
-This is because these targets do not have functional cross-compilers, so their builds are done as native builds emulated using qemu. Be aware that these builds are much slower - where a native build might take 15m, a qemu build might take 2h30m.
 
 
 ## Building daemon binaries
@@ -59,7 +57,7 @@ rustup update   # Install / update the toolchain used to build the daemon binari
 
 In addition, building the daemon binaries also requires these dependencies to be installed:
 
-#### RHEL 8
+#### RHEL 8-9
 
 ```sh
 dnf distro-sync -y \
@@ -69,7 +67,7 @@ dnf install -y \
     libcurl-devel libuuid-devel openssl-devel &&
 ```
 
-#### Debian 11
+#### Debian 11-12
 
 ```sh
 apt-get update
@@ -78,6 +76,7 @@ apt-get install \
     gcc g++ pkg-config \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
+
 #### Ubuntu 20.04
 
 ```sh
@@ -88,7 +87,7 @@ apt-get install \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
 
-#### Ubuntu 22.04
+#### Ubuntu 22.04/24.04
 
 ```sh
 apt-get update

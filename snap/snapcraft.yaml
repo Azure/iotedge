@@ -1,5 +1,5 @@
 name: azure-iot-edge
-base: core22 # the base snap is the execution environment for this snap
+base: core24 # the base snap is the execution environment for this snap
 summary: Managed solution for deploying and configuring software on IoT devices
 description: |
   Azure IoT Edge is a fully managed service that delivers cloud intelligence
@@ -16,8 +16,8 @@ system-usernames:
 package-repositories:
   - type: apt
     components: [ main ]
-    suites: [ jammy ]
-    url: https://packages.microsoft.com/ubuntu/22.04/prod
+    suites: [ noble ]
+    url: https://packages.microsoft.com/ubuntu/24.04/prod
     key-id: BC528686B50D79E339D3721CEB3E94ADBE1229CF
 
 parts:
@@ -114,6 +114,7 @@ apps:
       - snap/command-chain/drop-privileges.sh
     command: usr/libexec/aziot/aziot-edged
     daemon: simple
+    after: [ docker-proxy ]
     plugs:
       - docker
       - identity-service
@@ -135,11 +136,12 @@ apps:
       - run-iotedge
   docker-proxy:
     command: bin/socat.sh
-    daemon: simple
+    daemon: notify
     plugs:
       - docker
       - network
       - network-bind
+      - daemon-notify
 
 hooks:
   configure:
