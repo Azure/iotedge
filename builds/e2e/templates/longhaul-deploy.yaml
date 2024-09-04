@@ -59,14 +59,9 @@ steps:
       script: |
         echo "param output: $param_testvar"
         echo "generate.testvar output: $(generate.testvar)"
-        echo "testvar output: $(testvar)"
-        echo "generate_testvar output: $generate_testvar"
-        echo "generate_testvar output: ${generate_testvar}"
+        echo "\$(generate.sas_uri): $(generate.sas_uri)"
     env:
-      generate_testvar: ${{ parameters['generate.testvar'] }}
-      testvar: $[ dependencies.Token.outputs['generate.testvar'] ]
       generate.testvar: $(generate.testvar)
-      param_testvar: ${{ parameters['generate.testvar'] }}
           
 
   - task: Bash@3
@@ -74,7 +69,7 @@ steps:
     inputs:
       targetType: inline
       script: |
-        echo "blobStorageAccountUriWithSasToken: $(blobStorageAccountUriWithSasToken)"
+        echo "\$(generate.sas_uri): $(generate.sas_uri)"
 
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
@@ -163,4 +158,3 @@ steps:
       E2E_trustedCaCerts: $(TrustBundle)
       E2E_deviceCaCert: $(DeviceCaCert)
       E2E_deviceCaPrivateKey: $(DeviceCaKey)
-      blobStorageAccountUriWithSasToken: $(generate.sas_uri)
