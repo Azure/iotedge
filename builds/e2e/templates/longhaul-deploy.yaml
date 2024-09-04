@@ -64,9 +64,10 @@ steps:
         echo "generate_testvar output: ${generate_testvar}"
     env:
       generate_testvar: ${{ parameters['generate.testvar'] }}
-      testvar: $(testvar)
+      testvar: testvar: $[ dependencies.Token.outputs['generate.testvar'] ]
       generate.testvar: $(generate.testvar)
       param_testvar: ${{ parameters['generate.testvar'] }}
+          
 
   - task: Bash@3
     displayName: 'Run Long Haul Deployment'
