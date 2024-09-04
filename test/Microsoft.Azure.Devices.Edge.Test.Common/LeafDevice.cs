@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Common.Exceptions;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -341,21 +341,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
                 catch (OperationCanceledException e)
                 {
-                    Log.Information($"1 ### Caught exception: {e.GetType()}");
                     await client.CloseAsync();
                     client.Dispose();
 
+                    // Only throw if the caller-supplied token was cancelled. If the inner (30 second) token was
+                    // cancelled, fall through and allow the device client to retry.
                     if (token.IsCancellationRequested)
                     {
                         token.ThrowIfCancellationRequested();
                     }
                 }
-                catch (Exception e)
+                catch (IotHubCommunicationException e)
                 {
-                    Log.Information($"2 ### Caught exception: {e.GetType()}");
                     await client.CloseAsync();
                     client.Dispose();
 
+                    // In the {status == Disconnected, reason == Retry_Expired } scenario, fall through and allow the
+                    // client to retry, otherwise throw.
                     if (status != ConnectionStatus.Disconnected || reason != ConnectionStatusChangeReason.Retry_Expired)
                     {
                         throw;
