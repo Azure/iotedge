@@ -56,8 +56,6 @@ steps:
     inputs:
       targetType: inline
       script: |
-        echo "\$(generate.sas_uri): $(generate.sas_uri)"
-
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         testName="LongHaul"
