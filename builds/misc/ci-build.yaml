@@ -21,6 +21,5 @@ variables:
   DisableDockerDetector: true
 
 stages:
-  - task: NuGetAuthenticate@1
   - template: templates/build-images.yaml
   - template: templates/build-packages.yaml
