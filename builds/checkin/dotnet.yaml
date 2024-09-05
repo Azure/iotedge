@@ -66,6 +66,7 @@ jobs:
   steps:
   - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites
+  - task: NuGetAuthenticate@1
   - script: |
       dotnet test \
         --logger trx \
