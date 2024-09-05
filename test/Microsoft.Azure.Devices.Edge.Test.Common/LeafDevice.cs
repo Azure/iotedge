@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
+    using System.Diagnostics.Tracing;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -19,21 +20,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Extensions.Logging;
     using Serilog;
 
-    public class LeafDevice
+    public class LeafDevice : IDisposable
     {
-        readonly DeviceClient client;
         readonly Device device;
         readonly IotHub iotHub;
         readonly string messageId;
+        DeviceClient client;
+        LeafDeviceSdkLogger sdkLogger;
 
-        LeafDevice(Device device, DeviceClient client, IotHub iotHub)
+        LeafDevice(Device device, DeviceClient client, IotHub iotHub, LeafDeviceSdkLogger sdkLogger)
         {
             this.client = client;
             this.device = device;
             this.iotHub = iotHub;
             this.messageId = Guid.NewGuid().ToString();
+            this.sdkLogger = sdkLogger;
         }
 
         public static Task<LeafDevice> CreateAsync(
@@ -317,13 +321,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
+            LeafDeviceSdkLogger CreateSdkLogger()
+            {
+                string[] eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
+                var loggerFactory = new LoggerFactory().AddSerilog(Log.Logger);
+                return new LeafDeviceSdkLogger(eventFilter, loggerFactory.CreateLogger("LeafDevice"));
+            }
+
             DeviceClient client;
+            LeafDeviceSdkLogger logger;
             ConnectionStatus status = ConnectionStatus.Disconnected;
             ConnectionStatusChangeReason reason = ConnectionStatusChangeReason.Connection_Ok;
 
             while (true)
             {
                 client = clientFactory();
+                logger = CreateSdkLogger();
 
                 client.SetConnectionStatusChangesHandler((s, r) =>
                 {
@@ -343,6 +356,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     await client.CloseAsync();
                     client.Dispose();
+                    logger.Dispose();
 
                     // Only throw if the caller-supplied token was cancelled. If the inner (30 second) token was
                     // cancelled, fall through and allow the device client to retry.
@@ -355,6 +369,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     await client.CloseAsync();
                     client.Dispose();
+                    logger.Dispose();
 
                     // In the {status == Disconnected, reason == Retry_Expired } scenario, fall through and allow the
                     // client to retry, otherwise throw.
@@ -365,10 +380,30 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
             }
 
-            return new LeafDevice(device, client, iotHub);
+            return new LeafDevice(device, client, iotHub, logger);
         }
 
-        public Task Close() => this.client.CloseAsync();
+        public Task CloseAsync() => this.client.CloseAsync();
+
+        public void Dispose()
+        {
+            if (this.client != null)
+            {
+                this.client.Dispose();
+                this.client = null;
+            }
+
+            if (this.sdkLogger != null)
+            {
+                this.sdkLogger.Dispose();
+                this.sdkLogger = null;
+            }
+        }
+
+        ~LeafDevice()
+        {
+            this.Dispose();
+        }
 
         public Task SendEventAsync(CancellationToken token)
         {
