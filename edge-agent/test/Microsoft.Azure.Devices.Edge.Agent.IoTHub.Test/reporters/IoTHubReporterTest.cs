@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var patches = new List<TwinCollection>();
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patches.Add(tc))
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
                 var deploymentConfig = new DeploymentConfig(
@@ -305,7 +305,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -425,6 +425,297 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
+        public async void ReportedPatchWithFailedReportedPropertiesUpdateTest()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
+                const string OperatingSystemType = "linux";
+                const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
+                var versionInfo = new VersionInfo("v1", "b1", "c1");
+
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                // Starting with an `Some<AgentState>` reported properties
+                var reportedState = new AgentState();
+                edgeAgentConnection
+                    .SetupGet(c => c.ReportedProperties)
+                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+
+                // Attempt to apply a patch, but failed to do so.
+                var patchState = new AgentState(
+                    1,
+                    DeploymentStatus.Unknown,
+                    null,
+                    null,
+                    ModuleSet.Create(
+                        new TestRuntimeModule(
+                            "mod1",
+                            "1.0",
+                            RestartPolicy.OnUnhealthy,
+                            "test",
+                            ModuleStatus.Running,
+                            new TestConfig("image1"),
+                            0,
+                            string.Empty,
+                            DateTime.MinValue,
+                            DateTime.MinValue,
+                            0,
+                            DateTime.MinValue,
+                            ModuleStatus.Running),
+                        new TestRuntimeModule(
+                            "extra_mod",
+                            "1.0",
+                            RestartPolicy.OnUnhealthy,
+                            "test",
+                            ModuleStatus.Running,
+                            new TestConfig("image1"),
+                            0,
+                            string.Empty,
+                            DateTime.MinValue,
+                            DateTime.MinValue,
+                            0,
+                            DateTime.MinValue,
+                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                    string.Empty,
+                    versionInfo);
+                TwinCollection patch = new TwinCollection(JsonConvert.SerializeObject(patchState));
+
+                // The patch failed to apply here with "false" return value.
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.FromResult(false));
+
+                // prepare AgentConfig
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    new SystemModules(null, null),
+                    new Dictionary<string, IModule>(),
+                    null);
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig);
+
+                IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
+                    RuntimeType,
+                    (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
+                IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
+
+                // build current module set
+                ModuleSet currentModuleSet = ModuleSet.Create(
+                    edgeAgentModule,
+                    new TestRuntimeModule(
+                        "mod1",
+                        "1.0",
+                        RestartPolicy.OnUnhealthy,
+                        "test",
+                        ModuleStatus.Running,
+                        new TestConfig("image1"),
+                        0,
+                        string.Empty,
+                        DateTime.MinValue,
+                        DateTime.MinValue,
+                        0,
+                        DateTime.MinValue,
+                        ModuleStatus.Backoff),
+                    new TestRuntimeModule(
+                        "mod2",
+                        "1.0",
+                        RestartPolicy.OnUnhealthy,
+                        "test",
+                        ModuleStatus.Running,
+                        new TestConfig("image1"),
+                        0,
+                        string.Empty,
+                        DateTime.MinValue,
+                        DateTime.MinValue,
+                        0,
+                        DateTime.MinValue,
+                        ModuleStatus.Running));
+
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Returns(reportedState);
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
+                // Trigger the failed patch
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
+
+                // Assert
+                // The patch didn't go through, so the reporter should not have updated the reported properties.
+                Assert.NotNull(patch);
+
+                JObject patchJson = JObject.Parse(patch.ToJson());
+
+                TwinCollection expectedReport = new TwinCollection(JsonConvert.SerializeObject(reportedState));
+                JObject expectedReportJson = JObject.Parse(expectedReport.ToJson());
+
+                // Confirm the patch didn't go through
+                Assert.False(JToken.DeepEquals(expectedReportJson, patchJson));
+                // Confirm the reported properties didn't change from the original `Some<AgentState>` state.
+                Assert.True(reporter.ReportedState.HasValue);
+                reporter.ReportedState.ForEach(
+                    s =>
+                    {
+                        JObject reportedJson = JObject.Parse(JsonConvert.SerializeObject(s));
+                        Assert.True(JToken.DeepEquals(expectedReportJson, reportedJson));
+                    });
+            }
+        }
+
+        [Fact]
+        public async void ReportedPatchWithSuccessReportedPropertiesUpdateTest()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
+                const string OperatingSystemType = "linux";
+                const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
+                var versionInfo = new VersionInfo("v1", "b1", "c1");
+
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                // Starting with an `Some<AgentState>` reported properties
+                var reportedState = new AgentState();
+                edgeAgentConnection
+                    .SetupGet(c => c.ReportedProperties)
+                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+
+                // Apply a patch
+                var patchState = new AgentState(
+                    1,
+                    DeploymentStatus.Unknown,
+                    null,
+                    null,
+                    ModuleSet.Create(
+                        new TestRuntimeModule(
+                            "mod1",
+                            "1.0",
+                            RestartPolicy.OnUnhealthy,
+                            "test",
+                            ModuleStatus.Running,
+                            new TestConfig("image1"),
+                            0,
+                            string.Empty,
+                            DateTime.MinValue,
+                            DateTime.MinValue,
+                            0,
+                            DateTime.MinValue,
+                            ModuleStatus.Running),
+                        new TestRuntimeModule(
+                            "extra_mod",
+                            "1.0",
+                            RestartPolicy.OnUnhealthy,
+                            "test",
+                            ModuleStatus.Running,
+                            new TestConfig("image1"),
+                            0,
+                            string.Empty,
+                            DateTime.MinValue,
+                            DateTime.MinValue,
+                            0,
+                            DateTime.MinValue,
+                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                    string.Empty,
+                    versionInfo);
+                TwinCollection patch = new TwinCollection(JsonConvert.SerializeObject(patchState));
+                // Setup the patch to be successful
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.FromResult(true));
+
+                // prepare AgentConfig
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    new SystemModules(null, null),
+                    new Dictionary<string, IModule>(),
+                    null);
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig);
+
+                IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
+                    RuntimeType,
+                    (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
+                IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
+
+                // build current module set
+                ModuleSet currentModuleSet = ModuleSet.Create(
+                    edgeAgentModule,
+                    new TestRuntimeModule(
+                        "mod1",
+                        "1.0",
+                        RestartPolicy.OnUnhealthy,
+                        "test",
+                        ModuleStatus.Running,
+                        new TestConfig("image1"),
+                        0,
+                        string.Empty,
+                        DateTime.MinValue,
+                        DateTime.MinValue,
+                        0,
+                        DateTime.MinValue,
+                        ModuleStatus.Backoff),
+                    new TestRuntimeModule(
+                        "mod2",
+                        "1.0",
+                        RestartPolicy.OnUnhealthy,
+                        "test",
+                        ModuleStatus.Running,
+                        new TestConfig("image1"),
+                        0,
+                        string.Empty,
+                        DateTime.MinValue,
+                        DateTime.MinValue,
+                        0,
+                        DateTime.MinValue,
+                        ModuleStatus.Running));
+
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Returns(reportedState);
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
+                // Trigger the patch apply
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
+
+                // Assert
+                // The patch didn't go through, so the reporter should not have updated the reported properties.
+                Assert.NotNull(patch);
+                JObject patchJson = JObject.Parse(patch.ToJson());
+
+                // Confirm the reported properties changed from the original `Some<AgentState>` state.
+                Assert.True(reporter.ReportedState.HasValue);
+                reporter.ReportedState.ForEach(
+                    s =>
+                    {
+                        JObject reportedJson = JObject.Parse(JsonConvert.SerializeObject(s));
+                        // The patch should be the same as the reported properties. Removing the verbose fields output.
+                        reportedJson.SelectToken("lastDesiredStatus.description")?.Parent.Remove();
+                        reportedJson.SelectToken("systemModules.edgeHub")?.Parent.Remove();
+                        reportedJson.SelectToken("systemModules.edgeAgent.env")?.Parent.Remove();
+                        Assert.True(JToken.DeepEquals(reportedJson, patchJson));
+                    });
+            }
+        }
+
+        [Fact]
         public async void ReportedPatchNoneStatusTest()
         {
             using (var cts = new CancellationTokenSource())
@@ -485,7 +776,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -680,7 +971,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -857,7 +1148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -1030,7 +1321,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     versionInfo);
                 edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -1170,7 +1461,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // build current module set
                 ModuleSet currentModuleSet = ModuleSet.Create(
@@ -1245,7 +1536,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var edgeHubDesiredModule = new EdgeHubDockerModule(
@@ -1424,7 +1715,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
@@ -1468,7 +1759,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
@@ -1515,7 +1806,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -1659,7 +1950,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var deploymentConfig = new DeploymentConfig(
@@ -1777,7 +2068,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 TwinCollection patch = null;
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
-                    .Returns(Task.CompletedTask);
+                    .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
                 var registryCreds = new Dictionary<string, RegistryCredentials>

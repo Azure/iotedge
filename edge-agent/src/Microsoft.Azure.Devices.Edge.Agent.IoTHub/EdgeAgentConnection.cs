@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.moduleConnection.Dispose();
         }
 
-        public async Task UpdateReportedPropertiesAsync(TwinCollection patch)
+        public async Task<bool> UpdateReportedPropertiesAsync(TwinCollection patch)
         {
             Events.UpdatingReportedProperties();
             try
@@ -135,12 +135,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 if (!moduleClient.HasValue)
                 {
                     Events.UpdateReportedPropertiesDeviceClientEmpty();
-                    return;
+                    return false;
                 }
 
                 await moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
                 this.deploymentMetrics.ReportIotHubSync(true);
                 Events.UpdatedReportedProperties();
+                return true;
             }
             catch (Exception e)
             {
