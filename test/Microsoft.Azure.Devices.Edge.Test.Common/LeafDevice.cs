@@ -321,13 +321,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
-            LeafDeviceSdkLogger CreateSdkLogger()
-            {
-                string[] eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
-                var loggerFactory = new LoggerFactory().AddSerilog(Log.Logger);
-                return new LeafDeviceSdkLogger(eventFilter, loggerFactory.CreateLogger("LeafDevice"));
-            }
-
             DeviceClient client;
             LeafDeviceSdkLogger logger;
             ConnectionStatus status = ConnectionStatus.Disconnected;
@@ -336,7 +329,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             while (true)
             {
                 client = clientFactory();
-                logger = CreateSdkLogger();
+                logger = new LeafDeviceSdkLogger(new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" });
 
                 client.SetConnectionStatusChangesHandler((s, r) =>
                 {

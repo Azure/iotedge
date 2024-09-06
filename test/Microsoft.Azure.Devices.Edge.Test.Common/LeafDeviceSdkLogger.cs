@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Globalization;
     using System.Linq;
     using Microsoft.Extensions.Logging;
+    using Serilog;
 
     /// <summary>
     /// Prints SDK events to Console output - the log level is set to INFORMATION
@@ -13,15 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     public sealed class LeafDeviceSdkLogger : EventListener
     {
         private readonly string[] eventFilters;
-        private readonly ILogger logger;
         private readonly object @lock = new object();
 
-        public LeafDeviceSdkLogger(string filter, ILogger logger)
-            : this(new string[] { filter }, logger)
+        public LeafDeviceSdkLogger(string filter)
+            : this(new string[] { filter })
         {
         }
 
-        public LeafDeviceSdkLogger(string[] filters, ILogger logger)
+        public LeafDeviceSdkLogger(string[] filters)
         {
             this.eventFilters = filters ?? throw new ArgumentNullException(nameof(filters));
             if (this.eventFilters.Length == 0)
@@ -36,8 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     throw new ArgumentNullException(nameof(filters));
                 }
             }
-
-            this.logger = logger;
 
             foreach (EventSource source in EventSource.GetSources())
             {
@@ -63,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 if (this.eventFilters.Any(ef => eventData.EventSource.Name.StartsWith(ef, StringComparison.Ordinal)))
                 {
                     string text = $"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture)} [SDK] [{eventData.EventSource.Name}-{eventData.EventName}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : string.Empty)}";
-                    this.logger.LogInformation(text);
+                    Log.Verbose(text);
                 }
             }
         }
