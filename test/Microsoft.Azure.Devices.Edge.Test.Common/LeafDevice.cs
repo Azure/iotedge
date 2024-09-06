@@ -29,9 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly IotHub iotHub;
         readonly string messageId;
         DeviceClient client;
-        LeafDeviceSdkLogger sdkLogger;
+        Option<LeafDeviceSdkLogger> sdkLogger;
 
-        LeafDevice(Device device, DeviceClient client, IotHub iotHub, LeafDeviceSdkLogger sdkLogger)
+        LeafDevice(Device device, DeviceClient client, IotHub iotHub, Option<LeafDeviceSdkLogger> sdkLogger)
         {
             this.client = client;
             this.device = device;
@@ -322,14 +322,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
             DeviceClient client;
-            LeafDeviceSdkLogger logger;
+            Option<LeafDeviceSdkLogger> logger = Option.None<LeafDeviceSdkLogger>();
             ConnectionStatus status = ConnectionStatus.Disconnected;
             ConnectionStatusChangeReason reason = ConnectionStatusChangeReason.Connection_Ok;
 
             while (true)
             {
                 client = clientFactory();
-                logger = new LeafDeviceSdkLogger(new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" });
+                logger = Option.Maybe(Context.Current.EnableSdkLoggingForLeafDevice
+                    ? new LeafDeviceSdkLogger(new string[]
+                    {
+                        "DotNetty-Default",
+                        "Microsoft-Azure-Devices",
+                        "Azure-Core", "Azure-Identity"
+                    })
+                    : null);
 
                 client.SetConnectionStatusChangesHandler((s, r) =>
                 {
@@ -349,7 +356,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     await client.CloseAsync();
                     client.Dispose();
-                    logger.Dispose();
+                    logger.ForEach(l => l.Dispose());
 
                     // Only throw if the caller-supplied token was cancelled. If the inner (30 second) token was
                     // cancelled, fall through and allow the device client to retry.
@@ -362,7 +369,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     await client.CloseAsync();
                     client.Dispose();
-                    logger.Dispose();
+                    logger.ForEach(l => l.Dispose());
 
                     // In the {status == Disconnected, reason == Retry_Expired } scenario, fall through and allow the
                     // client to retry, otherwise throw.
@@ -386,11 +393,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 this.client = null;
             }
 
-            if (this.sdkLogger != null)
-            {
-                this.sdkLogger.Dispose();
-                this.sdkLogger = null;
-            }
+            this.sdkLogger.ForEach(l => l.Dispose());
+            this.sdkLogger = Option.None<LeafDeviceSdkLogger>();
         }
 
         ~LeafDevice()

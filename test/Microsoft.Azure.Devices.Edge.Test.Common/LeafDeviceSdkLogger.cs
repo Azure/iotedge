@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 if (this.eventFilters.Any(ef => eventData.EventSource.Name.StartsWith(ef, StringComparison.Ordinal)))
                 {
-                    string text = $"{DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture)} [SDK] [{eventData.EventSource.Name}-{eventData.EventName}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : string.Empty)}";
+                    string text = $"[{eventData.EventSource.Name}:{eventData.EventName}]{(eventData.Payload != null ? $" ({string.Join(", ", eventData.Payload)})." : string.Empty)}";
                     Log.Verbose(text);
                 }
             }
