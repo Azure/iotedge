@@ -1,3 +1,13 @@
+# 1.5.9 (2024-09-09)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.8.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.8 to match the daemon)
+
 # 1.5.8 (2024-08-19)
 
 This release only updates aziot-edge and aziot-identity-service. The Docker images remain at 1.5.7.
