@@ -224,7 +224,7 @@ stages:
               fi
               echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
             displayName: Set Version
-          - task: AzureKeyVault@1
+          - task: AzureKeyVault@2
             displayName: 'Azure Key Vault: EdgeBuildkv'
             inputs:
               azureSubscription: $(az.subscription)
