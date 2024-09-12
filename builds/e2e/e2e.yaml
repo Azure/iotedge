@@ -308,9 +308,7 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
-    - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
         sas_uri: $(sas_uri)
