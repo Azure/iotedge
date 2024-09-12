@@ -57,7 +57,7 @@ jobs:
   dependsOn: check_run_pipeline
   condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
   variables:
-    coverage.goal: 50
+    coverage.goal: 58
   pool:
     name: $(pool.linux.name)
     demands:
@@ -92,6 +92,6 @@ jobs:
     inputs:
       checkCoverage: true
       coverageFailOption: fixed
-      coverageType: branch
+      coverageType: lines
       coverageThreshold: $(coverage.goal)
     condition: succeededOrFailed()
