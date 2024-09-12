@@ -87,7 +87,7 @@ jobs:
     inputs:
       summaryFileLocation: '$(Build.SourcesDirectory)/Cobertura.xml'
     condition: succeededOrFailed()
-  - task: BuildQualityChecks@8
+  - task: BuildQualityChecks@9
     displayName: 'Check build quality'
     inputs:
       checkCoverage: true
