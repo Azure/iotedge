@@ -82,10 +82,9 @@ jobs:
         -reporttypes:"Cobertura"
     displayName: Generate coverage report
     condition: succeededOrFailed()
-  - task: PublishCodeCoverageResults@1
+  - task: PublishCodeCoverageResults@2
     displayName: Publish coverage report
     inputs:
-      codeCoverageTool: Cobertura
       summaryFileLocation: '$(Build.SourcesDirectory)/Cobertura.xml'
     condition: succeededOrFailed()
   - task: BuildQualityChecks@8
