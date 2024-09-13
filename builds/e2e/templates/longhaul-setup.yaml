@@ -16,7 +16,7 @@ steps:
     clean: true
     fetchDepth: 100
     submodules: recursive
-  - task: AzureKeyVault@1
+  - task: AzureKeyVault@2
     displayName: 'Azure Key Vault: EdgeBuildkv'
     inputs:
       azureSubscription: $(azure.subscription)
@@ -30,7 +30,7 @@ steps:
         kvLogAnalyticSharedKey,
         EdgeLonghaulStorageAccountConnString,
         GitHubAccessToken
-  - task: AzureKeyVault@1
+  - task: AzureKeyVault@2
     displayName: 'Azure Key Vault: $(azure.keyVault)'
     inputs:
       azureSubscription: $(azure.subscription)

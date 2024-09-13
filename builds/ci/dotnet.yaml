@@ -21,7 +21,7 @@ jobs:
     variables:
       testEnvironment: linux
     steps:
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         displayName: Get secrets
         inputs:
           azureSubscription: $(azure.subscription)
