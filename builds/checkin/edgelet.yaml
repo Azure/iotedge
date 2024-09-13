@@ -162,12 +162,11 @@ jobs:
           $CARGO tarpaulin --out Xml --output-dir .
         displayName: Test
         workingDirectory: edgelet
-      - task: PublishCodeCoverageResults@1
+      - task: PublishCodeCoverageResults@2
         displayName: Publish code coverage results
         inputs:
-          codeCoverageTool: cobertura
           summaryFileLocation: "edgelet/cobertura.xml"
-      - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
+      - task: BuildQualityChecks@9
         displayName: "Check build quality"
         inputs:
           checkCoverage: true
