@@ -120,7 +120,7 @@ jobs:
         fetchDepth: 100
         submodules: recursive
         condition: and(succeeded(), eq(variables['run.flag'], 1))
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         condition: eq(variables['run.flag'], 1)
         displayName: 'Azure Key Vault: EdgeBuildkv'
         inputs:
@@ -132,7 +132,7 @@ jobs:
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
             GitHubAccessToken
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
@@ -314,7 +314,7 @@ jobs:
         fetchDepth: 100
         submodules: recursive
         condition: and(succeeded(), eq(variables['run.flag'], 1))
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         condition: eq(variables['run.flag'], 1)
         displayName: 'Azure Key Vault: EdgeBuildkv'
         inputs:
@@ -326,7 +326,7 @@ jobs:
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
             GitHubAccessToken
-      - task: AzureKeyVault@1
+      - task: AzureKeyVault@2
         displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)

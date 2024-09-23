@@ -41,7 +41,7 @@ jobs:
 
     steps:
     - template: templates/e2e-setup.yaml
-    - task: AzureKeyVault@1
+    - task: AzureKeyVault@2
       displayName: 'Get Secret'
       inputs:
         azureSubscription: $(az.subscription)
@@ -108,7 +108,7 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
-    - task: AzureKeyVault@1
+    - task: AzureKeyVault@2
       displayName: 'Get Secret'
       inputs:
         azureSubscription: $(az.subscription)
@@ -177,7 +177,7 @@ jobs:
     timeoutInMinutes: 180
 
     steps:
-    - task: AzureKeyVault@1
+    - task: AzureKeyVault@2
       displayName: 'Get Secret'
       inputs:
         azureSubscription: $(az.subscription)

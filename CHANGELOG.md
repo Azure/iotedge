@@ -1,3 +1,48 @@
+# 1.5.11 (2024-09-11)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.10.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.10 to match the daemon)
+
+# 1.5.10 (2024-09-09)
+
+## Edge Agent
+### Features
+* Add support for logging IoT Hub SDK events ( [3557a22](https://github.com/Azure/iotedge/commit/3557a2201bee4368b4e71713a45eb11367237795) )
+
+### Bug fixes
+* Don't sync reported properties to local cache until cloud sync completes ( [e4c3dc0](https://github.com/Azure/iotedge/commit/e4c3dc05fe96c36f3f5035a9cc87f23ddbfdeaac) )
+
+## Edge Hub
+### Features
+* Add support for logging IoT Hub SDK events ( [3557a22](https://github.com/Azure/iotedge/commit/3557a2201bee4368b4e71713a45eb11367237795) )
+
+## aziot-edge
+### OS support
+* Add support for Ubuntu 24.04 ( [2807232](https://github.com/Azure/iotedge/commit/28072321aa082a7a44c0c83a4dca7d62f2c50580) )
+* Add support for Debian 12 ( [5b7d20f](https://github.com/Azure/iotedge/commit/5b7d20f8ad2edf5219f43595430772f4e4919d13) )
+
+### Bug fixes
+* Increase dockerd client timeout ( [e7abc49](https://github.com/Azure/iotedge/commit/e7abc49e2192304a2969cddd308aa4178fbd5638) )
+
+## aziot-identity-service
+### OS support
+* Add support for Ubuntu 24.04 ( [0de6f80](https://github.com/Azure/iot-identity-service/commit/0de6f8079ad94e7367a1e8d52364d047099a63fa) )
+
+# 1.5.9 (2024-09-09)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.8.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.8 to match the daemon)
+
 # 1.5.8 (2024-08-19)
 
 This release only updates aziot-edge and aziot-identity-service. The Docker images remain at 1.5.7.

@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.Tracing;
     using System.Linq;
     using System.Security.Authentication;
     using System.Threading;
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -52,7 +54,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
                 logger = Logger.Factory.CreateLogger("EdgeHub");
 
-                return MainAsync(configuration, logger).Result;
+                if (configuration.GetValue<bool>("EnableSdkDebugLogs", false))
+                {
+                    // Enable SDK debug logs, see ConsoleEventListener for details
+                    string[] eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
+                    using var sdk = new ConsoleEventListener(eventFilter, logger);
+
+                    return MainAsync(configuration, logger).Result;
+                }
+                else
+                {
+                    return MainAsync(configuration, logger).Result;
+                }
             }
             catch (Exception ex)
             {
