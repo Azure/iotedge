@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 </Project>
