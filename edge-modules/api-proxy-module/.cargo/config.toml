@@ -1,6 +1,3 @@
-[env]
-SOCKET_DIR = "/run/aziot"
-
 [registries]
 One_PublicPackages = { index = "sparse+https://msazure.pkgs.visualstudio.com/One/_packaging/One_PublicPackages/Cargo/index/" }
 
