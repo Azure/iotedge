@@ -1,6 +1,3 @@
-[env]
-SOCKET_DIR = "/run/aziot"
-
 [registries]
 iotedge_PublicPackages = { index = "sparse+https://pkgs.dev.azure.com/iotedge/iotedge/_packaging/iotedge_PublicPackages/Cargo/index/" }
 
