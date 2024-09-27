@@ -3,6 +3,5 @@ cobertura.xml
 report/
 lcov.info
 vendor/
-.cargo/
 *test-data*
 *image_use*

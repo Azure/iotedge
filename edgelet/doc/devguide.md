@@ -126,6 +126,48 @@ cargo build -p aziot-edged -p iotedge
 
 This will create `aziot-edged` and `iotedge` binaries under `edgelet/target/debug`
 
+### Update a dependency
+
+If you update a dependency in one of the Rust projects, e.g., by updating a Cargo.toml file or calling `cargo update`, you may get an error when you build the project, e.g.:
+
+```sh
+$ cargo build
+error: failed to download from `https://pkgs.dev.azure.com/iotedge/39b8807f-aa0b-43ed-b4c9-58b83c0a23a7/_packaging/0581b6d1-911e-44b2-88d9-b384271aaf3a/cargo/api/v1/crates/base64/0.22.1/download`
+
+Caused by:
+  failed to get successful HTTP response from `https://pkgs.dev.azure.com/iotedge/39b8807f-aa0b-43ed-b4c9-58b83c0a23a7/_packaging/0581b6d1-911e-44b2-88d9-b384271aaf3a/cargo/api/v1/crates/base64/0.22.1/download` (13.107.42.20), got 401
+  debug headers:
+  x-cache: CONFIG_NOCACHE
+  body:
+  {"$id":"1","innerException":null,"message":"No local versions of package 'base64'; please provide authentication to access versions from upstream that have not yet been saved to your feed.","typeName":"Microsoft.TeamFoundation.Framework.Server.UnauthorizedRequestException, Microsoft.TeamFoundation.Framework.Server","typeKey":"UnauthorizedRequestException","errorCode":0,"eventId":3000}
+```
+
+To add/upgrade a package in the feed, you must authenticate with write credentials. Ideally, a simple `cargo login` before `cargo build` would allow you to seamlessly update the feed, but cargo does not currently support optional authentication with fallback to anonymous. In other words, because we allow anonymous access to the feed, cargo will not authenticate. Instead, you can use the feed's REST API directly, e.g.,
+
+```bash
+package='<package name goes here>'
+version='<package version goes here>'
+# the user needs to have "Feed and Upstream Reader (Collaborator)" permissions on the feed
+az login
+auth_header=$(az account get-access-token --query "join(' ', ['Authorization: Bearer', accessToken])" --output tsv)
+url="$(curl -sSL 'https://pkgs.dev.azure.com/iotedge/iotedge/_packaging/iotedge_PublicPackages/Cargo/index/config.json' | jq -r '.dl')"
+url="${url/\{crate\}/$package}"
+url="${url/\{version\}/$v}"
+# curl with --max-time of 5 seconds because we don't actually have to download the package, we just need to nudge
+# the feed to acquire the package from upstream
+curl -sSL --max-time 5 --header "$auth_header" --write-out '%{http_code}\n' "$url"
+```
+
+Once you've added/updated the package in the feed, the build should proceed normally.
+Contributors who need to add/update packages, but who do not have write access to the feed, can temporarily comment out the `replace-with` line in .cargo/config.toml during development:
+
+```toml
+[source.crates-io]
+# replace-with = "iotedge_PublicPackages"
+```
+
+Restore the line to its original state before opening a PR for review. Someone with access to the feed will need to update the feed before the PR can be tested and merged.
+
 
 ### Run
 
