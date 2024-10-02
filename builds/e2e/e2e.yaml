@@ -391,6 +391,10 @@ jobs:
     dependsOn: Token
     condition: succeeded('Token')
 
+    pool:
+      name: $(pool.custom.name)
+      demands: ubucore-e2e-tests
+
     variables:
       os: linux
       arch: arm64v8
