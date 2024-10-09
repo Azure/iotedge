@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string leafDeviceId = DeviceId.Current.Generate();
 
-            var leaf = await LeafDevice.CreateAsync(
+            using var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
@@ -48,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 async () =>
                 {
+                    await leaf.CloseAsync();
                     await leaf.DeleteIdentityAsync(token);
                 });
         }
