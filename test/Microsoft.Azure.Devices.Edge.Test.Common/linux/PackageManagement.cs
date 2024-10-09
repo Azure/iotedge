@@ -88,7 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     "snap connect azure-iot-edge:run-iotedge",
                     "snap connect azure-iot-edge:aziotctl-executables azure-iot-identity:aziotctl-executables",
                     "snap connect azure-iot-edge:identity-service azure-iot-identity:identity-service",
-                    "snap connect azure-iot-edge:docker docker:docker-daemon"
+                    "snap connect azure-iot-edge:docker docker:docker-daemon",
+                    "snap alias azure-iot-edge.iotedge iotedge"
                 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.PackageExtension}'"),
             };

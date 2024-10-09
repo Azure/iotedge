@@ -13,15 +13,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
-    using NUnit.Framework;
 
     using ConfigModuleName = Microsoft.Azure.Devices.Edge.Test.Common.Config.ModuleName;
 
-    [EndToEnd]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class EdgeAgentDirectMethods : SasManualProvisioningFixture
     {
-        [Test]
-        [Category("nestededge_isa95")]
+        [TestMethod]
+        [TestCategory("nestededge_isa95")]
         public async Task TestPing()
         {
             CancellationToken token = this.TestToken;
@@ -29,16 +29,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // This is a temporary solution see ticket: 9288683
             if (!Context.Current.ISA95Tag)
             {
-                await this.runtime.DeployConfigurationAsync(this.cli, token, Context.Current.NestedEdge);
+                await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
             }
 
-            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("Ping", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
+            var result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("Ping", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
             Assert.AreEqual("null", result.GetPayloadAsJson());
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestGetModuleLogs()
         {
             string moduleName = "NumberLogger";
@@ -47,13 +47,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
-            await this.runtime.DeployConfigurationAsync(
+            await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                this.cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(30000);
@@ -64,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
-            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+            var result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
@@ -78,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
-            result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+            result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
@@ -92,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
-            result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+            result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
@@ -106,11 +105,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
-            result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+            result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
             Assert.AreEqual((int)HttpStatusCode.BadRequest, result.Status);
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestGetModuleLogsNo500Tail()
         {
             string moduleName = "NumberLogger";
@@ -119,20 +118,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
-            await this.runtime.DeployConfigurationAsync(
+            await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                this.cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(30000);
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
-            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+            var result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
@@ -141,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.AreEqual(expected, response.Payload);
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestRestartModule()
         {
             string moduleName = "NumberLogger";
@@ -150,20 +148,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
-            await this.runtime.DeployConfigurationAsync(
+            await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                this.cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(10000);
 
             // restart module
             var restartRequest = new RestartRequest("1.0", moduleName);
-            var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("RestartModule", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(restartRequest)), token);
+            var result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("RestartModule", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(restartRequest)), token);
 
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
             Assert.AreEqual("null", result.GetPayloadAsJson());
@@ -171,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // check it restarted
             var logsRequest = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
-            result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(logsRequest)), token);
+            result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(logsRequest)), token);
             Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
 
             // The log _should_ contain two runs of 0-9, but on slower systems the restart request occasionally times
@@ -181,10 +178,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // next sequence) rather than expecting exactly two sequences.
             string expected = string.Join('\n', Enumerable.Range(0, count).Concat(Enumerable.Range(0, 1))) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
-            Assert.That(response.Payload.StartsWith(expected));
+            StringAssert.StartsWith(response.Payload, expected);
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestUploadModuleLogs()
         {
             string moduleName = "NumberLogger";
@@ -194,13 +191,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
-            await this.runtime.DeployConfigurationAsync(
+            await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                this.cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(10000);
@@ -220,13 +216,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var payload = JsonConvert.SerializeObject(request);
 
-            CloudToDeviceMethodResult result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(payload), token);
+            CloudToDeviceMethodResult result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(payload), token);
 
             var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
             await this.WaitForTaskCompletion(response.CorrelationId, token);
         }
 
-        [Test]
+        [TestMethod]
         public async Task TestUploadSupportBundle()
         {
             string moduleName = "NumberLogger";
@@ -236,13 +232,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             string numberLoggerImage = Context.Current.NumberLoggerImage.Expect(() => new InvalidOperationException("Missing Number Logger image"));
-            await this.runtime.DeployConfigurationAsync(
+            await runtime.DeployConfigurationAsync(
                 builder =>
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
                 },
-                this.cli,
                 token,
                 Context.Current.NestedEdge);
             await Task.Delay(10000);
@@ -257,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var payload = JsonConvert.SerializeObject(request);
 
-            CloudToDeviceMethodResult result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadSupportBundle", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(payload), token);
+            CloudToDeviceMethodResult result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("UploadSupportBundle", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(payload), token);
 
             var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
             await this.WaitForTaskCompletion(response.CorrelationId, token);
@@ -273,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     correlationId
                 };
 
-                var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
+                var result = await IotHub.InvokeMethodAsync(runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetTaskStatus", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
                 Assert.AreEqual((int)HttpStatusCode.OK, result.Status);
                 var response = JsonConvert.DeserializeObject<TaskStatusResponse>(result.GetPayloadAsJson());
