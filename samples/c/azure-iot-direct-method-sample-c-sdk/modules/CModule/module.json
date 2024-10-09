@@ -1,0 +1,18 @@
+{
+  "$schema-version": "0.0.1",
+  "description": "",
+  "image": {
+    "repository": "cctestcontainerregistry.azurecr.io/cmodule",
+    "tag": {
+      "version": "0.0.1",
+      "platforms": {
+        "amd64": "./Dockerfile.amd64",
+        "amd64.debug": "./Dockerfile.amd64.debug",
+        "arm32v7": "./Dockerfile.arm32v7",
+        "arm64v8": "./Dockerfile.arm64v8"
+      }
+    },
+    "buildOptions": []
+  },
+  "language": "c"
+}
