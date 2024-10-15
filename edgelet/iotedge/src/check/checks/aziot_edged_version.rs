@@ -185,7 +185,7 @@ impl AziotEdgedVersion {
                 .flat_map(|channel| channel.products.iter())
                 .filter(|product| product.id == "aziot-edge")
                 .flat_map(|product| product.components.iter())
-                .filter(|component| component.name == "aziot-identity-service")
+                .filter(|component| component.name == "aziot-edge")
                 .map(|component| component.version.clone())
                 .collect();
             let parsed_versions = versions
