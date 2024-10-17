@@ -184,7 +184,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
                 else
                 {
-                    Events.SkipRefreshServiceIdentity(refreshTarget, this.identitiesLastRefreshTime[refreshTarget], this.refreshDelay);
+                    Events.SkipRefreshServiceIdentity(
+                        refreshTarget,
+                        this.identitiesLastRefreshTime.TryGetValue(refreshTarget, out DateTime lastRefreshTime) ? lastRefreshTime : DateTime.UtcNow,
+                        this.refreshDelay);
                 }
             }
             catch (DeviceInvalidStateException ex)
