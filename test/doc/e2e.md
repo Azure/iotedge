@@ -71,20 +71,17 @@ _Note: the definitive source for information about test parameters is `test/Micr
 
 With the test parameters and secrets in place, you can run all the end-to-end tests from the command line
 
-_In Windows Command Prompt (Admin),_
-
-```cmd
-cd {repo root}
-dotnet test test/Microsoft.Azure.Devices.Edge.Test
-```
-_For Linux,_
 ```bash
 cd {repo root}
-sudo --preserve-env dotnet test ./test/Microsoft.Azure.Devices.Edge.Test 
+# the tests need to run as sudo but they don't need to build as sudo, so build and test in separate commands
+dotnet build ./test/Microsoft.Azure.Devices.Edge.Test
+# here's a reasonable filter for running end-to-end tests on a single device
+filter='TestCategory!=Flaky&TestCategory!=NestedEdgeOnly'
+sudo --preserve-env dotnet test ./test/Microsoft.Azure.Devices.Edge.Test --no-build --logger 'console;verbosity=detailed' --filter "$filter"
 ```
 
-To learn about other ways to run the tests (e.g., to run only certain tests), see 
-[Running selective unit tests](https://docs.microsoft.com/dotnet/core/testing/selective-unit-tests?pivots=nunit)
+To learn about other ways to filter the tests, see 
+[Running selective unit tests](https://learn.microsoft.com/en-us/dotnet/core/testing/selective-unit-tests?pivots=mstest)
 
 ### Troubleshooting
 
