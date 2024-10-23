@@ -1,3 +1,13 @@
+# 1.5.13 (2024-10-23)
+
+## aziot-edge
+### Bug fixes
+* Fix aziot-edged version check in `iotedge check` command ( [ca5b8af](https://github.com/Azure/iotedge/commit/ca5b8af2152e181c438f304ee9bd1fb5e0f546fc) [4976970](https://github.com/Azure/iotedge/commit/497697030a4cdccb9e2f57d2738e8e960fb9ca0e) )
+
+## aziot-identity-service
+### Bug fixes
+* Restore `aziotctl --version` command ( [17074d0](https://github.com/Azure/iot-identity-service/commit/17074d05d5a326d063825160fbcf27115f179046) )
+
 # 1.5.12 (2024-10-09)
 
 Only Docker images are updated in this release. The daemon remains at version 1.5.10.
