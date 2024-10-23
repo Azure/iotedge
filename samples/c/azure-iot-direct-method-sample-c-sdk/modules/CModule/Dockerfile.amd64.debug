@@ -1,0 +1,21 @@
+FROM ubuntu:bionic AS base
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends software-properties-common gdb && \
+    add-apt-repository -y ppa:aziotsdklinux/ppa-azureiot && \
+    apt-get update && \
+    apt-get install -y azure-iot-sdk-c-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM base AS build-env
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends cmake gcc g++ make && \
+    rm -rf /var/lib/apt/lists/* 
+WORKDIR /app
+COPY . ./
+RUN cmake -DCMAKE_BUILD_TYPE=Debug . 
+RUN make
+
+FROM base
+WORKDIR /app
+COPY --from=build-env /app ./
+CMD ["./main"]
