@@ -199,7 +199,7 @@ impl AziotEdgedVersion {
                 .find(|semver| semver.major == actual_semver.major && semver.minor == actual_semver.minor)
                 .ok_or_else(|| {
                     anyhow!(
-                        "could not find aziot-identity-service version {}.{}.x in list of supported products at {}",
+                        "could not find aziot-edge version {}.{}.x in list of supported products at {}",
                         actual_semver.major,
                         actual_semver.minor,
                         Self::URI
