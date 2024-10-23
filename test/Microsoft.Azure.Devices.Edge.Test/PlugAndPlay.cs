@@ -10,27 +10,27 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
-    using Microsoft.VisualStudio.TestPlatform.ObjectModel;
-    using NUnit.Framework;
 
-    [EndToEnd]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class PlugAndPlay : SasManualProvisioningFixture
     {
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
         const string LoadGenModuleName = "loadGenModule";
 
-        [TestCase(Protocol.Mqtt)]
-        [TestCase(Protocol.Amqp)]
-        [Category("LegacyMqttRequired")]
+        [TestMethod]
+        [TestCategory("LegacyMqttRequired")]
+        [DataRow(Protocol.Mqtt)]
+        [DataRow(Protocol.Amqp)]
         public async Task PlugAndPlayDeviceClient(Protocol protocol)
         {
+            this.TestContext.Properties.Add("Row", $"{protocol}");
             CancellationToken token = this.TestToken;
             string leafDeviceId = DeviceId.Current.Generate();
 
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                 config,
-                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -38,11 +38,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 leafDeviceId,
                 protocol,
                 AuthenticationType.Sas,
-                Option.Some(this.runtime.DeviceId),
+                Option.Some(runtime.DeviceId),
                 false,
-                this.ca,
-                this.daemon.GetCertificatesPath(),
-                this.IotHub,
+                ca,
+                daemon.GetCertificatesPath(),
+                IotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.Some(TestModelId),
@@ -62,31 +62,31 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [TestCase(Protocol.Mqtt)]
-        [TestCase(Protocol.Amqp)]
-        [Category("LegacyMqttRequired")]
-        [Test]
+        [TestMethod]
+        [TestCategory("LegacyMqttRequired")]
+        [DataRow(Protocol.Mqtt)]
+        [DataRow(Protocol.Amqp)]
         public async Task PlugAndPlayModuleClient(Protocol protocol)
         {
+            this.TestContext.Properties.Add("Row", $"{protocol}");
             CancellationToken token = this.TestToken;
 
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
 
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol) + this.BuildAddLoadGenConfig(protocol, loadGenImage);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(
                 config,
-                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
             EdgeModule filter = deployment.Modules[LoadGenModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
-            await this.ValidateIdentity(this.runtime.DeviceId, Option.Some(LoadGenModuleName), TestModelId, token);
+            await this.ValidateIdentity(runtime.DeviceId, Option.Some(LoadGenModuleName), TestModelId, token);
         }
 
         async Task ValidateIdentity(string deviceId, Option<string> moduleId, string expectedModelId, CancellationToken token)
         {
-            Twin twin = await this.IotHub.GetTwinAsync(deviceId, moduleId, token);
+            Twin twin = await IotHub.GetTwinAsync(deviceId, moduleId, token);
             string actualModelId = twin.ModelId;
             Assert.AreEqual(expectedModelId, actualModelId);
         }

@@ -10,18 +10,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
 
-    [SetUpFixture]
+    [TestClass]
     public class SetupFixture
     {
-        IEdgeDaemon daemon;
+        static IEdgeDaemon daemon;
 
-        [OneTimeSetUp]
-        public async Task BeforeAllAsync()
+        [AssemblyInitialize]
+        public static async Task BeforeAllAsync(TestContext testContext)
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
             CancellationToken token = cts.Token;
@@ -32,17 +30,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 : LogEventLevel.Information;
             var loggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
-                .WriteTo.NUnit(consoleLevel);
+                .WriteTo.Console(consoleLevel);
             Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
             Log.Logger = loggerConfig.CreateLogger();
 
-            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, token);
+            daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, token);
 
             await Profiler.Run(
                 async () =>
                 {
                     // Install IoT Edge, and do some basic configuration
-                    await this.daemon.UninstallAsync(token);
+                    await daemon.UninstallAsync(token);
 
                     // Delete directories used by previous installs.
                     string[] directories = { "/run/aziot", "/var/lib/aziot", "/etc/aziot" };
@@ -56,9 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         }
                     }
 
-                    await this.daemon.InstallAsync(Context.Current.EdgeProxy, token);
+                    await daemon.InstallAsync(Context.Current.EdgeProxy, token);
 
-                    string certsPath = this.daemon.GetCertificatesPath();
+                    string certsPath = daemon.GetCertificatesPath();
                     if (Directory.Exists(certsPath))
                     {
                         Directory.Delete(certsPath, true);
@@ -66,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     Directory.CreateDirectory(certsPath);
 
-                    await this.daemon.ConfigureAsync(
+                    await daemon.ConfigureAsync(
                         async config =>
                         {
                             var msgBuilder = new StringBuilder();
@@ -111,23 +109,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 "Completed end-to-end test setup");
         }
 
-        [OneTimeTearDown]
-        public Task AfterAllAsync() => TryFinally.DoAsync(
+        [AssemblyCleanup]
+        public static Task AfterAllAsync() => TryFinally.DoAsync(
             () => Profiler.Run(
                 async () =>
                 {
                     using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                     CancellationToken token = cts.Token;
-                    await this.daemon.StopAsync(token);
+                    await daemon.StopAsync(token);
                     foreach (EdgeDevice device in Context.Current.DeleteList.Values)
                     {
                         await device.MaybeDeleteIdentityAsync(token);
                     }
 
                     // Remove packages installed by this run.
-                    await this.daemon.UninstallAsync(token);
+                    await daemon.UninstallAsync(token);
 
-                    string certsPath = this.daemon.GetCertificatesPath();
+                    string certsPath = daemon.GetCertificatesPath();
                     if (Directory.Exists(certsPath))
                     {
                         Directory.Delete(certsPath, true);

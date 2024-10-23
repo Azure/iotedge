@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
-    using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common;
@@ -16,11 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
-    using NUnit.Framework;
     using Serilog;
 
-    [EndToEnd]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class PriorityQueues : SasManualProvisioningFixture
     {
         const string TrcModuleName = "testResultCoordinator";
@@ -31,8 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string LoadGenTestDuration = "00:00:20";
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
-        [Test]
-        [Category("Flaky")]
+        [TestMethod]
+        [TestCategory("Flaky")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
             CancellationToken token = this.TestToken;
@@ -45,16 +43,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
             Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName, false);
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, this.cli, token, Context.Current.NestedEdge);
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, this.cli, token, Context.Current.NestedEdge);
+            deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
-            Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
+            Assert.IsTrue(await TestResultCoordinatorUtil.IsResultValidAsync());
         }
 
-        [Test]
-        [Category("Flaky")]
+        [TestMethod]
+        [TestCategory("Flaky")]
         public async Task PriorityQueueModuleToHubMessages()
         {
             CancellationToken token = this.TestToken;
@@ -71,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, "hubtest", false);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = TestResultCoordinatorUtil.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addNetworkControllerConfig, this.cli, token, Context.Current.NestedEdge);
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addNetworkControllerConfig, token, Context.Current.NestedEdge);
             bool networkOn = true;
             await this.ToggleConnectivity(!networkOn, NetworkControllerModuleName, token);
             await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(testInfo.LoadGenStartDelay) + TimeSpan.FromSeconds(10));
@@ -84,11 +82,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
             }
 
-            Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
+            Assert.IsTrue(await TestResultCoordinatorUtil.IsResultValidAsync());
         }
 
-        [Test]
-        [Category("Flaky")]
+        [TestMethod]
+        [TestCategory("Flaky")]
         public async Task PriorityQueueTimeToLive()
         {
             CancellationToken token = this.TestToken;
@@ -101,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
             Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName, false);
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, this.cli, token, Context.Current.NestedEdge);
+            EdgeDeployment deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
             await Profiler.Run(
@@ -109,9 +107,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 "Waited for message TTL to expire");
 
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, this.cli, token, Context.Current.NestedEdge);
+            deployment = await runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
-            Assert.True(await TestResultCoordinatorUtil.IsResultValidAsync());
+            Assert.IsTrue(await TestResultCoordinatorUtil.IsResultValidAsync());
         }
 
         async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, string trackingId, CancellationToken token)
@@ -120,8 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 async () =>
                 {
                     HashSet<int> results = new HashSet<int>();
-                    await this.IotHub.ReceiveEventsAsync(
-                        this.runtime.DeviceId,
+                    await IotHub.ReceiveEventsAsync(
+                        runtime.DeviceId,
                         startTime,
                         data =>
                         {
@@ -295,8 +293,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private async Task ToggleConnectivity(bool connectivityOn, string moduleName, CancellationToken token) =>
             await Profiler.Run(
                 async () =>
-                    await this.IotHub.InvokeMethodAsync(
-                        this.runtime.DeviceId,
+                    await IotHub.InvokeMethodAsync(
+                        runtime.DeviceId,
                         moduleName,
                         new CloudToDeviceMethod("toggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
                         token),
@@ -309,7 +307,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             do
             {
                 await Task.Delay(TimeSpan.FromSeconds(5));
-                var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)), token);
+                var result = await IotHub.InvokeMethodAsync(runtime.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)), token);
                 Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
                 testStatus = JsonConvert.DeserializeObject<PriorityQueueTestStatus>(result.GetPayloadAsJson());
             }
