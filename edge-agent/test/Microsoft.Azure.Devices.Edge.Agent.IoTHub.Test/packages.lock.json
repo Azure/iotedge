@@ -8,6 +8,20 @@
         "resolved": "3.1.2",
         "contentHash": "wuLDIDKD5XMt0A7lE31JPenT7QQwZPFkP5rRpdJeblyXZ9MGLI8rYjvm5fvAKln+2/X+4IxxQDxBtwdrqKNLZw=="
       },
+      "Microsoft.Azure.Devices": {
+        "type": "Direct",
+        "requested": "[1.31.6, )",
+        "resolved": "1.31.6",
+        "contentHash": "/skCDrkfdyiWsJc9Lbm3nrkHZVboFCxzpd4RaLYrx1t59qfBDAydGQYDY/sKEKFXy1Kpttk9MFN7Qy91LSEISQ==",
+        "dependencies": {
+          "Microsoft.Azure.Amqp": "2.5.12",
+          "Microsoft.Azure.Devices.Shared": "1.27.2",
+          "Microsoft.Rest.ClientRuntime": "2.3.21",
+          "Newtonsoft.Json": "12.0.3",
+          "System.Diagnostics.Contracts": "4.3.0",
+          "System.Diagnostics.TraceSource": "4.3.0"
+        }
+      },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
         "requested": "[17.3.1, )",
@@ -238,19 +252,6 @@
         "type": "Transitive",
         "resolved": "2.5.12",
         "contentHash": "0SlEl+TSQdpjXWf9/37dXWAa0zk6R1EJKmGtGZeKUAH7WEQpJOWMxJ9I43igcBCnTkFwa28CdPnpSCjFZVQlkw=="
-      },
-      "Microsoft.Azure.Devices": {
-        "type": "Transitive",
-        "resolved": "1.31.6",
-        "contentHash": "/skCDrkfdyiWsJc9Lbm3nrkHZVboFCxzpd4RaLYrx1t59qfBDAydGQYDY/sKEKFXy1Kpttk9MFN7Qy91LSEISQ==",
-        "dependencies": {
-          "Microsoft.Azure.Amqp": "2.5.12",
-          "Microsoft.Azure.Devices.Shared": "1.27.2",
-          "Microsoft.Rest.ClientRuntime": "2.3.21",
-          "Newtonsoft.Json": "12.0.3",
-          "System.Diagnostics.Contracts": "4.3.0",
-          "System.Diagnostics.TraceSource": "4.3.0"
-        }
       },
       "Microsoft.Azure.Devices.Client": {
         "type": "Transitive",
@@ -2070,7 +2071,6 @@
         "type": "Project",
         "dependencies": {
           "Azure.Storage.Blobs": "[12.19.1, )",
-          "Microsoft.Azure.Devices": "[1.31.6, )",
           "Microsoft.Azure.Devices.Client": "[1.36.10, )",
           "Microsoft.Azure.Devices.Edge.Agent.Core": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"
