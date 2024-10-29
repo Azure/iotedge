@@ -83,12 +83,10 @@ jobs:
     displayName: Run GetLogsTests unit tests with code coverage
     condition: succeededOrFailed()
   - script: |
-      dotnet new tool-manifest
-      dotnet tool install dotnet-reportgenerator-globaltool
-      dotnet tool run reportgenerator \
+      reportgenerator \
         -reports:$(Agent.TempDirectory)/**/coverage.cobertura.xml \
         -targetdir:$(Build.SourcesDirectory) \
-        -reporttypes:"Cobertura"
+        -reporttypes:Cobertura
     displayName: Generate coverage report
     condition: succeededOrFailed()
   - task: PublishCodeCoverageResults@2
