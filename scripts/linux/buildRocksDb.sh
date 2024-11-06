@@ -88,7 +88,7 @@ cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 EOF
 
 docker buildx create \
-    --config $HOME/buildkitd.toml --driver-opt image=oss/v2/moby/buildkit:v0.16.0 \
+    --config $HOME/buildkitd.toml --driver-opt image=oss/moby/buildkit:0.16.0 \
     --use --bootstrap
 trap "docker buildx rm" EXIT
 
