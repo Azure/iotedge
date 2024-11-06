@@ -196,7 +196,7 @@ IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION
 
 echo "Building and pushing image '$IMAGE'"
 
-> $HOME/buildkitd.toml <EOF
+> $HOME/buildkitd.toml cat <<EOF
 [registry."docker.io"]
     mirrors = ["mcr.microsoft.com"]
 EOF

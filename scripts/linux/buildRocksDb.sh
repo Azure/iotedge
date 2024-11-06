@@ -82,7 +82,7 @@ esac
 build_image=rocksdb-build:main-$ARCH-$BUILD_NUMBER
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 
-> $HOME/buildkitd.toml <EOF
+> $HOME/buildkitd.toml cat <<EOF
 [registry."docker.io"]
     mirrors = ["mcr.microsoft.com"]
 EOF
