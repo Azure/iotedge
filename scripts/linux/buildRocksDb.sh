@@ -82,12 +82,12 @@ esac
 build_image=rocksdb-build:main-$ARCH-$BUILD_NUMBER
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 
-buildkitd.toml << EOF
+$HOME/buildkitd.toml <EOF
 [registry."docker.io"]
     mirrors = ["mcr.microsoft.com"]
 EOF
 
-docker buildx create --use --bootstrap --config buildkitd.toml
+docker buildx create --use --bootstrap --config $HOME/buildkitd.toml
 trap "docker buildx rm" EXIT
 
 docker buildx build \
