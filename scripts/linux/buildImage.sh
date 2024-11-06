@@ -196,13 +196,7 @@ IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION
 
 echo "Building and pushing image '$IMAGE'"
 
-> $HOME/buildkitd.toml cat <<EOF
-[registry."docker.io"]
-    mirrors = ["mcr.microsoft.com"]
-EOF
-
 docker buildx create \
-    --config $HOME/buildkitd.toml \
     --driver-opt image=mcr.microsoft.com/oss/v2/moby/buildkit:v0.16.0 \
     --use --bootstrap
 trap "docker buildx rm" EXIT
