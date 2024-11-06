@@ -196,7 +196,12 @@ IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION
 
 echo "Building and pushing image '$IMAGE'"
 
-docker buildx create --use --bootstrap
+buildkitd.toml << EOF
+[registry."docker.io"]
+    mirrors = ["mcr.microsoft.com"]
+EOF
+
+docker buildx create --use --bootstrap --config buildkitd.toml
 trap "docker buildx rm" EXIT
 
 if [[ "$APP" == 'api-proxy-module' ]]; then
