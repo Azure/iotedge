@@ -82,7 +82,9 @@ esac
 build_image=rocksdb-build:main-$ARCH-$BUILD_NUMBER
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 
-docker buildx create --use --bootstrap
+docker buildx create \
+    --driver-opt image=mcr.microsoft.com/oss/v2/moby/buildkit:v0.16.0 \
+    --use --bootstrap
 trap "docker buildx rm" EXIT
 
 docker buildx build \

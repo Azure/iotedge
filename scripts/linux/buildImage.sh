@@ -196,7 +196,9 @@ IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION
 
 echo "Building and pushing image '$IMAGE'"
 
-docker buildx create --use --bootstrap
+docker buildx create \
+    --driver-opt image=mcr.microsoft.com/oss/v2/moby/buildkit:v0.16.0 \
+    --use --bootstrap
 trap "docker buildx rm" EXIT
 
 if [[ "$APP" == 'api-proxy-module' ]]; then
