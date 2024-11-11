@@ -10,12 +10,6 @@ schedules:
     include:
     - main
   always: true
-- cron: "0 12 * * *"
-  displayName: Daily run release/1.4
-  branches:
-    include:
-    - release/1.4
-  always: true
 
 variables:
   Codeql.Enabled: false
