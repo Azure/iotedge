@@ -14,10 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class Image : SasManualProvisioningFixture
     {
         const string SensorName = "tempSensor";
-        const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+        const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.5";
 
         [Test]
-        [Category("CentOsSafe")]
         public async Task ImageGarbageCollection()
         {
             CancellationToken token = this.TestToken;
@@ -29,13 +28,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(SensorName, sensorImage);
                 },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
             EdgeModule sensor = deployment1.Modules[SensorName];
-            await sensor.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            await sensor.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
 
             // Create second deployment without simulated temperature sensor
             EdgeDeployment deployment2 = await this.runtime.DeployConfigurationAsync(
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 

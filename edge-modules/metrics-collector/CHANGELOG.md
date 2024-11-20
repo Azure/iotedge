@@ -1,3 +1,87 @@
+# 1.2.13 (2024-11-13)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.12 (2024-11-12)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.11 (2024-10-09)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.10 (2024-09-11)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.9 (2024-09-07)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.8 (2024-08-28)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.7 (2024-07-23)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.6 (2024-07-10)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.5 (2024-07-06)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.4 (2024-06-21)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.3 (2024-05-30)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.2 (2024-05-25)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.1 (2024-05-15)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.2.0 (2024-05-01)
+
+## What's new in 1.2?
+
+The Metrics Collector 1.2 module has been upgraded from .NET 6 to .NET 8. Its functionality remains unchanged and it will work seamlessly in IoT Edge 1.4 LTS or 1.5 LTS environments. Users can confidently update Metrics Collector 1.1 in their IoT Edge deployments to the new 1.2 version. Changes include (see [7508ffc](https://github.com/Azure/iotedge/commit/7508ffc6ab9f4d52a3243d0cdce1e52cdfd29912)):
+* Update the base image from .NET 6 to .NET 8
+* Recompile for .NET 8
+* Upgrade the IoT device SDK to a version that is consistent with the latest (1.5) version of IoT Edge
+
+# 1.1.24 (2024-04-10)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 1.1.23 (2024-03-15)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
 # 1.1.22 (2024-02-14)
 
 The following Docker images were updated because their base images changed:

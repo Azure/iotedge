@@ -17,12 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
     class Device : SasManualProvisioningFixture
     {
         [Test]
-        [Category("CentOsSafe")]
         public async Task QuickstartCerts()
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -33,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 this.device.NestedEdge.DeviceHostname,
                 token,
@@ -54,14 +54,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         [Category("NestedEdgeOnly")]
         [Category("FlakyOnNested")]
         public async Task QuickstartChangeSasKey()
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -73,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 this.device.NestedEdge.DeviceHostname,
                 token,
@@ -102,6 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 this.device.NestedEdge.DeviceHostname,
                 token,
@@ -124,14 +125,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         [Category("NestedEdgeOnly")]
         [Category("NestedEdgeAmqpOnly")]
         public async Task RouteMessageL3LeafToL4Module()
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, Context.Current.NestedEdge);
 
             // These must match the IDs in nestededge_middleLayerBaseDeployment_amqp.json,
             // which defines a route that filters by deviceId to forwards the message
@@ -148,6 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
@@ -191,14 +192,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         [Category("Flaky")]
         public async Task DisableReenableParentEdge()
         {
             CancellationToken token = this.TestToken;
 
             Log.Verbose("Deploying L3 Edge");
-            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+            await this.runtime.DeployConfigurationAsync(this.cli, token, this.device.NestedEdge.IsNestedEdge);
 
             // Disable the parent Edge device
             Log.Verbose("Disabling Edge device");
@@ -219,6 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
+                this.daemon.GetCertificatesPath(),
                 this.IotHub,
                 this.device.NestedEdge.DeviceHostname,
                 token,

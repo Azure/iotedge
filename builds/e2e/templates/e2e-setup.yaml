@@ -4,7 +4,7 @@ steps:
     fetchDepth: 100
     submodules: recursive
   
-  - task: AzureKeyVault@1
+  - task: AzureKeyVault@2
     displayName: Get secrets
     inputs:
       azureSubscription: $(az.subscription)
@@ -18,8 +18,7 @@ steps:
         TestIotHubResourceId,
         TestRootCaCertificate,
         TestRootCaKey,
-        TestRootCaPassword,
-        TestBlobStoreSas
+        TestRootCaPassword
 
   - bash: | 
       echo "Built Images Result is '$(builtImages)'"
@@ -113,7 +112,7 @@ steps:
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       dotnet build $testDir
   
-      $binDir = Convert-Path "$testDir/bin/Debug/net6.0"
+      $binDir = Convert-Path "$testDir/bin/Debug/net8.0"
       Write-Output "##vso[task.setvariable variable=binDir]$binDir"
     env:
       http_proxy: $(Agent.ProxyUrl)

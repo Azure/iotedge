@@ -11,7 +11,7 @@ Make sure the following dependencies are installed in your environment before yo
 
 | Dependency    | Notes                                                                                                                                                          |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| .NET 6.0 | Installation instructions [here](https://www.microsoft.com/net/core).                                                                                          |
+| .NET 8.0 | Installation instructions [here](https://www.microsoft.com/net/core).                                                                                          |
 | Java          | Not needed if building in VS IDE (Windows). Otherwise, a JRE is required to compile the Antlr4 grammar files into C# classes, and `java` must be on your path. |
 
 ## Build
@@ -59,7 +59,7 @@ scripts/linux/downloadAndInstallCert.sh -v <VaultName> -c <CertName>
 Then run the tests either with Test Explorer in Visual Studio IDE, or with:
 
 ```sh
-scripts/linux/runTests.sh "--filter Category=Integration"
+scripts/linux/runTests.sh "Category=Integration"
 ```
 
 The syntax of the "filter" argument is described [here](https://docs.microsoft.com/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.

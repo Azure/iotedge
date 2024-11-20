@@ -1,0 +1,8 @@
+[registries]
+iotedge_PublicPackages = { index = "sparse+https://pkgs.dev.azure.com/iotedge/iotedge/_packaging/iotedge_PublicPackages/Cargo/index/" }
+
+[registry]
+global-credential-providers = ["cargo:token", "cargo:libsecret"]
+
+[source.crates-io]
+replace-with = "iotedge_PublicPackages"

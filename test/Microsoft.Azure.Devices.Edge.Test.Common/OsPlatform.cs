@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -19,12 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public static bool Is64Bit() => RuntimeInformation.OSArchitecture == Architecture.X64 || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
         public static bool IsArm() => RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64;
-
-        public CaCertificates GetEdgeQuickstartCertificates(string deviceId) =>
-            new CaCertificates(
-                    FixedPaths.QuickStartCaCert.Cert(deviceId),
-                    FixedPaths.QuickStartCaCert.Key(deviceId),
-                    FixedPaths.QuickStartCaCert.TrustCert(deviceId));
 
         protected async Task InstallRootCertificateAsync(
             string basePath,
@@ -64,15 +59,42 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static void CheckFiles(IEnumerable<string> paths, string basePath) => NormalizeFiles(paths, basePath);
 
-        public static string[] NormalizeFiles(IEnumerable<string> paths, string basePath)
-        {
-            return paths.Select(
-                path =>
+        public static FileInfo[] NormalizeFiles(IEnumerable<string> paths, string basePath, bool assertExists = true) =>
+            paths.Select(path =>
+            {
+                var file = new FileInfo(Path.Combine(basePath, path));
+                if (assertExists)
                 {
-                    var file = new FileInfo(Path.Combine(basePath, path));
                     Preconditions.CheckArgument(file.Exists, $"File Not Found: {file.FullName}");
-                    return file.FullName;
-                }).ToArray();
+                }
+
+                return file;
+            }).ToArray();
+
+        public static void CopyCertificates(FileInfo[] sourcePaths, FileInfo[] destinationPaths)
+        {
+            Preconditions.CheckArgument(sourcePaths.Length == destinationPaths.Length);
+            for (int i = 0; i < sourcePaths.Length; i++)
+            {
+                var parentDir = Directory.GetParent(destinationPaths[i].FullName);
+                if (!parentDir.Exists)
+                {
+                    parentDir.Create();
+                }
+
+                sourcePaths[i].CopyTo(destinationPaths[i].FullName, overwrite: true);
+                switch (destinationPaths[i])
+                {
+                    case var path when path.Name.EndsWith("key.pem"):
+                        OsPlatform.Current.SetOwner(path.FullName, "aziotks", "600");
+                        break;
+                    case var path when path.Name.EndsWith("cert.pem"):
+                        OsPlatform.Current.SetOwner(path.FullName, "aziotcs", "644");
+                        break;
+                    case var path:
+                        throw new NotImplementedException($"Expected file {path} to end with 'key.pem' or 'cert.pem'");
+                }
+            }
         }
     }
 }

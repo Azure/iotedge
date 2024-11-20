@@ -41,20 +41,19 @@ jobs:
 
     steps:
     - template: templates/e2e-setup.yaml
-    - task: AzureKeyVault@1
+    - task: AzureKeyVault@2
       displayName: 'Get Secret'
       inputs:
         azureSubscription: $(az.subscription)
         KeyVaultName: $(az.keyvault)
         SecretsFilter: >-
-          edgebuild-service-principal-secret,
-    - task: Bash@3
-      displayName: 'Az login'
+          edgebuild-service-principal-secret
+    - task: AzureCLI@2
       inputs:
+        azureSubscription: 'IoTEdge1-msazure'
+        scriptType: 'bash'
         targetType: inline
         script: |
-          az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
-    - bash: |
           contextPath=$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/net6.0/context.json
           mkdir -p $(Build.ArtifactStagingDirectory)/compat
           edgeAgentImage="$(cat $contextPath | jq '.edgeAgentImage' | tr -d '"')" 
@@ -109,7 +108,7 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
-    - task: AzureKeyVault@1
+    - task: AzureKeyVault@2
       displayName: 'Get Secret'
       inputs:
         azureSubscription: $(az.subscription)
@@ -178,7 +177,7 @@ jobs:
     timeoutInMinutes: 180
 
     steps:
-    - task: AzureKeyVault@1
+    - task: AzureKeyVault@2
       displayName: 'Get Secret'
       inputs:
         azureSubscription: $(az.subscription)

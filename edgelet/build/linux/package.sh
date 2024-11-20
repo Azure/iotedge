@@ -15,24 +15,6 @@ VERSION="${VERSION:-$DEFAULT_VERSION}"
 DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
-    'centos7')
-        # Converts debian versioning to rpm version
-        # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
-        RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
-        RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2)"
-        if [ -n "$RPM_TAG" ]; then
-            RPM_RELEASE="0.$REVISION.$RPM_TAG"
-        else
-            RPM_RELEASE="$REVISION"
-        fi
-
-        case "$PACKAGE_ARCH" in
-            'amd64')
-                DOCKER_IMAGE='centos:7.5.1804'
-                ;;
-        esac
-        ;;
-
     'redhat8')
         # Converts debian versioning to rpm version
         # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
@@ -69,20 +51,24 @@ case "$PACKAGE_OS" in
         esac
         ;;
 
-    'debian10')
-        DOCKER_IMAGE='debian:10-slim'
+    'debian11')
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/debian:bullseye-slim'
         ;;
 
-    'debian11')
-        DOCKER_IMAGE='debian:11-slim'
+    'debian12')
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/debian:bookworm-slim'
         ;;
 
     'ubuntu20.04')
-        DOCKER_IMAGE='ubuntu:20.04'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:20.04'
         ;;
 
     'ubuntu22.04')
-        DOCKER_IMAGE='ubuntu:22.04'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:22.04'
+        ;;
+    
+    'ubuntu24.04')
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:24.04'
         ;;
 esac
 
@@ -111,16 +97,6 @@ fi
 
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
-    centos7.amd64)
-        SETUP_COMMAND=$'
-            yum update -y &&
-            yum install -y \
-                curl git make rpm-build \
-                gcc gcc-c++ \
-                libcurl-devel libuuid-devel openssl-devel &&
-        '
-        ;;
-
     redhat8.amd64)
         SETUP_COMMAND=$'
             dnf distro-sync -y &&
@@ -198,7 +174,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu20.04.amd64|ubuntu22.04.amd64)
+    ubuntu20.04.amd64|ubuntu22.04.amd64|ubuntu24.04.amd64)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
             libcurl4-openssl-dev libssl-dev pkg-config uuid-dev'
         case "$PACKAGE_OS" in
@@ -255,6 +231,37 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         "
         ;;
 
+    # Ubuntu 24.04 uses DEB822 format for sources.list, so we have to handle it differently
+    ubuntu24.04.arm32v7)
+        packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
+            gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libcurl4-openssl-dev:armhf \
+            libssl-dev:armhf uuid-dev:armhf'
+
+        SETUP_COMMAND=$"
+            export DEBIAN_FRONTEND=noninteractive
+            export TZ=UTC
+            # Update existing repos to be specifically for amd64
+            sed -ie '/^Architectures:/d' /etc/apt/sources.list.d/ubuntu.sources &&
+            sed -ie '/^Components:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources &&
+            # Add arch-specific repos
+            </etc/apt/sources.list.d/ubuntu.sources sed \
+                -e 's/^Architectures: amd64/Architectures: armhf/g' \
+                -e 's|URIs: http://archive.ubuntu.com/ubuntu/|URIs: http://ports.ubuntu.com/ubuntu-ports/|g' \
+                -e 's|URIs: http://security.ubuntu.com/ubuntu/|URIs: http://ports.ubuntu.com/ubuntu-ports/|g' \
+                >/etc/apt/sources.list.d/ubuntu.ports.sources &&
+
+            dpkg --add-architecture armhf &&
+            apt-get update &&
+            apt-get upgrade -y &&
+            apt-get install -y --no-install-recommends $packages &&
+            mkdir -p ~/.cargo &&
+            echo '[target.armv7-unknown-linux-gnueabihf]' > ~/.cargo/config &&
+            echo 'linker = \"arm-linux-gnueabihf-gcc\"' >> ~/.cargo/config &&
+            export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_LIB_DIR=/usr/lib/arm-linux-gnueabihf &&
+            export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include &&
+        "
+        ;;
+
     ubuntu20.04.aarch64|ubuntu22.04.aarch64)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc \
             g++ gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libcurl4-openssl-dev:arm64 \
@@ -291,6 +298,36 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
         "
         ;;
+
+    # Ubuntu 24.04 uses DEB822 format for sources.list, so we have to handle it differently
+    ubuntu24.04.aarch64)
+        packages='binutils build-essential ca-certificates curl debhelper file git make gcc \
+            g++ gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libcurl4-openssl-dev:arm64 \
+            libssl-dev:arm64 uuid-dev:arm64'
+        SETUP_COMMAND=$"
+            export DEBIAN_FRONTEND=noninteractive
+            export TZ=UTC
+            # Update existing repos to be specifically for amd64
+            sed -ie '/^Architectures:/d' /etc/apt/sources.list.d/ubuntu.sources &&
+            sed -ie '/^Components:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources &&
+            # Add arch-specific repos
+            </etc/apt/sources.list.d/ubuntu.sources sed \
+                -e 's/^Architectures: amd64/Architectures: arm64/g' \
+                -e 's|URIs: http://archive.ubuntu.com/ubuntu/|URIs: http://ports.ubuntu.com/ubuntu-ports/|g' \
+                -e 's|URIs: http://security.ubuntu.com/ubuntu/|URIs: http://ports.ubuntu.com/ubuntu-ports/|g' \
+                >/etc/apt/sources.list.d/ubuntu.ports.sources &&
+
+            dpkg --add-architecture arm64 &&
+            apt-get update &&
+            apt-get upgrade -y &&
+            apt-get install -y --no-install-recommends $packages &&
+            mkdir -p ~/.cargo &&
+            echo '[target.aarch64-unknown-linux-gnu]' > ~/.cargo/config &&
+            echo 'linker = \"aarch64-linux-gnu-gcc\"' >> ~/.cargo/config &&
+            export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu &&
+            export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
+        "
+        ;;
 esac
 
 if [ -z "$SETUP_COMMAND" ]; then
@@ -299,31 +336,6 @@ if [ -z "$SETUP_COMMAND" ]; then
 fi
 
 case "$PACKAGE_OS" in
-    centos7)
-        case "$PACKAGE_ARCH" in
-            amd64)
-                MAKE_TARGET_DIR='target/release'
-                ;;
-            arm32v7)
-                MAKE_TARGET_DIR="target/$RUST_TARGET/release"
-                CARGO_TARGET_FLAG="--target $RUST_TARGET"
-                RPMBUILD_TARGET_FLAG='--target armv7hl'
-                ;;
-            aarch64)
-                MAKE_TARGET_DIR="target/$RUST_TARGET/release"
-                CARGO_TARGET_FLAG="--target $RUST_TARGET"
-                RPMBUILD_TARGET_FLAG='--target aarch64'
-                ;;
-        esac
-
-        MAKE_COMMAND="mkdir -p /project/edgelet/target/rpmbuild"
-        MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet/target/rpmbuild"
-        MAKE_COMMAND="$MAKE_COMMAND && mkdir -p RPMS SOURCES SPECS SRPMS BUILD"
-        MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet"
-        MAKE_COMMAND="$MAKE_COMMAND && make rpm-dist 'TARGET=target/rpmbuild/SOURCES' 'VERSION=$VERSION' 'REVISION=$REVISION'"
-        MAKE_COMMAND="$MAKE_COMMAND && make rpm rpmbuilddir=/project/edgelet/target/rpmbuild 'TARGET=$MAKE_TARGET_DIR' 'VERSION=$VERSION' 'REVISION=$REVISION' 'CARGOFLAGS=--manifest-path ./Cargo.toml $CARGO_TARGET_FLAG' RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /project/edgelet/target/rpmbuild\" $RPMBUILD_TARGET_FLAG'"
-        ;;
-
     redhat8|redhat9)
         case "$PACKAGE_ARCH" in
             amd64)
@@ -336,7 +348,7 @@ case "$PACKAGE_OS" in
         MAKE_COMMAND="$MAKE_COMMAND && mkdir -p RPMS SOURCES SPECS SRPMS BUILD"
         MAKE_COMMAND="$MAKE_COMMAND && cd /project/edgelet"
         MAKE_COMMAND="$MAKE_COMMAND && make rpm-dist 'TARGET=target/rpmbuild/SOURCES' 'VERSION=$VERSION' 'REVISION=$REVISION'"
-        MAKE_COMMAND="$MAKE_COMMAND && make rpm8 rpmbuilddir=/project/edgelet/target/rpmbuild 'TARGET=$MAKE_TARGET_DIR' 'VERSION=$VERSION' 'REVISION=$REVISION' 'CARGOFLAGS=--manifest-path ./Cargo.toml $CARGO_TARGET_FLAG' RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /project/edgelet/target/rpmbuild\" $RPMBUILD_TARGET_FLAG'"
+        MAKE_COMMAND="$MAKE_COMMAND && make rpm rpmbuilddir=/project/edgelet/target/rpmbuild 'TARGET=$MAKE_TARGET_DIR' 'VERSION=$VERSION' 'REVISION=$REVISION' 'CARGOFLAGS=--manifest-path ./Cargo.toml $CARGO_TARGET_FLAG' RPMBUILDFLAGS='-v -bb --clean --define \"_topdir /project/edgelet/target/rpmbuild\" $RPMBUILD_TARGET_FLAG'"
         ;;
 
     *)

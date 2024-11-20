@@ -4,10 +4,10 @@ pr: none
 trigger: none
 schedules:
 - cron: '0 3 * * *'
-  displayName: Nightly run 1.4 LTS
+  displayName: Nightly run 1.5 LTS
   branches:
     include:
-    - release/1.4
+    - main
   always: true
 
 variables:
@@ -23,7 +23,7 @@ steps:
 - checkout: self
   fetchDepth: 1
 
-- task: AzureKeyVault@1
+- task: AzureKeyVault@2
   displayName: Get secrets
   inputs:
     azureSubscription: $(az.subscription)
@@ -50,7 +50,7 @@ steps:
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build $testDir
 
-    $binDir = Convert-Path "$testDir/bin/Debug/net6.0"
+    $binDir = Convert-Path "$testDir/bin/Debug/net8.0"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
 

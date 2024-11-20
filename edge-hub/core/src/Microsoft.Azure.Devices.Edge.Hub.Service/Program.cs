@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.Tracing;
     using System.Linq;
     using System.Security.Authentication;
     using System.Threading;
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -31,28 +33,58 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public static int Main()
         {
-            Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
-            IConfigurationRoot configuration = new ConfigurationBuilder()
-                .AddJsonFile(Constants.ConfigFileName)
-                .AddEnvironmentVariables()
-                .Build();
+            ILogger logger = null;
 
-            return MainAsync(configuration).Result;
+            try
+            {
+                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Hub Main()");
+                IConfigurationRoot configuration = new ConfigurationBuilder()
+                    .AddJsonFile(Constants.ConfigFileName)
+                    .AddEnvironmentVariables()
+                    .Build();
+
+                string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
+                Logger.SetLogLevel(logLevel);
+
+                // Set the LoggerFactory used by the Routing code.
+                if (configuration.GetValue("EnableRoutingLogging", false))
+                {
+                    Routing.LoggerFactory = Logger.Factory;
+                }
+
+                logger = Logger.Factory.CreateLogger("EdgeHub");
+
+                if (configuration.GetValue<bool>("EnableSdkDebugLogs", false))
+                {
+                    // Enable SDK debug logs, see ConsoleEventListener for details
+                    string[] eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
+                    using var sdk = new ConsoleEventListener(eventFilter, logger);
+
+                    return MainAsync(configuration, logger).Result;
+                }
+                else
+                {
+                    return MainAsync(configuration, logger).Result;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (logger != null)
+                {
+                    logger.LogDebug(ex, "An unhandled exception occurred");
+                }
+                else
+                {
+                    // Fallback if the logger hasn't been set up, should pretty much never happen
+                    Console.Error.WriteLine(ex);
+                }
+
+                return 1;
+            }
         }
 
-        static async Task<int> MainAsync(IConfigurationRoot configuration)
+        static async Task<int> MainAsync(IConfigurationRoot configuration, ILogger logger)
         {
-            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
-            Logger.SetLogLevel(logLevel);
-
-            // Set the LoggerFactory used by the Routing code.
-            if (configuration.GetValue("EnableRoutingLogging", false))
-            {
-                Routing.LoggerFactory = Logger.Factory;
-            }
-
-            ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
-
             try
             {
                 EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
@@ -122,6 +154,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
                 TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
+                var protocolTimeout = configuration.GetValue("protocolTimeoutInSecs", 180);
+                TimeSpan protocolTimeoutinSecs = TimeSpan.FromSeconds(protocolTimeout);
 
                 int renewAfter = configuration.GetValue("ServerCertificateRenewAfterInMs", int.MaxValue);
                 TimeSpan maxRenewAfter = TimeSpan.FromMilliseconds(renewAfter);
@@ -147,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     logger.LogInformation("Stopping the protocol heads...");
                     try
                     {
-                        await Task.WhenAll(mqttBrokerProtocolHead.CloseAsync(CancellationToken.None), edgeHubProtocolHead.CloseAsync(CancellationToken.None));
+                        await TaskEx.TimeoutAfter(Task.WhenAll(mqttBrokerProtocolHead.CloseAsync(CancellationToken.None), edgeHubProtocolHead.CloseAsync(CancellationToken.None)), protocolTimeoutinSecs);
                         logger.LogInformation("Protocol heads stopped.");
                     }
                     catch (Exception ex)
@@ -165,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             catch (Exception ex)
             {
                 logger.LogError(ex, "Stopping with exception");
-                throw;
+                return 1;
             }
 
             return 0;

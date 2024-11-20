@@ -37,12 +37,12 @@ jobs:
   steps:
   - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites
-  - script: scripts/linux/buildBranch.sh -c '$(configuration)'
-    displayName: Build
-  - script: scripts/linux/runTests.sh '--filter Category=Unit&Category!=GetLogsTests'
-    displayName: Test
-  - script: scripts/linux/runTests.sh '--filter Category=GetLogsTests'
-    displayName: Run GetLogsTests Tests
+  - script: |
+      dotnet test \
+        --configuration $(configuration) \
+        --filter 'Category=Unit' \
+        --logger trx \
+    displayName: Build and run unit tests
   - task: PublishTestResults@2
     displayName: Publish Test Results
     inputs:
@@ -57,7 +57,7 @@ jobs:
   dependsOn: check_run_pipeline
   condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
   variables:
-    coverage.goal: 50
+    coverage.goal: 58
   pool:
     name: $(pool.linux.name)
     demands:
@@ -69,39 +69,27 @@ jobs:
       dotnet test \
         --logger trx \
         --results-directory '$(Agent.TempDirectory)' \
-        --filter 'Category=Unit&Category!=GetLogsTests' \
+        --filter 'Category=Unit' \
         --collect 'xplat code coverage' \
         --settings CodeCoverage.runsettings
     displayName: Run unit tests with code coverage
   - script: |
-      dotnet test 'edge-agent/test/Microsoft.Azure.Devices.Edge.Agent.Core.Test' \
-        --logger trx \
-        --results-directory '$(Agent.TempDirectory)' \
-        --filter 'Category=GetLogsTests' \
-        --collect 'xplat code coverage' \
-        --settings CodeCoverage.runsettings
-    displayName: Run GetLogsTests unit tests with code coverage
-    condition: succeededOrFailed()
-  - script: |
-      dotnet new tool-manifest
-      dotnet tool install dotnet-reportgenerator-globaltool
-      dotnet tool run reportgenerator \
+      reportgenerator \
         -reports:$(Agent.TempDirectory)/**/coverage.cobertura.xml \
         -targetdir:$(Build.SourcesDirectory) \
-        -reporttypes:"Cobertura"
+        -reporttypes:Cobertura
     displayName: Generate coverage report
     condition: succeededOrFailed()
-  - task: PublishCodeCoverageResults@1
+  - task: PublishCodeCoverageResults@2
     displayName: Publish coverage report
     inputs:
-      codeCoverageTool: Cobertura
       summaryFileLocation: '$(Build.SourcesDirectory)/Cobertura.xml'
     condition: succeededOrFailed()
-  - task: BuildQualityChecks@8
+  - task: BuildQualityChecks@9
     displayName: 'Check build quality'
     inputs:
       checkCoverage: true
       coverageFailOption: fixed
-      coverageType: branch
+      coverageType: lines
       coverageThreshold: $(coverage.goal)
     condition: succeededOrFailed()

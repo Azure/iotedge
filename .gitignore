@@ -327,3 +327,11 @@ stylecop.json
 in
 out
 
+# snap{craft} files
+parts/
+stage/
+prime/
+*.snap
+
+# used by the C# Dev Kit (VS Code extension)
+.mono/

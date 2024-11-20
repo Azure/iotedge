@@ -39,8 +39,16 @@ jobs:
         displayName: Set env variables
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
-      - bash: scripts/linux/generic-rust/build.sh --project-root "edgelet" --packages "iotedge;aziot-edged" --reduced-linker
-        displayName: Build
+      - script: |
+          source $HOME/.cargo/env
+          cd edgelet
+          make \
+            CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock \
+            CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock \
+            LISTEN_MANAGEMENT_URI=fd://aziot-edged.mgmt.socket \
+            LISTEN_WORKLOAD_URI=fd://aziot-edged.workload.socket \
+            release
+        displayName: build
       - bash: edgelet/build/linux/test.sh
         displayName: Test
 
@@ -147,19 +155,18 @@ jobs:
       - script: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
       - script: |
-          $CARGO install --locked cargo-tarpaulin
+          $CARGO install --locked --version 0.26.1 cargo-tarpaulin
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |
           $CARGO tarpaulin --out Xml --output-dir .
         displayName: Test
         workingDirectory: edgelet
-      - task: PublishCodeCoverageResults@1
+      - task: PublishCodeCoverageResults@2
         displayName: Publish code coverage results
         inputs:
-          codeCoverageTool: cobertura
           summaryFileLocation: "edgelet/cobertura.xml"
-      - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
+      - task: BuildQualityChecks@9
         displayName: "Check build quality"
         inputs:
           checkCoverage: true

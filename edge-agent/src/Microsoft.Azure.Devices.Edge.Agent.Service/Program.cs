@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Diagnostics.Tracing;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -21,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Logging;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
@@ -39,6 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         public static int Main()
         {
             Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Agent Main()");
+            ILogger logger = null;
+
             try
             {
                 IConfigurationRoot configuration = new ConfigurationBuilder()
@@ -46,20 +50,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     .AddEnvironmentVariables()
                     .Build();
 
-                return MainAsync(configuration).Result;
+                // Bring up the logger before anything else so we can log errors ASAP
+                logger = SetupLogger(configuration);
+
+                if (configuration.GetValue<bool>("EnableSdkDebugLogs", false))
+                {
+                    // Enable SDK debug logs, see ConsoleEventListener for details.
+                    string[] eventFilter = new string[] { "DotNetty-Default", "Microsoft-Azure-Devices", "Azure-Core", "Azure-Identity" };
+                    using var sdk = new ConsoleEventListener(eventFilter, logger);
+
+                    return MainAsync(configuration, logger).Result;
+                }
+                else
+                {
+                    return MainAsync(configuration, logger).Result;
+                }
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine(ex);
+                if (logger != null)
+                {
+                    logger.LogDebug(ex, "An unhandled exception occurred");
+                }
+                else
+                {
+                    // Fallback if the logger hasn't been set up, should pretty much never happen
+                    Console.Error.WriteLine(ex);
+                }
+
                 return 1;
             }
         }
 
-        public static async Task<int> MainAsync(IConfiguration configuration)
+        public static async Task<int> MainAsync(IConfiguration configuration, ILogger logger)
         {
-            // Bring up the logger before anything else so we can log errors ASAP
-            ILogger logger = SetupLogger(configuration);
-
             logger.LogInformation("Initializing Edge Agent.");
 
             VersionInfo versionInfo = VersionInfo.Get(VersionInfoFileName);
@@ -159,6 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
                 int edgeletTimeoutSecs = configuration.GetValue(Constants.ManagementApiTimeoutSecs, 300);
                 TimeSpan edgeletTimeout = TimeSpan.FromSeconds(edgeletTimeoutSecs);
+                var enableOrphanedIdentityCleanup = configuration.GetValue("EnableOrphanedIdentityCleanup", false);
 
                 switch (mode.ToLowerInvariant())
                 {
@@ -173,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetTimeSpan("PerformanceMetricsUpdateFrequency", TimeSpan.FromMinutes(5));
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel, moduleUpdateMode));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath, disableDeviceAnalyticsMetadata, moduleUpdateMode, edgeletTimeout));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath, disableDeviceAnalyticsMetadata, moduleUpdateMode, edgeletTimeout, enableOrphanedIdentityCleanup));
                         IEnumerable<X509Certificate2> trustBundle =
                             await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(trustBundle, logger);

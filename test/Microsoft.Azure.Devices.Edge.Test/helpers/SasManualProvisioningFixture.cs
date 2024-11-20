@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
@@ -42,14 +43,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 // This is a temporary solution see ticket: 9288683
                 if (!Context.Current.ISA95Tag)
                 {
-                    TestCertificates testCerts;
-                    (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(this.device.Id, token);
+                    (var certs, this.ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
+                        this.device.Id,
+                        this.daemon.GetCertificatesPath(),
+                        token);
 
                     await this.ConfigureDaemonAsync(
                         async config =>
                         {
-                            testCerts.AddCertsToConfig(config);
-
+                            config.SetCertificates(certs);
                             config.SetManualSasProvisioning(
                                 this.IotHub.Hostname,
                                 Context.Current.ParentHostname,

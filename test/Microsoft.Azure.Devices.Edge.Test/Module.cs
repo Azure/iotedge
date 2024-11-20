@@ -14,11 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class Module : SasManualProvisioningFixture
     {
         const string SensorName = "tempSensor";
-        const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+        const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.5";
 
         [TestCase(Protocol.Mqtt)]
         [TestCase(Protocol.Amqp)]
-        [Category("CentOsSafe")]
         public async Task CertRenew(Protocol protocol)
         {
             CancellationToken token = this.TestToken;
@@ -29,11 +28,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(("ServerCertificateRenewAfterInMs", "6000"));
                         builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                     },
+                    this.cli,
                     token,
                     Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
-            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            await edgeHub.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
             EdgeModule edgeAgent = deployment.Modules[ModuleName.EdgeAgent];
             // certificate renew should stop edgeHub and then it should be started by edgeAgent
             await edgeAgent.WaitForReportedPropertyUpdatesAsync(
@@ -57,7 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         [Category("nestededge_isa95")]
         public async Task TempSensor()
         {
@@ -76,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         builder.AddModule(SensorName, sensorImage)
                             .WithEnvironment(new[] { ("MessageCount", "-1") });
                     },
+                    this.cli,
                     token,
                     Context.Current.NestedEdge);
                 sensor = deployment.Modules[SensorName];
@@ -91,7 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         public async Task TempFilter()
         {
             const string filterName = "tempFilter";
@@ -120,6 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -129,7 +129,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("Amd64Only")]
-        [Category("CentOsSafe")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
@@ -160,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 
@@ -168,7 +168,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("CentOsSafe")]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {
@@ -194,6 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(methodReceiver, receiverImage)
                         .WithEnvironment(new[] { ("ClientTransportType", clientTransport) });
                 },
+                this.cli,
                 token,
                 Context.Current.NestedEdge);
 

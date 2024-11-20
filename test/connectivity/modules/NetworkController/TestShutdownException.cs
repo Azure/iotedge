@@ -4,7 +4,6 @@ namespace NetworkController
     using System;
     using System.Runtime.Serialization;
 
-    [Serializable]
     class TestShutdownException : Exception
     {
         public TestShutdownException()
@@ -18,11 +17,6 @@ namespace NetworkController
 
         public TestShutdownException(string message, Exception innerException)
             : base(message, innerException)
-        {
-        }
-
-        protected TestShutdownException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
         {
         }
     }

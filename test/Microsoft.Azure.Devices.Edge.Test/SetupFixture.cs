@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using NUnit.Framework;
     using Serilog;
@@ -37,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
             Log.Logger = loggerConfig.CreateLogger();
 
-            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(token);
+            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, token);
 
             await Profiler.Run(
                 async () =>
@@ -57,15 +56,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         }
                     }
 
-                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.EdgeProxy, token);
+                    await this.daemon.InstallAsync(Context.Current.EdgeProxy, token);
 
-                    // Clean the directory for test certs, keys, etc.
-                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
+                    string certsPath = this.daemon.GetCertificatesPath();
+                    if (Directory.Exists(certsPath))
                     {
-                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                        Directory.Delete(certsPath, true);
                     }
 
-                    Directory.CreateDirectory(FixedPaths.E2E_TEST_DIR);
+                    Directory.CreateDirectory(certsPath);
 
                     await this.daemon.ConfigureAsync(
                         async config =>
@@ -78,7 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
 
-                            string edgeAgent = Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.2");
+                            string edgeAgent =
+                                Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.5");
 
                             Log.Verbose("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>
@@ -127,10 +127,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     // Remove packages installed by this run.
                     await this.daemon.UninstallAsync(token);
 
-                    // Delete test certs, keys, etc.
-                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
+                    string certsPath = this.daemon.GetCertificatesPath();
+                    if (Directory.Exists(certsPath))
                     {
-                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                        Directory.Delete(certsPath, true);
                     }
                 },
                 "Completed end-to-end test teardown"),
@@ -138,51 +138,5 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Log.CloseAndFlush();
             });
-    }
-
-    // Generates a test CA cert, test CA key, and trust bundle.
-    // TODO: Remove this once iotedge init is finished?
-    public class TestCertificates
-    {
-        private string deviceId;
-        private CaCertificates certs;
-
-        TestCertificates(string deviceId, CaCertificates certs)
-        {
-            this.deviceId = deviceId;
-            this.certs = certs;
-        }
-
-        public static async Task<(TestCertificates, CertificateAuthority ca)> GenerateCertsAsync(string deviceId, CancellationToken token)
-        {
-            string scriptPath = Context.Current.CaCertScriptPath.Expect(
-                () => new System.InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
-            (string, string, string) rootCa = Context.Current.RootCaKeys.Expect(
-                () => new System.InvalidOperationException("Missing root CA"));
-
-            CertificateAuthority ca = await CertificateAuthority.CreateAsync(deviceId, rootCa, scriptPath, token);
-            CaCertificates certs = await ca.GenerateCaCertificatesAsync(deviceId, token);
-            ca.EdgeCertificates = certs;
-
-            return (new TestCertificates(deviceId, certs), ca);
-        }
-
-        public void AddCertsToConfig(DaemonConfiguration config)
-        {
-            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, this.deviceId);
-            string certPath = Path.Combine(path, "device_ca_cert.pem");
-            string keyPath = Path.Combine(path, "device_ca_cert_key.pem");
-            string trustBundlePath = Path.Combine(path, "trust_bundle.pem");
-
-            Directory.CreateDirectory(path);
-            File.Copy(this.certs.TrustedCertificatesPath, trustBundlePath);
-            OsPlatform.Current.SetOwner(trustBundlePath, "aziotcs", "644");
-            File.Copy(this.certs.CertificatePath, certPath);
-            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
-            File.Copy(this.certs.KeyPath, keyPath);
-            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
-
-            config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath));
-        }
     }
 }

@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `redhat8`, `redhat9`, `debian10`, `debian11`, `ubuntu20.04`, or `ubuntu22.04`.
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `redhat8`, `redhat9`, `debian11`, `debian12`, `ubuntu20.04`, `ubuntu22.04`, or `ubuntu24.04`.
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -23,7 +23,7 @@ For example:
 git clone --recurse-submodules 'https://github.com/Azure/iotedge'
 cd iotedge/
 
-PACKAGE_OS='debian11' PACKAGE_ARCH='arm32v7' ./edgelet/build/linux/package.sh
+PACKAGE_OS='debian12' PACKAGE_ARCH='arm32v7' ./edgelet/build/linux/package.sh
 ```
 
 The packages are built inside a Docker container, so no build dependencies are installed on the device running the script. However the user running the script does need to have permissions to invoke the `docker` command.
@@ -33,15 +33,6 @@ Note that the script must be run on an `amd64` device. The `PACKAGE_ARCH=arm32v7
 Once the packages are built, they will be found somewhere under the `edgelet/target/` directory. (The exact path under that directory depends on the combination of `PACKAGE_OS` and `PACKAGE_ARCH`. See `builds/misc/templates/build-packages.yaml` for the exact paths.)
 
 If you want to run another build for a different combination of `PACKAGE_OS` and `PACKAGE_ARCH`, make sure to clean the repository first with `sudo git clean -xffd` so that artifacts from the previous build don't get reused for the next one.
-
-Note: For the following targets, `qemu-user-static` must be installed on the host and registered with `binfmt`:
-
-- `PACKAGE_OS=centos7 PACKAGE_ARCH=arm32v7`
-- `PACKAGE_OS=centos7 PACKAGE_ARCH=aarch64`
-
-If that has not been done, `package.sh` prints an error message explaining how to do that.
-
-This is because these targets do not have functional cross-compilers, so their builds are done as native builds emulated using qemu. Be aware that these builds are much slower - where a native build might take 15m, a qemu build might take 2h30m.
 
 
 ## Building daemon binaries
@@ -66,17 +57,7 @@ rustup update   # Install / update the toolchain used to build the daemon binari
 
 In addition, building the daemon binaries also requires these dependencies to be installed:
 
-#### CentOS 7
-
-```sh
-yum update
-yum install \
-    curl git make rpm-build \
-    gcc gcc-c++ \
-    libcurl-devel libuuid-devel openssl-devel
-```
-
-#### RHEL 8
+#### RHEL 8-9
 
 ```sh
 dnf distro-sync -y \
@@ -86,7 +67,7 @@ dnf install -y \
     libcurl-devel libuuid-devel openssl-devel &&
 ```
 
-#### Debian 10-11
+#### Debian 11-12
 
 ```sh
 apt-get update
@@ -95,6 +76,7 @@ apt-get install \
     gcc g++ pkg-config \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
+
 #### Ubuntu 20.04
 
 ```sh
@@ -105,7 +87,7 @@ apt-get install \
     libcurl4-openssl-dev libssl-dev uuid-dev
 ```
 
-#### Ubuntu 22.04
+#### Ubuntu 22.04/24.04
 
 ```sh
 apt-get update
@@ -143,6 +125,48 @@ cargo build -p aziot-edged -p iotedge
 ```
 
 This will create `aziot-edged` and `iotedge` binaries under `edgelet/target/debug`
+
+### Update a dependency
+
+If you update a dependency in one of the Rust projects, e.g., by updating a Cargo.toml file or calling `cargo update`, you may get an error when you build the project, e.g.:
+
+```sh
+$ cargo build
+error: failed to download from `https://pkgs.dev.azure.com/iotedge/39b8807f-aa0b-43ed-b4c9-58b83c0a23a7/_packaging/0581b6d1-911e-44b2-88d9-b384271aaf3a/cargo/api/v1/crates/base64/0.22.1/download`
+
+Caused by:
+  failed to get successful HTTP response from `https://pkgs.dev.azure.com/iotedge/39b8807f-aa0b-43ed-b4c9-58b83c0a23a7/_packaging/0581b6d1-911e-44b2-88d9-b384271aaf3a/cargo/api/v1/crates/base64/0.22.1/download` (13.107.42.20), got 401
+  debug headers:
+  x-cache: CONFIG_NOCACHE
+  body:
+  {"$id":"1","innerException":null,"message":"No local versions of package 'base64'; please provide authentication to access versions from upstream that have not yet been saved to your feed.","typeName":"Microsoft.TeamFoundation.Framework.Server.UnauthorizedRequestException, Microsoft.TeamFoundation.Framework.Server","typeKey":"UnauthorizedRequestException","errorCode":0,"eventId":3000}
+```
+
+To add/upgrade a package in the feed, you must authenticate with write credentials. Ideally, a simple `cargo login` before `cargo build` would allow you to seamlessly update the feed, but cargo does not currently support optional authentication with fallback to anonymous. In other words, because we allow anonymous access to the feed, cargo will not authenticate. Instead, you can use the feed's REST API directly, e.g.,
+
+```bash
+package='<package name goes here>'
+version='<package version goes here>'
+# the user needs to have "Feed and Upstream Reader (Collaborator)" permissions on the feed
+az login
+auth_header=$(az account get-access-token --query "join(' ', ['Authorization: Bearer', accessToken])" --output tsv)
+url="$(curl -sSL 'https://pkgs.dev.azure.com/iotedge/iotedge/_packaging/iotedge_PublicPackages/Cargo/index/config.json' | jq -r '.dl')"
+url="${url/\{crate\}/$package}"
+url="${url/\{version\}/$v}"
+# curl with --max-time of 5 seconds because we don't actually have to download the package, we just need to nudge
+# the feed to acquire the package from upstream
+curl -sSL --max-time 5 --header "$auth_header" --write-out '%{http_code}\n' "$url"
+```
+
+Once you've added/updated the package in the feed, the build should proceed normally.
+Contributors who need to add/update packages, but who do not have write access to the feed, can temporarily comment out the `replace-with` line in .cargo/config.toml during development:
+
+```toml
+[source.crates-io]
+# replace-with = "iotedge_PublicPackages"
+```
+
+Restore the line to its original state before opening a PR for review. Someone with access to the feed will need to update the feed before the PR can be tested and merged.
 
 
 ### Run

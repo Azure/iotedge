@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync();
 
-        Task UpdateReportedPropertiesAsync(TwinCollection patch);
+        Task<bool> UpdateReportedPropertiesAsync(TwinCollection patch);
 
         //// Task SendEventBatchAsync(IEnumerable<Message> messages);
 
