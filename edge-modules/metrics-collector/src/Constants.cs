@@ -13,6 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         public const string DefaultLogAnalyticsWorkspaceDomainPrefixOds = ".ods.opinsights.";
         public const string DefaultLogAnalyticsWorkspaceDomainPrefixOms = ".oms.opinsights.";
         public const string ProductInfo = "IoTEdgeMetricsCollectorModule";
-        public static readonly int MaxMessageSize = 250000;
+        public static readonly int MaxMessageSize = 225000;
     }
 }
