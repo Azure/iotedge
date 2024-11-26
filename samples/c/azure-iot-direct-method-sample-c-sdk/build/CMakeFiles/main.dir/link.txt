@@ -1,0 +1,1 @@
+/usr/bin/gcc  -DUSE_EDGE_MODULES -g  -rdynamic CMakeFiles/main.dir/main.c.o  -o main  -liothub_client_mqtt_transport -liothub_client -lparson -lumqtt -lprov_auth_client -lhsm_security_client -luhttp -laziotsharedutil -lpthread -lcurl -lssl -lcrypto -lm -luuid libmy_parson.a 
