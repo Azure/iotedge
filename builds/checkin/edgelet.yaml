@@ -74,7 +74,7 @@ jobs:
         displayName: Set Version
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
-      - script: "cargo install cross --version ^0.2"
+      - script: "cargo install cross --version ^0.2 --locked"
         displayName: "Install cross"
       - script: "cross build --target armv7-unknown-linux-gnueabihf"
         displayName: armv7-unknown-linux-gnueabihf build
@@ -105,7 +105,7 @@ jobs:
         displayName: Set Version
       - bash: scripts/linux/generic-rust/install.sh --project-root "edgelet"
         displayName: Install Rust
-      - script: "cargo install cross --version ^0.2"
+      - script: "cargo install cross --version ^0.2 --locked"
         displayName: "Install cross"
       - script: "cross build --target aarch64-unknown-linux-gnu"
         displayName: aarch64-unknown-linux-gnu build

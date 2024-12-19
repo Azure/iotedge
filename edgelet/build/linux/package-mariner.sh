@@ -40,9 +40,7 @@ apt-get install -y \
 
 rm -f /usr/bin/go
 ln -vs /usr/lib/go-1.21/bin/go /usr/bin/go
-if [ -f /.dockerenv ]; then
-    mv /.dockerenv /.dockerenv.old
-fi
+touch /.mariner-toolkit-ignore-dockerenv
 
 # Download Mariner repo and build toolkit
 mkdir -p ${MARINER_BUILD_ROOT}
