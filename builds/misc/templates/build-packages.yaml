@@ -173,11 +173,11 @@ stages:
           - script: |
               #!/bin/bash
               set -xeuo pipefail
-              command -v lxd
               sudo snap install snapcraft --classic
+              LXD=$(command -v lxd)
               sudo usermod -a -G lxd $USER
               /usr/bin/newgrp lxd <<EONG
-              lxd init --minimal
+              $LXD init --minimal
               SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
               EONG
             displayName: Build snap
