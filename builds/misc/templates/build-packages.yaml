@@ -171,9 +171,15 @@ stages:
           - ImageOverride -equals $(image)
         steps:
           - script: |
+              #!/bin/bash
+              set -xeuo pipefail
+              command -v lxd
               sudo snap install snapcraft --classic
+              sudo usermod -a -G lxd $USER
+              /usr/bin/newgrp lxd <<EONG
               lxd init --minimal
               SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
+              EONG
             displayName: Build snap
             condition: eq(${{ parameters['E2EBuild'] }}, false)
           - task: CopyFiles@2
