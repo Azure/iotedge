@@ -174,19 +174,14 @@ stages:
               #!/bin/bash
               set -xeuo pipefail
               snap list
+              sudo snap refresh
+              snap list
               sudo snap install snapcraft --classic
               snap list
               getent group lxd
               groups
-              sudo usermod -a -G lxd $USER
-              groups
-              getent group lxd
-              /usr/bin/newgrp lxd <<EONG
-              set -xeuo pipefail
-              groups
               lxd init --minimal
               SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
-              EONG
             displayName: Build snap
             condition: eq(${{ parameters['E2EBuild'] }}, false)
           - task: CopyFiles@2
