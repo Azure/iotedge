@@ -171,6 +171,9 @@ stages:
           - ImageOverride -equals $(image)
         steps:
           - script: |
+              #!/bin/bash
+              set -xeuo pipefail
+              sudo snap refresh
               sudo snap install snapcraft --classic
               lxd init --minimal
               SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
