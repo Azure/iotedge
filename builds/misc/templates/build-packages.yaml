@@ -173,13 +173,8 @@ stages:
           - script: |
               #!/bin/bash
               set -xeuo pipefail
-              snap list
               sudo snap refresh
-              snap list
               sudo snap install snapcraft --classic
-              snap list
-              getent group lxd
-              groups
               lxd init --minimal
               SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
             displayName: Build snap
