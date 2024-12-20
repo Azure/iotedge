@@ -6,8 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using NUnit.Framework;
-    using NUnit.Framework.Interfaces;
     using Serilog;
 
     public class BaseFixture
@@ -17,45 +15,62 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         DateTime testStartTime;
 
         protected CancellationToken TestToken => this.cts.Token;
-        protected IotedgeCli cli;
 
         protected virtual Task BeforeTestTimerStarts() => Task.CompletedTask;
         protected virtual Task AfterTestTimerEnds() => Task.CompletedTask;
 
-        [SetUp]
-        protected async Task BeforeEachTestAsync()
+        public TestContext TestContext { get; set; }
+
+        [TestInitialize]
+        public async Task BeforeEachTestAsync()
         {
             await this.BeforeTestTimerStarts();
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
             this.testStartTime = DateTime.Now;
+            string name = this.TestContext.TestName;
+            if (this.TestContext.ManagedMethod.EndsWith(")"))
+            {
+                // Can't find a way to see the arguments to a DataRow test inside [TestInitialize],
+                // so we'll just add elipses to indicate this is a DataRow test. The [TestCleanup]
+                // method below will list the arguments, so at least there's that.
+                name += "(...)";
+            }
+
             this.profiler = Profiler.Start();
-            Log.Information("Running test '{Name}'", TestContext.CurrentContext.Test.Name);
+            Log.Information("Running test '{Name}'", name);
         }
 
-        [TearDown]
-        protected async Task AfterEachTestAsync()
+        [TestCleanup]
+        public async Task AfterEachTestAsync()
         {
-            this.profiler.Stop("Completed test '{Name}'", TestContext.CurrentContext.Test.Name);
+            string name = this.TestContext.TestName;
+            if (this.TestContext.Properties.Contains("Row"))
+            {
+                name += $"({this.TestContext.Properties["Row"]})";
+            }
+
+            this.profiler.Stop("Completed test '{Name}'", name);
             await Profiler.Run(
                 async () =>
                 {
                     this.cts.Dispose();
-                    if ((!Context.Current.ISA95Tag) && (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored))
+                    if ((!Context.Current.ISA95Tag) && (this.TestContext.CurrentTestOutcome != UnitTestOutcome.Inconclusive))
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
-                        await NUnitLogs.CollectAsync(this.testStartTime, this.cli, cts.Token);
+                        await TestLogs.CollectAsync(this.testStartTime, this.TestContext, cts.Token);
                         if (Context.Current.GetSupportBundle)
                         {
                             try
                             {
                                 var supportBundlePath = Context.Current.LogFile.Match((file) => Path.GetDirectoryName(file), () => AppDomain.CurrentDomain.BaseDirectory);
-                                await this.cli.RunAsync(
-                                    $"support-bundle -o {supportBundlePath}/supportbundle-{TestContext.CurrentContext.Test.Name} --since \"{this.testStartTime:yyyy-MM-ddTHH:mm:ssZ}\"",
+                                await Process.RunAsync(
+                                    "iotedge",
+                                    $"support-bundle -o {supportBundlePath}/supportbundle-{this.TestContext.TestName} --since \"{this.testStartTime:yyyy-MM-ddTHH:mm:ssZ}\"",
                                     cts.Token);
                             }
                             catch (Exception ex)
                             {
-                                Log.Error($"Failed to Get Support Bundle  Log with Error:{ex}");
+                                Log.Error($"Failed to get support bundle log, error: {ex}");
                             }
                         }
                     }

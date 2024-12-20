@@ -51,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public string ConfigurationPath() =>
             "/var/snap/azure-iot-identity/current/shared/config/aziot/config-e2e.toml";
-        public string GetCliName() => "azure-iot-edge.iotedge";
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
