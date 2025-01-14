@@ -281,7 +281,7 @@ stages:
               popd
               cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
               cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-debuginfo-$packageVersion-1.cm$(os_version).$(arch).rpm .
-              rm -rf iot-identity-service
+              sudo rm -rf iot-identity-service
             displayName: Build iot-identity-service (aarch64 only)
             condition: and(succeeded(), eq(variables.arch,'aarch64'))
           - bash: |
