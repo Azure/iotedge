@@ -242,7 +242,7 @@ stages:
             displayName: Set Version
           - task: AzureKeyVault@2
             displayName: 'Get secret to download aziot-identity-service (amd64 only)'
-            condition: and(succeeded(), eq('$(arch)','amd64'))
+            condition: and(succeeded(), eq(variables.arch,'amd64'))
             inputs:
               azureSubscription: $(az.subscription)
               KeyVaultName: 'edgebuildkv'
@@ -250,7 +250,7 @@ stages:
                 IotEdge1-GitHub-PAT
           - task: PowerShell@2
             displayName: 'Download aziot-identity-service (amd64 only)'
-            condition: and(succeeded(), eq('$(arch)','amd64'))
+            condition: and(succeeded(), eq(variables.arch,'amd64'))
             inputs:
               filePath: scripts/local/test/DownloadIdentityService.ps1
             env:
@@ -283,7 +283,7 @@ stages:
               cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-debuginfo-$packageVersion-1.cm$(os_version).$(arch).rpm .
               rm -rf iot-identity-service
             displayName: Build iot-identity-service (aarch64 only)
-            condition: and(succeeded(), eq('$(arch)','aarch64'))
+            condition: and(succeeded(), eq(variables.arch,'aarch64'))
           - bash: |
               docker run --rm \
                 -v "$(Build.SourcesDirectory):/src" \
