@@ -297,14 +297,14 @@ stages:
                 --privileged \
                 'mcr.microsoft.com/mirror/docker/library/ubuntu:22.04' \
                 '/src/edgelet/build/linux/package-mariner.sh'
-            displayName: Build aziot-edge
+            displayName: Create aziot-edge packages
           - task: CopyFiles@2
-            displayName: Copy iotedged build logs to artifact staging
+            displayName: Copy aziot-edge build logs to artifact staging
             inputs:
               SourceFolder: builds/mariner2/build/logs/pkggen/rpmbuilding
               Contents: |
                 **/*.rpm.log
-              TargetFolder: '$(build.artifactstagingdirectory)/iotedged'
+              TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - task: CopyFiles@2
             displayName: Copy aziot-edge packages to artifact staging
@@ -312,11 +312,11 @@ stages:
               SourceFolder: $(target.iotedged)
               Contents: |
                 aziot-edge-*.rpm
-              TargetFolder: '$(build.artifactstagingdirectory)/iotedged'
+              TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - task: PublishBuildArtifacts@1
-            displayName: Publish Artifacts
+            displayName: Publish artifacts
             inputs:
-              PathtoPublish: '$(build.artifactstagingdirectory)/iotedged'
+              PathtoPublish: '$(build.artifactstagingdirectory)'
               ArtifactName: 'iotedged-$(os)$(os_version)-$(arch)'
             condition: succeededOrFailed()
