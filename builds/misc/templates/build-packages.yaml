@@ -272,7 +272,7 @@ stages:
               SourceFolder: iot-identity-service/Mariner-Build/build/logs/pkggen/rpmbuilding
               Contents: |
                 **/*.rpm.log
-              TargetFolder: '$(build.artifactstagingdirectory)/aziot-identity'
+              TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - task: CopyFiles@2
             displayName: Copy aziot-identity packages to artifact staging
@@ -281,13 +281,7 @@ stages:
               Contents: |
                 *.rpm
                 !*-devel-*.rpm
-              TargetFolder: '$(build.artifactstagingdirectory)/aziot-identity'
-            condition: succeededOrFailed()
-          - task: PublishBuildArtifacts@1
-            displayName: Publish aziot-identity artifacts
-            inputs:
-              PathtoPublish: '$(build.artifactstagingdirectory)/aziot-identity'
-              ArtifactName: 'aziot-identity-$(os)$(os_version)-$(arch)'
+              TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - bash: sudo rm -rf iot-identity-service
             displayName: Clean up iot-identity-service
