@@ -246,13 +246,16 @@ stages:
                   's/^source = "git\+https:\/\/github\.com\/Azure\/iot-identity-service\?branch=main#([0-9a-fA-F]+)"$/\1/p' \
                   edgelet/Cargo.lock | head -n 1
               )
-              packageVersion=$(
-                sed -nE 's/^Depends:.*aziot-identity-service \(= (.*)-1\).*$/\1/p' edgelet/contrib/debian/control
-              )
               git clone https://github.com/Azure/iot-identity-service.git
               pushd iot-identity-service
               git checkout "$identity_commit"
               git submodule update --init --recursive .
+              packageVersion=$(
+                grep "PACKAGE_VERSION:" .github/workflows/packages.yaml \
+                | awk '{print $2}' \
+                | tr -d "'" \
+                | tr -d '"'
+              )
               docker run --rm \
                 -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
                 -e "ARCH=$PACKAGE_ARCH" \
