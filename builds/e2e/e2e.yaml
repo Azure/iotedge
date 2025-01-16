@@ -488,8 +488,6 @@ jobs:
       os: linux
       arch: amd64
       artifactName: iotedged-mariner2-amd64
-      identityServiceArtifactName: packages_mariner-2_amd64
-      identityServicePackageFilter: aziot-identity-service-?.*.cm2.x86_64.rpm
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90

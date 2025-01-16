@@ -70,6 +70,7 @@ steps:
         $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
   - task: PowerShell@2
     displayName: 'Download aziot-identity-service'
+    condition: not(contains(variables['artifactName'], 'mariner'))
     inputs:
       filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
     env:
@@ -90,6 +91,7 @@ steps:
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
   - task: CopyFiles@2
     displayName: 'Copy aziot-identity-service'
+    condition: not(contains(variables['artifactName'], 'mariner'))
     inputs:
       SourceFolder: "$(Build.StagingDirectory)"
       Contents: "${{ parameters['aziotis.package.filter'] }}"
