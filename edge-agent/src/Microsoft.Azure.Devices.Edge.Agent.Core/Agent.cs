@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Net.Sockets;
     using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
@@ -202,8 +203,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     }
                 }
 
-                await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
+                if (await IsServiceAvailableViaTcpAsync())
+                {
+                    await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
+                }
                 Events.FinishedReconcile();
+            }
+        }
+
+        static async Task<bool> IsServiceAvailableViaTcpAsync()
+        {
+            try
+            {
+                using var tcpClient = new TcpClient();
+                await tcpClient.ConnectAsync("offlinetest.azure-devices.net", 5671);
+                Console.WriteLine("IOTHUB Connection is alive");
+                return true; // Connection succeeded
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("IOTHUB Connection is not alive");
+                return false; // Connection failed
             }
         }
 
