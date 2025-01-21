@@ -207,6 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 {
                     await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
                 }
+
                 Events.FinishedReconcile();
             }
         }
