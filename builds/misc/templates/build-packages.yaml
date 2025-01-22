@@ -392,7 +392,7 @@ stages:
             displayName: Publish aziot-identity artifacts
             inputs:
               PathtoPublish: '$(build.artifactstagingdirectory)/aziot-identity'
-              ArtifactName: 'aziot-identity-$(os.iotedge)-$(arch)'
+              ArtifactName: 'aziot-identity-$(os)$(os_version)-$(arch)'
           - bash: sudo rm -rf iot-identity-service
             displayName: Clean up iot-identity-service
             condition: succeededOrFailed()
