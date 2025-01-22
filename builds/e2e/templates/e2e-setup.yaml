@@ -13,7 +13,6 @@ steps:
         TestContainerRegistryPassword,
         TestDpsGroupKeySymmetric,
         TestEventHubCompatibleEndpoint,
-        TestGitHubAccessToken,
         TestIotHubConnectionString,
         TestIotHubResourceId,
         TestRootCaCertificate,
@@ -73,6 +72,19 @@ steps:
       itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
       
   - task: DownloadBuildArtifacts@0
+    displayName: Download identity packages
+    condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.ci-build.projectID)
+      pipeline: $(resources.pipeline.ci-build.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(resources.pipeline.ci-build.runID)
+      downloadType: single
+      artifactName: $(identityArtifactName)
+      allowPartiallySucceededBuilds: true
+  
+  - task: DownloadBuildArtifacts@0
     displayName: Download edgelet packages
     condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'false')
     inputs:
@@ -84,19 +96,6 @@ steps:
       downloadType: single
       artifactName: $(artifactName)
       allowPartiallySucceededBuilds: true
-  
-  - task: PowerShell@2
-    displayName: 'Download aziot-identity-service'
-    condition: not(contains(variables['artifactName'], 'mariner'))
-    inputs:
-      filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
-      workingDirectory: $(Build.SourcesDirectory)
-    env:
-      GITHUB_TOKEN: $(TestGitHubAccessToken)
-      ARTIFACT_NAME: $(identityServiceArtifactName)
-      PACKAGE_FILTER: $(identityServicePackageFilter)
-      DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
-      IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
   
   - pwsh: |
       $certsDir = '$(System.ArtifactsDirectory)/certs'

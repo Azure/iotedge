@@ -61,9 +61,8 @@ stages:
           verbose: false
           os: linux
           arch: amd64
+          identityArtifactName: aziot-identity-ubuntu20.04-amd64
           artifactName: iotedged-ubuntu20.04-amd64
-          identityServiceArtifactName: packages_ubuntu-20.04_amd64
-          identityServicePackageFilter: aziot-identity-service_*_amd64.deb
           sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
