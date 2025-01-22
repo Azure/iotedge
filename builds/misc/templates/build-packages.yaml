@@ -196,53 +196,99 @@ stages:
     ################################################################################
       - job: mariner_linux
     ################################################################################
-        displayName: Mariner_Linux
+        displayName: Mariner Linux
         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
-        pool:
-          name: $(pool.linux.name)
-          demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
-          - DiskSizeGiB -equals 100 # EFLOW requires ~85GB to build the edgelet artifacts
-          - WorkFolder -equals /mnt/storage/_work
+        timeoutInMinutes: 90
         strategy:
           matrix:
-            CBL-Mariner2.0-amd64:
+            2.0-amd64:
+              agent-pool: $(pool.linux.name)
+              agent-image: agent-aziotedge-ubuntu-20.04-docker
               arch: amd64
               os: mariner
               os_version: 2
               mariner_release: 2.0-stable
-              target.iotedged: builds/mariner2/out/RPMS
-              target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
+              target.identity: iot-identity-service/packages/mariner2/amd64
+              target.iotedged: builds/mariner2/out/RPMS/x86_64
+            2.0-aarch64:
+              agent-pool: $(pool.linux.arm.name)
+              agent-image: agent-aziotedge-ubuntu-20.04-arm64-docker
+              arch: aarch64
+              os: mariner
+              os_version: 2
+              mariner_release: 2.0-stable
+              target.identity: iot-identity-service/packages/mariner2/aarch64
+              target.iotedged: builds/mariner2/out/RPMS/aarch64
+        pool:
+          name: $(agent-pool)
+          demands:
+          - ImageOverride -equals $(agent-image)
+          - DiskSizeGiB -equals 100 # EFLOW requires ~85GB to build the edgelet artifacts
+          - WorkFolder -equals /mnt/storage/_work
         steps:
           - bash: |
               BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-              VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"
+              VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"  # Give deb format here; let Makefile convert to rpm format
               echo "##vso[task.setvariable variable=VERSION;]$VERSION"
               echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
               echo "PACKAGE_OS=$(os)"
-              echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(mariner_release)"
+              echo "##vso[task.setvariable variable=OSVERSION;]$(os_version)"
               mariner_arch=$(arch)
               if [ $mariner_arch == "amd64" ]; then
                 mariner_arch="x86_64"
               fi
               echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
             displayName: Set Version
-          - task: AzureKeyVault@2
-            displayName: 'Azure Key Vault: EdgeBuildkv'
+          - bash: |
+              set -xeuo pipefail
+              identity_commit=$(
+                sed -nE \
+                  's/^source = "git\+https:\/\/github\.com\/Azure\/iot-identity-service\?branch=main#([0-9a-fA-F]+)"$/\1/p' \
+                  edgelet/Cargo.lock | head -n 1
+              )
+              git clone https://github.com/Azure/iot-identity-service.git
+              pushd iot-identity-service
+              git checkout "$identity_commit"
+              git submodule update --init --recursive .
+              packageVersion=$(
+                grep "PACKAGE_VERSION:" .github/workflows/packages.yaml \
+                | awk '{print $2}' \
+                | tr -d "'" \
+                | tr -d '"'
+              )
+              docker run --rm \
+                -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
+                -e "ARCH=$PACKAGE_ARCH" \
+                -e "OS=$OS:$OSVERSION" \
+                -e "PACKAGE_VERSION=$packageVersion" \
+                -e "PACKAGE_RELEASE=1" \
+                --privileged \
+                'mcr.microsoft.com/mirror/docker/library/ubuntu:22.04' \
+                '/src/ci/package.sh'
+              popd
+              # aziot-edge package script expects to query the version from the identity package in the root source directory
+              sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(MARINER_ARCH).rpm .
+            displayName: Create aziot-identity packages
+          - task: CopyFiles@2
+            displayName: Copy aziot-identity build logs to artifact staging
             inputs:
-              azureSubscription: $(az.subscription)
-              KeyVaultName: 'edgebuildkv'
-              SecretsFilter: >-
-                IotEdge1-GitHub-PAT
-          - task: PowerShell@2
-            displayName: 'Download aziot-identity-service'
+              SourceFolder: iot-identity-service/Mariner-Build/build/logs/pkggen/rpmbuilding
+              Contents: |
+                **/*.rpm.log
+              TargetFolder: '$(build.artifactstagingdirectory)'
+            condition: succeededOrFailed()
+          - task: CopyFiles@2
+            displayName: Copy aziot-identity packages to artifact staging
             inputs:
-              filePath: scripts/local/test/DownloadIdentityService.ps1
-            env:
-              GITHUB_TOKEN: $(IotEdge1-GitHub-PAT)
-              ARTIFACT_NAME: 'packages_$(os)-$(os_version)_$(arch)'
-              PACKAGE_FILTER: 'aziot-identity-service-*.cm$(os_version).$(MARINER_ARCH).rpm'
-              DOWNLOAD_PATH: $(Build.SourcesDirectory)
+              SourceFolder: $(target.identity)
+              Contents: |
+                *.rpm
+                !*-devel-*.rpm
+              TargetFolder: '$(build.artifactstagingdirectory)'
+            condition: succeededOrFailed()
+          - bash: sudo rm -rf iot-identity-service
+            displayName: Clean up iot-identity-service
+            condition: succeededOrFailed()
           - bash: |
               docker run --rm \
                 -v "$(Build.SourcesDirectory):/src" \
@@ -254,146 +300,25 @@ stages:
                 --privileged \
                 'mcr.microsoft.com/mirror/docker/library/ubuntu:22.04' \
                 '/src/edgelet/build/linux/package-mariner.sh'
+            displayName: Create aziot-edge packages
           - task: CopyFiles@2
-            displayName: Copy iotedged build logs to artifact staging
+            displayName: Copy aziot-edge build logs to artifact staging
             inputs:
-              SourceFolder: $(target.logs)
+              SourceFolder: builds/mariner2/build/logs/pkggen/rpmbuilding
               Contents: |
                 **/*.rpm.log
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - task: CopyFiles@2
-            displayName: Copy iotedged Files to Artifact Staging
+            displayName: Copy aziot-edge packages to artifact staging
             inputs:
-              SourceFolder: $(target.iotedged)/$(mariner_arch)
+              SourceFolder: $(target.iotedged)
               Contents: |
                 aziot-edge-*.rpm
               TargetFolder: '$(build.artifactstagingdirectory)'
             condition: succeededOrFailed()
           - task: PublishBuildArtifacts@1
-            displayName: Publish Artifacts
-            inputs:
-              PathtoPublish: '$(build.artifactstagingdirectory)'
-              ArtifactName: 'iotedged-$(os)$(os_version)-$(arch)'
-            condition: succeededOrFailed()
-
-    ################################################################################
-      - job: mariner_linux_arm64
-    ################################################################################
-        displayName: Mariner_Linux on ARM64
-        condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
-        timeoutInMinutes: 90
-        pool:
-          name: $(pool.linux.arm.name)
-          demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-arm64-docker
-          - DiskSizeGiB -equals 100 # EFLOW requires ~85GB to build the edgelet artifacts
-          - WorkFolder -equals /mnt/storage/_work
-        strategy:
-          matrix:
-            CBL-Mariner2.0-aarch64:
-              arch: aarch64
-              os: mariner
-              os_version: 2
-              mariner_release: 2.0-stable
-              target.iotedged: builds/mariner2/out/RPMS
-              target.logs: builds/mariner2/build/logs/pkggen/rpmbuilding/
-
-        steps:
-          - bash: |
-              BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-              VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"  # Give deb format here; let Makefile convert to rpm format
-              echo "##vso[task.setvariable variable=VERSION;]$VERSION"
-              echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
-              echo "PACKAGE_OS=$(os)"
-              echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(mariner_release)"
-              echo "##vso[task.setvariable variable=OSVERSION;]$(os_version)"
-              mariner_arch=$(arch)
-              if [ $mariner_arch == "amd64" ]; then
-                mariner_arch="x86_64"
-              fi
-              echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
-            displayName: Set Version
-
-          # remove this one 1ES can prevent the daily update from triggering
-          - bash: |
-              set -ex
-              ps aux | grep -i apt
-              waitAttempts=120
-              sleepDuration=10
-              for (( i=0; $i<$waitAttempts; i++ ))
-              do
-                if [[ $(ps aux | grep -c apt.systemd.daily) == 1 ]]; then
-                  break
-                fi
-                sleep $sleepDuration
-              done
-              ps aux | grep -i apt
-            displayName: Wait for 1ES agent update
-
-          - bash: |
-              sudo apt install apt-transport-https ca-certificates curl software-properties-common -y
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-              sudo add-apt-repository "deb [arch=arm64] https://download.docker.com/linux/ubuntu `lsb_release -cs` stable"
-              sudo apt update
-              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-              sudo systemctl restart docker
-            displayName: Install moby
-
-          # build iot-identity-service here since they cannot build native aarch64 packages
-          - bash: |
-              set -ex
-              git clone --recurse-submodules --branch main https://github.com/Azure/iot-identity-service.git
-              pushd iot-identity-service
-              packageVersion=$(
-                grep "PACKAGE_VERSION:" .github/workflows/packages.yaml \
-                | awk '{print $2}' \
-                | tr -d "'" \
-                | tr -d '"'
-              )
-              sudo docker run --rm \
-                -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
-                -e "ARCH=$PACKAGE_ARCH" \
-                -e "OS=$OS:$OSVERSION" \
-                -e "PACKAGE_VERSION=$packageVersion" \
-                -e "PACKAGE_RELEASE=1" \
-                --privileged \
-                'mcr.microsoft.com/mirror/docker/library/ubuntu:22.04' \
-                '/src/ci/package.sh'
-              popd
-              sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(arch).rpm .
-              sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-debuginfo-$packageVersion-1.cm$(os_version).$(arch).rpm .
-              sudo rm -rf iot-identity-service
-
-          - bash: |
-              sudo docker run --rm \
-                -v "$(Build.SourcesDirectory):/src" \
-                -e "ARCH=$arch" \
-                -e "OS=$OS" \
-                -e "MARINER_RELEASE=$MARINER_RELEASE" \
-                -e "MARINER_ARCH=$MARINER_ARCH" \
-                -e "VERSION=$VERSION" \
-                --privileged \
-                'mcr.microsoft.com/mirror/docker/library/ubuntu:22.04' \
-                '/src/edgelet/build/linux/package-mariner.sh'
-          - task: CopyFiles@2
-            displayName: Copy iotedged build logs to artifact staging
-            inputs:
-              SourceFolder: $(target.logs)
-              Contents: |
-                **/*.rpm.log
-              TargetFolder: '$(build.artifactstagingdirectory)'
-            condition: succeededOrFailed()
-          - task: CopyFiles@2
-            displayName: Copy iotedged Files to Artifact Staging
-            inputs:
-              SourceFolder: $(target.iotedged)/$(mariner_arch)
-              Contents: |
-                *.rpm
-              TargetFolder: '$(build.artifactstagingdirectory)'
-            condition: succeededOrFailed()
-          - task: PublishBuildArtifacts@1
-            displayName: Publish Artifacts
+            displayName: Publish artifacts
             inputs:
               PathtoPublish: '$(build.artifactstagingdirectory)'
               ArtifactName: 'iotedged-$(os)$(os_version)-$(arch)'
