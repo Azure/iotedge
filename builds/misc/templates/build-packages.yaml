@@ -272,28 +272,62 @@ stages:
           demands:
           - ImageOverride -equals $(image)
         steps:
-          - script: |
-              #!/bin/bash
+          - bash: |
               set -xeuo pipefail
               sudo snap refresh
               sudo snap install snapcraft --classic
               lxd init --minimal
+            displayName: Set up build environment for snaps
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
+          - bash: |
+              set -xeuo pipefail
+              identity_commit=$(
+                sed -nE \
+                  's/^source = "git\+https:\/\/github\.com\/Azure\/iot-identity-service\?branch=main#([0-9a-fA-F]+)"$/\1/p' \
+                  edgelet/Cargo.lock | head -n 1
+              )
+              git clone https://github.com/Azure/iot-identity-service.git
+              pushd iot-identity-service
+              git checkout "$identity_commit"
+              git submodule update --init --recursive .
               SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
-            displayName: Build snap
-            condition: eq(${{ parameters['E2EBuild'] }}, false)
+              popd
+            displayName: Create aziot-identity packages
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
           - task: CopyFiles@2
-            displayName: Stage artifacts for publishing
-            condition: eq(${{ parameters['E2EBuild'] }}, false)
+            displayName: Copy aziot-identity packages to artifact staging
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
+            inputs:
+              Contents: '*.snap'
+              SourceFolder: '$(build.sourcesdirectory)/iot-identity-service'
+              TargetFolder: '$(build.artifactstagingdirectory)/aziot-identity'
+          - task: PublishBuildArtifacts@1
+            displayName: Publish aziot-identity artifacts
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
+            inputs:
+              ArtifactName: 'aziot-identity-snap-$(arch)'
+              PathtoPublish: '$(build.artifactstagingdirectory)/aziot-identity'
+          - bash: sudo rm -rf iot-identity-service
+            displayName: Clean up iot-identity-service
+            condition: and(succeededOrFailed(), eq(${{ parameters['E2EBuild'] }}, false))
+          - bash: |
+              set -xeuo pipefail
+              SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
+            displayName: Create aziot-edge packages
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
+          - task: CopyFiles@2
+            displayName: Copy aziot-edge packages to artifact staging
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
             inputs:
               Contents: '*.snap'
               SourceFolder: '$(build.sourcesdirectory)'
-              TargetFolder: '$(build.artifactstagingdirectory)'
+              TargetFolder: '$(build.artifactstagingdirectory)/iotedged'
           - task: PublishBuildArtifacts@1
-            displayName: Publish artifacts
-            condition: eq(${{ parameters['E2EBuild'] }}, false)
+            displayName: Publish iotedged artifacts
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
             inputs:
               ArtifactName: 'iotedged-snap-$(arch)'
-              PathtoPublish: '$(build.artifactstagingdirectory)'
+              PathtoPublish: '$(build.artifactstagingdirectory)/iotedged'
 
     ################################################################################
       - job: mariner_linux
