@@ -100,7 +100,7 @@ jobs:
     variables:
       os: linux
       arch: arm64v8
-      identityArtifactName: aziot-identity-debian12-aaarch64
+      identityArtifactName: aziot-identity-debian12-aarch64
       artifactName: iotedged-debian12-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
