@@ -190,7 +190,7 @@ steps:
             username = '$(cr.username)';
           }
         );
-        packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
+        packagePath = Convert-Path '$(System.ArtifactsDirectory)';
         caCertScriptPath = "$caCertScriptPath";
         rootCaCertificatePath = "$rootCaCertificatePath";
         rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";

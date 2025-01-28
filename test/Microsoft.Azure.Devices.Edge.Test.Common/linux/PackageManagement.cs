@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public string[] GetInstallCommandsFromLocal(string path)
         {
             string[] packages = Directory
-                .GetFiles(path, $"*.{this.PackageExtension.ToString().ToLower()}")
+                .GetFiles(path, $"*.{this.PackageExtension.ToString().ToLower()}", SearchOption.AllDirectories)
                 .Where(p => !p.Contains("debuginfo")
                     && !p.Contains("dbgsym")
                     && !p.Contains("devel")
