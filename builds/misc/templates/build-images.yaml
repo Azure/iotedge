@@ -1,5 +1,5 @@
 parameters:
-  - name: 'E2EBuild'
+  - name: E2EBuild
     type: boolean
     default: false
 
