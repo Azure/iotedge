@@ -130,7 +130,6 @@ jobs:
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-            GitHubAccessToken
       - task: AzureKeyVault@2
         displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
@@ -327,7 +326,6 @@ jobs:
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-            GitHubAccessToken
       - task: AzureKeyVault@2
         displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
