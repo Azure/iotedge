@@ -44,9 +44,8 @@ jobs:
     variables:
       os: linux
       arch: arm32v7
+      identityArtifactName: aziot-identity-debian11-arm32v7
       artifactName: iotedged-debian11-arm32v7
-      identityServiceArtifactName: packages_debian-11-slim_arm32v7
-      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       minimal: true
 
@@ -75,9 +74,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
+      identityArtifactName: aziot-identity-debian12-amd64
       artifactName: iotedged-debian12-amd64
-      identityServiceArtifactName: packages_debian-12-slim_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
@@ -102,9 +100,8 @@ jobs:
     variables:
       os: linux
       arch: arm64v8
+      identityArtifactName: aziot-identity-debian12-aarch64
       artifactName: iotedged-debian12-aarch64
-      identityServiceArtifactName: packages_debian-12-slim_aarch64
-      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 120
@@ -131,9 +128,8 @@ jobs:
     variables:
       os: linux
       arch: arm32v7
+      identityArtifactName: aziot-identity-debian12-arm32v7
       artifactName: iotedged-debian12-arm32v7
-      identityServiceArtifactName: packages_debian-12-slim_arm32v7
-      identityServicePackageFilter: aziot-identity-service_*_armhf.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 120
@@ -161,9 +157,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
+      identityArtifactName: aziot-identity-ubuntu20.04-amd64
       artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
@@ -189,9 +184,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
+      identityArtifactName: aziot-identity-ubuntu20.04-amd64
       artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       minimal: true
 
@@ -216,9 +210,8 @@ jobs:
     variables:
       os: linux
       arch: arm64v8
+      identityArtifactName: aziot-identity-ubuntu20.04-aarch64
       artifactName: iotedged-ubuntu20.04-aarch64
-      identityServiceArtifactName: packages_ubuntu-20.04_aarch64
-      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 120
@@ -244,9 +237,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
+      identityArtifactName: aziot-identity-ubuntu22.04-amd64
       artifactName: iotedged-ubuntu22.04-amd64
-      identityServiceArtifactName: packages_ubuntu-22.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
@@ -272,9 +264,8 @@ jobs:
     variables:
       os: linux
       arch: arm64v8
+      identityArtifactName: aziot-identity-ubuntu22.04-aarch64
       artifactName: iotedged-ubuntu22.04-aarch64
-      identityServiceArtifactName: packages_ubuntu-22.04_aarch64
-      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
@@ -300,9 +291,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
+      identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
-      identityServiceArtifactName: packages_ubuntu-24.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
@@ -327,9 +317,8 @@ jobs:
     variables:
       os: linux
       arch: arm64v8
+      identityArtifactName: aziot-identity-ubuntu24.04-aarch64
       artifactName: iotedged-ubuntu24.04-aarch64
-      identityServiceArtifactName: packages_ubuntu-24.04_aarch64
-      identityServicePackageFilter: aziot-identity-service_*_arm64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
@@ -359,16 +348,14 @@ jobs:
           arch: amd64
           pool: $(pool.linux.name)
           image: agent-aziotedge-ubuntu-22.04
+          identityArtifactName: aziot-identity-snap-amd64
           artifactName: iotedged-snap-amd64
-          identityServiceArtifactName: packages_snap_amd64
-          identityServicePackageFilter: azure-iot-identity_*_amd64.snap
         arm64v8:
           arch: arm64v8
           pool: $(pool.linux.arm.name)
           image: agent-aziotedge-ubuntu-22.04-arm64
+          identityArtifactName: aziot-identity-snap-aarch64
           artifactName: iotedged-snap-aarch64
-          identityServiceArtifactName: packages_snap_aarch64
-          identityServicePackageFilter: azure-iot-identity_*_arm64.snap
 
     pool:
       name: $(pool)
@@ -399,9 +386,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
+      identityArtifactName: aziot-identity-redhat8-amd64
       artifactName: iotedged-redhat8-amd64
-      identityServiceArtifactName: packages_redhat-ubi8-latest_amd64
-      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     steps:
@@ -425,9 +411,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
+      identityArtifactName: aziot-identity-redhat9-amd64
       artifactName: iotedged-redhat9-amd64
-      identityServiceArtifactName: packages_redhat-ubi9-latest_amd64
-      identityServicePackageFilter: aziot-identity-service-?.*.x86_64.rpm
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     steps:
@@ -450,9 +435,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
+      identityArtifactName: aziot-identity-ubuntu20.04-amd64
       artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true
@@ -487,6 +471,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
+      identityArtifactName: aziot-identity-mariner2-amd64
       artifactName: iotedged-mariner2-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
@@ -512,6 +497,7 @@ jobs:
     variables:
       os: linux
       arch: arm64
+      identityArtifactName: aziot-identity-mariner2-aarch64
       artifactName: iotedged-mariner2-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 

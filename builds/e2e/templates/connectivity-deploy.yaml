@@ -6,6 +6,7 @@ parameters:
   build.repo.path: ''
   edgelet.source.branch: ''
   images.source.branch: ''
+  identity.artifact.name: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
@@ -50,8 +51,7 @@ steps:
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Copy aziot-identity-service'
     inputs:
-      SourceFolder: "$(Build.StagingDirectory)"
-      Contents: "$(aziotis.package.filter)"
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['identity.artifact.name'] }}"
       TargetFolder: "$(Agent.BuildDirectory)/../artifacts/"
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))

@@ -96,9 +96,8 @@ jobs:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     variables:
+      identity.artifact.name: 'aziot-identity-ubuntu22.04-amd64'
       edgelet.artifact.name: 'iotedged-ubuntu22.04-amd64'
-      aziotis.artifact.name: 'packages_ubuntu-22.04_amd64'
-      aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
       - task: Bash@3
@@ -131,7 +130,6 @@ jobs:
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-            GitHubAccessToken
       - task: AzureKeyVault@2
         displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
@@ -140,6 +138,19 @@ jobs:
           SecretsFilter: >-
             IotHub-ConnStr,
             IotHub-EventHubConnStr
+      - task: DownloadBuildArtifacts@0
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
+        displayName: 'Download Identity Artifacts'
+        inputs:
+          buildType: specific
+          project: $(resources.pipeline.ci-build.projectID)
+          pipeline: $(resources.pipeline.ci-build.pipelineName)
+          branchName: $(resources.pipeline.ci-build.sourceBranch)
+          buildVersionToDownload: specific
+          buildId: $(resources.pipeline.ci-build.runID)
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(identity.artifact.name)
+          allowPartiallySucceededBuilds: true
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
@@ -171,20 +182,8 @@ jobs:
             $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
-            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
             $(images.artifact.name.linux)/CACertificates/certGen.sh
             $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
-      - task: PowerShell@2
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Download aziot-identity-service'
-        inputs:
-          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-        env:
-          GITHUB_TOKEN: $(GitHubAccessToken)
-          ARTIFACT_NAME: $(aziotis.artifact.name)
-          PACKAGE_FILTER: $(aziotis.package.filter)
-          DOWNLOAD_PATH: $(Build.StagingDirectory)
-          IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
@@ -195,6 +194,7 @@ jobs:
           build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -292,6 +292,7 @@ jobs:
         - agent-osbits -equals 32
         - run-connectivity -equals true
     variables:
+      identity.artifact.name: 'aziot-identity-debian11-arm32v7'
       edgelet.artifact.name: 'iotedged-debian11-arm32v7'
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
     steps:
@@ -325,7 +326,6 @@ jobs:
             edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-            GitHubAccessToken
       - task: AzureKeyVault@2
         displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
@@ -334,6 +334,18 @@ jobs:
           SecretsFilter: >-
             IotHub-ConnStr,
             IotHub-EventHubConnStr
+      - task: DownloadBuildArtifacts@0
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
+        displayName: 'Download Identity Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(identity.artifact.name)
+          allowPartiallySucceededBuilds: true
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
@@ -375,6 +387,7 @@ jobs:
           build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
