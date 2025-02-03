@@ -330,9 +330,9 @@ stages:
               PathtoPublish: '$(build.artifactstagingdirectory)/iotedged'
 
     ################################################################################
-      - job: mariner_linux
+      - job: azurelinux
     ################################################################################
-        displayName: Mariner Linux
+        displayName: Azure Linux
         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
         timeoutInMinutes: 90
         strategy:
