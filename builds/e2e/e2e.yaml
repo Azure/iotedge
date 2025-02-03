@@ -508,3 +508,55 @@ jobs:
     - template: templates/e2e-run.yaml
       parameters:
         sas_uri: $(sas_uri)
+
+################################################################################
+  - job: azurelinux3_amd64
+################################################################################
+    displayName: Azure Linux 3.0 amd64
+    dependsOn: Token
+    condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'))
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-azurelinux-3.0-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      identityArtifactName: aziot-identity-azurelinux3-amd64
+      artifactName: iotedged-azurelinux3-amd64
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+      parameters:
+        sas_uri: $(sas_uri)
+
+################################################################################
+  - job: azurelinux3_arm64
+################################################################################
+    displayName: Azure Linux 3.0 arm64
+    dependsOn: Token
+    condition: and(succeeded('Token'), eq(variables['run.EFLOW.arm64'], 'true'))
+    pool:
+      name: $(pool.linux.arm.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-azurelinux-3.0-arm64-msmoby
+
+    variables:
+      os: linux
+      arch: arm64
+      identityArtifactName: aziot-identity-azurelinux3-aarch64
+      artifactName: iotedged-azurelinux3-aarch64
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+      parameters:
+        sas_uri: $(sas_uri)
