@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
+    using Akka;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
@@ -32,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
         readonly IEncryptionProvider encryptionProvider;
         readonly IDeploymentMetrics deploymentMetrics;
+        Option<OfflineCheckInfo> offlineCheckInfo;
         IEnvironment environment;
         DeploymentConfigInfo currentConfig;
         DeploymentStatus status;
@@ -47,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             DeploymentConfigInfo initialDeployedConfigInfo,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IDeploymentMetrics deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            Option<OfflineCheckInfo> offlineCheckInfo)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
@@ -61,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
             this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
+            this.offlineCheckInfo = offlineCheckInfo;
             this.status = DeploymentStatus.Unknown;
             Events.AgentCreated();
         }
@@ -75,7 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEntityStore<string, string> configStore,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IDeploymentMetrics deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            Option<OfflineCheckInfo> offlineCheckInfo)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -107,7 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 deploymentConfigInfo.GetOrElse(DeploymentConfigInfo.Empty),
                 deploymentConfigInfoSerde,
                 encryptionProvider,
-                deploymentMetrics);
+                deploymentMetrics,
+                offlineCheckInfo);
             return agent;
         }
 
@@ -203,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     }
                 }
 
-                if (await IsServiceAvailableViaTcpAsync())
+                if (await this.IsServiceAvailableViaTcpAsync())
                 {
                     await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
                 }
@@ -212,20 +218,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
         }
 
-        static async Task<bool> IsServiceAvailableViaTcpAsync()
+        async Task<bool> IsServiceAvailableViaTcpAsync()
         {
-            try
-            {
-                using var tcpClient = new TcpClient();
-                await tcpClient.ConnectAsync("offlinetest.azure-devices.net", 5671);
-                Console.WriteLine("IOTHUB Connection is alive");
-                return true; // Connection succeeded
-            }
-            catch (Exception)
-            {
-                Console.WriteLine("IOTHUB Connection is not alive");
-                return false; // Connection failed
-            }
+            return await this.offlineCheckInfo.Match<Task<bool>>(
+                async (info) =>
+                {
+                    try
+                    {
+                        using var tcpClient = new TcpClient();
+                        await tcpClient.ConnectAsync("offlinetest.azure-devices.net", 5671);
+                        Console.WriteLine("IOTHUB Connection is alive");
+                        return true; // Connection succeeded
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine("IOTHUB Connection is not alive");
+                        return false; // Connection failed
+                    }
+                },
+                () => Task.FromResult(true));
         }
 
         public async Task HandleShutdown(CancellationToken token)
