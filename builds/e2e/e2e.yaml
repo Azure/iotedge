@@ -474,6 +474,7 @@ jobs:
       identityArtifactName: aziot-identity-mariner2-amd64
       artifactName: iotedged-mariner2-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      minimal: true
 
     timeoutInMinutes: 90
 
@@ -500,6 +501,7 @@ jobs:
       identityArtifactName: aziot-identity-mariner2-aarch64
       artifactName: iotedged-mariner2-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      minimal: true
 
     timeoutInMinutes: 90
 
