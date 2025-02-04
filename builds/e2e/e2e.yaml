@@ -489,7 +489,6 @@ jobs:
 ################################################################################
     displayName: Mariner 2.0 arm64
     dependsOn: Token
-    condition: and(succeeded('Token'), eq(variables['run.EFLOW.arm64'], 'true'))
     pool:
       name: $(pool.linux.arm.name)
       demands:
@@ -542,7 +541,6 @@ jobs:
 ################################################################################
     displayName: Azure Linux 3.0 arm64
     dependsOn: Token
-    condition: and(succeeded('Token'), eq(variables['run.EFLOW.arm64'], 'true'))
     pool:
       name: $(pool.linux.arm.name)
       demands:
