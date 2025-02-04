@@ -345,7 +345,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             deploymentConfigInfoSerde,
                             await encryptionProvider,
                             availabilityMetric,
-                            offlineCheckInfo);
+                            this.offlineCheckInfo);
                     })
                 .As<Task<Agent>>()
                 .SingleInstance();
