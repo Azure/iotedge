@@ -50,13 +50,21 @@ steps:
       patterns: $(az.pipeline.images.artifacts)/artifactInfo.txt
   
   - task: DownloadPipelineArtifact@2
-    displayName: Download Pipeline Build Packages
+    displayName: Download identity packages from pipeline
+    condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
+    inputs:
+      source: 'current'
+      path: $(System.ArtifactsDirectory)
+      patterns: $(identityArtifactName)/*.deb
+  
+  - task: DownloadPipelineArtifact@2
+    displayName: Download edgelet packages from pipeline
     condition: eq(variables['check_use_artifacts.UsePipelinePackageArtifacts'],'true')
     inputs:
       source: 'current'
       path: $(System.ArtifactsDirectory)
       patterns: $(artifactName)/*.deb
-  
+
   - task: DownloadBuildArtifacts@0
     displayName: Download Resource Build Images
     condition: eq(variables['check_use_artifacts.UsePipelineImageArtifacts'],'false')
