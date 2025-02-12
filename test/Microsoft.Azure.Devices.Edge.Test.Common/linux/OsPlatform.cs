@@ -64,12 +64,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         static string BuildCertCommand(string command, string scriptPath) =>
             $"-c \"FORCE_NO_PROD_WARNING=true '{Path.Combine(scriptPath, "certGen.sh")}' {command}\"";
 
-        public void SetOwner(string path, string owner, string permissions)
+        public void SetOwner(string path, string owner)
         {
             var chown = System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {path}");
             chown.WaitForExit();
             chown.Close();
+        }
 
+        public void SetPermissions(string path, string permissions)
+        {
             var chmod = System.Diagnostics.Process.Start("chmod", $"{permissions} {path}");
             chmod.WaitForExit();
             chmod.Close();
