@@ -65,7 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     }
 
                     Directory.CreateDirectory(certsPath);
-                    OsPlatform.Current.SetPermissions(certsPath, "755");
 
                     await this.daemon.ConfigureAsync(
                         async config =>

@@ -86,12 +86,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 switch (destinationPaths[i])
                 {
                     case var path when path.Name.EndsWith("key.pem"):
-                        OsPlatform.Current.SetOwner(path.FullName, "aziotks");
-                        OsPlatform.Current.SetPermissions(path.FullName, "600");
+                        OsPlatform.Current.SetOwner(path.FullName, "aziotks", "600");
                         break;
                     case var path when path.Name.EndsWith("cert.pem"):
-                        OsPlatform.Current.SetOwner(path.FullName, "aziotcs");
-                        OsPlatform.Current.SetPermissions(path.FullName, "644");
+                        OsPlatform.Current.SetOwner(path.FullName, "aziotcs", "644");
                         break;
                     case var path:
                         throw new NotImplementedException($"Expected file {path} to end with 'key.pem' or 'cert.pem'");

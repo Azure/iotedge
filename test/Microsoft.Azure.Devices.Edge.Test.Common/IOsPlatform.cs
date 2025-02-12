@@ -35,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         void InstallTrustedCertificates(IEnumerable<X509Certificate2> certs);
 
-        void SetOwner(string filePath, string owner);
-        void SetPermissions(string filePath, string permissions);
+        void SetOwner(string filePath, string owner, string permissions);
     }
 }
