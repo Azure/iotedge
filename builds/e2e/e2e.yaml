@@ -496,7 +496,7 @@ jobs:
 
     variables:
       os: linux
-      arch: arm64
+      arch: arm64v8
       identityArtifactName: aziot-identity-mariner2-aarch64
       artifactName: iotedged-mariner2-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
@@ -548,7 +548,7 @@ jobs:
 
     variables:
       os: linux
-      arch: arm64
+      arch: arm64v8
       identityArtifactName: aziot-identity-azurelinux3-aarch64
       artifactName: iotedged-azurelinux3-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
