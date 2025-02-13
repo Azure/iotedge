@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
+    using Serilog;
 
     public class DeviceProvisioningFixture : BaseFixture
     {
@@ -16,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected async Task BeforeAllTestsAsync()
         {
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
+            Log.Information(">> DeviceProvisioningFixture::BeforeAllTestsAsync calling CreateEdgeDaemonAsync");
             this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, cts.Token);
             this.cli = this.daemon.GetCli();
         }

@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public static async Task<EdgeDaemon> CreateAsync(Option<string> packagesPath, CancellationToken token)
         {
+            Log.Information($">>> EdgeDaemon::CreateAsync('{packagesPath}') ENTERING");
             string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
             string os = Array.Find(platformInfo, element => element.StartsWith("ID="));
             string version = Array.Find(platformInfo, element => element.StartsWith("VERSION_ID="));
@@ -49,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             void ThrowUnsupportedOs() =>
                 throw new NotImplementedException($"Operating system '{os} {version}' not supported");
+
+            Log.Information($">>> EdgeDaemon::CreateAsync() DETERMINING PACKAGE EXTENSION FOR '{os} {version}'");
 
             switch (os)
             {
@@ -101,11 +104,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }
 
+            Log.Information($">>> EdgeDaemon::CreateAsync() PACKAGE EXTENSION IS '{packageExtension}'");
+
             if (detectedSnap && packageExtension != SupportedPackageExtension.Snap)
             {
                 throw new NotImplementedException(
                     $"Snap package was detected but isn't supported on operating system '{os} {version}'");
             }
+
+            Log.Information($">>> EdgeDaemon::CreateAsync() EXITING");
 
             return new EdgeDaemon(packagesPath, new PackageManagement(os, version, packageExtension));
         }
