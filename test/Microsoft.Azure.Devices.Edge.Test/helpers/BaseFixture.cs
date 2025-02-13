@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         [SetUp]
         protected async Task BeforeEachTestAsync()
         {
+            Log.Information(">> BaseFixture::BeforeEachTestAsync");
             await this.BeforeTestTimerStarts();
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
             this.testStartTime = DateTime.Now;

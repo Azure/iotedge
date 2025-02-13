@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.registryManager = new Lazy<RegistryManager>(
                 () =>
                 {
+                    Log.Information($">> Lazy-initializing RegistryManager for hub {this.Hostname}");
                     var settings = new HttpTransportSettings();
                     proxy.ForEach(p => settings.Proxy = p);
                     return RegistryManager.CreateFromConnectionString(
@@ -77,11 +78,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         EventHubClient EventHubClient => this.eventHubClient.Value;
 
-        public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>
-            this.RegistryManager.GetDeviceAsync(deviceId, token);
+        public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token)
+        {
+            Log.Information($">> Getting device identity for {deviceId} on hub {this.Hostname}");
+            return this.RegistryManager.GetDeviceAsync(deviceId, token);
+        }
 
         public async Task<Device> CreateDeviceIdentityAsync(Device device, CancellationToken token)
         {
+            Log.Information($">> Creating device identity for {device.Id} on hub {this.Hostname}");
             return await this.RegistryManager.AddDeviceAsync(device, token);
         }
 
