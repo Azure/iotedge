@@ -143,9 +143,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: ubuntu_2004_msmoby
+  - job: ubuntu_2004_amd64_msmoby
 ################################################################################
-    displayName: Ubuntu 20.04 with iotedge-moby
+    displayName: Ubuntu 20.04 amd64 with iotedge-moby
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -170,9 +170,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: ubuntu_2004_docker
+  - job: ubuntu_2004_amd64_docker
 ################################################################################
-    displayName: Ubuntu 20.04 with Docker (minimal)
+    displayName: Ubuntu 20.04 amd64 with Docker (minimal)
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -198,7 +198,7 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_arm64v8
 ################################################################################
-    displayName: Ubuntu 20.04 on arm64v8
+    displayName: Ubuntu 20.04 arm64v8
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -223,9 +223,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: ubuntu_2204
+  - job: ubuntu_2204_amd64
 ################################################################################
-    displayName: Ubuntu 22.04 on amd64
+    displayName: Ubuntu 22.04 amd64
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -252,7 +252,7 @@ jobs:
 ################################################################################
   - job: ubuntu_2204_arm64v8
 ################################################################################
-    displayName: Ubuntu 22.04 on arm64v8
+    displayName: Ubuntu 22.04 arm64v8
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -277,9 +277,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: ubuntu_2404
+  - job: ubuntu_2404_amd64
 ################################################################################
-    displayName: Ubuntu 24.04 on amd64
+    displayName: Ubuntu 24.04 amd64
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -306,7 +306,7 @@ jobs:
 ################################################################################
   - job: ubuntu_2404_arm64v8
 ################################################################################
-    displayName: Ubuntu 24.04 on arm64v8
+    displayName: Ubuntu 24.04 arm64v8
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -485,9 +485,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: mariner2_arm64
+  - job: mariner2_arm64v8
 ################################################################################
-    displayName: Mariner 2.0 arm64 (minimal)
+    displayName: Mariner 2.0 arm64v8 (minimal)
     dependsOn: Token
     pool:
       name: $(pool.linux.arm.name)
@@ -537,9 +537,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: azurelinux3_arm64
+  - job: azurelinux3_arm64v8
 ################################################################################
-    displayName: Azure Linux 3.0 arm64
+    displayName: Azure Linux 3.0 arm64v8
     dependsOn: Token
     pool:
       name: $(pool.linux.arm.name)
