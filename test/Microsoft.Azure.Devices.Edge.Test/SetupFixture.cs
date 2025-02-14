@@ -36,8 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
             Log.Logger = loggerConfig.CreateLogger();
 
-            Log.Information(">> SetupFixture calling CreateEdgeDaemonAsync");
-
             this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, token);
 
             await Profiler.Run(
