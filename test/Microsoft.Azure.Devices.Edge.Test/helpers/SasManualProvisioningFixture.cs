@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
-    using Serilog;
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
@@ -21,8 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             {
                 CancellationToken token = cts.Token;
                 DateTime startTime = DateTime.Now;
-
-                Log.Information(">> SasManualProvisioningFixture::SasProvisionEdgeAsync");
 
                 this.device = await EdgeDevice.GetOrCreateIdentityAsync(
                     Context.Current.DeviceId.GetOrElse(DeviceId.Current.Generate()),
