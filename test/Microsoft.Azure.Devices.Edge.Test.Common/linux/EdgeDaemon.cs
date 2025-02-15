@@ -63,6 +63,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         ? SupportedPackageExtension.Snap
                         : SupportedPackageExtension.Deb;
                     break;
+                case "ubuntu-core":
+                    if (!detectedSnap)
+                    {
+                        throw new ArgumentException(
+                            "packagesPath parameter is required on Ubuntu Core, and it must point to snap packages");
+                    }
+
+                    packageExtension = SupportedPackageExtension.Snap;
+                    break;
                 case "debian":
                     if (version != "11" && version != "12")
                     {
