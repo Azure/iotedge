@@ -9,59 +9,59 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
-        protected EdgeRuntime runtime;
-        protected EdgeDevice device;
+        protected static EdgeRuntime runtime;
+        protected static EdgeDevice device;
 
-        protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
+        protected override Task BeforeTestTimerStarts() => SasProvisionEdgeAsync();
 
-        protected virtual async Task SasProvisionEdgeAsync(bool withCerts = false)
+        protected static async Task SasProvisionEdgeAsync(bool withCerts = false)
         {
             using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
             {
                 CancellationToken token = cts.Token;
                 DateTime startTime = DateTime.Now;
 
-                this.device = await EdgeDevice.GetOrCreateIdentityAsync(
+                device = await EdgeDevice.GetOrCreateIdentityAsync(
                     Context.Current.DeviceId.GetOrElse(DeviceId.Current.Generate()),
-                    this.GetNestedEdgeConfig(this.IotHub),
-                    this.IotHub,
+                    GetNestedEdgeConfig(IotHub),
+                    IotHub,
                     AuthenticationType.Sas,
                     null,
                     token);
 
-                Context.Current.DeleteList.TryAdd(this.device.Id, this.device);
+                Context.Current.DeleteList.TryAdd(device.Id, device);
 
-                this.runtime = new EdgeRuntime(
-                    this.device.Id,
+                runtime = new EdgeRuntime(
+                    device.Id,
                     Context.Current.EdgeAgentImage,
                     Context.Current.EdgeHubImage,
                     Context.Current.EdgeProxy,
                     Context.Current.Registries,
                     Context.Current.OptimizeForPerformance,
-                    this.IotHub);
+                    IotHub);
 
                 // This is a temporary solution see ticket: 9288683
                 if (!Context.Current.ISA95Tag)
                 {
-                    (var certs, this.ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
-                        this.device.Id,
-                        this.daemon.GetCertificatesPath(),
+                    (var certs, ca) = await TestCertificates.GenerateEdgeCaCertsAsync(
+                        device.Id,
+                        daemon.GetCertificatesPath(),
                         token);
 
-                    await this.ConfigureDaemonAsync(
+                    await ConfigureDaemonAsync(
                         async config =>
                         {
                             config.SetCertificates(certs);
                             config.SetManualSasProvisioning(
-                                this.IotHub.Hostname,
+                                IotHub.Hostname,
                                 Context.Current.ParentHostname,
-                                this.device.Id,
-                                this.device.SharedAccessKey);
+                                device.Id,
+                                device.SharedAccessKey);
 
                             await config.UpdateAsync(token);
-                            return ("with connection string for device '{Identity}'", new object[] { this.device.Id });
+                            return ("with connection string for device '{Identity}'", new object[] { device.Id });
                         },
-                        this.device,
+                        device,
                         startTime,
                         token);
                 }

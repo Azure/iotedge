@@ -63,6 +63,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         ? SupportedPackageExtension.Snap
                         : SupportedPackageExtension.Deb;
                     break;
+                case "ubuntu-core":
+                    if (!detectedSnap)
+                    {
+                        throw new ArgumentException(
+                            "packagesPath parameter is required on Ubuntu Core, and it must point to snap packages");
+                    }
+
+                    packageExtension = SupportedPackageExtension.Snap;
+                    break;
                 case "debian":
                     if (version != "11" && version != "12")
                     {
@@ -183,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Retry.Do(
                 async () =>
                 {
-                    string[] output = await this.GetCli().RunAsync("list", token);
+                    string[] output = await Process.RunAsync("iotedge", "list", token);
                     return output;
                 },
                 output => true,
@@ -246,10 +255,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         }
 
         public string GetCertificatesPath() => this.certsPath;
-
-        public IotedgeCli GetCli()
-        {
-            return new IotedgeCli(this.serviceManager.GetCliName());
-        }
     }
 }

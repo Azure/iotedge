@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
-    using NUnit.Framework;
     using NestedEdgeConfig = Microsoft.Azure.Devices.Edge.Test.Common.EdgeDevice.NestedEdgeConfig;
 
     // NUnit's [Timeout] attribute isn't supported in .NET Standard
@@ -16,39 +15,35 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     // we have our own timeout mechanism.
     public class ManualProvisioningFixture : BaseFixture
     {
-        public IotHub IotHub { get; }
+        public static IotHub IotHub { get; } = new IotHub(
+            Context.Current.ConnectionString,
+            Context.Current.EventHubEndpoint,
+            Context.Current.TestRunnerProxy);
 
-        protected IEdgeDaemon daemon;
-        protected CertificateAuthority ca;
+        protected static IEdgeDaemon daemon;
+        protected static CertificateAuthority ca;
+        protected static TestContext msTestContext;
 
-        public ManualProvisioningFixture()
+        [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
+        public static async Task BeforeAllTestsAsync(TestContext msTestContextObj)
         {
-            this.IotHub = new IotHub(
-                Context.Current.ConnectionString,
-                Context.Current.EventHubEndpoint,
-                Context.Current.TestRunnerProxy);
-        }
-
-        [OneTimeSetUp]
-        protected async Task BeforeAllTestsAsync()
-        {
+            msTestContext = msTestContextObj;
             using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
-            this.daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, cts.Token);
-            this.cli = this.daemon.GetCli();
+            daemon = await OsPlatform.Current.CreateEdgeDaemonAsync(Context.Current.PackagePath, cts.Token);
         }
 
-        protected async Task ConfigureDaemonAsync(
+        protected static async Task ConfigureDaemonAsync(
             Func<DaemonConfiguration, Task<(string, object[])>> config,
             EdgeDevice device,
             DateTime startTime,
             CancellationToken token)
         {
-            await this.daemon.ConfigureAsync(config, token);
+            await daemon.ConfigureAsync(config, token);
 
             try
             {
-                var agent = new EdgeAgent(device.Id, this.IotHub);
-                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
+                var agent = new EdgeAgent(device.Id, IotHub);
+                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
                 await agent.PingAsync(token);
             }
 
@@ -60,11 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             finally
             {
                 using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
-                await NUnitLogs.CollectAsync(startTime, this.cli, cts.Token);
+                await TestLogs.CollectAsync(startTime, msTestContext, cts.Token);
             }
         }
 
-        protected NestedEdgeConfig GetNestedEdgeConfig(IotHub iotHub)
+        protected static NestedEdgeConfig GetNestedEdgeConfig(IotHub iotHub)
         {
             return new NestedEdgeConfig(
                 iotHub,
