@@ -76,16 +76,16 @@ IIS_VERSION=$(
 
 # Update versions in specfiles
 pushd "$BUILD_REPOSITORY_LOCALPATH"
-sed -i "s/@@VERSION@@/$VERSION/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json
-sed -i "s/@@VERSION@@/$VERSION/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
-sed -i "s/@@RELEASE@@/$REVISION/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+sed -i "s/@@VERSION@@/$VERSION/g" $BUILD_REPOSITORY_LOCALPATH/builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json
+sed -i "s/@@VERSION@@/$VERSION/g" $BUILD_REPOSITORY_LOCALPATH/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+sed -i "s/@@RELEASE@@/$REVISION/g" $BUILD_REPOSITORY_LOCALPATH/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
 
 # Update aziot-identity-service version dependency
 if [[ ! -z $IIS_VERSION ]]; then
-    sed -i "s/@@IIS_VERSION@@/$IIS_VERSION/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+    sed -i "s/@@IIS_VERSION@@/$IIS_VERSION/g" $BUILD_REPOSITORY_LOCALPATH/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
 else
     # if a version could not be parsed remove the version dependency
-    sed -i "s/aziot-identity-service = @@IIS_VERSION@@%{?dist}/aziot-identity-service/g" ${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
+    sed -i "s/aziot-identity-service = @@IIS_VERSION@@%{?dist}/aziot-identity-service/g" $BUILD_REPOSITORY_LOCALPATH/builds/mariner/SPECS/aziot-edge/aziot-edge.spec
 fi
 popd
 
@@ -134,8 +134,8 @@ mv "$tmp_dir/aziot-edge-$VERSION.tar.gz" "$AZURELINUX_BUILD_ROOT/SPECS/aziot-edg
 rm -rf "$tmp_dir"
 
 # Copy spec files to expected locations
-cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json" "$AZURELINUX_BUILD_ROOT/SPECS/aziot-edge/"
-cp "${BUILD_REPOSITORY_LOCALPATH}/builds/mariner/SPECS/aziot-edge/aziot-edge.spec" "$AZURELINUX_BUILD_ROOT/SPECS/aziot-edge/"
+cp "$BUILD_REPOSITORY_LOCALPATH/builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json" "$AZURELINUX_BUILD_ROOT/SPECS/aziot-edge/"
+cp "$BUILD_REPOSITORY_LOCALPATH/builds/mariner/SPECS/aziot-edge/aziot-edge.spec" "$AZURELINUX_BUILD_ROOT/SPECS/aziot-edge/"
 
 tmp_dir=$(mktemp -d)
 pushd $tmp_dir
