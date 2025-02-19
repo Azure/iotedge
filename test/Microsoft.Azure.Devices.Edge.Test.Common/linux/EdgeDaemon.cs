@@ -89,6 +89,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
                     packageExtension = SupportedPackageExtension.Rpm;
                     break;
+                case "azurelinux":
+                    if (version != "3.0")
+                    {
+                        ThrowUnsupportedOs();
+                    }
+
+                    packageExtension = SupportedPackageExtension.Rpm;
+                    break;
                 default:
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }

@@ -330,9 +330,9 @@ stages:
               PathtoPublish: '$(build.artifactstagingdirectory)/iotedged'
 
     ################################################################################
-      - job: mariner_linux
+      - job: azurelinux
     ################################################################################
-        displayName: Mariner Linux
+        displayName: Azure Linux
         condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
         timeoutInMinutes: 90
         strategy:
@@ -342,8 +342,9 @@ stages:
               agent-image: agent-aziotedge-ubuntu-20.04-docker
               arch: amd64
               os: mariner
+              os_id: cm
               os_version: 2
-              mariner_release: 2.0-stable
+              release_tag: 2.0-stable
               target.identity: iot-identity-service/packages/mariner2/amd64
               target.iotedged: builds/mariner2/out/RPMS/x86_64
             2.0-aarch64:
@@ -351,10 +352,31 @@ stages:
               agent-image: agent-aziotedge-ubuntu-20.04-arm64-docker
               arch: aarch64
               os: mariner
+              os_id: cm
               os_version: 2
-              mariner_release: 2.0-stable
+              release_tag: 2.0-stable
               target.identity: iot-identity-service/packages/mariner2/aarch64
               target.iotedged: builds/mariner2/out/RPMS/aarch64
+            3.0-amd64:
+              agent-pool: $(pool.linux.name)
+              agent-image: agent-aziotedge-ubuntu-22.04-msmoby
+              arch: amd64
+              os: azurelinux
+              os_id: azl
+              os_version: 3
+              release_tag: 3.0-stable
+              target.identity: iot-identity-service/packages/azurelinux3/amd64
+              target.iotedged: builds/azurelinux3/out/RPMS/x86_64
+            3.0-aarch64:
+              agent-pool: $(pool.linux.arm.name)
+              agent-image: agent-aziotedge-ubuntu-22.04-arm64-msmoby
+              arch: aarch64
+              os: azurelinux
+              os_id: azl
+              os_version: 3
+              release_tag: 3.0-stable
+              target.identity: iot-identity-service/packages/azurelinux3/aarch64
+              target.iotedged: builds/azurelinux3/out/RPMS/aarch64
         pool:
           name: $(agent-pool)
           demands:
@@ -369,11 +391,11 @@ stages:
               echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
               echo "PACKAGE_OS=$(os)"
               echo "##vso[task.setvariable variable=OSVERSION;]$(os_version)"
-              mariner_arch=$(arch)
-              if [ $mariner_arch == "amd64" ]; then
-                mariner_arch="x86_64"
+              azurelinux_arch=$(arch)
+              if [ $azurelinux_arch == "amd64" ]; then
+                azurelinux_arch="x86_64"
               fi
-              echo "##vso[task.setvariable variable=MARINER_ARCH;]$mariner_arch"
+              echo "##vso[task.setvariable variable=AZURELINUX_ARCH;]$azurelinux_arch"
             displayName: Set Version
           - bash: |
               set -xeuo pipefail
@@ -403,12 +425,14 @@ stages:
                 '/src/ci/package.sh'
               popd
               # aziot-edge package script expects to query the version from the identity package in the root source directory
-              sudo cp iot-identity-service/packages/mariner$(os_version)/$(arch)/aziot-identity-service-$packageVersion-1.cm$(os_version).$(MARINER_ARCH).rpm .
+              os_dirs='$(os)$(os_version)/$(arch)'
+              os_suffix='$(os_id)$(os_version).$(AZURELINUX_ARCH)'
+              sudo cp iot-identity-service/packages/$os_dirs/aziot-identity-service-$packageVersion-1.$os_suffix.rpm .
             displayName: Create aziot-identity packages
           - task: CopyFiles@2
             displayName: Copy aziot-identity build logs to artifact staging
             inputs:
-              SourceFolder: iot-identity-service/Mariner-Build/build/logs/pkggen/rpmbuilding
+              SourceFolder: iot-identity-service/AzureLinux-Build/build/logs/pkggen/rpmbuilding
               Contents: |
                 **/*.rpm.log
               TargetFolder: '$(build.artifactstagingdirectory)/aziot-identity'
@@ -435,8 +459,8 @@ stages:
                 -v "$(Build.SourcesDirectory):/src" \
                 -e "ARCH=$arch" \
                 -e "OS=$OS" \
-                -e "MARINER_RELEASE=$MARINER_RELEASE" \
-                -e "MARINER_ARCH=$MARINER_ARCH" \
+                -e "AZURELINUX_RELEASE=$RELEASE_TAG" \
+                -e "ARCH=$AZURELINUX_ARCH" \
                 -e "VERSION=$VERSION" \
                 --privileged \
                 'mcr.microsoft.com/mirror/docker/library/ubuntu:22.04' \
@@ -445,7 +469,7 @@ stages:
           - task: CopyFiles@2
             displayName: Copy aziot-edge build logs to artifact staging
             inputs:
-              SourceFolder: builds/mariner2/build/logs/pkggen/rpmbuilding
+              SourceFolder: builds/$(os)$(os_version)/build/logs/pkggen/rpmbuilding
               Contents: |
                 **/*.rpm.log
               TargetFolder: '$(build.artifactstagingdirectory)/iotedged'
