@@ -29,11 +29,15 @@ REVISION="${REVISION:-1}"
 
 apt-get update -y
 apt-get upgrade -y
-apt-get install -y software-properties-common
-add-apt-repository -y ppa:longsleep/golang-backports
-apt-get update -y
+
+if [ "${AZURELINUX_RELEASE:0:3}" = '2.0' ]; then
+    apt-get install -y software-properties-common
+    add-apt-repository -y ppa:longsleep/golang-backports
+    apt-get update -y
+fi
+
 apt-get install -y \
-    cmake cpio curl g++ gcc genisoimage git golang-1.21-go jq libclang1 libssl-dev \
+    acl cmake cpio curl g++ gcc genisoimage git golang-1.21-go jq libclang1 libssl-dev \
     llvm-dev make pigz pkg-config python3-distutils python3-pip qemu-utils rpm tar \
     wget zstd
 
