@@ -109,14 +109,8 @@ namespace SimulatedTemperatureSensor
             await SendEvents(moduleClient, messageCount, simulatorParameters, cts);
             await cts.Token.WhenCanceled();
 
-            // Unregister all handlers (method, property update, and input message) by setting them to null to ensure no further callbacks are triggered.
-            await moduleClient.SetMethodHandlerAsync("reset", null, null);
-            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(null, null);
-            await moduleClient.SetInputMessageHandlerAsync("control", null, null);
-            
             await moduleClient?.CloseAsync();
             moduleClient?.Dispose();
-            Environment.ExitCode = 0; // Explicitly set the exit code to 0 for successful shutdown signaling to IoT Edge.
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             logger.LogInformation("SimulatedTemperatureSensor Main() finished.");
