@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
                         "sudo systemctl daemon-reload"
                     },
-                    "mariner" => new[]
+                    "mariner" or "azurelinux" => new[]
                     {
                         "set -e",
                         $"sudo dnf -y install {string.Join(' ', packages)}",
