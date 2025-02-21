@@ -14,9 +14,9 @@ namespace SimulatedTemperatureSensor
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
-    using Microsoft.Extensions.Logging;
 
     class Program
     {
@@ -59,7 +59,7 @@ namespace SimulatedTemperatureSensor
                 .AddEnvironmentVariables()
                 .Build();
 
-            logger = SetupLogger(configuration);   
+            logger = SetupLogger(configuration);
             messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
             int messageCount = configuration.GetValue(MessageCountConfigKey, 500);
             var simulatorParameters = new SimulatorParameters
@@ -242,11 +242,12 @@ namespace SimulatedTemperatureSensor
                     {
                         await moduleClient.SendEventAsync("temperatureOutput", eventMessage, cts.Token);
                     }
-                    catch(OperationCanceledException)
+                    catch (OperationCanceledException)
                     {
-                        logger.LogError($"SendEvents has been canceled, sent {count-1} messages.");
+                        logger.LogError($"SendEvents has been canceled, sent {count - 1} messages.");
                         return;
                     }
+
                     count++;
                 }
 
@@ -256,7 +257,7 @@ namespace SimulatedTemperatureSensor
                 }
                 catch (TaskCanceledException)
                 {
-                    logger.LogError($"SendEvents has been canceled, sent {count-1} messages.");
+                    logger.LogError($"SendEvents has been canceled, sent {count - 1} messages.");
                     return;
                 }
             }
