@@ -238,7 +238,8 @@ namespace SimulatedTemperatureSensor
                     eventMessage.Properties.Add("sequenceNumber", count.ToString());
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
                     logger.LogInformation($"Sending message: {count}, Body: [{dataBuffer}]");
-                    try{
+                    try
+                    {
                         await moduleClient.SendEventAsync("temperatureOutput", eventMessage, cts.Token);
                     }
                     catch(OperationCanceledException)
@@ -249,7 +250,8 @@ namespace SimulatedTemperatureSensor
                     count++;
                 }
 
-                try{
+                try
+                {
                     await Task.Delay(messageDelay, cts.Token);
                 }
                 catch (TaskCanceledException)
