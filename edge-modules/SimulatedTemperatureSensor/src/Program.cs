@@ -14,6 +14,7 @@ namespace SimulatedTemperatureSensor
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
@@ -39,6 +40,7 @@ namespace SimulatedTemperatureSensor
         static TimeSpan messageDelay;
         static bool sendData = true;
 
+        static ILogger logger = null;
         public enum ControlCommandEnum
         {
             Reset = 0,
@@ -49,7 +51,7 @@ namespace SimulatedTemperatureSensor
 
         static async Task<int> MainAsync()
         {
-            Console.WriteLine("SimulatedTemperatureSensor Main() started.");
+            Console.WriteLine($"{DateTime.UtcNow.ToLogString()} SimulatedTemperatureSensor Main() started.");
 
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -57,6 +59,7 @@ namespace SimulatedTemperatureSensor
                 .AddEnvironmentVariables()
                 .Build();
 
+            logger = SetupLogger(configuration);
             messageDelay = configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5));
             int messageCount = configuration.GetValue(MessageCountConfigKey, 500);
             var simulatorParameters = new SimulatorParameters
@@ -69,7 +72,7 @@ namespace SimulatedTemperatureSensor
                 HumidityPercent = configuration.GetValue("ambientHumidity", 25)
             };
 
-            Console.WriteLine(
+            logger.LogInformation(
                 $"Initializing simulated temperature sensor to send {(SendUnlimitedMessages(messageCount) ? "unlimited" : messageCount.ToString())} "
                 + $"messages, at an interval of {messageDelay.TotalSeconds} seconds.\n"
                 + $"To change this, set the environment variable {MessageCountConfigKey} to the number of messages that should be sent (set it to -1 to send unlimited messages).");
@@ -83,7 +86,7 @@ namespace SimulatedTemperatureSensor
             await moduleClient.OpenAsync();
             await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), logger);
 
             Twin currentTwinProperties = await moduleClient.GetTwinAsync();
             if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
@@ -96,7 +99,7 @@ namespace SimulatedTemperatureSensor
                 sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
                 if (!sendData)
                 {
-                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
+                    logger.LogInformation("Sending data disabled. Change twin configuration to start sending again.");
                 }
             }
 
@@ -106,10 +109,20 @@ namespace SimulatedTemperatureSensor
             await SendEvents(moduleClient, messageCount, simulatorParameters, cts);
             await cts.Token.WhenCanceled();
 
+            await moduleClient?.CloseAsync();
+            moduleClient?.Dispose();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
-            Console.WriteLine("SimulatedTemperatureSensor Main() finished.");
+            logger.LogInformation("SimulatedTemperatureSensor Main() finished.");
             return 0;
+        }
+
+        static ILogger SetupLogger(IConfiguration configuration)
+        {
+            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
+            Logger.SetLogLevel(logLevel);
+            ILogger logger = Logger.Factory.CreateLogger<Program>();
+            return logger;
         }
 
         static bool SendUnlimitedMessages(int maximumNumberOfMessages) => maximumNumberOfMessages < 0;
@@ -224,18 +237,34 @@ namespace SimulatedTemperatureSensor
                     eventMessage.ContentType = "application/json";
                     eventMessage.Properties.Add("sequenceNumber", count.ToString());
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
-                    Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
+                    logger.LogInformation($"Sending message: {count}, Body: [{dataBuffer}]");
+                    try
+                    {
+                        await moduleClient.SendEventAsync("temperatureOutput", eventMessage, cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        logger.LogError($"SendEvents has been canceled, sent {count - 1} messages.");
+                        return;
+                    }
 
-                    await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
                     count++;
                 }
 
-                await Task.Delay(messageDelay, cts.Token);
+                try
+                {
+                    await Task.Delay(messageDelay, cts.Token);
+                }
+                catch (TaskCanceledException)
+                {
+                    logger.LogError($"SendEvents has been canceled, sent {count - 1} messages.");
+                    return;
+                }
             }
 
             if (messageCount < count)
             {
-                Console.WriteLine($"Done sending {messageCount} messages");
+                logger.LogInformation($"Done sending {messageCount} messages");
             }
         }
 
@@ -269,7 +298,7 @@ namespace SimulatedTemperatureSensor
             RetryStrategy retryStrategy = null)
         {
             var retryPolicy = new RetryPolicy(transientErrorDetectionStrategy, retryStrategy);
-            retryPolicy.Retrying += (_, args) => { Console.WriteLine($"[Error] Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}"); };
+            retryPolicy.Retrying += (_, args) => { logger.LogError($"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}"); };
 
             ModuleClient client = await retryPolicy.ExecuteAsync(
                 async () =>
@@ -291,11 +320,11 @@ namespace SimulatedTemperatureSensor
                     }
 
                     ITransportSettings[] settings = GetTransportSettings();
-                    Console.WriteLine($"[Information]: Trying to initialize module client using transport type [{transportType}].");
+                    logger.LogInformation($"Trying to initialize module client using transport type [{transportType}].");
                     ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
                     await moduleClient.OpenAsync();
 
-                    Console.WriteLine($"[Information]: Successfully initialized module client of transport type [{transportType}].");
+                    logger.LogInformation($"Successfully initialized module client of transport type [{transportType}].");
                     return moduleClient;
                 });
 
