@@ -88,7 +88,7 @@ echo ${PROJECT_ROOT}
 
 if [[ "$ARCH" == "amd64" ]]; then
 set +e
-docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder cargo build --release --manifest-path /home/rust/src/edge-modules/api-proxy-module/Cargo.toml
+../../scripts/linux/cross-platform-rust-build.sh --os alpine --arch $ARCH --build-path edge-modules/api-proxy-module
 set -e
 
 cp -r ./templates/ ./docker/linux/amd64
