@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
     {
         public readonly string TypeFormat;
 
-        // KnownTypes provides a whitelist of allowed types for deserialization, mitigating potential security vulnerabilities
+        // KnownTypes provides a allow-list of allowed types for deserialization, mitigating potential security vulnerabilities
         // associated with uncontrolled type deserialization when using TypeNameHandling
         // Secure Deserialization Best Practices: https://liquid.microsoft.com/Web/Object/Read/MS.Security/Requirements/Microsoft.Security.SystemsADM.10010#Zguide
         // CodeQL Scanning Tool Warning: https://liquid.microsoft.com/Web/Object/Read/ScanningToolWarnings/Requirements/CodeQL.SM02211#Zguide
