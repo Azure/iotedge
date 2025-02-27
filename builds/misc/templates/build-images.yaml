@@ -49,7 +49,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+        - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
     dependsOn: CheckBuildImages
     jobs:
     - job: BuildDotnetComponents
