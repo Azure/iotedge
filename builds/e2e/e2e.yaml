@@ -143,9 +143,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: ubuntu_2004_msmoby
+  - job: ubuntu_2004_amd64_msmoby
 ################################################################################
-    displayName: Ubuntu 20.04 with iotedge-moby
+    displayName: Ubuntu 20.04 amd64 with iotedge-moby
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -170,9 +170,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: ubuntu_2004_docker
+  - job: ubuntu_2004_amd64_docker
 ################################################################################
-    displayName: Ubuntu 20.04 with Docker (minimal)
+    displayName: Ubuntu 20.04 amd64 with Docker (minimal)
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -198,7 +198,7 @@ jobs:
 ################################################################################
   - job: ubuntu_2004_arm64v8
 ################################################################################
-    displayName: Ubuntu 20.04 on arm64v8
+    displayName: Ubuntu 20.04 arm64v8
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -223,9 +223,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: ubuntu_2204
+  - job: ubuntu_2204_amd64
 ################################################################################
-    displayName: Ubuntu 22.04 on amd64
+    displayName: Ubuntu 22.04 amd64
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -252,7 +252,7 @@ jobs:
 ################################################################################
   - job: ubuntu_2204_arm64v8
 ################################################################################
-    displayName: Ubuntu 22.04 on arm64v8
+    displayName: Ubuntu 22.04 arm64v8
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -277,9 +277,9 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: ubuntu_2404
+  - job: ubuntu_2404_amd64
 ################################################################################
-    displayName: Ubuntu 24.04 on amd64
+    displayName: Ubuntu 24.04 amd64
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -306,7 +306,7 @@ jobs:
 ################################################################################
   - job: ubuntu_2404_arm64v8
 ################################################################################
-    displayName: Ubuntu 24.04 on arm64v8
+    displayName: Ubuntu 24.04 arm64v8
     dependsOn: Token
     condition: succeeded('Token')
 
@@ -460,7 +460,7 @@ jobs:
 ################################################################################
   - job: mariner2_amd64
 ################################################################################
-    displayName: Mariner 2.0 amd64
+    displayName: Mariner 2.0 amd64 (minimal)
     dependsOn: Token
     condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'))
     pool:
@@ -474,6 +474,7 @@ jobs:
       identityArtifactName: aziot-identity-mariner2-amd64
       artifactName: iotedged-mariner2-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      minimal: true
 
     timeoutInMinutes: 90
 
@@ -484,11 +485,10 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: mariner2_arm64
+  - job: mariner2_arm64v8
 ################################################################################
-    displayName: Mariner 2.0 arm64
+    displayName: Mariner 2.0 arm64v8 (minimal)
     dependsOn: Token
-    condition: and(succeeded('Token'), eq(variables['run.EFLOW.arm64'], 'true'))
     pool:
       name: $(pool.linux.arm.name)
       demands:
@@ -496,9 +496,61 @@ jobs:
 
     variables:
       os: linux
-      arch: arm64
+      arch: arm64v8
       identityArtifactName: aziot-identity-mariner2-aarch64
       artifactName: iotedged-mariner2-aarch64
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      minimal: true
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+      parameters:
+        sas_uri: $(sas_uri)
+
+################################################################################
+  - job: azurelinux3_amd64
+################################################################################
+    displayName: Azure Linux 3.0 amd64
+    dependsOn: Token
+    condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'))
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-azurelinux-3.0-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      identityArtifactName: aziot-identity-azurelinux3-amd64
+      artifactName: iotedged-azurelinux3-amd64
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+
+    timeoutInMinutes: 90
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+      parameters:
+        sas_uri: $(sas_uri)
+
+################################################################################
+  - job: azurelinux3_arm64v8
+################################################################################
+    displayName: Azure Linux 3.0 arm64v8
+    dependsOn: Token
+    pool:
+      name: $(pool.linux.arm.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-azurelinux-3.0-arm64-msmoby
+
+    variables:
+      os: linux
+      arch: arm64v8
+      identityArtifactName: aziot-identity-azurelinux3-aarch64
+      artifactName: iotedged-azurelinux3-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
     timeoutInMinutes: 90
