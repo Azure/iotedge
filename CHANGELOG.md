@@ -1,3 +1,60 @@
+# 1.5.18 (2025-02-15)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.16.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.16 to match the daemon)
+
+# 1.5.17 (2025-02-12)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.16.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.16 to match the daemon)
+
+# 1.5.16 (2025-01-22)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics
+
+## Edge Agent
+### Bug fixes
+* Remove dead code and eliminate dependency on service SDK ( [2fa7c51](https://github.com/Azure/iotedge/commit/2fa7c519c2594a881b41a7c3b57a80c84f0fbb48) )
+
+## aziot-identity-service
+### Bug fixes
+* Add pkcs11 interface to keyd in azure-iot-identity snap ( [3743a55](https://github.com/Azure/iot-identity-service/commit/3743a5568ec44d8882fa980de35b77a6920daa7b) )
+* Add content interface for sharing aziot_keys.so in azure-iot-identity snap ( [7ebed24](https://github.com/Azure/iot-identity-service/commit/7ebed244f12396d92282dd00745076d1b1ce4651) )
+
+# 1.5.15 (2024-11-13)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.13.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.13 to match the daemon)
+
+# 1.5.14 (2024-11-12)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.13.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.13 to match the daemon)
+
 # 1.5.13 (2024-10-23)
 
 ## aziot-edge

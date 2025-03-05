@@ -8,6 +8,7 @@ parameters:
   build.repo.path: ''
   edgelet.source.branch: ''
   images.source.branch: ''
+  identity.artifact.name: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
@@ -62,6 +63,17 @@ steps:
       Write-Output ">> Image Build ID=$imageBuildId"
     displayName: Override artifacts with user-supplied args     
   - task: DownloadBuildArtifacts@0
+    displayName: 'Download Identity Artifacts'
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.ci-build.projectID)
+      pipeline: $(resources.pipeline.ci-build.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(packageBuildId)
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: ${{ parameters['identity.artifact.name'] }}
+      allowPartiallySucceededBuilds: true
+  - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
     inputs:
       buildType: specific
@@ -88,19 +100,8 @@ steps:
         ${{ parameters['images.artifact.name'] }}/e2e_deployment_files/${{ parameters['test.deploymentFileName'] }}
         ${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh
         ${{ parameters['images.artifact.name'] }}/artifactInfo.txt
-        ${{ parameters['images.artifact.name'] }}/scripts/local/test/DownloadIdentityService.ps1
         ${{ parameters['images.artifact.name'] }}/CACertificates/certGen.sh
         ${{ parameters['images.artifact.name'] }}/CACertificates/openssl_root_ca.cnf
-  - task: PowerShell@2
-    displayName: 'Download aziot-identity-service'
-    inputs:
-      filePath: $(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}/scripts/local/test/DownloadIdentityService.ps1
-    env:
-      GITHUB_TOKEN: $(GitHubAccessToken)
-      ARTIFACT_NAME: $(identityServiceArtifactName)
-      PACKAGE_FILTER: $(identityServicePackageFilter)
-      DOWNLOAD_PATH: $(Build.StagingDirectory)
-      IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
@@ -116,8 +117,7 @@ steps:
   - task: CopyFiles@2
     displayName: 'Copy aziot-identity-service'
     inputs:
-      SourceFolder: "$(Build.StagingDirectory)"
-      Contents: "$(identityServicePackageFilter)"
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['identity.artifact.name'] }}
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
   - task: Bash@3
     displayName: 'Generate device certificates'

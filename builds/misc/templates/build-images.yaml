@@ -1,5 +1,5 @@
 parameters:
-  - name: 'E2EBuild'
+  - name: E2EBuild
     type: boolean
     default: false
 
@@ -12,7 +12,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
     dependsOn: []
     jobs:
       - job: check_source_change_runtime
@@ -21,7 +21,7 @@ stages:
           - bash: |
               git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(test/Microsoft.Azure.Devices.Edge.Test|doc|edgelet)'
               if [[ $? == 0 ]]; then
-                echo "Detected changes outside of Test Folders"
+                echo "Detected changes outside of test, doc, and edgelet folders"
                 echo "##vso[task.setvariable variable=RUNTIMECHANGES;isOutput=true]TRUE"
               fi
             displayName: Check changes in runtime sources
@@ -49,7 +49,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
     dependsOn: CheckBuildImages
     jobs:
     - job: BuildDotnetComponents
@@ -90,7 +90,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
     dependsOn: [BuildExecutables, BuildRocksDB]
     jobs:
     - job: ConsolidateAndPublishArtifacts
@@ -152,7 +152,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
     dependsOn: ConsolidateAndPubishArtifacts
     jobs:
 

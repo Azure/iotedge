@@ -2066,7 +2066,6 @@
         "type": "Project",
         "dependencies": {
           "Azure.Storage.Blobs": "[12.19.1, )",
-          "Microsoft.Azure.Devices": "[1.31.6, )",
           "Microsoft.Azure.Devices.Client": "[1.36.10, )",
           "Microsoft.Azure.Devices.Edge.Agent.Core": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"

@@ -1,6 +1,4 @@
-﻿# syntax=docker/dockerfile:1.4
-
-FROM mcr.microsoft.com/mirror/docker/library/alpine:3.14
+﻿FROM mcr.microsoft.com/mirror/docker/library/alpine:3.14
 
 ARG num_procs=4
 ARG TARGETPLATFORM

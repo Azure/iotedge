@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.4
-
 FROM mcr.microsoft.com/dotnet/runtime:8.0-alpine
 
 ARG EXE_DIR=.
