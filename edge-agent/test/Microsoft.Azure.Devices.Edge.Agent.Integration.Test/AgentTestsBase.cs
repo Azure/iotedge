@@ -38,10 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 
             string testConfigPath = Path.Combine(TestConfigBasePath, testConfig);
             string json = File.ReadAllText(testConfigPath);
+            var knownTypesList = new List<Type>
+            {
+                typeof(ModulePriorityValidator)
+            };
             var settings = new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.Auto,
-                SerializationBinder = new TypeNameSerializationBinder(format),
+                SerializationBinder = new TypeNameSerializationBinder(format, knownTypesList),
                 Converters = new List<JsonConverter>
                 {
                     new ModuleSetJsonConverter(),
@@ -253,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 
                 this.settings = new JsonSerializerSettings()
                 {
-                    TypeNameHandling = TypeNameHandling.Auto,
+                    TypeNameHandling = TypeNameHandling.None, // Security: $type is not used in json, enforcing explicit type control.
                     Converters = new List<JsonConverter>
                     {
                         new TypeSpecificJsonConverter(deserializerTypes)
@@ -313,7 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 
                 this.settings = new JsonSerializerSettings()
                 {
-                    TypeNameHandling = TypeNameHandling.Auto,
+                    TypeNameHandling = TypeNameHandling.None, // Security: $type is not used in json, enforcing explicit type control.
                     Converters = new List<JsonConverter>
                     {
                         new TypeSpecificJsonConverter(deserializerTypes)
