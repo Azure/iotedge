@@ -6,18 +6,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using NUnit.Framework;
     using Serilog;
 
-    [EndToEnd]
-    class IoTEdgeCheck : SasManualProvisioningFixture
+    [TestClass]
+    [TestCategory("EndToEnd")]
+    public class IoTEdgeCheck : SasManualProvisioningFixture
     {
-        [Test]
+        [TestMethod]
         public async Task IotEdgeCheck()
         {
             CancellationToken token = this.TestToken;
             // Need to deploy edgeHub or one check will fail
-            await this.runtime.DeployConfigurationAsync(this.cli, token, Context.Current.NestedEdge);
+            await runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
             string diagnosticImageName = Context.Current
                 .DiagnosticsImage.Expect(() => new ArgumentException("Missing diagnostic image"));
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             void OnStderr(string e) => Log.Verbose(e);
 
-            await this.cli.RunAsync(args, OnStdout, OnStderr, token);
+            await Process.RunAsync("iotedge", args, OnStdout, OnStderr, token);
 
             Assert.AreEqual(string.Empty, errors_number);
         }

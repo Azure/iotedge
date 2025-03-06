@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.IO;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading;
@@ -11,9 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
-    using NUnit.Framework;
 
-    [EndToEnd]
+    [TestClass]
+    [TestCategory("EndToEnd")]
     public class Provisioning : DeviceProvisioningFixture
     {
         protected readonly IotHub iotHub;
@@ -34,8 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        [Test]
-        [Category("FlakyOnArm")]
+        [TestMethod]
+        [TestCategory("FlakyOnArm")]
         public async Task DpsSymmetricKey()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() =>
@@ -50,10 +49,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             (var certs, _) = await TestCertificates.GenerateEdgeCaCertsAsync(
                 deviceId,
-                this.daemon.GetCertificatesPath(),
+                daemon.GetCertificatesPath(),
                 token);
 
-            await this.daemon.ConfigureAsync(
+            await daemon.ConfigureAsync(
                 async config =>
                 {
                     config.SetCertificates(certs);
@@ -64,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
 
             var agent = new EdgeAgent(deviceId, this.iotHub);
-            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
@@ -79,8 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     $"Device '{deviceId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
 
-        [Test]
-        [Category("FlakyOnArm")]
+        [TestMethod]
+        [TestCategory("FlakyOnArm")]
         public async Task DpsX509()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() =>
@@ -89,11 +88,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.TestToken;
 
-            var certsPath = this.daemon.GetCertificatesPath();
+            var certsPath = daemon.GetCertificatesPath();
             var idCerts = await TestCertificates.GenerateIdentityCertificatesAsync(deviceId, certsPath, token);
             (var edgeCaCerts, _) = await TestCertificates.GenerateEdgeCaCertsAsync(deviceId, certsPath, token);
 
-            await this.daemon.ConfigureAsync(
+            await daemon.ConfigureAsync(
                 async config =>
                 {
                     config.SetCertificates(edgeCaCerts);
@@ -104,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
 
             var agent = new EdgeAgent(deviceId, this.iotHub);
-            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, this.cli, token);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(

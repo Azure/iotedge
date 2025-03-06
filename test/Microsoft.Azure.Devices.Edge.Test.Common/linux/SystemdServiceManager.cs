@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
-    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -35,7 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         }
 
         public string ConfigurationPath() => "/etc/aziot/config.toml";
-        public string GetCliName() => "iotedge";
 
         async Task WaitForStatusAsync(ServiceStatus desired, CancellationToken token)
         {
