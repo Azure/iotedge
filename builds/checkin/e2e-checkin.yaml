@@ -35,6 +35,10 @@ stages:
 
   - stage: RunE2ETest
     displayName: End-to-End Test
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
     dependsOn:
       - CheckBuildImages
       - CheckBuildPackages
@@ -60,10 +64,6 @@ stages:
           identityArtifactName: aziot-identity-ubuntu24.04-amd64
           artifactName: iotedged-ubuntu24.04-amd64
           sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-        pool:
-          name: $(pool.linux.name)
-          demands:
-            - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
