@@ -38,7 +38,7 @@ stages:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+        - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
     dependsOn:
       - CheckBuildImages
       - CheckBuildPackages
@@ -53,16 +53,16 @@ stages:
         parameters:
           azureSubscription: $(az.subscription)
 
-      - job: ubuntu_2004_msmoby
-        displayName: Ubuntu 20.04 with iotedge-moby
+      - job: ubuntu_2404_amd64
+        displayName: Ubuntu 24.04 amd64
         dependsOn: Token
         condition: succeeded('Token')
         variables:
           verbose: false
           os: linux
           arch: amd64
-          identityArtifactName: aziot-identity-ubuntu20.04-amd64
-          artifactName: iotedged-ubuntu20.04-amd64
+          identityArtifactName: aziot-identity-ubuntu24.04-amd64
+          artifactName: iotedged-ubuntu24.04-amd64
           sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
