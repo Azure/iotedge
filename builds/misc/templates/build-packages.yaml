@@ -134,7 +134,7 @@ stages:
       - ${{ each build in parameters.linux_packages }}:
         - ${{ each target in build.targets }}:
           - ${{ if or(eq(parameters.E2EBuild, false), eq(format('{0}:{1}', build.os.iotedge, target.arch), 'ubuntu24.04:amd64')) }}:
-            - job: linux_${{ replace(build.os.iotedge, '.', '') }}_${{ target.arch }}
+            - job: linux_${{ build.os.iotedge }}_${{ target.arch }}
               displayName: Linux ${{ build.os.iotedge }} ${{ target.arch }}
               pool:
                 name: $(pool.linux.name)
