@@ -2,95 +2,6 @@ parameters:
   - name: 'E2EBuild'
     type: boolean
     default: false
-  - name: linux_packages
-    type: object
-    default:
-      - os:
-          container: redhat/ubi8:latest
-          identity: platform:el8
-          iotedge: redhat8
-        targets:
-          - arch: amd64
-            identity: iot-identity-service/packages/el8/amd64
-            iotedged: edgelet/target/rpmbuild/RPMS/x86_64
-      - os:
-          container: redhat/ubi9:latest
-          identity: platform:el9
-          iotedge: redhat9
-        targets:
-          - arch: amd64
-            identity: iot-identity-service/packages/el9/amd64
-            iotedged: edgelet/target/rpmbuild/RPMS/x86_64
-      - os:
-          container: mcr.microsoft.com/mirror/docker/library/debian:bullseye
-          identity: debian:11
-          iotedge: debian11
-        targets:
-          - arch: amd64
-            identity: iot-identity-service/packages/debian11/amd64
-            iotedged: edgelet/target/release
-          - arch: arm32v7
-            identity: iot-identity-service/packages/debian11/arm32v7
-            iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-          - arch: aarch64
-            identity: iot-identity-service/packages/debian11/aarch64
-            iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-      - os:
-          container: mcr.microsoft.com/mirror/docker/library/debian:bookworm
-          identity: debian:12
-          iotedge: debian12
-        targets:
-          - arch: amd64
-            identity: iot-identity-service/packages/debian12/amd64
-            iotedged: edgelet/target/release
-          - arch: arm32v7
-            identity: iot-identity-service/packages/debian12/arm32v7
-            iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-          - arch: aarch64
-            identity: iot-identity-service/packages/debian12/aarch64
-            iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-      - os:
-          container: mcr.microsoft.com/mirror/docker/library/ubuntu:20.04
-          identity: ubuntu:20.04
-          iotedge: ubuntu20.04
-        targets:
-          - arch: amd64
-            identity: iot-identity-service/packages/ubuntu2004/amd64
-            iotedged: edgelet/target/release
-          - arch: arm32v7
-            identity: iot-identity-service/packages/ubuntu2004/arm32v7
-            iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-          - arch: aarch64
-            identity: iot-identity-service/packages/ubuntu2004/aarch64
-            iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-      - os:
-          container: mcr.microsoft.com/mirror/docker/library/ubuntu:22.04
-          identity: ubuntu:22.04
-          iotedge: ubuntu22.04
-        targets:
-          - arch: amd64
-            identity: iot-identity-service/packages/ubuntu2204/amd64
-            iotedged: edgelet/target/release
-          - arch: arm32v7
-            identity: iot-identity-service/packages/ubuntu2204/arm32v7
-            iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-          - arch: aarch64
-            identity: iot-identity-service/packages/ubuntu2204/aarch64
-            iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-      - os:
-          container: mcr.microsoft.com/mirror/docker/library/ubuntu:24.04
-          identity: ubuntu:24.04
-          iotedge: ubuntu24.04
-        targets:
-          - arch: amd64
-            identity: iot-identity-service/packages/ubuntu2404/amd64
-            iotedged: edgelet/target/release
-          - arch: arm32v7
-            identity: iot-identity-service/packages/ubuntu2404/arm32v7
-            iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-          - arch: aarch64
-            identity: iot-identity-service/packages/ubuntu2404/aarch64
-            iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
 
 stages:
 
@@ -129,103 +40,223 @@ stages:
       )
     jobs:
     ################################################################################
-    # DEB/RPM packages for Linux distros
+      - job: linux
     ################################################################################
-      - ${{ each build in parameters.linux_packages }}:
-        - ${{ each target in build.targets }}:
-          - ${{ if or(eq(parameters.E2EBuild, false), eq(format('{0}:{1}', build.os.iotedge, target.arch), 'ubuntu24.04:amd64')) }}:
-            - job: linux_${{ build.os.iotedge }}_${{ target.arch }}
-              displayName: Linux ${{ build.os.iotedge }} ${{ target.arch }}
-              pool:
-                name: $(pool.linux.name)
-                demands:
-                  - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
-              variables:
-                arch: ${{ target.arch }}
-                os.container: ${{ build.os.container }}
-                os.identity: ${{ build.os.identity }}
-                os.iotedge: ${{ build.os.iotedge }}
-                target.identity: ${{ target.identity }}
-                target.iotedged: ${{ target.iotedged }}
-              steps:
-                - bash: |
-                    BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
-                    VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"
-                    echo "Version: $VERSION"
-                    echo "##vso[task.setvariable variable=VERSION;]$VERSION"
-                    echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
-                    echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os.iotedge)"
-                  displayName: Set Version
-                - bash: |
-                    set -xeuo pipefail
-                    identity_commit=$(
-                      sed -nE \
-                        's/^source = "git\+https:\/\/github\.com\/Azure\/iot-identity-service\?branch=main#([0-9a-fA-F]+)"$/\1/p' \
-                        edgelet/Cargo.lock | head -n 1
-                    )
-                    git clone https://github.com/Azure/iot-identity-service.git
-                    pushd iot-identity-service
-                    git checkout "$identity_commit"
-                    git submodule update --init --recursive .
-                    packageVersion=$(
-                      grep "PACKAGE_VERSION:" .github/workflows/packages.yaml \
-                      | awk '{print $2}' \
-                      | tr -d "'" \
-                      | tr -d '"'
-                    )
-                    docker run --rm \
-                      -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
-                      -e 'ARCH=$(arch)' \
-                      -e 'OS=$(os.identity)' \
-                      -e "PACKAGE_VERSION=$packageVersion" \
-                      -e "PACKAGE_RELEASE=1" \
-                      --privileged \
-                      '$(os.container)' \
-                      '/src/ci/package.sh'
-                    popd
-                  displayName: Create aziot-identity packages
-                - task: CopyFiles@2
-                  displayName: Copy aziot-identity packages to artifact staging
-                  inputs:
-                    SourceFolder: $(target.identity)
-                    Contents: |
-                      *.deb
-                      *.ddeb
-                      *.rpm
-                      !*-debugsource-*.rpm
-                      !*-devel-*.rpm
-                      !*.src.rpm
-                    TargetFolder: '$(build.artifactstagingdirectory)/aziot-identity'
-                - task: PublishBuildArtifacts@1
-                  displayName: Publish aziot-identity artifacts
-                  inputs:
-                    PathtoPublish: '$(build.artifactstagingdirectory)/aziot-identity'
-                    ArtifactName: 'aziot-identity-$(os.iotedge)-$(arch)'
-                - bash: sudo rm -rf iot-identity-service
-                  displayName: Clean up iot-identity-service
-                - script: edgelet/build/linux/package.sh
-                  displayName: Create aziot-edge packages
-                - task: CopyFiles@2
-                  displayName: Copy aziot-edge packages to artifact staging
-                  inputs:
-                    SourceFolder: $(target.iotedged)
-                    Contents: |
-                      *.deb
-                      *.ddeb
-                      *.rpm
-                      !*-debugsource-*.rpm
-                    TargetFolder: '$(build.artifactstagingdirectory)/iotedged'
-                - task: PublishBuildArtifacts@1
-                  displayName: Publish iotedged artifacts
-                  inputs:
-                    PathtoPublish: '$(build.artifactstagingdirectory)/iotedged'
-                    ArtifactName: 'iotedged-$(os.iotedge)-$(arch)'
+        displayName: Linux
+        pool:
+          name: $(pool.linux.name)
+          demands:
+            - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
+        strategy:
+          matrix:
+            RedHat8-amd64:
+              arch: amd64
+              os.container: redhat/ubi8:latest
+              os.identity: platform:el8
+              os.iotedge: redhat8
+              target.identity: iot-identity-service/packages/el8/amd64
+              target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+            RedHat9-amd64:
+              arch: amd64
+              os.container: redhat/ubi9:latest
+              os.identity: platform:el9
+              os.iotedge: redhat9
+              target.identity: iot-identity-service/packages/el9/amd64
+              target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+
+            Debian11-amd64:
+              arch: amd64
+              os.container: mcr.microsoft.com/mirror/docker/library/debian:bullseye
+              os.identity: debian:11
+              os.iotedge: debian11
+              target.identity: iot-identity-service/packages/debian11/amd64
+              target.iotedged: edgelet/target/release
+            Debian11-arm32v7:
+              arch: arm32v7
+              os.container: mcr.microsoft.com/mirror/docker/library/debian:bullseye
+              os.identity: debian:11
+              os.iotedge: debian11
+              target.identity: iot-identity-service/packages/debian11/arm32v7
+              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+            Debian11-aarch64:
+              arch: aarch64
+              os.container: mcr.microsoft.com/mirror/docker/library/debian:bullseye
+              os.identity: debian:11
+              os.iotedge: debian11
+              target.identity: iot-identity-service/packages/debian11/aarch64
+              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+            Debian12-amd64:
+              arch: amd64
+              os.container: mcr.microsoft.com/mirror/docker/library/debian:bookworm
+              os.identity: debian:12
+              os.iotedge: debian12
+              target.identity: iot-identity-service/packages/debian12/amd64
+              target.iotedged: edgelet/target/release
+            Debian12-arm32v7:
+              arch: arm32v7
+              os.container: mcr.microsoft.com/mirror/docker/library/debian:bookworm
+              os.identity: debian:12
+              os.iotedge: debian12
+              target.identity: iot-identity-service/packages/debian12/arm32v7
+              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+            Debian12-aarch64:
+              arch: aarch64
+              os.container: mcr.microsoft.com/mirror/docker/library/debian:bookworm
+              os.identity: debian:12
+              os.iotedge: debian12
+              target.identity: iot-identity-service/packages/debian12/aarch64
+              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+
+            Ubuntu2004-amd64:
+              arch: amd64
+              os.container: mcr.microsoft.com/mirror/docker/library/ubuntu:20.04
+              os.identity: ubuntu:20.04
+              os.iotedge: ubuntu20.04
+              target.identity: iot-identity-service/packages/ubuntu2004/amd64
+              target.iotedged: edgelet/target/release
+            Ubuntu2004-arm32v7:
+              arch: arm32v7
+              os.container: mcr.microsoft.com/mirror/docker/library/ubuntu:20.04
+              os.identity: ubuntu:20.04
+              os.iotedge: ubuntu20.04
+              target.identity: iot-identity-service/packages/ubuntu2004/arm32v7
+              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+            Ubuntu2004-aarch64:
+              arch: aarch64
+              os.container: mcr.microsoft.com/mirror/docker/library/ubuntu:20.04
+              os.identity: ubuntu:20.04
+              os.iotedge: ubuntu20.04
+              target.identity: iot-identity-service/packages/ubuntu2004/aarch64
+              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+            Ubuntu2204-amd64:
+              arch: amd64
+              os.container: mcr.microsoft.com/mirror/docker/library/ubuntu:22.04
+              os.identity: ubuntu:22.04
+              os.iotedge: ubuntu22.04
+              target.identity: iot-identity-service/packages/ubuntu2204/amd64
+              target.iotedged: edgelet/target/release
+            Ubuntu2204-arm32v7:
+              arch: arm32v7
+              os.container: mcr.microsoft.com/mirror/docker/library/ubuntu:22.04
+              os.identity: ubuntu:22.04
+              os.iotedge: ubuntu22.04
+              target.identity: iot-identity-service/packages/ubuntu2204/arm32v7
+              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+            Ubuntu2204-aarch64:
+              arch: aarch64
+              os.container: mcr.microsoft.com/mirror/docker/library/ubuntu:22.04
+              os.identity: ubuntu:22.04
+              os.iotedge: ubuntu22.04
+              target.identity: iot-identity-service/packages/ubuntu2204/aarch64
+              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+            Ubuntu2404-amd64:
+              arch: amd64
+              os.container: mcr.microsoft.com/mirror/docker/library/ubuntu:24.04
+              os.identity: ubuntu:24.04
+              os.iotedge: ubuntu24.04
+              target.identity: iot-identity-service/packages/ubuntu2404/amd64
+              target.iotedged: edgelet/target/release
+            Ubuntu2404-arm32v7:
+              arch: arm32v7
+              os.container: mcr.microsoft.com/mirror/docker/library/ubuntu:24.04
+              os.identity: ubuntu:24.04
+              os.iotedge: ubuntu24.04
+              target.identity: iot-identity-service/packages/ubuntu2404/arm32v7
+              target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+            Ubuntu2404-aarch64:
+              arch: aarch64
+              os.container: mcr.microsoft.com/mirror/docker/library/ubuntu:24.04
+              os.identity: ubuntu:24.04
+              os.iotedge: ubuntu24.04
+              target.identity: iot-identity-service/packages/ubuntu2404/aarch64
+              target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+        steps:
+          - bash: |
+              BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
+              VERSION="$BASE_VERSION~$BUILD_BUILDNUMBER"
+              echo "Version: $VERSION"
+              echo "##vso[task.setvariable variable=VERSION;]$VERSION"
+
+              echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+              echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os.iotedge)"
+            displayName: Set Version
+            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+          - bash: |
+              set -xeuo pipefail
+              identity_commit=$(
+                sed -nE \
+                  's/^source = "git\+https:\/\/github\.com\/Azure\/iot-identity-service\?branch=main#([0-9a-fA-F]+)"$/\1/p' \
+                  edgelet/Cargo.lock | head -n 1
+              )
+              git clone https://github.com/Azure/iot-identity-service.git
+              pushd iot-identity-service
+              git checkout "$identity_commit"
+              git submodule update --init --recursive .
+              packageVersion=$(
+                grep "PACKAGE_VERSION:" .github/workflows/packages.yaml \
+                | awk '{print $2}' \
+                | tr -d "'" \
+                | tr -d '"'
+              )
+              docker run --rm \
+                -v "$(Build.SourcesDirectory)/iot-identity-service:/src" \
+                -e 'ARCH=$(arch)' \
+                -e 'OS=$(os.identity)' \
+                -e "PACKAGE_VERSION=$packageVersion" \
+                -e "PACKAGE_RELEASE=1" \
+                --privileged \
+                '$(os.container)' \
+                '/src/ci/package.sh'
+              popd
+            displayName: Create aziot-identity packages
+            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+          - task: CopyFiles@2
+            displayName: Copy aziot-identity packages to artifact staging
+            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+            inputs:
+              SourceFolder: $(target.identity)
+              Contents: |
+                *.deb
+                *.ddeb
+                *.rpm
+                !*-debugsource-*.rpm
+                !*-devel-*.rpm
+                !*.src.rpm
+              TargetFolder: '$(build.artifactstagingdirectory)/aziot-identity'
+          - task: PublishBuildArtifacts@1
+            displayName: Publish aziot-identity artifacts
+            inputs:
+              PathtoPublish: '$(build.artifactstagingdirectory)/aziot-identity'
+              ArtifactName: 'aziot-identity-$(os.iotedge)-$(arch)'
+            condition: and(succeededOrFailed(), or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64')))
+          - bash: sudo rm -rf iot-identity-service
+            displayName: Clean up iot-identity-service
+            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+          - script: edgelet/build/linux/package.sh
+            displayName: Create aziot-edge packages
+            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+          - task: CopyFiles@2
+            displayName: Copy aziot-edge packages to artifact staging
+            condition: or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64'))
+            inputs:
+              SourceFolder: $(target.iotedged)
+              Contents: |
+                *.deb
+                *.ddeb
+                *.rpm
+                !*-debugsource-*.rpm
+              TargetFolder: '$(build.artifactstagingdirectory)/iotedged'
+          - task: PublishBuildArtifacts@1
+            displayName: Publish iotedged artifacts
+            inputs:
+              PathtoPublish: '$(build.artifactstagingdirectory)/iotedged'
+              ArtifactName: 'iotedged-$(os.iotedge)-$(arch)'
+            condition: and(succeededOrFailed(), or(eq(${{ parameters['E2EBuild'] }}, false), eq(variables.arch,'amd64')))
 
     ################################################################################
       - job: snap
     ################################################################################
         displayName: Snap
-        condition: eq(${{ parameters['E2EBuild'] }}, false)
         strategy:
           matrix:
             amd64:
@@ -247,6 +278,7 @@ stages:
               sudo snap install snapcraft --classic
               lxd init --minimal
             displayName: Set up build environment for snaps
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
           - bash: |
               set -xeuo pipefail
               identity_commit=$(
@@ -261,31 +293,38 @@ stages:
               SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
               popd
             displayName: Create aziot-identity packages
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
           - task: CopyFiles@2
             displayName: Copy aziot-identity packages to artifact staging
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
             inputs:
               Contents: '*.snap'
               SourceFolder: '$(build.sourcesdirectory)/iot-identity-service'
               TargetFolder: '$(build.artifactstagingdirectory)/aziot-identity'
           - task: PublishBuildArtifacts@1
             displayName: Publish aziot-identity artifacts
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
             inputs:
               ArtifactName: 'aziot-identity-snap-$(arch)'
               PathtoPublish: '$(build.artifactstagingdirectory)/aziot-identity'
           - bash: sudo rm -rf iot-identity-service
             displayName: Clean up iot-identity-service
+            condition: and(succeededOrFailed(), eq(${{ parameters['E2EBuild'] }}, false))
           - bash: |
               set -xeuo pipefail
               SNAPCRAFT_BUILD_INFO=1 snapcraft --use-lxd
             displayName: Create aziot-edge packages
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
           - task: CopyFiles@2
             displayName: Copy aziot-edge packages to artifact staging
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
             inputs:
               Contents: '*.snap'
               SourceFolder: '$(build.sourcesdirectory)'
               TargetFolder: '$(build.artifactstagingdirectory)/iotedged'
           - task: PublishBuildArtifacts@1
             displayName: Publish iotedged artifacts
+            condition: and(succeeded(), eq(${{ parameters['E2EBuild'] }}, false))
             inputs:
               ArtifactName: 'iotedged-snap-$(arch)'
               PathtoPublish: '$(build.artifactstagingdirectory)/iotedged'
