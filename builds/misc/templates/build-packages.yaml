@@ -124,7 +124,7 @@ stages:
     condition: |
       or
       (
-        ${{ parameters['build_only'] }},
+        '${{ parameters['build_only'] }}',
         eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
       )
     jobs:
@@ -225,7 +225,7 @@ stages:
       - job: snap
     ################################################################################
         displayName: Snap
-        condition: ${{ parameters['build_only'] }}
+        condition: '${{ parameters['build_only'] }}'
         strategy:
           matrix:
             amd64:
