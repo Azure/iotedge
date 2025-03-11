@@ -1,7 +1,7 @@
 parameters:
-  - name: 'E2EBuild'
-    type: boolean
-    default: false
+  - name: 'build_only'
+    type: string
+    default: ''
   - name: linux_packages
     type: object
     default:
@@ -124,7 +124,7 @@ stages:
     condition: |
       or
       (
-        eq(${{ parameters['E2EBuild'] }}, false),
+        eq(length(${{ parameters['build_only'] }}), 0),
         eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
       )
     jobs:
@@ -133,7 +133,7 @@ stages:
     ################################################################################
       - ${{ each build in parameters.linux_packages }}:
         - ${{ each target in build.targets }}:
-          - ${{ if or(eq(parameters.E2EBuild, false), eq(format('{0}:{1}', build.os.iotedge, target.arch), 'ubuntu20.04:amd64')) }}:
+          - ${{ if or(eq(length(parameters.build_only), 0), eq(format('{0}:{1}', build.os.iotedge, target.arch), parameters.build_only)) }}:
             - job: linux_${{ replace(build.os.iotedge, '.', '') }}_${{ target.arch }}
               displayName: Linux ${{ build.os.iotedge }} ${{ target.arch }}
               pool:
@@ -225,7 +225,7 @@ stages:
       - job: snap
     ################################################################################
         displayName: Snap
-        condition: eq(${{ parameters['E2EBuild'] }}, false)
+        condition: eq(length(${{ parameters['build_only'] }}), 0)
         strategy:
           matrix:
             amd64:

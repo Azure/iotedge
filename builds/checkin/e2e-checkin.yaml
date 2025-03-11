@@ -31,7 +31,7 @@ stages:
 
   - template: ../misc/templates/build-packages.yaml
     parameters:
-      E2EBuild : true
+      build_only : 'ubuntu24.04:amd64'
 
   - stage: RunE2ETest
     displayName: End-to-End Test
