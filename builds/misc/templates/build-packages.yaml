@@ -133,7 +133,7 @@ stages:
     ################################################################################
       - ${{ each build in parameters.linux_packages }}:
         - ${{ each target in build.targets }}:
-          - ${{ if or(parameters.build_only, eq(format('{0}:{1}', build.os.iotedge, target.arch), parameters.build_only)) }}:
+          - ${{ if or(not(parameters.build_only), eq(format('{0}:{1}', build.os.iotedge, target.arch), parameters.build_only)) }}:
             - job: linux_${{ replace(build.os.iotedge, '.', '') }}_${{ target.arch }}
               displayName: Linux ${{ build.os.iotedge }} ${{ target.arch }}
               pool:
