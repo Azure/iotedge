@@ -120,12 +120,29 @@ stages:
           contents: '**'
           targetFolder: '$(Build.BinariesDirectory)/publish'
 
-      - task: CopyFiles@2
-        displayName: Copy API Proxy artifacts
-        inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/'
-          contents: '**'
-          targetFolder: '$(Build.BinariesDirectory)/publish'
+      - ${{ if or(not(parameters.build_only), endsWith(parameters.build_only, 'amd64')) }}:
+        - task: CopyFiles@2
+          displayName: Copy API Proxy Artifacts (amd64)
+          inputs:
+            sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_x86_64'
+            contents: '**'
+            targetFolder: '$(Build.BinariesDirectory)/publish'
+
+      - ${{ if not(parameters.build_only) }}:
+        - task: CopyFiles@2
+          displayName: Copy API Proxy Artifacts (arm32v7)
+          inputs:
+            sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_armv7l'
+            contents: '**'
+            targetFolder: '$(Build.BinariesDirectory)/publish'
+
+      - ${{ if not(parameters.build_only) }}:
+        - task: CopyFiles@2
+          displayName: Copy API Proxy Artifacts (arm64v8)
+          inputs:
+            sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_aarch64'
+            contents: '**'
+            targetFolder: '$(Build.BinariesDirectory)/publish'
 
       - task: CopyFiles@2
         displayName: Copy rocksdb libs
