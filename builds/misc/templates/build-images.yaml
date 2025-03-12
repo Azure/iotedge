@@ -65,7 +65,7 @@ stages:
       variables:
         Codeql.Enabled: true
       steps:
-      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin ${{ iff(parameters.build_only, '--skip-quickstart', '') }}
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin ${{ iif(parameters.build_only, '--skip-quickstart', '') }}
         name: build
         displayName: Build ($(Build.Configuration)) dotnet artifacts
       - bash: |
