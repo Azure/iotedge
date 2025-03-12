@@ -113,6 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             DiagnosticConfig diagnosticConfig;
             bool useServerHeartbeat;
             ModuleUpdateMode moduleUpdateMode;
+            bool useOfflineCheck;
+            Option<OfflineCheckInfo> offlineCheckInfo = Option.None<OfflineCheckInfo>();
 
             try
             {
@@ -125,6 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
                 useServerHeartbeat = configuration.GetValue("UseServerHeartbeat", true);
                 moduleUpdateMode = configuration.GetValue("ModuleUpdateMode", ModuleUpdateMode.NonBlocking);
+                useOfflineCheck = configuration.GetValue("UseOfflineCheck", false);
 
                 logger.LogInformation($"ModuleUpdateMode: {moduleUpdateMode.ToString()}");
 
@@ -185,6 +188,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 TimeSpan edgeletTimeout = TimeSpan.FromSeconds(edgeletTimeoutSecs);
                 var enableOrphanedIdentityCleanup = configuration.GetValue("EnableOrphanedIdentityCleanup", false);
 
+                if (useOfflineCheck)
+                {
+                    var protocol = upstreamProtocol.Expect(() => new InvalidOperationException("To use offline check, UpstreamProtocol must be explicitly set"));
+                    int port = protocol switch
+                    {
+                        UpstreamProtocol.Mqtt => 8883,
+                        UpstreamProtocol.Amqp => 5671,
+                        _ => 443
+                    };
+
+                    var address = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
+                    offlineCheckInfo = Option.Some(new OfflineCheckInfo(address, port));
+                }
+
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.IotedgedMode:
@@ -197,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetTimeSpan("PerformanceMetricsUpdateFrequency", TimeSpan.FromMinutes(5));
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel, moduleUpdateMode));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel, moduleUpdateMode, offlineCheckInfo));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath, disableDeviceAnalyticsMetadata, moduleUpdateMode, edgeletTimeout, enableOrphanedIdentityCleanup));
                         IEnumerable<X509Certificate2> trustBundle =
                             await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
