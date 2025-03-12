@@ -36,7 +36,7 @@ stages:
     condition: |
       or
         (
-          not('${{ parameters['build_only'] }}'),
+          not('${{ parameters.build_only }}'),
           eq(dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES'], 'true')
         )
     jobs:
@@ -51,7 +51,7 @@ stages:
     condition: |
       or
         (
-          not('${{ parameters['build_only'] }}'),
+          not('${{ parameters.build_only }}'),
           eq(dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES'], 'true')
         )
     pool:
