@@ -6,12 +6,15 @@ parameters:
   type: object
   default:
   - arch: x86_64
+    alt_arch: amd64
   - arch: armv7l
+    alt_arch: arm32v7
   - arch: aarch64
+    alt_arch: arm64v8
 
 jobs:
 - ${{ each target in parameters.targets }}:
-  - ${{ if or(not(parameters.build_only), endsWith(parameters.build_only, target.arch)) }}:
+  - ${{ if or(not(parameters.build_only), endsWith(parameters.build_only, target.alt_arch)) }}:
     - job: build_api_proxy_${{ target.arch }}
       displayName: Build API Proxy ${{ target.arch }}
       steps:
