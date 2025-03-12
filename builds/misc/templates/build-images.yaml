@@ -162,7 +162,7 @@ stages:
           app: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_only, 'amd64') }}:
             platforms: linux/amd64
 
     - job: BuildImageEdgeHub
@@ -174,7 +174,7 @@ stages:
           app: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_only, 'amd64') }}:
             platforms: linux/amd64
 
     - job: BuildImageTemperatureSensor
@@ -245,7 +245,7 @@ stages:
           app: TestAnalyzer
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_only, 'amd64') }}:
             platforms: linux/amd64
 
       # Functions Sample - Only supported on amd64
@@ -313,7 +313,7 @@ stages:
           app: TwinTester
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_only, 'amd64') }}:
             platforms: linux/amd64
 
     - job: BuildImageRelayer
@@ -334,7 +334,7 @@ stages:
           app: NetworkController
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_only, 'amd64') }}:
             platforms: linux/amd64
 
     - job: BuildImageTestResultCoordinator
@@ -346,7 +346,7 @@ stages:
           app: TestResultCoordinator
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_only, 'amd64') }}:
             platforms: linux/amd64
 
     - job: BuildImageTestMetricsCollector
