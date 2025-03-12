@@ -1,5 +1,5 @@
 parameters:
-  - name: 'build_only'
+  - name: build_only
     type: string
     default: ''
 
