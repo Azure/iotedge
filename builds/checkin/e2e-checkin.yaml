@@ -27,7 +27,7 @@ stages:
   
   - template: ../misc/templates/build-images.yaml
     parameters:
-      E2EBuild : true
+      build_only : 'ubuntu24.04:amd64'
 
   - template: ../misc/templates/build-packages.yaml
     parameters:

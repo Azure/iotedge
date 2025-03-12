@@ -1,31 +1,30 @@
 parameters:
-  name: 'API proxy'
-  project: 'api-proxy-module'
-  configuration: 'release'
-  binDir: '$(Build.BinariesDirectory)'
+- name: build_only
+  type: string
+  default: ''
+- name: targets
+  type: object
+  default:
+  - arch: x86_64
+  - arch: armv7l
+  - arch: aarch64
 
 jobs:
-  - job: BuildApiProxy
-    displayName: Build API Proxy
-    strategy:
-      maxParallel: 3
-      matrix:
-        amd64:
-          arch: "x86_64"
-        arm32:
-          arch: "armv7l"
-        arm64:
-          arch: "aarch64"
-    steps:
-    - script: |
-        scripts/linux/buildAPIProxy.sh \
-          -P ${{ parameters.project }} \
-          -c ${{ parameters.configuration }} \
-          --target-arch $(arch) \
-          --bin-dir ${{ parameters.binDir }}
-      displayName: Build API-Proxy - $(arch)
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathtoPublish: '${{ parameters.binDir }}/publish'
-        artifactName: api_proxy_$(arch)
-        storeAsTar: true
+- ${{ each target in parameters.targets }}:
+  - ${{ if or(not(parameters.build_only), endsWith(parameters.build_only, target.arch)) }}:
+    - job: build_api_proxy_${{ target.arch }}
+      displayName: Build API Proxy ${{ target.arch }}
+      steps:
+      - script: |
+          scripts/linux/buildAPIProxy.sh \
+            --project 'api-proxy-module' \
+            --configuration 'release' \
+            --target-arch ${{ target.arch }} \
+            --bin-dir '$(Build.BinariesDirectory)'
+        displayName: Build
+      - task: PublishBuildArtifacts@1
+        displayName: Publish artifacts
+        inputs:
+          pathtoPublish: '$(Build.BinariesDirectory)/publish'
+          artifactName: api_proxy_${{ target.arch }}
+          storeAsTar: true

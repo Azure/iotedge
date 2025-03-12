@@ -1,7 +1,7 @@
 parameters:
-  - name: E2EBuild
-    type: boolean
-    default: false
+  - name: 'build_only'
+    type: string
+    default: ''
 
 stages:
 
@@ -33,8 +33,16 @@ stages:
 ################################################################################
     displayName: Build RocksDB
     dependsOn: CheckBuildImages
+    condition: |
+      or
+        (
+          not('${{ parameters['build_only'] }}'),
+          eq(dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES'], 'true')
+        )
     jobs:
       - template: build-rocksdb.yaml
+        parameters:
+          build_only: ${{ parameters.build_only }}
 
 ################################################################################
   - stage: BuildExecutables
@@ -43,7 +51,7 @@ stages:
     condition: |
       or
         (
-          eq(${{ parameters['E2EBuild'] }}, false),
+          not('${{ parameters['build_only'] }}'),
           eq(dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES'], 'true')
         )
     pool:
@@ -80,6 +88,8 @@ stages:
           StoreAsTar: true
 
     - template: build-api-proxy.yaml
+      parameters:
+        build_only: ${{ parameters.build_only }}
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
 # single artifact from which all Docker images can be built.
@@ -111,23 +121,9 @@ stages:
           targetFolder: '$(Build.BinariesDirectory)/publish'
 
       - task: CopyFiles@2
-        displayName: Copy API Proxy Artifacts (amd64)
+        displayName: Copy API Proxy artifacts
         inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_x86_64'
-          contents: '**'
-          targetFolder: '$(Build.BinariesDirectory)/publish'
-
-      - task: CopyFiles@2
-        displayName: Copy API Proxy Artifacts (arm32)
-        inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_armv7l'
-          contents: '**'
-          targetFolder: '$(Build.BinariesDirectory)/publish'
-
-      - task: CopyFiles@2
-        displayName: Copy API Proxy Artifacts (arm64)
-        inputs:
-          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/api_proxy_aarch64'
+          sourceFolder: '$(Agent.TempDirectory)/extracted_tars/'
           contents: '**'
           targetFolder: '$(Build.BinariesDirectory)/publish'
 
@@ -166,6 +162,8 @@ stages:
           app: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(Build.BuildNumber)
           use_rocksdb: true
+          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+            platforms: linux/amd64
 
     - job: BuildImageEdgeHub
       steps:
@@ -176,6 +174,8 @@ stages:
           app: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(Build.BuildNumber)
           use_rocksdb: true
+          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+            platforms: linux/amd64
 
     - job: BuildImageTemperatureSensor
       steps:
@@ -245,6 +245,8 @@ stages:
           app: TestAnalyzer
           version: $(Build.BuildNumber)
           use_rocksdb: true
+          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+            platforms: linux/amd64
 
       # Functions Sample - Only supported on amd64
     - job: BuildImageFunctionsSample
@@ -311,6 +313,8 @@ stages:
           app: TwinTester
           version: $(Build.BuildNumber)
           use_rocksdb: true
+          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+            platforms: linux/amd64
 
     - job: BuildImageRelayer
       steps:
@@ -330,6 +334,8 @@ stages:
           app: NetworkController
           version: $(Build.BuildNumber)
           use_rocksdb: true
+          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+            platforms: linux/amd64
 
     - job: BuildImageTestResultCoordinator
       steps:
@@ -340,6 +346,8 @@ stages:
           app: TestResultCoordinator
           version: $(Build.BuildNumber)
           use_rocksdb: true
+          - ${{ if endsWith(parameters.build_only, 'amd64') }}:
+            platforms: linux/amd64
 
     - job: BuildImageTestMetricsCollector
       steps:
