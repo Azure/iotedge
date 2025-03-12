@@ -10,6 +10,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         Task StopAsync(CancellationToken token);
         Task ConfigureAsync(CancellationToken token);
         string ConfigurationPath();
-        string GetCliName();
     }
 }

@@ -22,7 +22,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         Task UninstallAsync(CancellationToken token);
 
         string GetCertificatesPath();
-
-        IotedgeCli GetCli();
     }
 }
