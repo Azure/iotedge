@@ -233,6 +233,8 @@ stages:
           name: azureiotedge-api-proxy
           app: api-proxy-module
           version: $(Build.BuildNumber)
+          ${{ if endsWith(parameters.build_only, 'amd64') }}:
+            platforms: linux/amd64
 
       - task: ComponentGovernanceComponentDetection@0
         inputs:
