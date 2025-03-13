@@ -166,14 +166,18 @@ process_args() {
 
     # The API proxy module has separate Dockerfiles for each supported platform
     if [[ "$APP" == 'api-proxy-module' ]]; then
-        if [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/amd64/Dockerfile" ]]; then
-            echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/Dockerfile'"
+        if [[ "$PLATFORMS" == *'linux/amd64'* && ! -f "$APP_BINARIESDIRECTORY/docker/linux/amd64/Dockerfile" ]]; then
+            echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/amd64/Dockerfile'"
             print_help_and_exit
-        elif [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/arm64v8/Dockerfile" ]]; then
-            echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/Dockerfile'"
+        fi
+
+        if [[ "$PLATFORMS" == *'linux/arm64'* && ! -f "$APP_BINARIESDIRECTORY/docker/linux/arm64v8/Dockerfile" ]]; then
+            echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/arm64v8/Dockerfile'"
             print_help_and_exit
-        elif [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/arm32v7/Dockerfile" ]]; then
-            echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/Dockerfile'"
+        fi
+
+        if [[ "$PLATFORMS" == *'linux/arm/v7'* && ! -f "$APP_BINARIESDIRECTORY/docker/linux/arm32v7/Dockerfile" ]]; then
+            echo "No Dockerfile at '$APP_BINARIESDIRECTORY/docker/linux/arm32v7/Dockerfile'"
             print_help_and_exit
         fi
     elif [[ ! -f "$APP_BINARIESDIRECTORY/docker/linux/Dockerfile" ]]; then
@@ -229,6 +233,9 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     # which are no longer needed.
     source "$SCRIPT_DIR/manifest-tools.sh"
 
+    PLATFORM_MAP="$(echo "$DEFAULT_PLATFORM_MAP" | jq -c --arg platforms "$PLATFORMS" '
+        map(select(.platform == ($platforms | split(",")[])))
+    ')" \
     REGISTRY="$DOCKER_REGISTRY" \
     REPOSITORY="$DOCKER_NAMESPACE/$DOCKER_IMAGENAME" \
     TAG="$DOCKER_IMAGEVERSION" \
