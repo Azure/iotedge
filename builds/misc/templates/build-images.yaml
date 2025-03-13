@@ -1,5 +1,5 @@
 parameters:
-  - name: build_only
+  - name: build_single
     type: string
     default: ''
 
@@ -36,13 +36,13 @@ stages:
     condition: |
       or
         (
-          not('${{ parameters.build_only }}'),
+          not('${{ parameters.build_single }}'),
           eq(dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES'], 'true')
         )
     jobs:
       - template: build-rocksdb.yaml
         parameters:
-          build_only: ${{ parameters.build_only }}
+          build_single: ${{ parameters.build_single }}
 
 ################################################################################
   - stage: BuildExecutables
@@ -51,7 +51,7 @@ stages:
     condition: |
       or
         (
-          not('${{ parameters.build_only }}'),
+          not('${{ parameters.build_single }}'),
           eq(dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES'], 'true')
         )
     pool:
@@ -65,7 +65,7 @@ stages:
       variables:
         Codeql.Enabled: true
       steps:
-      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin ${{ iif(parameters.build_only, '--skip-quickstart', '') }}
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin ${{ iif(parameters.build_single, '--skip-quickstart', '') }}
         name: build
         displayName: Build ($(Build.Configuration)) dotnet artifacts
       - bash: |
@@ -76,7 +76,7 @@ stages:
           fi
         displayName: Move/stage test file artifacts
         env:
-          INCLUDE_QUICKSTART: ${{ iif(eq(0, parameters.build_only), 'true', 'false') }}
+          INCLUDE_QUICKSTART: ${{ iif(eq(0, parameters.build_single), 'true', 'false') }}
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.ArtifactStagingDirectory)/core-linux' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
       - task: PublishBuildArtifacts@1
@@ -93,7 +93,7 @@ stages:
 
     - template: build-api-proxy.yaml
       parameters:
-        build_only: ${{ parameters.build_only }}
+        build_single: ${{ parameters.build_single }}
 
 # This stage consolidates .NET binaries, Rocksdb binaries and the SBOM into a
 # single artifact from which all Docker images can be built.
@@ -124,7 +124,7 @@ stages:
           contents: '**'
           targetFolder: '$(Build.BinariesDirectory)/publish'
 
-      - ${{ if or(not(parameters.build_only), endsWith(parameters.build_only, 'amd64')) }}:
+      - ${{ if or(not(parameters.build_single), endsWith(parameters.build_single, 'amd64')) }}:
         - task: CopyFiles@2
           displayName: Copy API Proxy Artifacts (amd64)
           inputs:
@@ -132,7 +132,7 @@ stages:
             contents: '**'
             targetFolder: '$(Build.BinariesDirectory)/publish'
 
-      - ${{ if not(parameters.build_only) }}:
+      - ${{ if or(not(parameters.build_single), endsWith(parameters.build_single, 'arm32v7')) }}:
         - task: CopyFiles@2
           displayName: Copy API Proxy Artifacts (arm32v7)
           inputs:
@@ -140,7 +140,7 @@ stages:
             contents: '**'
             targetFolder: '$(Build.BinariesDirectory)/publish'
 
-      - ${{ if not(parameters.build_only) }}:
+      - ${{ if or(not(parameters.build_single), endsWith(parameters.build_single, 'arm64v8')) }}:
         - task: CopyFiles@2
           displayName: Copy API Proxy Artifacts (arm64v8)
           inputs:
@@ -183,8 +183,12 @@ stages:
           app: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_single, 'amd64') }}:
             platforms: linux/amd64
+          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
+            platforms: linux/arm/v7
+          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
+            platforms: linux/arm64
 
     - job: BuildImageEdgeHub
       steps:
@@ -195,8 +199,12 @@ stages:
           app: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_single, 'amd64') }}:
             platforms: linux/amd64
+          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
+            platforms: linux/arm/v7
+          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
+            platforms: linux/arm64
 
     - job: BuildImageTemperatureSensor
       steps:
@@ -233,8 +241,12 @@ stages:
           name: azureiotedge-api-proxy
           app: api-proxy-module
           version: $(Build.BuildNumber)
-          ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_single, 'amd64') }}:
             platforms: linux/amd64
+          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
+            platforms: linux/arm/v7
+          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
+            platforms: linux/arm64
 
       - task: ComponentGovernanceComponentDetection@0
         inputs:
@@ -268,8 +280,12 @@ stages:
           app: TestAnalyzer
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_single, 'amd64') }}:
             platforms: linux/amd64
+          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
+            platforms: linux/arm/v7
+          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
+            platforms: linux/arm64
 
       # Functions Sample - Only supported on amd64
     - job: BuildImageFunctionsSample
@@ -336,8 +352,12 @@ stages:
           app: TwinTester
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_single, 'amd64') }}:
             platforms: linux/amd64
+          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
+            platforms: linux/arm/v7
+          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
+            platforms: linux/arm64
 
     - job: BuildImageRelayer
       steps:
@@ -357,8 +377,12 @@ stages:
           app: NetworkController
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_single, 'amd64') }}:
             platforms: linux/amd64
+          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
+            platforms: linux/arm/v7
+          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
+            platforms: linux/arm64
 
     - job: BuildImageTestResultCoordinator
       steps:
@@ -369,8 +393,12 @@ stages:
           app: TestResultCoordinator
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_only, 'amd64') }}:
+          ${{ if endsWith(parameters.build_single, 'amd64') }}:
             platforms: linux/amd64
+          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
+            platforms: linux/arm/v7
+          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
+            platforms: linux/arm64
 
     - job: BuildImageTestMetricsCollector
       steps:

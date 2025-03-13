@@ -1,5 +1,5 @@
 parameters:
-- name: build_only
+- name: build_single
   type: string
   default: ''
 - name: targets
@@ -14,7 +14,7 @@ parameters:
 
 jobs:
 - ${{ each target in parameters.targets }}:
-  - ${{ if or(not(parameters.build_only), endsWith(parameters.build_only, target.alt_arch)) }}:
+  - ${{ if or(not(parameters.build_single), endsWith(parameters.build_single, target.alt_arch)) }}:
     - job: build_api_proxy_${{ target.arch }}
       displayName: Build API Proxy ${{ target.arch }}
       steps:

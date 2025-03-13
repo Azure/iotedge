@@ -1,5 +1,5 @@
 parameters:
-- name: build_only
+- name: build_single
   type: string
   default: ''
 - name: targets
@@ -17,7 +17,7 @@ parameters:
 
 jobs: 
 - ${{ each target in parameters.targets }}:
-  - ${{ if or(not(parameters.build_only), endsWith(parameters.build_only, target.arch)) }}:
+  - ${{ if or(not(parameters.build_single), endsWith(parameters.build_single, target.arch)) }}:
     - job: build_rocksdb_${{ target.arch }}
       displayName: Build RocksDB ${{ target.arch }}
       pool:

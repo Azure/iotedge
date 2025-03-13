@@ -1,5 +1,5 @@
 parameters:
-  - name: build_only
+  - name: build_single
     type: string
     default: ''
   - name: linux_packages
@@ -124,7 +124,7 @@ stages:
     condition: |
       or
       (
-        not('${{ parameters['build_only'] }}'),
+        not('${{ parameters['build_single'] }}'),
         eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
       )
     jobs:
@@ -133,7 +133,7 @@ stages:
     ################################################################################
       - ${{ each build in parameters.linux_packages }}:
         - ${{ each target in build.targets }}:
-          - ${{ if or(not(parameters.build_only), eq(format('{0}:{1}', build.os.iotedge, target.arch), parameters.build_only)) }}:
+          - ${{ if or(not(parameters.build_single), eq(format('{0}:{1}', build.os.iotedge, target.arch), parameters.build_single)) }}:
             - job: linux_${{ replace(build.os.iotedge, '.', '') }}_${{ target.arch }}
               displayName: Linux ${{ build.os.iotedge }} ${{ target.arch }}
               pool:
@@ -225,7 +225,7 @@ stages:
       - job: snap
     ################################################################################
         displayName: Snap
-        condition: not('${{ parameters['build_only'] }}')
+        condition: not('${{ parameters['build_single'] }}')
         strategy:
           matrix:
             amd64:

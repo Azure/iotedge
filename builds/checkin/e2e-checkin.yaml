@@ -16,6 +16,7 @@ pr:
 variables:
   Codeql.Enabled: false
   DisableDockerDetector: true
+  build_single: 'ubuntu24.04:amd64'
 
 resources:
   pipelines:
@@ -27,11 +28,11 @@ stages:
   
   - template: ../misc/templates/build-images.yaml
     parameters:
-      build_only : 'ubuntu24.04:amd64'
+      build_single : $(build_single)
 
   - template: ../misc/templates/build-packages.yaml
     parameters:
-      build_only : 'ubuntu24.04:amd64'
+      build_single : $(build_single)
 
   - stage: RunE2ETest
     displayName: End-to-End Test
