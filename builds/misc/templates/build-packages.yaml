@@ -12,7 +12,7 @@ stages:
     pool:
         name: $(pool.linux.name)
         demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+          - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
     dependsOn: []
     jobs:
       - job: check_source_change_edgelet
@@ -46,7 +46,7 @@ stages:
         pool:
           name: $(pool.linux.name)
           demands:
-            - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+            - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
         strategy:
           matrix:
             RedHat8-amd64:
@@ -339,7 +339,7 @@ stages:
           matrix:
             2.0-amd64:
               agent-pool: $(pool.linux.name)
-              agent-image: agent-aziotedge-ubuntu-20.04-docker
+              agent-image: agent-aziotedge-ubuntu-22.04-msmoby
               arch: amd64
               os: mariner
               os_id: cm
@@ -349,7 +349,7 @@ stages:
               target.iotedged: builds/mariner2/out/RPMS/x86_64
             2.0-aarch64:
               agent-pool: $(pool.linux.arm.name)
-              agent-image: agent-aziotedge-ubuntu-20.04-arm64-docker
+              agent-image: agent-aziotedge-ubuntu-22.04-arm64-msmoby
               arch: aarch64
               os: mariner
               os_id: cm
