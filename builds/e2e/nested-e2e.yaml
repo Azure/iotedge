@@ -139,14 +139,7 @@ stages:
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked_$(Build.BuildId)_L$(level)_mqtt
     steps:
-      - bash: |
-          set -x
-          sudo systemctl stop aziot-*
-          sudo apt-get -y purge aziot-*
-          sudo docker container kill $(sudo docker container ls --quiet)  # stop all running containers
-          sudo docker container prune --force                             # remove all stopped containers
-          sudo docker image prune --all --force                           # remove all images
-        displayName: Clean
+      - template: templates/e2e-clean-all-images.yaml
 
   - job:  Unlock_agents
     displayName: Unlock agents
