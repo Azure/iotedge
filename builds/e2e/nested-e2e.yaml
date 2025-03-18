@@ -46,7 +46,6 @@ stages:
 
 - stage: RunNestedTests
   dependsOn: LockAgents
-  condition: false
   jobs:
   - template: templates/get-storage-uri.yaml
     parameters:
