@@ -250,7 +250,7 @@ stages:
       - bash: |
           set -x
           sudo systemctl stop aziot-*
-          sudo apt -y purge aziot-*
+          sudo apt-get -y purge aziot-*
           sudo docker container kill $(sudo docker container ls --quiet)  # stop all running containers
           sudo docker container prune --force                             # remove all stopped containers
           sudo docker image prune --all --force                           # remove all images
