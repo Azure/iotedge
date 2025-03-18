@@ -251,7 +251,7 @@ stages:
           sudo systemctl stop aziot-*
           sudo apt -y purge aziot-*
           sudo docker container prune --force
-          sudo docker container rm --force $(docker container ls --all --quiet)
+          sudo docker container rm --force $(sudo docker container ls --all --quiet)
           sudo docker image prune --all --force
         displayName: Clean
 
