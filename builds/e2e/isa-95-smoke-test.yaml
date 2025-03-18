@@ -182,12 +182,12 @@ stages:
       test_type: nestededge_isa95
       verbose: false
     pool:
-     name: $(pool.name)
-     demands:
-       - agent-group -equals $(agent.group)
-       - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
-       - level -equals jumpbox
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - level -equals jumpbox
     steps:
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml
@@ -226,8 +226,38 @@ stages:
     - LockAgents
     - RunISA95Tests
   jobs:
+  - job: Clean_images
+    displayName: Clean up Docker images
+    strategy:
+      matrix:
+        L3:
+          level: 3
+        L4:
+          level: 4
+        L5:
+          level: 5
+        jumpbox:
+          level: jumpbox
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - level -equals $(level)
+    steps:
+      - bash: |
+          set -x
+          sudo systemctl stop aziot-*
+          sudo apt -y purge aziot-*
+          sudo docker container prune --force
+          sudo docker container rm --force $(docker container ls --all --quiet)
+          sudo docker image prune --all --force
+
   - job:  Unlock_agents
     displayName: Unlock agents
+    dependsOn: Clean_images
+    condition: always()
     timeoutInMinutes: 10
     pool:
       name: $(pool.name)
@@ -241,6 +271,8 @@ stages:
 
   - job:  Clean_up_identities
     displayName: Clean up identities
+    dependsOn: Clean_images
+    condition: always()
     timeoutInMinutes: 10
     variables:
       deviceLvl5DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
