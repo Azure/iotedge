@@ -125,11 +125,11 @@ stages:
     strategy:
       matrix:
         L3:
-          status: unlocked_$(Build.BuildId)_L3_mqtt
+          status: 'unlocked_$(Build.BuildId)_L3_mqtt'
         L4:
-          status: unlocked_$(Build.BuildId)_L4_mqtt
+          status: 'unlocked_$(Build.BuildId)_L4_mqtt'
         L5:
-          status: unlocked_$(Build.BuildId)_L5_mqtt
+          status: 'unlocked_$(Build.BuildId)_L5_mqtt'
     pool:
       name: $(pool.name)
       demands:
