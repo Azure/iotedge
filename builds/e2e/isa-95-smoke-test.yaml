@@ -237,7 +237,7 @@ stages:
           level: 4
         L5:
           level: 5
-        jumpbox:
+        Jumpbox:
           level: jumpbox
     pool:
       name: $(pool.name)
