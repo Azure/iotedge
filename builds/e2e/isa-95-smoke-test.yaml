@@ -253,6 +253,7 @@ stages:
           sudo docker container prune --force
           sudo docker container rm --force $(docker container ls --all --quiet)
           sudo docker image prune --all --force
+        displayName: Clean
 
   - job:  Unlock_agents
     displayName: Unlock agents
