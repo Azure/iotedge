@@ -125,18 +125,18 @@ stages:
     strategy:
       matrix:
         L3:
-          level: L3
+          level: 3
         L4:
-          level: L4
+          level: 4
         L5:
-          level: L5
+          level: 5
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_$(level)_mqtt
+        - status -equals unlocked_$(Build.BuildId)_L$(level)_mqtt
     steps:
       - bash: |
           set -x
