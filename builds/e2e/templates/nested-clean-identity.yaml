@@ -12,6 +12,8 @@ steps:
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
+        set -xeuo pipefail
+
         deviceId="${{ parameters.deviceId }}"
 
         if [ -z $deviceId ]; then
@@ -19,5 +21,4 @@ steps:
         fi
 
         echo "Deleting ${{ parameters.deviceId }} iotedge in iothub: ${{ parameters.iotHubName }}, in subscription $(azure.subscription)"
-        az iot hub device-identity delete -n ${{ parameters.iotHubName }} -d ${{ parameters.deviceId }}    
-
+        az iot hub device-identity delete -n ${{ parameters.iotHubName }} -d ${{ parameters.deviceId }} || true
