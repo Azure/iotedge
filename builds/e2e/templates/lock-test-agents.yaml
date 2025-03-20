@@ -9,7 +9,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+        - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
     steps:
       - template: nested-get-secrets.yaml
       - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)" -n ${{ parameters['testRunnerCount'] }} -u ${{ parameters['upstream.protocol'] }}
