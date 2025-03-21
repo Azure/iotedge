@@ -271,6 +271,7 @@ stages:
     variables:
       deviceLvl5DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
       deviceLvl4DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
+      deviceLvl3DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['createIdentity.parentDeviceId'] ]
       deviceLvl5IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.iotHubName'] ]
       deviceLvl4IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
       deviceLvl5AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['exportAgentName.agentName'] ]
