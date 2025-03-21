@@ -117,7 +117,7 @@ steps:
   - task: CopyFiles@2
     displayName: 'Copy aziot-identity-service'
     inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['identity.artifact.name'] }}
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['identity.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
   - task: Bash@3
     displayName: 'Generate device certificates'
