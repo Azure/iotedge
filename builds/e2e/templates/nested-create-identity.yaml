@@ -16,7 +16,6 @@ steps:
         iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')
         echo "Found Hub name: ${iotHubName}"
 
-        az account set --subscription $(azure.subscription)
         az config set extension.use_dynamic_install=yes_without_prompt
         deviceId="level_$(level)_$(Build.BuildId)$(upstreamProtocol)"
 
