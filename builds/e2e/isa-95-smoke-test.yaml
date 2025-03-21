@@ -218,7 +218,22 @@ stages:
           EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
           IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: $(test_type)
-
+      - template: templates/nested-isa95-unlock.yaml
+        parameters:
+          agentName: $(deviceLvl5AgentName)
+          nsgName: $(isa95_lock_lvl5.nsgName)
+      - template: templates/nested-isa95-unlock.yaml
+        parameters:
+          agentName: $(deviceLvl4AgentName)
+          nsgName: $(isa95_lock_lvl4.nsgName)
+      - template: templates/nested-isa95-unlock.yaml
+        parameters:
+          agentName: $(otProxyName)
+          nsgName: $(isa95_lock_lvl35.nsgName)
+      - template: templates/nested-isa95-unlock.yaml
+        parameters:
+          agentName: $(deviceLvl3AgentName)
+          nsgName: $(isa95_lock_lvl3.nsgName)
 
 - stage: Cleanup
   condition: always()
@@ -277,10 +292,6 @@ stages:
       deviceLvl5AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['exportAgentName.agentName'] ]
       deviceLvl4AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['exportAgentName.agentName'] ]
       deviceLvl3AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['exportAgentName.agentName'] ]
-      deviceLvl5NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl5.nsgName'] ]
-      deviceLvl4NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl4.nsgName'] ]
-      deviceLvl35NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl35.nsgName'] ]
-      deviceLvl3NSGName: $[ stageDependencies.RunISA95Tests.Run_ISA95_test.outputs['isa95_lock_lvl3.nsgName'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -305,19 +316,3 @@ stages:
           iotHubName: $(deviceLvl3IoTHubName)
           deviceId: $(deviceLvl3DeviceId)
           lvl: 3
-      - template: templates/nested-isa95-unlock.yaml
-        parameters:
-          agentName: $(deviceLvl5AgentName)
-          nsgName: $(deviceLvl5NSGName)
-      - template: templates/nested-isa95-unlock.yaml
-        parameters:
-          agentName: $(deviceLvl4AgentName)
-          nsgName: $(deviceLvl4NSGName)
-      - template: templates/nested-isa95-unlock.yaml
-        parameters:
-          agentName: $(otProxyName)
-          nsgName: $(deviceLvl35NSGName)
-      - template: templates/nested-isa95-unlock.yaml
-        parameters:
-          agentName: $(deviceLvl3AgentName)
-          nsgName: $(deviceLvl3NSGName)
