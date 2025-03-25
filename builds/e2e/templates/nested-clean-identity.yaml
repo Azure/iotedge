@@ -12,12 +12,9 @@ steps:
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
-        deviceId="${{ parameters.deviceId }}"
-
-        if [ -z $deviceId ]; then
-          exit 0
+        if [[ -z "${{ parameters.deviceId }}" || -z "${{ parameters.iotHubName }}" ]]; then
+          exit 1
         fi
 
-        echo "Deleting ${{ parameters.deviceId }} iotedge in iothub: ${{ parameters.iotHubName }}, in subscription $(azure.subscription)"
-        az iot hub device-identity delete -n ${{ parameters.iotHubName }} -d ${{ parameters.deviceId }}    
-
+        echo "Deleting device ${{ parameters.deviceId }} from hub ${{ parameters.iotHubName }} in subscription $(azure.subscription)"
+        az iot hub device-identity delete -n ${{ parameters.iotHubName }} -d ${{ parameters.deviceId }}
