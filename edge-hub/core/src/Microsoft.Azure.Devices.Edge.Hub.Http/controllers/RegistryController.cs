@@ -178,21 +178,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     return;
                 }
 
-                IEdgeHub edgeHub = await this.edgeHubGetter;
-                IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-                Option<string> targetAuthChain = await identitiesCache.GetAuthChain(deviceId);
-                if (!targetAuthChain.HasValue)
+                try
                 {
-                    Events.AuthorizationFail_NoAuthChain(deviceId);
-                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                    IEdgeHub edgeHub = await this.edgeHubGetter;
+                    IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+                    Option<string> targetAuthChain = await identitiesCache.GetAuthChain(deviceId);
+                    if (!targetAuthChain.HasValue)
+                    {
+                        Events.AuthorizationFail_NoAuthChain(deviceId);
+                        await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                        return;
+                    }
+                    string edgeDeviceId = edgeHub.GetEdgeDeviceId();
+                    var requestData = new ListModulesOnBehalfOfData($"{targetAuthChain.OrDefault()}");
+                    RegistryApiHttpResult result = await this.apiClient.ListModulesAsync(edgeDeviceId, requestData);
+                    await this.SendResponseAsync(result.StatusCode, result.JsonContent);
+                    Events.CompleteRequest(nameof(this.ListModulesAsync), edgeDeviceId, requestData.AuthChain, result);
+                }
+                catch (Exception ex)
+                {
+                    Events.RandomDebuggerLogLine(">>>>>>>>>>my custom degbugger log line:" + ex.Message);
+                    await this.SendResponseAsync(HttpStatusCode.BadRequest, FormatErrorResponseMessage(ex.Message));
                     return;
                 }
 
-                string edgeDeviceId = edgeHub.GetEdgeDeviceId();
-                var requestData = new ListModulesOnBehalfOfData($"{targetAuthChain.OrDefault()}");
-                RegistryApiHttpResult result = await this.apiClient.ListModulesAsync(edgeDeviceId, requestData);
-                await this.SendResponseAsync(result.StatusCode, result.JsonContent);
-                Events.CompleteRequest(nameof(this.ListModulesAsync), edgeDeviceId, requestData.AuthChain, result);
             }
             catch (Exception ex)
             {
@@ -663,6 +672,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             internal static void AuthorizationFail_InvalidAuthChain(string actorDeviceId, string targetDeviceId, string authChain)
             {
                 Log.LogError((int)EventIds.AuthorizationFail_InvalidAuthChain, $"Target device {targetDeviceId} is not a child of {actorDeviceId}, auth chain found is {authChain}");
+            }
+
+            internal static void RandomDebuggerLogLine(string message)
+            {
+                Log.LogInformation(message);
             }
         }
     }

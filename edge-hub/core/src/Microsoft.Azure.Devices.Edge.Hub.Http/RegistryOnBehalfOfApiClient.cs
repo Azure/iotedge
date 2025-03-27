@@ -51,6 +51,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         {
             var requesteUri = new Uri(this.baseUri, string.Format(CultureInfo.InvariantCulture, this.listModulesOnBehalfOfUriTemplate, actorDeviceId, ApiVersion));
             var response = await this.SendRequestAsync(requesteUri, HttpMethod.Post, requestData);
+            Console.WriteLine("=====================================");
+            Console.WriteLine(requesteUri);
+            Console.WriteLine("=====================================");
             return response;
         }
 
