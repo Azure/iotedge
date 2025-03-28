@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
         {
             using (RSA key = this.certificate.GetRSAPrivateKey())
             {
-                return key.SignData(Encoding.UTF8.GetBytes(message), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                return key.SignData(Encoding.UTF8.GetBytes(message), HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
             }
         }
     }
