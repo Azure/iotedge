@@ -1,12 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
-    using System;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
-    using NUnit.Framework;
 
     public class CustomCertificatesFixture : SasManualProvisioningFixture
     {
@@ -14,11 +10,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         // creating a new device for every permutation of the Transparent Gateway tests.
         protected override Task BeforeTestTimerStarts() => Task.CompletedTask;
 
-        [OneTimeSetUp]
-        public async Task SetUpCustomCertificatesAsync()
+        [ClassInitialize(InheritanceBehavior.BeforeEachDerivedClass)]
+        public static async Task SetUpCustomCertificatesAsync(TestContext msTestContext)
         {
             await Profiler.Run(
-                () => this.SasProvisionEdgeAsync(true),
+                () => SasProvisionEdgeAsync(true),
                 "Completed edge manual provisioning with SAS token");
         }
     }
