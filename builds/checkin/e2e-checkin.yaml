@@ -24,7 +24,7 @@ resources:
     branch: 'main'
 
 stages:
-  
+
   - template: ../misc/templates/build-images.yaml
     parameters:
       build_single : 'ubuntu24.04:amd64'

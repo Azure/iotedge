@@ -4,7 +4,7 @@ parameters:
   default: ''
 - name: targets
   type: object
-  default: 
+  default:
   - agent_image: agent-aziotedge-ubuntu-24.04-msmoby
     arch: amd64
     pool: $(pool.linux.name)
@@ -15,7 +15,7 @@ parameters:
     arch: arm64v8
     pool: $(pool.linux.arm.name)
 
-jobs: 
+jobs:
 - ${{ each target in parameters.targets }}:
   - ${{ if or(not(parameters.build_single), endsWith(parameters.build_single, target.arch)) }}:
     - job: build_rocksdb_${{ target.arch }}
