@@ -18,8 +18,8 @@ jobs:
     variables:
       parentName: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ]
-      identity.artifact.name: 'aziot-identity-ubuntu20.04-amd64'
-      edgelet.artifact.name: 'iotedged-ubuntu20.04-amd64'
+      identity.artifact.name: 'aziot-identity-ubuntu24.04-amd64'
+      edgelet.artifact.name: 'iotedged-ubuntu24.04-amd64'
       hostPlatform: 'linux_amd64_moby'
       quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
       nestededge: true
