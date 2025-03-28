@@ -1764,7 +1764,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
         }
 
-
         public static IEnumerable<object[]> GetDeploymentForSchemas()
         {
             var modulesWithDefaultStartupOrder =
@@ -2266,6 +2265,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         public static string GetEdgeAgentRightImageName() => "mcr.microsoft.com/azureiotedge-agent:1.0";
         public static string GetEdgeAgentWrongImageName() => "mcr.microsoft.com/azureiotedge-wrong-agent:1.0";
-
     }
 }

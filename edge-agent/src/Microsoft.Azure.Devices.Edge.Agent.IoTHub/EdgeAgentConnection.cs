@@ -466,7 +466,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         async Task<bool> WaitForDeviceClientInitialization() =>
             await Task.WhenAny(this.initTask, Task.Delay(DeviceClientInitializationWaitTime)) == this.initTask;
 
-
         static class Events
         {
             public static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeAgentConnection>();
@@ -642,7 +641,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterFullTwin, $"Obtained desired properites after processing full twin: {twinCollection}");
             }
-
 
             internal static void PullingTwinHasBeenTriggeredFrequently(int count, int seconds)
             {

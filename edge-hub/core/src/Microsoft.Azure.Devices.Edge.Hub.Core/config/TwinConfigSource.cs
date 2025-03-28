@@ -273,7 +273,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterFullTwin, $"Obtained desired properites after processing full twin: {twinCollection}");
             }
-
         }
     }
 }
