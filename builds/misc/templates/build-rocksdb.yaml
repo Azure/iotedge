@@ -5,15 +5,15 @@ jobs:
     matrix:
       amd64:
         pool_name: $(pool.linux.name)
-        agent_image: agent-aziotedge-ubuntu-24.04-msmoby
+        agent_image: agent-aziotedge-ubuntu-22.04-msmoby
         arch: amd64
       arm32:
         pool_name: $(pool.linux.arm.name)
-        agent_image: agent-aziotedge-ubuntu-24.04-arm64-msmoby
+        agent_image: agent-aziotedge-ubuntu-22.04-arm64-msmoby
         arch: arm32v7
       arm64:
         pool_name: $(pool.linux.arm.name)
-        agent_image: agent-aziotedge-ubuntu-24.04-arm64-msmoby
+        agent_image: agent-aziotedge-ubuntu-22.04-arm64-msmoby
         arch: arm64v8
   pool:
       name: $(pool_name)
