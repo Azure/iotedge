@@ -12,7 +12,7 @@ stages:
     pool:
         name: $(pool.linux.name)
         demands:
-          - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
+          - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     dependsOn: []
     jobs:
       - job: check_source_change_edgelet
@@ -46,7 +46,7 @@ stages:
         pool:
           name: $(pool.linux.name)
           demands:
-            - ImageOverride -equals agent-aziotedge-ubuntu-24.04-msmoby
+            - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
         strategy:
           matrix:
             RedHat8-amd64:
