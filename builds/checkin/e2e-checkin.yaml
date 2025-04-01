@@ -27,11 +27,11 @@ stages:
 
   - template: ../misc/templates/build-images.yaml
     parameters:
-      build_single : 'ubuntu24.04:amd64'
+      build_single : 'ubuntu22.04:amd64'
 
   - template: ../misc/templates/build-packages.yaml
     parameters:
-      build_single : 'ubuntu24.04:amd64'
+      build_single : 'ubuntu22.04:amd64'
 
   - stage: RunE2ETest
     displayName: End-to-End Test
