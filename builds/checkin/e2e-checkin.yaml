@@ -24,7 +24,6 @@ resources:
     branch: 'main'
 
 stages:
-  
   - template: ../misc/templates/build-images.yaml
     parameters:
       E2EBuild : true
