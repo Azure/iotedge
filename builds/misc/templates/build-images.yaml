@@ -171,6 +171,15 @@ stages:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     dependsOn: ConsolidateAndPubishArtifacts
+    variables:
+      ${{ if eq(length(parameters.build_single), 0) }}:
+        platforms: 'linux/amd64,linux/arm/v7,linux/arm64'
+      ${{ elseif endsWith(parameters.build_single, 'amd64') }}:
+        platforms: linux/amd64
+      ${{ elseif endsWith(parameters.build_single, 'arm32v7') }}:
+        platforms: linux/arm/v7
+      ${{ elseif endsWith(parameters.build_single, 'arm64v8') }}:
+        platforms: linux/arm64
     jobs:
 
     # Product images
@@ -183,12 +192,7 @@ stages:
           app: Microsoft.Azure.Devices.Edge.Agent.Service
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_single, 'amd64') }}:
-            platforms: linux/amd64
-          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
-            platforms: linux/arm/v7
-          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
-            platforms: linux/arm64
+          platforms: $(platforms)
 
     - job: BuildImageEdgeHub
       steps:
@@ -199,12 +203,7 @@ stages:
           app: Microsoft.Azure.Devices.Edge.Hub.Service
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_single, 'amd64') }}:
-            platforms: linux/amd64
-          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
-            platforms: linux/arm/v7
-          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
-            platforms: linux/arm64
+          platforms: $(platforms)
 
     - job: BuildImageTemperatureSensor
       steps:
@@ -213,6 +212,7 @@ stages:
           displayName: Temperature Sensor
           name: azureiotedge-simulated-temperature-sensor
           app: SimulatedTemperatureSensor
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageDiagnostics
@@ -222,6 +222,7 @@ stages:
           displayName: Diagnostics
           name: azureiotedge-diagnostics
           app: IotedgeDiagnosticsDotnet
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageMetricsCollector
@@ -231,6 +232,7 @@ stages:
           displayName: Metrics Collector
           name: azureiotedge-metrics-collector
           app: Microsoft.Azure.Devices.Edge.Azure.Monitor
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageApiProxy
@@ -241,12 +243,7 @@ stages:
           name: azureiotedge-api-proxy
           app: api-proxy-module
           version: $(Build.BuildNumber)
-          ${{ if endsWith(parameters.build_single, 'amd64') }}:
-            platforms: linux/amd64
-          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
-            platforms: linux/arm/v7
-          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
-            platforms: linux/arm64
+          platforms: $(platforms)
 
       - task: ComponentGovernanceComponentDetection@0
         inputs:
@@ -260,6 +257,7 @@ stages:
           displayName: Temperature Filter
           name: azureiotedge-temperature-filter
           app: TemperatureFilter
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageLoadGen
@@ -269,6 +267,7 @@ stages:
           displayName: Load Gen
           name: azureiotedge-load-gen
           app: load-gen
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageTestAnalyzer
@@ -280,12 +279,7 @@ stages:
           app: TestAnalyzer
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_single, 'amd64') }}:
-            platforms: linux/amd64
-          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
-            platforms: linux/arm/v7
-          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
-            platforms: linux/arm64
+          platforms: $(platforms)
 
       # Functions Sample - Only supported on amd64
     - job: BuildImageFunctionsSample
@@ -305,6 +299,7 @@ stages:
           displayName: Direct Method Sender
           name: azureiotedge-direct-method-sender
           app: DirectMethodSender
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageDirectMethodReceiver
@@ -314,6 +309,7 @@ stages:
           displayName: Direct Method Receiver
           name: azureiotedge-direct-method-receiver
           app: DirectMethodReceiver
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageMetricsValidator
@@ -323,6 +319,7 @@ stages:
           displayName: Metrics Validator
           name: azureiotedge-metrics-validator
           app: MetricsValidator
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageNumberLogger
@@ -332,6 +329,7 @@ stages:
           displayName: Number Logger
           name: azureiotedge-number-logger
           app: NumberLogger
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageModuleRestarter
@@ -341,6 +339,7 @@ stages:
           displayName: Module Restarter
           name: azureiotedge-module-restarter
           app: ModuleRestarter
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageTwinTester
@@ -352,12 +351,7 @@ stages:
           app: TwinTester
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_single, 'amd64') }}:
-            platforms: linux/amd64
-          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
-            platforms: linux/arm/v7
-          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
-            platforms: linux/arm64
+          platforms: $(platforms)
 
     - job: BuildImageRelayer
       steps:
@@ -366,6 +360,7 @@ stages:
           displayName: Relayer
           name: azureiotedge-relayer
           app: Relayer
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageNetworkController
@@ -377,12 +372,7 @@ stages:
           app: NetworkController
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_single, 'amd64') }}:
-            platforms: linux/amd64
-          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
-            platforms: linux/arm/v7
-          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
-            platforms: linux/arm64
+          platforms: $(platforms)
 
     - job: BuildImageTestResultCoordinator
       steps:
@@ -393,12 +383,7 @@ stages:
           app: TestResultCoordinator
           version: $(Build.BuildNumber)
           use_rocksdb: true
-          ${{ if endsWith(parameters.build_single, 'amd64') }}:
-            platforms: linux/amd64
-          ${{ if endsWith(parameters.build_single, 'arm32v7') }}:
-            platforms: linux/arm/v7
-          ${{ if endsWith(parameters.build_single, 'arm64v8') }}:
-            platforms: linux/arm64
+          platforms: $(platforms)
 
     - job: BuildImageTestMetricsCollector
       steps:
@@ -407,6 +392,7 @@ stages:
           displayName: Test Metrics Collector
           name: azureiotedge-test-metrics-collector
           app: TestMetricsCollector
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageDeploymentTester
@@ -416,6 +402,7 @@ stages:
           displayName: DeploymentTester
           name: azureiotedge-deployment-tester
           app: DeploymentTester
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageEdgeHubRestartTester
@@ -425,6 +412,7 @@ stages:
           displayName: EdgeHubRestartTester
           name: azureiotedge-edgehub-restart-tester
           app: EdgeHubRestartTester
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
 
     - job: BuildImageCloudToDeviceMessageTester
@@ -434,4 +422,5 @@ stages:
           displayName: Cloud To Device Message Tester
           name: azureiotedge-c2dmessage-tester
           app: CloudToDeviceMessageTester
+          platforms: $(platforms)
           version: $(Build.BuildNumber)
