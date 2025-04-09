@@ -34,11 +34,12 @@ stages:
     displayName: Build RocksDB
     dependsOn: CheckBuildImages
     condition: |
-      or
-        (
+      and(
+        succeeded(), or(
           not('${{ parameters.build_single }}'),
           eq(dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES'], 'true')
         )
+      )
     jobs:
       - template: build-rocksdb.yaml
         parameters:
@@ -49,11 +50,12 @@ stages:
 ################################################################################
     displayName: Build Executables
     condition: |
-      or
-        (
+      and(
+        succeeded(), or(
           not('${{ parameters.build_single }}'),
           eq(dependencies.CheckBuildImages.outputs['check_source_change_runtime.check_files.RUNTIMECHANGES'], 'true')
         )
+      )
     pool:
       name: $(pool.linux.name)
       demands:

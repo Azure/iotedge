@@ -122,10 +122,11 @@ stages:
     displayName: Build Packages
     dependsOn: CheckBuildPackages
     condition: |
-      or
-      (
-        not('${{ parameters['build_single'] }}'),
-        eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
+      and(
+        succeeded(), or(
+          not('${{ parameters['build_single'] }}'),
+          eq(dependencies.CheckBuildPackages.outputs['check_source_change_edgelet.check_files.EDGELETCHANGES'], 'true')
+        )
       )
     jobs:
     ################################################################################
@@ -225,7 +226,7 @@ stages:
       - job: snap
     ################################################################################
         displayName: Snap
-        condition: not('${{ parameters['build_single'] }}')
+        condition: and(succeeded(), not('${{ parameters['build_single'] }}'))
         strategy:
           matrix:
             amd64:
@@ -294,7 +295,11 @@ stages:
       - job: azurelinux
     ################################################################################
         displayName: Azure Linux
-        condition: or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+        condition:
+          and(
+            succeeded(),
+            or(eq(variables['build.linux.mariner'], ''), eq(variables['build.linux.mariner'], true))
+          )
         timeoutInMinutes: 90
         strategy:
           matrix:
