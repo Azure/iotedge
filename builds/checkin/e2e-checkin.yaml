@@ -24,21 +24,17 @@ resources:
     branch: 'main'
 
 stages:
-  
+
   - template: ../misc/templates/build-images.yaml
     parameters:
-      E2EBuild : true
+      build_single : 'ubuntu22.04:amd64'
 
   - template: ../misc/templates/build-packages.yaml
     parameters:
-      E2EBuild : true
+      build_single : 'ubuntu22.04:amd64'
 
   - stage: RunE2ETest
     displayName: End-to-End Test
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     dependsOn:
       - CheckBuildImages
       - CheckBuildPackages
@@ -64,6 +60,10 @@ stages:
           identityArtifactName: aziot-identity-ubuntu22.04-amd64
           artifactName: iotedged-ubuntu22.04-amd64
           sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+        pool:
+          name: $(pool.linux.name)
+          demands:
+            - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
         steps:
         - template: ../e2e/templates/e2e-setup.yaml
         - template: ../e2e/templates/e2e-run.yaml
