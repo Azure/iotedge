@@ -347,8 +347,8 @@ where
             .with_labels(labels)
             .with_host_config(HostConfig::new().with_ulimits(vec![ResourcesUlimits::new()
                         .with_name("nofile".to_owned())
-                        .with_soft(1048576)
-                        .with_hard(1048576)]));
+                        .with_soft(1_048_576)
+                        .with_hard(1_048_576)]));
 
         // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
         // It contains the logic to add a container to the iot edge network only if a network is not already specified.
