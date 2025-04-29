@@ -12,7 +12,9 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use docker::apis::{Configuration, DockerApi, DockerApiClient};
-use docker::models::{ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig};
+use docker::models::{
+    ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig, ResourcesUlimits,
+};
 use edgelet_core::{
     DiskInfo, LogOptions, Module, ModuleAction, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
     RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
@@ -342,7 +344,11 @@ where
         let create_options = create_options
             .with_image(image)
             .with_env(merged_env)
-            .with_labels(labels);
+            .with_labels(labels)
+            .with_host_config(HostConfig::new().with_ulimits(vec![ResourcesUlimits::new()
+                        .with_name("nofile".to_owned())
+                        .with_soft(1048576)
+                        .with_hard(1048576)]));
 
         // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
         // It contains the logic to add a container to the iot edge network only if a network is not already specified.
