@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -47,8 +48,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
 
         public Task<Twin> GetTwinAsync() => this.sdkModuleClient.GetTwinAsync();
 
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
-            => this.sdkModuleClient.UpdateReportedPropertiesAsync(reportedProperties);
+        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) {
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(TimeSpan.FromSeconds(30));
+            return this.sdkModuleClient.UpdateReportedPropertiesAsync(reportedProperties, cts.Token);
+        }
 
         //// public Task SendEventBatchAsync(IEnumerable<Message> messages) => this.sdkModuleClient.SendEventBatchAsync(messages);
 
