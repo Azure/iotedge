@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion, Option.Some(this.edgeletTimeout)))
+            builder.Register(c => new RetryableTimeoutModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion, Option.Some(this.edgeletTimeout)))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .As<IDeviceManager>()
