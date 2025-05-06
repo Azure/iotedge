@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         readonly ModuleManagementHttpClientVersioned inner;
 
-        readonly TimeSpan clientPermitTimeout = TimeSpan.FromSeconds(240);
         readonly SemaphoreSlim clientPermit = new SemaphoreSlim(MaxConcurrentRequests);
 
         public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, Option<TimeSpan> edgeletTimeout)
@@ -147,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         async Task<T> Throttle<T>(Func<Task<T>> identityOperation)
         {
-            bool permitAcquired = await this.clientPermit.WaitAsync(this.clientPermitTimeout);
+            bool permitAcquired = await this.clientPermit.WaitAsync();
             if (!permitAcquired)
             {
                 throw new TimeoutException($"Could not acquire permit to call ModuleManager, hit limit of {MaxConcurrentRequests} concurrent requests");
