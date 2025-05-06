@@ -146,11 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         async Task<T> Throttle<T>(Func<Task<T>> identityOperation)
         {
-            bool permitAcquired = await this.clientPermit.WaitAsync();
-            if (!permitAcquired)
-            {
-                throw new TimeoutException($"Could not acquire permit to call ModuleManager, hit limit of {MaxConcurrentRequests} concurrent requests");
-            }
+            await this.clientPermit.WaitAsync();
 
             try
             {
