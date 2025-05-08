@@ -49,9 +49,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             : base(status)
         {
             this.ErrorMessage = errorMessage;
+            this.NetworkError = true;
         }
 
         [JsonProperty("ErrorMessage")]
         public string ErrorMessage { get; set; }
+
+        [JsonProperty("NetworkError")]
+        public bool NetworkError { get; set; }
     }
 }
