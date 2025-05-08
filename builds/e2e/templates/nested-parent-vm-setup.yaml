@@ -7,9 +7,8 @@ jobs:
     displayName: SettingUp level 5 for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
     variables:
-      artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      identityArtifactName: aziot-identity-ubuntu24.04-amd64
+      artifactName: iotedged-ubuntu24.04-amd64
       level: 5
       deploymentFile: "nestededge_topLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
       parentName: ''
@@ -36,9 +35,8 @@ jobs:
     condition: succeeded()
     timeoutInMinutes: 180
     variables:
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
-      artifactName: iotedged-ubuntu20.04-amd64
+      identityArtifactName: aziot-identity-ubuntu24.04-amd64
+      artifactName: iotedged-ubuntu24.04-amd64
       parentName: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ]
       deploymentFile: "${{ parameters['test.l4DeploymentFileName'] }}"

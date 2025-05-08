@@ -26,7 +26,7 @@ variables:
 pool:
   name: $(pool.linux.name)
   demands:
-  - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+  - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
 
 steps:
 - checkout: product
