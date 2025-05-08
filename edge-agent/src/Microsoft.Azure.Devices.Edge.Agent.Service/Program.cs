@@ -113,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             DiagnosticConfig diagnosticConfig;
             bool useServerHeartbeat;
             ModuleUpdateMode moduleUpdateMode;
+            int clientPermitTimeout;
 
             try
             {
@@ -184,6 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 int edgeletTimeoutSecs = configuration.GetValue(Constants.ManagementApiTimeoutSecs, 300);
                 TimeSpan edgeletTimeout = TimeSpan.FromSeconds(edgeletTimeoutSecs);
                 var enableOrphanedIdentityCleanup = configuration.GetValue("EnableOrphanedIdentityCleanup", false);
+                clientPermitTimeout = configuration.GetValue("ModuleRequestThrottleTimeout", 300);
 
                 switch (mode.ToLowerInvariant())
                 {
@@ -198,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetTimeSpan("PerformanceMetricsUpdateFrequency", TimeSpan.FromMinutes(5));
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxManifestFileSize, storageMaxOpenFiles, storageLogLevel, moduleUpdateMode));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath, disableDeviceAnalyticsMetadata, moduleUpdateMode, edgeletTimeout, enableOrphanedIdentityCleanup));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat, backupConfigFilePath, disableDeviceAnalyticsMetadata, moduleUpdateMode, edgeletTimeout, enableOrphanedIdentityCleanup, clientPermitTimeout));
                         IEnumerable<X509Certificate2> trustBundle =
                             await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(trustBundle, logger);
