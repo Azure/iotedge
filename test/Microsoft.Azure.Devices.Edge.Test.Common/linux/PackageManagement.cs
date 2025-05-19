@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public string[] GetInstallCommandsFromLocal(string path)
         {
             string[] packages = Directory
-                .GetFiles(path, $"*.{this.PackageExtension.ToString().ToLower()}")
+                .GetFiles(path, $"*.{this.PackageExtension.ToString().ToLower()}", SearchOption.AllDirectories)
                 .Where(p => !p.Contains("debuginfo")
                     && !p.Contains("dbgsym")
                     && !p.Contains("devel")
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
                         "sudo systemctl daemon-reload"
                     },
-                    "mariner" => new[]
+                    "mariner" or "azurelinux" => new[]
                     {
                         "set -e",
                         $"sudo dnf -y install {string.Join(' ', packages)}",

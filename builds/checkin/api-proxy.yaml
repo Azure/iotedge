@@ -14,7 +14,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     steps:
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(rust-toolchain\.toml|builds|edge-modules/api-proxy-module|mqtt/edgelet-client)'
@@ -34,7 +34,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables

@@ -42,7 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
             version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
 
-            bool detectedSnap = packagesPath.Map(path => Directory.GetFiles(path, $"*.snap").Length != 0).OrDefault();
+            bool detectedSnap = packagesPath.Map(
+                path => Directory.GetFiles(path, "*.snap", SearchOption.AllDirectories).Length != 0).OrDefault();
 
             SupportedPackageExtension packageExtension;
 
@@ -82,6 +83,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     break;
                 case "mariner":
                     if (version != "2.0")
+                    {
+                        ThrowUnsupportedOs();
+                    }
+
+                    packageExtension = SupportedPackageExtension.Rpm;
+                    break;
+                case "azurelinux":
+                    if (version != "3.0")
                     {
                         ThrowUnsupportedOs();
                     }
