@@ -113,7 +113,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             DiagnosticConfig diagnosticConfig;
             bool useServerHeartbeat;
             ModuleUpdateMode moduleUpdateMode;
-            int clientPermitTimeout;
 
             try
             {
@@ -185,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 int edgeletTimeoutSecs = configuration.GetValue(Constants.ManagementApiTimeoutSecs, 300);
                 TimeSpan edgeletTimeout = TimeSpan.FromSeconds(edgeletTimeoutSecs);
                 var enableOrphanedIdentityCleanup = configuration.GetValue("EnableOrphanedIdentityCleanup", false);
-                clientPermitTimeout = configuration.GetValue("ModuleRequestThrottleTimeout", 300);
+                int clientPermitTimeout = configuration.GetValue("ModuleRequestThrottleTimeout", 240);
 
                 switch (mode.ToLowerInvariant())
                 {
