@@ -343,7 +343,8 @@ where
 
         let host_config = create_options
             .host_config()
-            .unwrap_or_default()
+            .cloned()
+            .unwrap_or(HostConfig::new())
             .with_ulimits(vec![ResourcesUlimits::new()
                 .with_name("nofile".to_owned())
                 .with_soft(1_048_576)
