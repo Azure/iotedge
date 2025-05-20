@@ -33,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
                 byte[] metricsData = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metrics));
                 Message metricsMessage = new Message(metricsData);
+                metricsMessage.ContentEncoding = "utf-8";
+                metricsMessage.ContentType = "application/json";
                 metricsMessage.Properties[IdentifierPropertyName] = this.identifier;
 
                 await this.moduleClient.SendEventAsync(metricsMessage);
