@@ -148,7 +148,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         async Task<T> Throttle<T>(Func<Task<T>> identityOperation)
         {
-            var clientPermitTimeoutInMilliSeconds = this.clientPermitTimeout * 1000;
+            var clientPermitTimeoutInMilliSeconds = this.clientPermitTimeout;
+            if (clientPermitTimeoutInMilliSeconds > 0)
+            {
+                clientPermitTimeoutInMilliSeconds *= 1000;
+            }
             bool permitAcquired = await this.clientPermit.WaitAsync(clientPermitTimeoutInMilliSeconds);
             if (!permitAcquired)
             {
