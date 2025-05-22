@@ -153,6 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             {
                 clientPermitTimeoutInMilliSeconds *= 1000;
             }
+
             bool permitAcquired = await this.clientPermit.WaitAsync(clientPermitTimeoutInMilliSeconds);
             if (!permitAcquired)
             {
