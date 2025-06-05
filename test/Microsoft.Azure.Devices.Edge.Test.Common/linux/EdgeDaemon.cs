@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             switch (os)
             {
                 case "ubuntu":
-                    if (version != "20.04" && version != "22.04" && version != "24.04")
+                    if (version != "22.04" && version != "24.04")
                     {
                         ThrowUnsupportedOs();
                     }

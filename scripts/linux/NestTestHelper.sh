@@ -52,21 +52,6 @@ function get_image_architecture_label() {
     esac
 }
 
-function get_iotedged_artifact_folder() {
-    local testDir=$1
-    
-    local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$testDir/artifacts/iotedged-ubuntu20.04-amd64"
-    elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$testDir/artifacts/iotedged-ubuntu20.04-aarch64"
-    else
-        path="$testDir/artifacts/iotedged-debian11-arm32v7"
-    fi
-
-    echo "$path"
-}
-
 function get_iotedge_quickstart_artifact_file() {
     local testDir=$1
 
