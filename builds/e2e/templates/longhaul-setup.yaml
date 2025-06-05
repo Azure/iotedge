@@ -2,7 +2,6 @@ parameters:
   identity.artifact.name: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
-  aziotis.artifact.name: ''
   quickstart.artifactName: ''
 
 steps:

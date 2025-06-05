@@ -72,7 +72,7 @@ case "$PACKAGE_OS" in
         ;;
 
     'alpine')
-        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:20.04'
+        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:22.04'
         ;;       
 esac
 
