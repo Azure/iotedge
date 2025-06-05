@@ -19,15 +19,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         readonly ModuleManagementHttpClientVersioned inner;
 
-        readonly TimeSpan clientPermitTimeout = TimeSpan.FromSeconds(240);
+        readonly int clientPermitTimeout;
         readonly SemaphoreSlim clientPermit = new SemaphoreSlim(MaxConcurrentRequests);
 
-        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, Option<TimeSpan> edgeletTimeout)
+        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, Option<TimeSpan> edgeletTimeout, int clientPermitTimeout)
         {
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
             Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
             this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion, edgeletTimeout);
+            this.clientPermitTimeout = clientPermitTimeout;
         }
 
         public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.Throttle(() => this.inner.CreateIdentityAsync(name, managedBy));
@@ -147,7 +148,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         async Task<T> Throttle<T>(Func<Task<T>> identityOperation)
         {
-            bool permitAcquired = await this.clientPermit.WaitAsync(this.clientPermitTimeout);
+            var clientPermitTimeoutInMilliSeconds = this.clientPermitTimeout;
+            if (clientPermitTimeoutInMilliSeconds > 0)
+            {
+                clientPermitTimeoutInMilliSeconds *= 1000;
+            }
+
+            bool permitAcquired = await this.clientPermit.WaitAsync(clientPermitTimeoutInMilliSeconds);
             if (!permitAcquired)
             {
                 throw new TimeoutException($"Could not acquire permit to call ModuleManager, hit limit of {MaxConcurrentRequests} concurrent requests");
