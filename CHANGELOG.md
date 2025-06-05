@@ -1,3 +1,25 @@
+# 1.5.20 (2025-05-19)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.16.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.16 to match the daemon)
+
+## Edge Agent
+### Bug fixes
+* Remove dead code to fix references to RSA signing with unapproved padding scheme ( [8f9abc7](https://github.com/Azure/iotedge/commit/8f9abc7a920a7a7ac292c4db13ee7c2649fa6d27) )
+
+## Edge Hub
+### Bug fixes
+* Remove dead code to fix references to RSA signing with unapproved padding scheme ( [8f9abc7](https://github.com/Azure/iotedge/commit/8f9abc7a920a7a7ac292c4db13ee7c2649fa6d27) )
+
+## Simulated Temperature Sensor
+### Bug fixes
+* Fix errors on module shutdown ( [8c5625d](https://github.com/Azure/iotedge/commit/8c5625d7ed4ea6971f0c0d63955f722469a29dd7) )
+
 # 1.5.19 (2025-03-12)
 
 Only Docker images are updated in this release. The daemon remains at version 1.5.16.
