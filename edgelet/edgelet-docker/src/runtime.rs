@@ -350,7 +350,11 @@ where
                 .with_soft(1_048_576)
                 .with_hard(1_048_576)]);
 
-        log::debug!("Creating container {} with HostConfig {:?}", module.name(), host_config);
+        log::debug!(
+            "Creating container {} with HostConfig {:?}",
+            module.name(),
+            host_config
+        );
 
         let create_options = create_options
             .with_image(image)
