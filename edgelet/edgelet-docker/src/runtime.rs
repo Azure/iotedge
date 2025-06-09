@@ -347,8 +347,8 @@ where
             .unwrap_or(HostConfig::new())
             .with_ulimits(vec![ResourcesUlimits::new()
                 .with_name("nofile".to_owned())
-                .with_soft(1_048_576)
-                .with_hard(1_048_576)]);
+                .with_soft(i32::MAX)
+                .with_hard(i32::MAX)]);
 
         log::debug!(
             "Creating container {} with HostConfig {:?}",
