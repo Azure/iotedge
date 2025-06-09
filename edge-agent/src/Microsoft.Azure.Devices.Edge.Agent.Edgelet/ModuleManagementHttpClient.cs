@@ -19,16 +19,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         readonly ModuleManagementHttpClientVersioned inner;
 
-        readonly int clientPermitTimeout;
+        readonly int clientPermitTimeoutMilliSecs;
         readonly SemaphoreSlim clientPermit = new SemaphoreSlim(MaxConcurrentRequests);
 
-        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, Option<TimeSpan> edgeletTimeout, int clientPermitTimeout)
+        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, Option<TimeSpan> edgeletTimeout, int clientPermitTimeoutSecs)
         {
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
             Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
             this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion, edgeletTimeout);
-            this.clientPermitTimeout = clientPermitTimeout;
+            if (clientPermitTimeoutSecs > 0)
+            {
+                clientPermitTimeoutSecs *= 1000;
+            }
+            this.clientPermitTimeoutMilliSecs = clientPermitTimeoutSecs;
         }
 
         public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.Throttle(() => this.inner.CreateIdentityAsync(name, managedBy));
@@ -148,13 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         async Task<T> Throttle<T>(Func<Task<T>> identityOperation)
         {
-            var clientPermitTimeoutInMilliSeconds = this.clientPermitTimeout;
-            if (clientPermitTimeoutInMilliSeconds > 0)
-            {
-                clientPermitTimeoutInMilliSeconds *= 1000;
-            }
-
-            bool permitAcquired = await this.clientPermit.WaitAsync(clientPermitTimeoutInMilliSeconds);
+            bool permitAcquired = await this.clientPermit.WaitAsync(this.clientPermitTimeoutMilliSecs);
             if (!permitAcquired)
             {
                 throw new TimeoutException($"Could not acquire permit to call ModuleManager, hit limit of {MaxConcurrentRequests} concurrent requests");
