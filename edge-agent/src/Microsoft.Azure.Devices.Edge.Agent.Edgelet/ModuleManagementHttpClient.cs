@@ -28,10 +28,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
             Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
             this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion, edgeletTimeout);
+
             if (clientPermitTimeoutSecs > 0)
             {
                 clientPermitTimeoutSecs *= 1000;
             }
+
             this.clientPermitTimeoutMilliSecs = clientPermitTimeoutSecs;
         }
 
