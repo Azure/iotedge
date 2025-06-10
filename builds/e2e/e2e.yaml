@@ -355,8 +355,8 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      identityArtifactName: aziot-identity-ubuntu20.04-amd64
-      artifactName: iotedged-ubuntu20.04-amd64
+      identityArtifactName: aziot-identity-ubuntu24.04-amd64
+      artifactName: iotedged-ubuntu24.04-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true
