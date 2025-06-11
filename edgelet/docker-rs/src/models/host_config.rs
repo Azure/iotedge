@@ -125,8 +125,8 @@ pub struct HostConfig {
     // #[serde(rename = "PidsLimit", skip_serializing_if = "Option::is_none")]
     // pids_limit: Option<i64>,
     // /// A list of resource limits to set in the container. For example: `{\"Name\": \"nofile\", \"Soft\": 1024, \"Hard\": 2048}`\"
-    #[serde(rename = "Ulimits", skip_serializing_if = "Option::is_none")]
-    ulimits: Option<Vec<crate::models::ResourcesUlimits>>,
+    // #[serde(rename = "Ulimits", skip_serializing_if = "Option::is_none")]
+    // ulimits: Option<Vec<crate::models::ResourcesUlimits>>,
     // /// The number of usable CPUs (Windows only).  On Windows Server containers, the processor resource controls are mutually exclusive. The order of precedence is `CPUCount` first, then `CPUShares`, and `CPUPercent` last.
     // #[serde(rename = "CpuCount", skip_serializing_if = "Option::is_none")]
     // cpu_count: Option<i64>,
@@ -276,7 +276,7 @@ impl HostConfig {
             // nano_cp_us: None,
             // oom_kill_disable: None,
             // pids_limit: None,
-            ulimits: None,
+            // ulimits: None,
             // cpu_count: None,
             // cpu_percent: None,
             // io_maximum_i_ops: None,
@@ -775,22 +775,22 @@ impl HostConfig {
     //     self.pids_limit = None;
     // }
 
-    pub fn set_ulimits(&mut self, ulimits: Vec<crate::models::ResourcesUlimits>) {
-        self.ulimits = Some(ulimits);
-    }
+    // pub fn set_ulimits(&mut self, ulimits: Vec<crate::models::ResourcesUlimits>) {
+    //     self.ulimits = Some(ulimits);
+    // }
 
-    pub fn with_ulimits(mut self, ulimits: Vec<crate::models::ResourcesUlimits>) -> Self {
-        self.ulimits = Some(ulimits);
-        self
-    }
+    // pub fn with_ulimits(mut self, ulimits: Vec<crate::models::ResourcesUlimits>) -> Self {
+    //     self.ulimits = Some(ulimits);
+    //     self
+    // }
 
-    pub fn ulimits(&self) -> Option<&[crate::models::ResourcesUlimits]> {
-        self.ulimits.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn ulimits(&self) -> Option<&[crate::models::ResourcesUlimits]> {
+    //     self.ulimits.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_ulimits(&mut self) {
-        self.ulimits = None;
-    }
+    // pub fn reset_ulimits(&mut self) {
+    //     self.ulimits = None;
+    // }
 
     // pub fn set_cpu_count(&mut self, cpu_count: i64) {
     //     self.cpu_count = Some(cpu_count);

@@ -71,7 +71,8 @@ then
     chown -R "${TARGET_UID}" "${backuppath}"
   fi
 
-  exec su "$username" -c "/usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll"
+  # Override the nofile to make soft == hard, then launch edgehub.
+  exec su "$username" -c "bash -c 'ulimit -Sn $(ulimit -Hn) && /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll'"
 else
   exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
 fi
