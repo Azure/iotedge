@@ -72,8 +72,8 @@ then
   fi
 
   # Override the nofile to make soft == hard, then launch edgehub.
-  exec su "$username" -c "bash -c 'ulimit -Sn $(ulimit -Hn) && /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll'"
+  exec su "$username" -c "bash -c 'ulimit -Sn \"$(ulimit -Hn)\" && /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll'"
 else
-  ulimit -Sn $(ulimit -Hn)
+  ulimit -Sn "$(ulimit -Hn)"
   exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
 fi
