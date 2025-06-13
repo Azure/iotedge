@@ -51,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly ModuleUpdateMode moduleUpdateMode;
         readonly TimeSpan edgeletTimeout;
         readonly bool enableOrphanedIdentityCleanup;
+        readonly int clientPermitTimeoutSecs;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -70,7 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool disableDeviceAnalyticsTelemetry,
             ModuleUpdateMode moduleUpdateMode,
             TimeSpan edgeletTimeout,
-            bool enableOrphanedIdentityCleanup)
+            bool enableOrphanedIdentityCleanup,
+            int clientPermitTimeoutSecs)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -90,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.moduleUpdateMode = moduleUpdateMode;
             this.edgeletTimeout = edgeletTimeout;
             this.enableOrphanedIdentityCleanup = enableOrphanedIdentityCleanup;
+            this.clientPermitTimeoutSecs = clientPermitTimeoutSecs;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -110,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion, Option.Some(this.edgeletTimeout)))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion, Option.Some(this.edgeletTimeout), this.clientPermitTimeoutSecs))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .As<IDeviceManager>()
