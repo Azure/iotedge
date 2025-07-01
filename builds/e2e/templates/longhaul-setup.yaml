@@ -1,8 +1,7 @@
 parameters:
+  identity.artifact.name: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
-  aziotis.artifact.name: ''
-  aziotis.package.filter: ''
   quickstart.artifactName: ''
 
 steps:
@@ -29,7 +28,6 @@ steps:
         kvLogAnalyticWorkspaceId,
         kvLogAnalyticSharedKey,
         EdgeLonghaulStorageAccountConnString,
-        GitHubAccessToken
   - task: AzureKeyVault@2
     displayName: 'Azure Key Vault: $(azure.keyVault)'
     inputs:
@@ -38,6 +36,17 @@ steps:
       SecretsFilter: >- 
         IotHub-ConnStr,
         IotHub-EventHubConnStr
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Identity Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(edgelet.package.build)
+      branchName: $(edgelet.package.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: ${{ parameters['identity.artifact.name'] }}
+      allowPartiallySucceededBuilds: true
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
     inputs:
@@ -65,18 +74,8 @@ steps:
         $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
         $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
         $(images.artifact.name.linux)/artifactInfo.txt
-        $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
         $(images.artifact.name.linux)/CACertificates/certGen.sh
         $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
-  - task: PowerShell@2
-    displayName: 'Download aziot-identity-service'
-    inputs:
-      filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-    env:
-      GITHUB_TOKEN: $(GitHubAccessToken)
-      ARTIFACT_NAME: ${{ parameters['aziotis.artifact.name'] }}
-      PACKAGE_FILTER: ${{ parameters['aziotis.package.filter'] }}
-      DOWNLOAD_PATH: $(Build.StagingDirectory)
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
@@ -91,6 +90,5 @@ steps:
   - task: CopyFiles@2
     displayName: 'Copy aziot-identity-service'
     inputs:
-      SourceFolder: "$(Build.StagingDirectory)"
-      Contents: "${{ parameters['aziotis.package.filter'] }}"
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['identity.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"

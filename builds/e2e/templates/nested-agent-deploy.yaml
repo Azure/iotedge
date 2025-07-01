@@ -52,7 +52,19 @@ steps:
          $(az.pipeline.images.artifacts)/e2e_deployment_files/*
          $(az.pipeline.images.artifacts)/scripts/linux/trcE2ETest.sh
          $(az.pipeline.images.artifacts)/artifactInfo.txt
-         $(az.pipeline.images.artifacts)/scripts/local/test/DownloadIdentityService.ps1
+
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Identity Artifacts'
+    condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.ci-build.projectID)
+      pipeline: $(resources.pipeline.ci-build.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(packageBuildId)
+      downloadPath: '$(Build.StagingDirectory)'
+      allowPartiallySucceededBuilds: true
+      artifactName: $(identityArtifactName)
 
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
@@ -66,19 +78,6 @@ steps:
       downloadPath: '$(Build.StagingDirectory)'
       allowPartiallySucceededBuilds: true
       artifactName: $(artifactName)
-
-  - task: PowerShell@2
-    displayName: 'Download aziot-identity-service'
-    condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
-    inputs:
-      filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
-      workingDirectory: $(Build.SourcesDirectory)
-    env:
-      GITHUB_TOKEN: $(GitHubAccessToken)
-      ARTIFACT_NAME: $(identityServiceArtifactName)
-      PACKAGE_FILTER: $(identityServicePackageFilter)
-      DOWNLOAD_PATH: $(Build.StagingDirectory) 
-      IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
 
   - ${{ if not(parameters.skipInstall) }}:
     - task: Bash@3     
@@ -108,20 +107,19 @@ steps:
           echo;
 
           echo "Install artifacts"            
-          iotedge_library=$( find $(Build.SourcesDirectory)/aziot-identity-service -type f -iname "$(identityServicePackageFilter)")
-    
           ls "$(Build.StagingDirectory)"
           ls "$(Build.StagingDirectory)/$(artifactName)"
+          ls "$(Build.StagingDirectory)/$(identityArtifactName)"
+          declare -a pkg_list="$(Build.StagingDirectory)/$(identityArtifactName)/*.deb"
+          identity_package="${pkg_list[*]}"
           declare -a pkg_list="$(Build.StagingDirectory)/$(artifactName)/*.deb"
           iotedge_package="${pkg_list[*]}"
 
-          echo "  Install library"
-          sudo apt-get --yes --allow-downgrades --allow-unauthenticated install ${iotedge_library}
-          echo;
+          echo "  Install package: $identity_package"
+          sudo apt-get --yes --allow-downgrades --allow-unauthenticated install ${identity_package}
 
-          echo "  Install edgelet"
+          echo "  Install package: $iotedge_package"
           sudo apt-get --yes --allow-downgrades --allow-unauthenticated install ${iotedge_package}
-          echo;
   - ${{ if not(parameters.skipInstall) }}:
     - template: nested-deploy-config.yaml
       parameters:

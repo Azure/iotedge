@@ -1,7 +1,7 @@
 # Azure IoT Edge Metrics Collector
 
 ## About
-This repository contains source code for the Azure IoT Edge Metrics module. It is currently in a private preview process.
+This repository contains source code for the Azure IoT Edge Metrics module.
 
 ## Deployment:
 See ExampleDeployment.json for a complete example deployment manifest.

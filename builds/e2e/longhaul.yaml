@@ -55,10 +55,9 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
+          identity.artifact.name: 'aziot-identity-ubuntu20.04-amd64'
           edgelet.artifact.name: 'iotedged-ubuntu20.04-amd64'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_ubuntu-20.04_amd64'
-          aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -70,6 +69,7 @@ jobs:
           build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -117,10 +117,9 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
+          identity.artifact.name: 'aziot-identity-debian11-arm32v7'
           edgelet.artifact.name: 'iotedged-debian11-arm32v7'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_debian-11-slim_arm32v7'
-          aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm.tar.gz'
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -132,6 +131,7 @@ jobs:
           build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -178,10 +178,9 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
+          identity.artifact.name: 'aziot-identity-debian11-arm32v7'
           edgelet.artifact.name: 'iotedged-debian11-arm32v7'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_debian-11-slim_arm32v7'
-          aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm.tar.gz'
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -193,6 +192,7 @@ jobs:
           build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -239,10 +239,9 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
+          identity.artifact.name: 'aziot-identity-ubuntu20.04-aarch64'
           edgelet.artifact.name: 'iotedged-ubuntu20.04-aarch64'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_ubuntu-20.04_aarch64'
-          aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm64.tar.gz'
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -254,6 +253,7 @@ jobs:
           build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -301,10 +301,9 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
+          identity.artifact.name: 'aziot-identity-ubuntu20.04-aarch64'
           edgelet.artifact.name: 'iotedged-ubuntu20.04-aarch64'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_ubuntu-20.04_aarch64'
-          aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
           quickstart.artifactName: 'IotEdgeQuickstart.linux-arm64.tar.gz'
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -316,6 +315,7 @@ jobs:
           build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -361,11 +361,9 @@ jobs:
     steps:
       - template: templates/longhaul-setup.yaml
         parameters:
+          identity.artifact.name: 'aziot-identity-mariner2-amd64'
           edgelet.artifact.name: 'iotedged-mariner2-amd64'
           images.artifact.name: '$(images.artifact.name.linux)'
-          aziotis.artifact.name: 'packages_mariner-2_amd64'
-          aziotis.package.filter: 'aziot-identity-service-?.*.x86_64.rpm'
-          identityServiceArtifactName: packages_mariner-2_amd64
           quickstart.artifactName: 'IotEdgeQuickstart.linux-x64.tar.gz'
       - task: DeleteFiles@1
         inputs:
@@ -382,6 +380,7 @@ jobs:
           build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
