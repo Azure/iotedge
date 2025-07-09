@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string leafDeviceId = DeviceId.Current.Generate();
 
-            var leaf = await LeafDevice.CreateAsync(
+            using var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
@@ -49,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 async () =>
                 {
+                    await leaf.CloseAsync();
                     await leaf.DeleteIdentityAsync(token);
                 });
         }
@@ -65,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string leafDeviceId = DeviceId.Current.Generate();
 
             // Create leaf and send message
-            var leaf = await LeafDevice.CreateAsync(
+            using var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
@@ -89,13 +90,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 async () =>
                 {
-                    await leaf.Close();
+                    await leaf.CloseAsync();
                     await leaf.DeleteIdentityAsync(token);
                 });
 
             // Re-create the leaf with the same device ID, for our purposes this is
             // the equivalent of updating the SAS keys
-            var leafUpdated = await LeafDevice.CreateAsync(
+            using var leafUpdated = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
@@ -119,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 async () =>
                 {
-                    await leafUpdated.Close();
+                    await leafUpdated.CloseAsync();
                     await leafUpdated.DeleteIdentityAsync(token);
                 });
         }
@@ -141,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string relayerModuleId = "relayer1";
 
             // Create leaf and send message
-            var leaf = await LeafDevice.CreateAsync(
+            using var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
@@ -186,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 async () =>
                 {
-                    await leaf.Close();
+                    await leaf.CloseAsync();
                     await leaf.DeleteIdentityAsync(token);
                 });
         }
@@ -212,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // Try connecting
             string leafDeviceId = DeviceId.Current.Generate();
-            var leaf = await LeafDevice.CreateAsync(
+            using var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
@@ -236,6 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 async () =>
                 {
+                    await leaf.CloseAsync();
                     await leaf.DeleteIdentityAsync(token);
                 });
         }

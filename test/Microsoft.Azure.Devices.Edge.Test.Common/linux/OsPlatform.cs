@@ -15,13 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     {
         public async Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
         {
+            // TODO: Support snaps AND non-snap services
             string args = string.Join(
                 " ",
-                "-u aziot-keyd",
-                "-u aziot-certd",
-                "-u aziot-identityd",
-                "-u aziot-edged",
-                "-u docker",
+                "-u snap.azure-iot-*",
+                "-u snap.docker.dockerd",
+                "-u snapd",
                 $"--since \"{testStartTime:yyyy-MM-dd HH:mm:ss}\"",
                 "--no-pager");
             string[] output = await Process.RunAsync("journalctl", args, token, logCommand: true, logOutput: false);
