@@ -1461,7 +1461,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connectionCreationCount = new Dictionary<string, int>();
             var cloudConnectionProvider = Mock.Of<ICloudConnectionProvider>();
             Action<string, CloudConnectionStatus> callback = null;
-            
             Mock.Get(cloudConnectionProvider)
                 .Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
                 .Callback<IClientCredentials, Action<string, CloudConnectionStatus>>((creds, c) =>
@@ -1476,7 +1475,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = new DeviceConnectivityManager();
 
             var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsManager, GetIdentityProvider(), deviceConnectivityManager);
-            
             // Create device proxies that remain active (simulating device connections that stay connected)
             var deviceProxy1 = CreateActiveDeviceProxy();
             var deviceProxy2 = CreateActiveDeviceProxy();

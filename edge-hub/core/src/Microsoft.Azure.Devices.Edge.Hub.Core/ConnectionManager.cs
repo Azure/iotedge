@@ -385,7 +385,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
              var devicesSnapshot = this.devices.ToArray();
              var reconnectionTasks = devicesSnapshot
                  .Where(kvp => kvp.Value.DeviceConnection.Filter(dc => dc.IsActive).HasValue)
-                 .Select(kvp => TryGetCloudConnectionInternal(kvp.Key));
+                .Select(kvp => this.TryGetCloudConnectionInternal(kvp.Key));
 
              await Task.WhenAll(reconnectionTasks);
          }
