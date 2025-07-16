@@ -1,3 +1,69 @@
+# 1.5.23 (2025-07-16)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.22 (2025-07-09)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.21 (2025-06-19)
+
+## Edge Agent
+### Bug fixes
+* Introduce configurable timeout value for module request throttling ( [f219589](https://github.com/Azure/iotedge/commit/f219589cb505fee044781158e570e0871b03f137) )
+
+## Edge Hub
+### Bug fixes
+* Keep Edge hub container fd limits consistent across Docker versions ( [95b87fc](https://github.com/Azure/iotedge/commit/95b87fca32a6759ec2c68b09e8b7e7a6f756fb6f) )
+
+## aziot-edge
+### OS support
+* Add support for Azure Linux 3.0 ( [03cd85d](https://github.com/Azure/iotedge/commit/03cd85d6c093f34c033d8f0e924aa89da459db28) )
+* Remove support for Ubuntu 20.04 ( [7645449](https://github.com/Azure/iotedge/commit/7645449b8bbdc80862d681a693a1601d1880ea9a) )
+
+## aziot-identity-service
+### OS support
+* Add support for Azure Linux 3.0 ( [0452db3](https://github.com/Azure/iot-identity-service/commit/0452db3f15c4e7d0ee21acf545a314e18ff866d2) )
+* Remove support for Ubuntu 20.04 ( [31a213c](https://github.com/Azure/iot-identity-service/commit/31a213ced93685884d93ce8ee4b8bc346abdb06d) )
+
+### Bug fixes
+* Handle network errors from parent Edge hub ( [0c33b7b](https://github.com/Azure/iot-identity-service/commit/0c33b7b80a3fff060aa3e8e1ba226901e4154b6a) )
+* Enable service sockets in systemd for Azure Linux ( [e62c0e3](https://github.com/Azure/iot-identity-service/commit/e62c0e3d06930dbcf33e1c951e3c5d2a32663bc6) )
+
+# 1.5.20 (2025-05-19)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.16.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.16 to match the daemon)
+
+## Edge Agent
+### Bug fixes
+* Remove dead code to fix references to RSA signing with unapproved padding scheme ( [8f9abc7](https://github.com/Azure/iotedge/commit/8f9abc7a920a7a7ac292c4db13ee7c2649fa6d27) )
+
+## Edge Hub
+### Bug fixes
+* Remove dead code to fix references to RSA signing with unapproved padding scheme ( [8f9abc7](https://github.com/Azure/iotedge/commit/8f9abc7a920a7a7ac292c4db13ee7c2649fa6d27) )
+
+## Simulated Temperature Sensor
+### Bug fixes
+* Fix errors on module shutdown ( [8c5625d](https://github.com/Azure/iotedge/commit/8c5625d7ed4ea6971f0c0d63955f722469a29dd7) )
+
 # 1.5.19 (2025-03-12)
 
 Only Docker images are updated in this release. The daemon remains at version 1.5.16.

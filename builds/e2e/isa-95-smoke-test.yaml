@@ -57,8 +57,8 @@ stages:
     displayName: SettingUp level 5
     timeoutInMinutes: 180
     variables:
-      identityArtifactName: aziot-identity-ubuntu20.04-amd64
-      artifactName: iotedged-ubuntu20.04-amd64
+      identityArtifactName: aziot-identity-ubuntu24.04-amd64
+      artifactName: iotedged-ubuntu24.04-amd64
       level: '5'
       upstreamProtocol: 'amqp'
       deploymentFile: 'nestededge_topLayerBaseDeployment_amqp.json'
@@ -93,8 +93,8 @@ stages:
     condition: succeeded()
     timeoutInMinutes: 180
     variables:
-      identityArtifactName: aziot-identity-ubuntu20.04-amd64
-      artifactName: iotedged-ubuntu20.04-amd64
+      identityArtifactName: aziot-identity-ubuntu24.04-amd64
+      artifactName: iotedged-ubuntu24.04-amd64
       parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
       deploymentFile: 'nestededge_middleLayerBaseDeployment_amqp.json'
@@ -128,8 +128,8 @@ stages:
     condition: succeeded()
     timeoutInMinutes: 180
     variables:
-      identityArtifactName: aziot-identity-ubuntu20.04-amd64
-      artifactName: iotedged-ubuntu20.04-amd64
+      identityArtifactName: aziot-identity-ubuntu24.04-amd64
+      artifactName: iotedged-ubuntu24.04-amd64
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
       deploymentFile: 'nestededge_isa95_smoke_test_BaseDeployment.json'
@@ -175,8 +175,8 @@ stages:
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
       os: linux
       arch: amd64
-      identityArtifactName: aziot-identity-ubuntu20.04-amd64
-      artifactName: iotedged-ubuntu20.04-amd64
+      identityArtifactName: aziot-identity-ubuntu24.04-amd64
+      artifactName: iotedged-ubuntu24.04-amd64
       nestededge: true
       proxyAddress: $(otProxy)
       test_type: nestededge_isa95
