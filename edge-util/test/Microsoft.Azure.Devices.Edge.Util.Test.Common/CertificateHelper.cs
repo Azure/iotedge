@@ -230,7 +230,7 @@ aARcDu+dkQV2/Mq+s16Bz4dBE9PLdD2WrE+I4lnIuT3OhfrtxnW+uT2A
 
             using (RSA rsa = RSA.Create(2048))
             {
-                var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
 
                 var keyUsageExtensions = X509KeyUsageFlags.DigitalSignature
                                        | X509KeyUsageFlags.KeyEncipherment

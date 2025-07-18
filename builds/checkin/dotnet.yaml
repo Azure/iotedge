@@ -13,7 +13,7 @@ jobs:
   pool:
     name: $(pool.linux.name)
     demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+    - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
   steps:
   - bash: |
       git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(edgelet|doc|mqtt)'
@@ -33,7 +33,7 @@ jobs:
   pool:
     name: $(pool.linux.name)
     demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+    - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
   steps:
   - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites
@@ -61,7 +61,7 @@ jobs:
   pool:
     name: $(pool.linux.name)
     demands:
-    - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+    - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
   steps:
   - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites

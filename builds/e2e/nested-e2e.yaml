@@ -21,13 +21,6 @@ schedules:
 variables:
   Codeql.Enabled: false
   DisableDockerDetector: true
-  # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
-  # environments that are very similar to other platforms/environments in our matrix, e.g., Ubuntu
-  # 20.04 with the 'docker-ce' package vs. Ubuntu 20.04 with the 'iotedge-moby' package vs. the same
-  # variations in Ubuntu 22.04. In these instances the platforms/environments are so similar that we
-  # don't reasonably expect to encounter differences--if we do, it would likely manifest during
-  # installation, or in running a very basic test. We don't need to repeat the entire test suite.
-  # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
   minimal: false
   verbose: false
 
@@ -69,9 +62,8 @@ stages:
       iotHubName: $[ dependencies.SetupVM_level5_mqtt.outputs['createIdentity.iotHubName'] ]
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu20.04-amd64
-      identityServiceArtifactName: packages_ubuntu-20.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      identityArtifactName: aziot-identity-ubuntu24.04-amd64
+      artifactName: iotedged-ubuntu24.04-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       nestededge: true
     pool:
@@ -121,8 +113,30 @@ stages:
     - LockAgents
     - RunNestedTests
   jobs:
+  - job: Clean_images
+    displayName: Clean up Docker images
+    strategy:
+      matrix:
+        L3:
+          level: 3
+        L4:
+          level: 4
+        L5:
+          level: 5
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - status -equals unlocked_$(Build.BuildId)_L$(level)_mqtt
+    steps:
+      - template: templates/e2e-clean-all-images.yaml
+
   - job:  Unlock_agents
     displayName: Unlock agents
+    dependsOn: Clean_images
+    condition: always()
     timeoutInMinutes: 2
     pool:
       name: $(pool.name)
@@ -136,7 +150,9 @@ stages:
 
   - job:  Clean_up_identities
     displayName: Clean up identities
-    timeoutInMinutes: 2    
+    dependsOn: Clean_images
+    condition: always()
+    timeoutInMinutes: 2
     variables:    
       deviceLvl5DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level5_mqtt.outputs['createIdentity.parentDeviceId'] ] 
       deviceLvl4DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
