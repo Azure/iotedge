@@ -209,8 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     }
                 }
 
-                // if (await this.IsServiceAvailableViaTcpAsync())
-                if (true)
+                if (await this.IsServiceAvailableViaTcpAsync())
                 {
                     await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
                 }
@@ -227,14 +226,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     try
                     {
                         using var tcpClient = new TcpClient();
-                        await tcpClient.ConnectAsync("offlinetest.azure-devices.net", 5671);
-                        Console.WriteLine("IOTHUB Connection is alive");
-                        return true; // Connection succeeded
+                        await tcpClient.ConnectAsync(info.Address, info.Port);
+                        return true;
                     }
                     catch (Exception)
                     {
-                        Console.WriteLine("IOTHUB Connection is not alive");
-                        return false; // Connection failed
+                        return false;
                     }
                 },
                 () => Task.FromResult(true));
