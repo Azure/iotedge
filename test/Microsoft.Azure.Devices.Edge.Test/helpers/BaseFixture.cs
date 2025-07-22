@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 async () =>
                 {
                     this.cts.Dispose();
-                    if ((!Context.Current.ISA95Tag) && (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored))
+                    if (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored)
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                         await NUnitLogs.CollectAsync(this.testStartTime, this.cli, cts.Token);
