@@ -247,18 +247,22 @@ stages:
       matrix:
         L3:
           level: 3
+          arch: ARM64
         L4:
           level: 4
+          arch: ARM64
         L5:
           level: 5
+          arch: ARM64
         Jumpbox:
           level: jumpbox
+          arch: X64
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM64
+        - Agent.OSArchitecture -equals $(arch)
         - level -equals $(level)
     steps:
       - template: templates/e2e-clean-all-images.yaml
