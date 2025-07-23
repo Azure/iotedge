@@ -87,10 +87,6 @@ fi
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
     alpine.amd64)
-        TOOLCHAIN_VERSION=$(
-            sed -n '/^channel *=* */{s///;s/^"//;s/"$//;p;}' \
-                $BUILD_REPOSITORY_LOCALPATH/rust-toolchain.toml
-        )
         SETUP_COMMAND=$'
             apk update &&
             apk add --no-cache make musl-dev pkgconfig openssl-dev &&
