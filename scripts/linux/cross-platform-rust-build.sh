@@ -72,8 +72,11 @@ case "$PACKAGE_OS" in
         ;;
 
     'alpine')
-        CHANNEL=$(sed -n '/^channel *=* */{s///;s/^"//;s/"$//;p;}' $BUILD_REPOSITORY_LOCALPATH/rust-toolchain.toml)
-        DOCKER_IMAGE="rust:$CHANNEL-alpine"
+        ALPINE_VERSION=$(
+            sed -n '0,/^FROM/{s/^FROM [^:]*:\([^ ]*\).*/\1/p;}' \
+                $BUILD_REPOSITORY_LOCALPATH/edge-modules/api-proxy-module/docker/linux/amd64/Dockerfile
+        )
+        DOCKER_IMAGE="rust:alpine$ALPINE_VERSION"
         ;;       
 esac
 
@@ -84,9 +87,16 @@ fi
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
     alpine.amd64)
+        TOOLCHAIN_VERSION=$(
+            sed -n '/^channel *=* */{s///;s/^"//;s/"$//;p;}' \
+                $BUILD_REPOSITORY_LOCALPATH/rust-toolchain.toml
+        )
         SETUP_COMMAND=$'
             apk update &&
             apk add --no-cache musl-dev openssl-dev make pkgconfig &&
+            curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+                --default-host x86_64-unknown-linux-musl --default-toolchain '"$TOOLCHAIN_VERSION"' &&
+            . ~/.cargo/env &&
         '
         MAKE_FLAGS="'CARGOFLAGS=$CARGOFLAGS --target x86_64-unknown-linux-musl'"
         MAKE_FLAGS="$MAKE_FLAGS 'RUSTFLAGS=-C target-feature=-crt-static'"
