@@ -97,6 +97,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
                 -y --no-modify-path --profile minimal --default-host x86_64-unknown-linux-musl \
                 --default-toolchain '"$TOOLCHAIN_VERSION"' &&
+            cat /usr/local/cargo/env &&
             . /usr/local/cargo/env &&
         '
         MAKE_FLAGS="'CARGOFLAGS=$CARGOFLAGS --target x86_64-unknown-linux-musl'"
