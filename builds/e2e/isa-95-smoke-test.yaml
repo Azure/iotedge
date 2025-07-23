@@ -57,8 +57,8 @@ stages:
     displayName: SettingUp level 5
     timeoutInMinutes: 180
     variables:
-      identityArtifactName: aziot-identity-ubuntu24.04-amd64
-      artifactName: iotedged-ubuntu24.04-amd64
+      identityArtifactName: aziot-identity-ubuntu22.04-aarch64
+      artifactName: iotedged-ubuntu22.04-aarch64
       level: '5'
       upstreamProtocol: 'amqp'
       deploymentFile: 'nestededge_topLayerBaseDeployment_amqp.json'
@@ -70,7 +70,7 @@ stages:
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
+        - Agent.OSArchitecture -equals ARM64
         - level -equals 5
     steps:
       - template: templates/clean-drive-and-images.yaml
@@ -93,8 +93,8 @@ stages:
     condition: succeeded()
     timeoutInMinutes: 180
     variables:
-      identityArtifactName: aziot-identity-ubuntu24.04-amd64
-      artifactName: iotedged-ubuntu24.04-amd64
+      identityArtifactName: aziot-identity-ubuntu22.04-aarch64
+      artifactName: iotedged-ubuntu22.04-aarch64
       parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
       deploymentFile: 'nestededge_middleLayerBaseDeployment_amqp.json'
@@ -105,7 +105,7 @@ stages:
      demands:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
+       - Agent.OSArchitecture -equals ARM64
        - level -equals 4
     steps:
       - template: templates/clean-drive-and-images.yaml
@@ -128,8 +128,8 @@ stages:
     condition: succeeded()
     timeoutInMinutes: 180
     variables:
-      identityArtifactName: aziot-identity-ubuntu24.04-amd64
-      artifactName: iotedged-ubuntu24.04-amd64
+      identityArtifactName: aziot-identity-ubuntu22.04-aarch64
+      artifactName: iotedged-ubuntu22.04-aarch64
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
       deploymentFile: 'nestededge_isa95_smoke_test_BaseDeployment.json'
@@ -141,7 +141,7 @@ stages:
      demands:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
+       - Agent.OSArchitecture -equals ARM64
        - level -equals 3
     steps:
       - template: templates/clean-drive-and-images.yaml
@@ -258,7 +258,7 @@ stages:
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
+        - Agent.OSArchitecture -equals ARM64
         - level -equals $(level)
     steps:
       - template: templates/e2e-clean-all-images.yaml

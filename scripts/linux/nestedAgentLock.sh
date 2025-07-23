@@ -19,7 +19,7 @@
 # next booking attempt.
 ###############################################################################
 
-set -e
+set -euo pipefail
 
 ###############################################################################
 # Define Environment Variables
@@ -30,10 +30,11 @@ SCRIPT_NAME=$(basename $0)
 POOL_ID=123 # Devops agent pool id corresponding to "Azure-IoT-Edge-Core"
 API_VER=6.0
 TIMEOUT_SECONDS=$((60*60*3)) # 3 hours
+RUNNER_AGENTS_NEEDED=3 # Number of agents we want to book
 
+ARCH=
 AGENT_GROUP=
 BUILD_ID=
-RUNNER_AGENTS_NEEDED=
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -45,10 +46,10 @@ usage()
     echo "This 'PAT' is a DevOps API PAT for booking the agents. This PAT must have permissions to read builds in devops."
     echo ""
     echo "options"
-    echo " -a                 Agent Group from which we want to book agents. This agent group is a capability named 'agent-group'."
-    echo " -b                 Devops build id used to tag locked agents."
-    echo " -n                 Number of test runner agents to book."
-    echo " -u                 Upstream protocol to tag agent capabilities."
+    echo " --arch          Architecture of the agents to book. Valid values are x64, arm64. This is used to filter the agents in the pool."
+    echo " --build-id      Devops build ID used to tag locked agents."
+    echo " --group         Agent Group from which we want to book agents. This agent group is a capability named 'agent-group'."
+    echo " --help          Print this help message and exit."
     exit 1;
 }
 
@@ -67,51 +68,42 @@ process_args()
     for arg in $@
     do
         if [ $save_next_arg -eq 1 ]; then
-            AGENT_GROUP="$arg"
+            ARCH="${arg^^}"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
             BUILD_ID="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 3 ]; then
-            RUNNER_AGENTS_NEEDED="$arg"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 4 ]; then
-            UPSTREAM_PROTOCOL="$arg"
+            AGENT_GROUP="$arg"
             save_next_arg=0
         else
             case "$arg" in
-                "-h" ) usage;;
-                "-a" ) save_next_arg=1;;
-                "-b" ) save_next_arg=2;;
-                "-n" ) save_next_arg=3;;
-                "-u" ) save_next_arg=4;;
+                "--help" ) usage;;
+                "--arch" ) save_next_arg=1;;
+                "--build-id" ) save_next_arg=2;;
+                "--group" ) save_next_arg=3;;
                 * ) usage;;
             esac
         fi
     done
 
-    if [[ -z ${PAT} ]]; then
+    if [[ -z "$PAT" ]]; then
         echo "Personal Access Token must be set in the environment"
         print_help_and_exit
     fi
 
-    if [[ -z ${AGENT_GROUP} ]]; then
+    if [[ "$ARCH" != "X64" && "$ARCH" != "ARM64" ]]; then
+        echo "Invalid architecture specified: $ARCH"
+        print_help_and_exit
+    fi
+
+    if [[ -z "$AGENT_GROUP" ]]; then
         echo "Agent Group is a required parameter."
         print_help_and_exit
     fi
 
-    if [[ -z ${BUILD_ID} ]]; then
+    if [[ -z "$BUILD_ID" ]]; then
         echo "Build id is a required parameter."
-        print_help_and_exit
-    fi
-
-    if [[ -z ${RUNNER_AGENTS_NEEDED} ]]; then
-        echo "Number of runner agents is a required parameter."
-        print_help_and_exit
-    fi
-
-    if [[ -z ${UPSTREAM_PROTOCOL} ]]; then
-        echo "Upstream protocol is a required parameter."
         print_help_and_exit
     fi
 
@@ -125,15 +117,15 @@ process_args()
 
 function print_agent_names() {
     agents=("$@")
-    outputAgentNames=(l5AgentName l4AgentName l3AgentName)
 
     for i in "${!agents[@]}"; do
         agentId="${agents[$i]}"
 
-        agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-        agentName=$(echo $agentCapabilities | jq '.systemCapabilities."Agent.Name"' | tr -d '[], "')
+        agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        agentName=$(echo $agentCapabilities | jq -r '.systemCapabilities."Agent.Name"')
+        lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities.status')
 
-        echo "Locked agent: $agentName"
+        echo "Locked agent: $agentName [id=$agentName, status=$lockStatus]"
     done
 }
 
@@ -142,7 +134,7 @@ function update_capabilities() {
     newAgentUserCapabilities=$2
 
     # Update the user capability on the agent pool for this agent
-    responseCapabilities=$(curl -s -u :$PAT \
+    responseCapabilities=$(curl -s -f -u :$PAT \
 --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
 -H "Content-Type:application/json" \
 -H "Accept: application/json;api-version=5.0;" \
@@ -170,19 +162,10 @@ function attempt_agent_lock() {
     agents=("$@")
 
     # Lock the agents by appending to the capability 'status'.
-    for i in "${!agents[@]}"; do
-        agentCapabilityTag=
-        if [ "$i" -eq 0 ]; then
-            agentCapabilityTag="_${BUILD_ID}_L5_$UPSTREAM_PROTOCOL"
-        elif [ "$i" -eq 1 ]; then
-            agentCapabilityTag="_${BUILD_ID}_L4_$UPSTREAM_PROTOCOL"
-        else
-            agentCapabilityTag="_${BUILD_ID}_L3_$UPSTREAM_PROTOCOL"
-        fi
-
-        agentId="${agents[$i]}"
-        agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-        newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= sub("$"; '\"$agentCapabilityTag\"')')
+    for agentId in "${agents[@]}"; do
+        agentCapabilityTag="locked_${BUILD_ID}"
+        agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        newAgentUserCapabilities=$(echo $agentCapabilities | jq --arg tag "$agentCapabilityTag" '.userCapabilities | .status |= $tag')
 
         update_capabilities "$agentId" "$newAgentUserCapabilities"
     done
@@ -191,12 +174,10 @@ function attempt_agent_lock() {
     sleep 10
     agentsAllLockedCorrectly=true
     for agentId in "${filteredAgents[@]}"; do
-        agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-        lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status' | tr -d '[], "')
+        agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities | .status')
 
-        if [ $lockStatus != "unlocked_${BUILD_ID}_L5_$UPSTREAM_PROTOCOL" ] &&
-           [ $lockStatus != "unlocked_${BUILD_ID}_L4_$UPSTREAM_PROTOCOL" ] &&
-           [ $lockStatus != "unlocked_${BUILD_ID}_L3_$UPSTREAM_PROTOCOL" ]; then
+        if [ "$lockStatus" != "locked_${BUILD_ID}" ]; then
             agentsAllLockedCorrectly=false
             break
         fi
@@ -209,15 +190,13 @@ function unlock_agents() {
     agents=("$@")
 
     for agentId in "${agents[@]}"; do
-        agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status')
 
-        if [ $lockStatus != "unlocked_${BUILD_ID}_L5_$UPSTREAM_PROTOCOL" ] &&
-           [ $lockStatus != "unlocked_${BUILD_ID}_L4_$UPSTREAM_PROTOCOL" ] &&
-           [ $lockStatus != "unlocked_${BUILD_ID}_L3_$UPSTREAM_PROTOCOL" ]; then
+        if [ "$lockStatus" == "locked_${BUILD_ID}" ]; then
             echo "Unlocking agent $agentId"
 
-            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= "unlocked"')
+            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | .status |= "unlocked"')
             update_capabilities "$agentId" "$newAgentUserCapabilities"
         fi
     done
@@ -239,8 +218,8 @@ echo
 
 echo "Validating devops API interface"
 echo "Checking for agents from the agent group $AGENT_GROUP..."
-agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
-agents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities."agent-group"=='\"$AGENT_GROUP\"') | .id' | tr -d '[], "'))
+agentsInfo=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
+agents=($(echo $agentsInfo | jq -r --arg group "$AGENT_GROUP" '.value[] | select(.userCapabilities."agent-group"==$group) | .id'))
 echo ${#agents[@]}
 if [ ${#agents[@]} -eq 0 ]; then
     echo "Problem interfacing with Devops API to retrieve agent data. Recommend checking PAT expiry."
@@ -253,23 +232,33 @@ echo
 
 startSeconds=$((SECONDS))
 endSeconds=$((SECONDS + $TIMEOUT_SECONDS))
-agentsNeeded=$(($RUNNER_AGENTS_NEEDED + 2))
 while true && [ $((SECONDS)) -lt $endSeconds ]; do
     # Wait to retry locking agents.
     # Random delay to avoid multiple instances of the script thrashing.
     sleep $[ ( $RANDOM % 10 ) + 60 ]s
 
-    echo "Attempting to lock $agentsNeeded agents from the agent group $AGENT_GROUP..."
-    agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
-    unlockedAgents=($(echo $agentsInfo | jq -r '.value[] | select(.enabled==true and .status=="online" and .userCapabilities.status=="unlocked" and .userCapabilities."agent-group"=='\"$AGENT_GROUP\"').id'))
+    echo "Attempting to lock $RUNNER_AGENTS_NEEDED agents from the agent group $AGENT_GROUP..."
+    agentsInfo=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
+    unlockedAgents=($(
+        echo $agentsInfo |
+        jq -r --arg arch "$ARCH" --arg group "$AGENT_GROUP" '
+            .value[] | select(
+                .enabled==true and
+                .status=="online" and
+                .userCapabilities.status=="unlocked" and
+                .systemCapabilities."Agent.OSArchitecture"==$arch and
+                .userCapabilities."agent-group" == $group
+            ).id
+        '
+    ))
 
     echo "Found these unlocked agents:"
     echo ${unlockedAgents[@]}
 
-    if [ ${#unlockedAgents[*]} -ge $agentsNeeded ]; then
+    if [ ${#unlockedAgents[*]} -ge $RUNNER_AGENTS_NEEDED ]; then
         # If we have enough agents, get random agents and book them all.
         shuffledUnlockedAgents=($(shuf -e "${unlockedAgents[@]}"))
-        filteredAgents=(${shuffledUnlockedAgents[@]:0:$agentsNeeded})
+        filteredAgents=(${shuffledUnlockedAgents[@]:0:$RUNNER_AGENTS_NEEDED})
 
         echo "Locking these agents:"
         echo ${filteredAgents[@]}
@@ -288,7 +277,7 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
         fi
     fi
 
-    echo "Failed to acquire $agentsNeeded agents from pool. Will retry soon."
+    echo "Failed to acquire $RUNNER_AGENTS_NEEDED agents from pool. Will retry soon."
 done
 
 exit 1
