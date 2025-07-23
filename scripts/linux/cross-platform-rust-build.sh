@@ -94,8 +94,9 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         SETUP_COMMAND=$'
             apk update &&
             apk add --no-cache musl-dev openssl-dev make pkgconfig &&
-            curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-                --default-host x86_64-unknown-linux-musl --default-toolchain '"$TOOLCHAIN_VERSION"' &&
+            curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
+                -y --no-modify-path --profile minimal --default-host x86_64-unknown-linux-musl \
+                --default-toolchain '"$TOOLCHAIN_VERSION"' &&
             . ~/.cargo/env &&
         '
         MAKE_FLAGS="'CARGOFLAGS=$CARGOFLAGS --target x86_64-unknown-linux-musl'"
