@@ -116,6 +116,8 @@ stages:
       level: 4
       upstreamProtocol: amqp
       deploymentFile: nestededge_middleLayerBaseDeployment_amqp.json
+      x64parentDeviceId: $[ dependencies.SetupVM_level5.outputs['x64.createIdentity.parentDeviceId'] ]
+      arm64parentDeviceId: $[ dependencies.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
     pool:
      name: $(pool.name)
      demands:
@@ -124,6 +126,11 @@ stages:
        - Agent.OSArchitecture -equals $(arch)
        - level -equals $(level)
     steps:
+      - bash: |
+          echo 'matrix var: parentDeviceId: $(parentDeviceId)'
+          echo 'x64 var: x64parentDeviceId: $(x64parentDeviceId)'
+          echo 'arm64 var: arm64parentDeviceId: $(arm64parentDeviceId)'
+        displayName: Dump parent device Ids
       - template: templates/clean-drive-and-images.yaml
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml
