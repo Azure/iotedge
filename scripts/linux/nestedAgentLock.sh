@@ -115,25 +115,25 @@ process_args()
 ###############################################################################
 
 function print_agent_names() {
-    agents=("$@")
+    local agents=("$@")
 
     for i in "${!agents[@]}"; do
-        agentId="${agents[$i]}"
+        local agentId="${agents[$i]}"
 
-        agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-        agentName=$(echo $agentCapabilities | jq -r '.systemCapabilities."Agent.Name"')
-        lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities.status')
+        local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        local agentName=$(echo $agentCapabilities | jq -r '.systemCapabilities."Agent.Name"')
+        local lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities.status')
 
         echo "Locked agent: $agentName [id=$agentName, status=$lockStatus]"
     done
 }
 
 function update_user_capabilities() {
-    agentId=$1
-    newAgentUserCapabilities=$2
+    local agentId=$1
+    local newAgentUserCapabilities=$2
 
     # Update the user capability on the agent pool for this agent
-    responseCapabilities=$(curl -s -f -u :$PAT \
+    local responseCapabilities=$(curl -s -f -u :$PAT \
 --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
 -H "Content-Type:application/json" \
 -H "Accept: application/json;api-version=5.0;" \
@@ -148,7 +148,7 @@ EOF
 ))
 
     # Validate the capability update was successful
-    responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
+    local responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
 
     if [ "$responseUserCapabilities" != "$newAgentUserCapabilities" ]
     then
@@ -158,23 +158,23 @@ EOF
 }
 
 function attempt_agent_lock() {
-    agents=("$@")
+    local agents=("$@")
 
     # Lock the agents by updating the user capability 'status'.
     for agentId in "${agents[@]}"; do
-        agentCapabilityTag="locked_${BUILD_ID}"
-        agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-        newAgentUserCapabilities=$(echo $agentCapabilities | jq --arg tag "$agentCapabilityTag" '.userCapabilities | .status |= $tag')
+        local agentCapabilityTag="locked_${BUILD_ID}"
+        local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        local newAgentUserCapabilities=$(echo $agentCapabilities | jq --arg tag "$agentCapabilityTag" '.userCapabilities | .status |= $tag')
 
         update_user_capabilities "$agentId" "$newAgentUserCapabilities"
     done
 
     # Wait a while then check to make sure there were no overlapping bookings.
     sleep 10
-    agentsAllLockedCorrectly=true
+    local agentsAllLockedCorrectly=true
     for agentId in "${agents[@]}"; do
-        agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-        lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities | .status')
+        local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        local lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities | .status')
 
         if [ "$lockStatus" != "locked_${BUILD_ID}" ]; then
             agentsAllLockedCorrectly=false
@@ -186,16 +186,16 @@ function attempt_agent_lock() {
 }
 
 function unlock_agents() {
-    agents=("$@")
+    local agents=("$@")
 
     for agentId in "${agents[@]}"; do
-        agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-        lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status')
+        local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        local lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status')
 
         if [ "$lockStatus" == "locked_${BUILD_ID}" ]; then
             echo "Unlocking agent $agentId"
 
-            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | .status |= "unlocked"')
+            local newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | .status |= "unlocked"')
             update_user_capabilities "$agentId" "$newAgentUserCapabilities"
         fi
     done
