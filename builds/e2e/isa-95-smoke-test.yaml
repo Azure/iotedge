@@ -55,7 +55,6 @@ stages:
   jobs:
   - job: SetupVM_level5
     displayName: SettingUp level 5
-    timeoutInMinutes: 180
     strategy:
       matrix:
         x64:
@@ -99,7 +98,6 @@ stages:
     dependsOn: SetupVM_level5
     displayName: SettingUp level 4
     condition: succeeded()
-    timeoutInMinutes: 180
     strategy:
       matrix:
         x64:
@@ -144,7 +142,6 @@ stages:
     dependsOn: SetupVM_level4
     displayName: SettingUp level 3
     condition: succeeded()
-    timeoutInMinutes: 180
     strategy:
       matrix:
         x64:
@@ -193,7 +190,6 @@ stages:
       - SetupVM_level3
     displayName: Run ISA-95 test
     condition: succeeded()
-    timeoutInMinutes: 180
     variables:
       Lvl3DeviceId: $[ dependencies.SetupVM_level3.outputs['createIdentity.parentDeviceId'] ]
       deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['exportAgentName.agentName'] ]
