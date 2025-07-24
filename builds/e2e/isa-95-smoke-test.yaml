@@ -56,12 +56,20 @@ stages:
   - job: SetupVM_level5
     displayName: SettingUp level 5
     timeoutInMinutes: 180
+    strategy:
+      matrix:
+        x64:
+          arch: X64
+          identityArtifactName: aziot-identity-ubuntu24.04-amd64
+          artifactName: iotedged-ubuntu24.04-amd64
+        arm64:
+          arch: ARM64
+          identityArtifactName: aziot-identity-ubuntu22.04-aarch64
+          artifactName: iotedged-ubuntu22.04-aarch64
     variables:
-      identityArtifactName: aziot-identity-ubuntu22.04-aarch64
-      artifactName: iotedged-ubuntu22.04-aarch64
-      level: '5'
-      upstreamProtocol: 'amqp'
-      deploymentFile: 'nestededge_topLayerBaseDeployment_amqp.json'
+      level: 5
+      upstreamProtocol: amqp
+      deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
       parentName: ''
       parentDeviceId: ''
       proxyAddress: $(itProxy)
@@ -70,8 +78,8 @@ stages:
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM64
-        - level -equals 5
+        - Agent.OSArchitecture -equals $(arch)
+        - level -equals $(level)
     steps:
       - template: templates/clean-drive-and-images.yaml
       - template: templates/nested-get-secrets.yaml
@@ -92,21 +100,29 @@ stages:
     displayName: SettingUp level 4
     condition: succeeded()
     timeoutInMinutes: 180
+    strategy:
+      matrix:
+        x64:
+          arch: X64
+          identityArtifactName: aziot-identity-ubuntu24.04-amd64
+          artifactName: iotedged-ubuntu24.04-amd64
+        arm64:
+          arch: ARM64
+          identityArtifactName: aziot-identity-ubuntu22.04-aarch64
+          artifactName: iotedged-ubuntu22.04-aarch64
     variables:
-      identityArtifactName: aziot-identity-ubuntu22.04-aarch64
-      artifactName: iotedged-ubuntu22.04-aarch64
+      level: 4
+      upstreamProtocol: amqp
+      deploymentFile: nestededge_middleLayerBaseDeployment_amqp.json
       parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
-      deploymentFile: 'nestededge_middleLayerBaseDeployment_amqp.json'
-      level: '4'
-      upstreamProtocol: 'amqp'
     pool:
      name: $(pool.name)
      demands:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals ARM64
-       - level -equals 4
+       - Agent.OSArchitecture -equals $(arch)
+       - level -equals $(level)
     steps:
       - template: templates/clean-drive-and-images.yaml
       - template: templates/nested-get-secrets.yaml
@@ -127,22 +143,30 @@ stages:
     displayName: SettingUp level 3
     condition: succeeded()
     timeoutInMinutes: 180
+    strategy:
+      matrix:
+        x64:
+          arch: X64
+          identityArtifactName: aziot-identity-ubuntu24.04-amd64
+          artifactName: iotedged-ubuntu24.04-amd64
+        arm64:
+          arch: ARM64
+          identityArtifactName: aziot-identity-ubuntu22.04-aarch64
+          artifactName: iotedged-ubuntu22.04-aarch64
     variables:
-      identityArtifactName: aziot-identity-ubuntu22.04-aarch64
-      artifactName: iotedged-ubuntu22.04-aarch64
+      level: 3
+      upstreamProtocol: amqp
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
-      deploymentFile: 'nestededge_isa95_smoke_test_BaseDeployment.json'
-      level: '3'
-      upstreamProtocol: 'amqp'
+      deploymentFile: nestededge_isa95_smoke_test_BaseDeployment.json
       proxyAddress: $(otProxy)
     pool:
      name: $(pool.name)
      demands:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals ARM64
-       - level -equals 3
+       - Agent.OSArchitecture -equals $(arch)
+       - level -equals $(level)
     steps:
       - template: templates/clean-drive-and-images.yaml
       - template: templates/nested-get-secrets.yaml
@@ -245,13 +269,22 @@ stages:
     displayName: Clean up Docker images
     strategy:
       matrix:
-        L3:
+        L3-x64:
+          level: 3
+          arch: X64
+        L3-arm64:
           level: 3
           arch: ARM64
-        L4:
+        L4-x64:
+          level: 4
+          arch: X64
+        L4-arm64:
           level: 4
           arch: ARM64
-        L5:
+        L5-x64:
+          level: 5
+          arch: X64
+        L5-arm64:
           level: 5
           arch: ARM64
         Jumpbox:
