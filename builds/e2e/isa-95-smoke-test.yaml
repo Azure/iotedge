@@ -44,7 +44,7 @@ stages:
         - Agent.OSArchitecture -equals X64
     steps:
       - template: templates/nested-get-secrets.yaml
-      - script: scripts/linux/nestedAgentLock.sh --arch arm64 --group '$(agent.group)' --build-id '$(Build.BuildId)'
+      - script: scripts/linux/nestedAgentLock.sh --group '$(agent.group)' --build-id '$(Build.BuildId)'
         env:
           PAT: "$(IotEdgePAT)"
         displayName: Lock agents for nested topology

@@ -2,16 +2,15 @@
 
 ###############################################################################
 # This script is used to "lock" agents for nested tests. When we lock an agent,
-# we alter the agent capability named "status" by appending the build id of
-# the current run. We also add contextual information about the topology level
-# (i.e. L5, L4, L3) so that the test framework can book the agents.
-
+# we alter the "status" user capability on the agent by appending the build ID
+# of the current run.
+#
 # Locking agents is not an atomic operation so this script has to account for
 # race conditions.
 #
-# We will attempt to lock 3 agents, then wait a bit for the booked agents
-# lock-state to become non-volatile. If all agents are still locked with the 
-# build id this script is using, then we know we can proceed safely. 
+# This script lock 3 x64 agents and 3 arm64 agents, then waits a bit for the
+# booked agents' lock-state to become non-volatile. If all agents are still
+# locked with the given build ID, then we know we can proceed safely.
 #
 # If instead, another build somehow booked some of our previously-booked agents
 # after we did, we can unlock all the agents we still have booked. Then wait a
@@ -30,9 +29,8 @@ SCRIPT_NAME=$(basename $0)
 POOL_ID=123 # Devops agent pool id corresponding to "Azure-IoT-Edge-Core"
 API_VER=6.0
 TIMEOUT_SECONDS=$((60*60*3)) # 3 hours
-RUNNER_AGENTS_NEEDED=3 # Number of agents we want to book
+AGENTS_PER_ARCH=3 # Number of agents we want to book per architecture
 
-ARCH=
 AGENT_GROUP=
 BUILD_ID=
 
@@ -46,7 +44,6 @@ usage()
     echo "This 'PAT' is a DevOps API PAT for booking the agents. This PAT must have permissions to read builds in devops."
     echo ""
     echo "options"
-    echo " --arch          Architecture of the agents to book. Valid values are x64, arm64. This is used to filter the agents in the pool."
     echo " --build-id      Devops build ID used to tag locked agents."
     echo " --group         Agent Group from which we want to book agents. This agent group is a capability named 'agent-group'."
     echo " --help          Print this help message and exit."
@@ -68,20 +65,16 @@ process_args()
     for arg in $@
     do
         if [ $save_next_arg -eq 1 ]; then
-            ARCH="${arg^^}"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 2 ]; then
             BUILD_ID="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
+        elif [ $save_next_arg -eq 2 ]; then
             AGENT_GROUP="$arg"
             save_next_arg=0
         else
             case "$arg" in
                 "--help" ) usage;;
-                "--arch" ) save_next_arg=1;;
-                "--build-id" ) save_next_arg=2;;
-                "--group" ) save_next_arg=3;;
+                "--build-id" ) save_next_arg=1;;
+                "--group" ) save_next_arg=2;;
                 * ) usage;;
             esac
         fi
@@ -89,11 +82,6 @@ process_args()
 
     if [[ -z "$PAT" ]]; then
         echo "Personal Access Token must be set in the environment"
-        print_help_and_exit
-    fi
-
-    if [[ "$ARCH" != "X64" && "$ARCH" != "ARM64" ]]; then
-        echo "Invalid architecture specified: $ARCH"
         print_help_and_exit
     fi
 
@@ -129,7 +117,7 @@ function print_agent_names() {
     done
 }
 
-function update_capabilities() {
+function update_user_capabilities() {
     agentId=$1
     newAgentUserCapabilities=$2
 
@@ -161,19 +149,19 @@ EOF
 function attempt_agent_lock() {
     agents=("$@")
 
-    # Lock the agents by appending to the capability 'status'.
+    # Lock the agents by updating the user capability 'status'.
     for agentId in "${agents[@]}"; do
         agentCapabilityTag="locked_${BUILD_ID}"
         agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         newAgentUserCapabilities=$(echo $agentCapabilities | jq --arg tag "$agentCapabilityTag" '.userCapabilities | .status |= $tag')
 
-        update_capabilities "$agentId" "$newAgentUserCapabilities"
+        update_user_capabilities "$agentId" "$newAgentUserCapabilities"
     done
 
     # Wait a while then check to make sure there were no overlapping bookings.
     sleep 10
     agentsAllLockedCorrectly=true
-    for agentId in "${filteredAgents[@]}"; do
+    for agentId in "${agents[@]}"; do
         agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities | .status')
 
@@ -197,7 +185,7 @@ function unlock_agents() {
             echo "Unlocking agent $agentId"
 
             newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | .status |= "unlocked"')
-            update_capabilities "$agentId" "$newAgentUserCapabilities"
+            update_user_capabilities "$agentId" "$newAgentUserCapabilities"
         fi
     done
 }
@@ -237,47 +225,75 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
     # Random delay to avoid multiple instances of the script thrashing.
     sleep $[ ( $RANDOM % 10 ) + 60 ]s
 
-    echo "Attempting to lock $RUNNER_AGENTS_NEEDED agents from the agent group $AGENT_GROUP..."
+    echo "Attempting to lock $AGENTS_PER_ARCH x64 agents and $AGENTS_PER_ARCH arm64 agents from the agent group $AGENT_GROUP..."
     agentsInfo=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
-    unlockedAgents=($(
+    
+    # Get unlocked x64 agents
+    unlockedX64Agents=($(
         echo $agentsInfo |
-        jq -r --arg arch "$ARCH" --arg group "$AGENT_GROUP" '
+        jq -r --arg group "$AGENT_GROUP" '
             .value[] | select(
                 .enabled==true and
                 .status=="online" and
                 .userCapabilities.status=="unlocked" and
-                .systemCapabilities."Agent.OSArchitecture"==$arch and
+                .systemCapabilities."Agent.OSArchitecture"=="X64" and
                 .userCapabilities."agent-group" == $group
             ).id
         '
     ))
 
-    echo "Found these unlocked agents:"
-    echo ${unlockedAgents[@]}
+    # Get unlocked arm64 agents
+    unlockedArm64Agents=($(
+        echo $agentsInfo |
+        jq -r --arg group "$AGENT_GROUP" '
+            .value[] | select(
+                .enabled==true and
+                .status=="online" and
+                .userCapabilities.status=="unlocked" and
+                .systemCapabilities."Agent.OSArchitecture"=="ARM64" and
+                .userCapabilities."agent-group" == $group
+            ).id
+        '
+    ))
 
-    if [ ${#unlockedAgents[*]} -ge $RUNNER_AGENTS_NEEDED ]; then
-        # If we have enough agents, get random agents and book them all.
-        shuffledUnlockedAgents=($(shuf -e "${unlockedAgents[@]}"))
-        filteredAgents=(${shuffledUnlockedAgents[@]:0:$RUNNER_AGENTS_NEEDED})
+    echo "Found these unlocked x64 agents:"
+    echo ${unlockedX64Agents[@]}
+    echo "Found these unlocked arm64 agents:"
+    echo ${unlockedArm64Agents[@]}
 
-        echo "Locking these agents:"
-        echo ${filteredAgents[@]}
+    if [ ${#unlockedX64Agents[*]} -ge $AGENTS_PER_ARCH ] && [ ${#unlockedArm64Agents[*]} -ge $AGENTS_PER_ARCH ]; then
+        # If we have enough agents of both architectures, get random agents and book them all.
+        shuffledUnlockedX64Agents=($(shuf -e "${unlockedX64Agents[@]}"))
+        filteredX64Agents=(${shuffledUnlockedX64Agents[@]:0:$AGENTS_PER_ARCH})
+        
+        shuffledUnlockedArm64Agents=($(shuf -e "${unlockedArm64Agents[@]}"))
+        filteredArm64Agents=(${shuffledUnlockedArm64Agents[@]:0:$AGENTS_PER_ARCH})
 
-        agentsAllLockedCorrectly=$(attempt_agent_lock "${filteredAgents[@]}")
+        echo "Locking these x64 agents:"
+        echo ${filteredX64Agents[@]}
+        echo "Locking these arm64 agents:"
+        echo ${filteredArm64Agents[@]}
+
+        x64AgentsAllLockedCorrectly=$(attempt_agent_lock "${filteredX64Agents[@]}")
+        arm64AgentsAllLockedCorrectly=$(attempt_agent_lock "${filteredArm64Agents[@]}")
 
         # If something went wrong and we don't have all the agents locked, release the ones we still have booked.
         # Else set the agent names as output to be used in the pipeline downstream.
-        if [ $agentsAllLockedCorrectly = false ]; then
+        if [ $x64AgentsAllLockedCorrectly = false ] || [ $arm64AgentsAllLockedCorrectly = false ]; then
             echo "Conflicting agent lock detected. Unlocking all booked agents made here."
-            unlock_agents "${filteredAgents[@]}"
+            allFilteredAgents=("${filteredX64Agents[@]}" "${filteredArm64Agents[@]}")
+            unlock_agents "${allFilteredAgents[@]}"
         else
-            print_agent_names "${filteredAgents[@]}"
+            echo "x64 agents:"
+            print_agent_names "${filteredX64Agents[@]}"
+            echo "arm64 agents:"
+            print_agent_names "${filteredArm64Agents[@]}"
             echo "Successfully locked agents"
             exit 0
         fi
     fi
 
-    echo "Failed to acquire $RUNNER_AGENTS_NEEDED agents from pool. Will retry soon."
+    echo "Failed to acquire $AGENTS_PER_ARCH x64 agents and $AGENTS_PER_ARCH arm64 agents from pool. Will retry soon."
 done
 
 exit 1
