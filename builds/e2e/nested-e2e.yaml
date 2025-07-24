@@ -34,8 +34,6 @@ stages:
 - stage: LockAgents
   jobs:
   - template: templates/lock-test-agents.yaml
-    parameters:
-      upstream.protocol: 'mqtt'
 
 - stage: RunNestedTests
   dependsOn: LockAgents

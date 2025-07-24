@@ -31,6 +31,7 @@ API_VER=6.0
 TIMEOUT_SECONDS=$((60*60*3)) # 3 hours
 AGENTS_PER_ARCH=3 # Number of agents we want to book per architecture
 
+ARCH=
 AGENT_GROUP=
 BUILD_ID=
 
@@ -44,6 +45,7 @@ usage()
     echo "This 'PAT' is a DevOps API PAT for booking the agents. This PAT must have permissions to read builds in devops."
     echo ""
     echo "options"
+    echo " --arch          Architecture of the agents to book. Valid values are x64, arm64. If not specified, agents for both architectures will be locked."
     echo " --build-id      Devops build ID used to tag locked agents."
     echo " --group         Agent Group from which we want to book agents. This agent group is a capability named 'agent-group'."
     echo " --help          Print this help message and exit."
@@ -65,16 +67,20 @@ process_args()
     for arg in $@
     do
         if [ $save_next_arg -eq 1 ]; then
-            BUILD_ID="$arg"
+            ARCH="${arg,,}"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
+            BUILD_ID="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
             AGENT_GROUP="$arg"
             save_next_arg=0
         else
             case "$arg" in
                 "--help" ) usage;;
-                "--build-id" ) save_next_arg=1;;
-                "--group" ) save_next_arg=2;;
+                "--arch" ) save_next_arg=1;;
+                "--build-id" ) save_next_arg=2;;
+                "--group" ) save_next_arg=3;;
                 * ) usage;;
             esac
         fi
@@ -82,6 +88,11 @@ process_args()
 
     if [[ -z "$PAT" ]]; then
         echo "Personal Access Token must be set in the environment"
+        print_help_and_exit
+    fi
+
+    if [[ -n "$ARCH" && "$ARCH" != "x64" && "$ARCH" != "arm64" ]]; then
+        echo "Invalid architecture specified: $ARCH. Valid values are x64, arm64."
         print_help_and_exit
     fi
 
@@ -218,6 +229,13 @@ fi
 echo "Done validating devops API interface"
 echo
 
+archMsg=''
+if [[ -n "$ARCH" ]]; then
+    archMsg="$AGENTS_PER_ARCH $ARCH agents"
+else
+    archMsg="$AGENTS_PER_ARCH x64 agents and $AGENTS_PER_ARCH arm64 agents"
+fi
+
 startSeconds=$((SECONDS))
 endSeconds=$((SECONDS + $TIMEOUT_SECONDS))
 while true && [ $((SECONDS)) -lt $endSeconds ]; do
@@ -225,75 +243,112 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
     # Random delay to avoid multiple instances of the script thrashing.
     sleep $[ ( $RANDOM % 10 ) + 60 ]s
 
-    echo "Attempting to lock $AGENTS_PER_ARCH x64 agents and $AGENTS_PER_ARCH arm64 agents from the agent group $AGENT_GROUP..."
+    echo "Attempting to lock $archMsg from the agent group $AGENT_GROUP..."
     agentsInfo=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
     
-    # Get unlocked x64 agents
-    unlockedX64Agents=($(
-        echo $agentsInfo |
-        jq -r --arg group "$AGENT_GROUP" '
-            .value[] | select(
-                .enabled==true and
-                .status=="online" and
-                .userCapabilities.status=="unlocked" and
-                .systemCapabilities."Agent.OSArchitecture"=="X64" and
-                .userCapabilities."agent-group" == $group
-            ).id
-        '
-    ))
+    if [[ -z "$ARCH" || "$ARCH" == "x64" ]]; then
+        # Get unlocked x64 agents
+        unlockedX64Agents=($(
+            echo $agentsInfo |
+            jq -r --arg group "$AGENT_GROUP" '
+                .value[] | select(
+                    .enabled==true and
+                    .status=="online" and
+                    .userCapabilities.status=="unlocked" and
+                    .systemCapabilities."Agent.OSArchitecture"=="X64" and
+                    .userCapabilities."agent-group" == $group
+                ).id
+            '
+        ))
 
-    # Get unlocked arm64 agents
-    unlockedArm64Agents=($(
-        echo $agentsInfo |
-        jq -r --arg group "$AGENT_GROUP" '
-            .value[] | select(
-                .enabled==true and
-                .status=="online" and
-                .userCapabilities.status=="unlocked" and
-                .systemCapabilities."Agent.OSArchitecture"=="ARM64" and
-                .userCapabilities."agent-group" == $group
-            ).id
-        '
-    ))
+        echo "Found these unlocked x64 agents:"
+        echo ${unlockedX64Agents[@]}
+    else
+        unlockedX64Agents=()
+    fi
 
-    echo "Found these unlocked x64 agents:"
-    echo ${unlockedX64Agents[@]}
-    echo "Found these unlocked arm64 agents:"
-    echo ${unlockedArm64Agents[@]}
+    if [[ -z "$ARCH" || "$ARCH" == "arm64" ]]; then
+        # Get unlocked arm64 agents
+        unlockedArm64Agents=($(
+            echo $agentsInfo |
+            jq -r --arg group "$AGENT_GROUP" '
+                .value[] | select(
+                    .enabled==true and
+                    .status=="online" and
+                    .userCapabilities.status=="unlocked" and
+                    .systemCapabilities."Agent.OSArchitecture"=="ARM64" and
+                    .userCapabilities."agent-group" == $group
+                ).id
+            '
+        ))
 
-    if [ ${#unlockedX64Agents[*]} -ge $AGENTS_PER_ARCH ] && [ ${#unlockedArm64Agents[*]} -ge $AGENTS_PER_ARCH ]; then
-        # If we have enough agents of both architectures, get random agents and book them all.
-        shuffledUnlockedX64Agents=($(shuf -e "${unlockedX64Agents[@]}"))
-        filteredX64Agents=(${shuffledUnlockedX64Agents[@]:0:$AGENTS_PER_ARCH})
+        echo "Found these unlocked arm64 agents:"
+        echo ${unlockedArm64Agents[@]}
+    else
+        unlockedArm64Agents=()
+    fi
+
+    # Check if we have enough agents based on architecture filter
+    x64Needed=$([[ -z "$ARCH" || "$ARCH" == "x64" ]] && echo $AGENTS_PER_ARCH || echo 0)
+    arm64Needed=$([[ -z "$ARCH" || "$ARCH" == "arm64" ]] && echo $AGENTS_PER_ARCH || echo 0)
+
+    if [ ${#unlockedX64Agents[*]} -ge $x64Needed ] && [ ${#unlockedArm64Agents[*]} -ge $arm64Needed ]; then
+        # If we have enough agents of the required architectures, get random agents and book them all.
+        filteredX64Agents=()
+        filteredArm64Agents=()
         
-        shuffledUnlockedArm64Agents=($(shuf -e "${unlockedArm64Agents[@]}"))
-        filteredArm64Agents=(${shuffledUnlockedArm64Agents[@]:0:$AGENTS_PER_ARCH})
+        if [ $x64Needed -gt 0 ]; then
+            shuffledUnlockedX64Agents=($(shuf -e "${unlockedX64Agents[@]}"))
+            filteredX64Agents=(${shuffledUnlockedX64Agents[@]:0:$AGENTS_PER_ARCH})
+        fi
+        
+        if [ $arm64Needed -gt 0 ]; then
+            shuffledUnlockedArm64Agents=($(shuf -e "${unlockedArm64Agents[@]}"))
+            filteredArm64Agents=(${shuffledUnlockedArm64Agents[@]:0:$AGENTS_PER_ARCH})
+        fi
 
-        echo "Locking these x64 agents:"
-        echo ${filteredX64Agents[@]}
-        echo "Locking these arm64 agents:"
-        echo ${filteredArm64Agents[@]}
+        if [ ${#filteredX64Agents[@]} -gt 0 ]; then
+            echo "Locking these x64 agents:"
+            echo ${filteredX64Agents[@]}
+        fi
+        if [ ${#filteredArm64Agents[@]} -gt 0 ]; then
+            echo "Locking these arm64 agents:"
+            echo ${filteredArm64Agents[@]}
+        fi
 
-        x64AgentsAllLockedCorrectly=$(attempt_agent_lock "${filteredX64Agents[@]}")
-        arm64AgentsAllLockedCorrectly=$(attempt_agent_lock "${filteredArm64Agents[@]}")
+        x64AgentsAllLockedCorrectly=true
+        arm64AgentsAllLockedCorrectly=true
+        
+        if [ ${#filteredX64Agents[@]} -gt 0 ]; then
+            x64AgentsAllLockedCorrectly=$(attempt_agent_lock "${filteredX64Agents[@]}")
+        fi
+        if [ ${#filteredArm64Agents[@]} -gt 0 ]; then
+            arm64AgentsAllLockedCorrectly=$(attempt_agent_lock "${filteredArm64Agents[@]}")
+        fi
 
         # If something went wrong and we don't have all the agents locked, release the ones we still have booked.
         # Else set the agent names as output to be used in the pipeline downstream.
         if [ $x64AgentsAllLockedCorrectly = false ] || [ $arm64AgentsAllLockedCorrectly = false ]; then
             echo "Conflicting agent lock detected. Unlocking all booked agents made here."
             allFilteredAgents=("${filteredX64Agents[@]}" "${filteredArm64Agents[@]}")
-            unlock_agents "${allFilteredAgents[@]}"
+            if [ ${#allFilteredAgents[@]} -gt 0 ]; then
+                unlock_agents "${allFilteredAgents[@]}"
+            fi
         else
-            echo "x64 agents:"
-            print_agent_names "${filteredX64Agents[@]}"
-            echo "arm64 agents:"
-            print_agent_names "${filteredArm64Agents[@]}"
+            if [ ${#filteredX64Agents[@]} -gt 0 ]; then
+                echo "x64 agents:"
+                print_agent_names "${filteredX64Agents[@]}"
+            fi
+            if [ ${#filteredArm64Agents[@]} -gt 0 ]; then
+                echo "arm64 agents:"
+                print_agent_names "${filteredArm64Agents[@]}"
+            fi
             echo "Successfully locked agents"
             exit 0
         fi
     fi
 
-    echo "Failed to acquire $AGENTS_PER_ARCH x64 agents and $AGENTS_PER_ARCH arm64 agents from pool. Will retry soon."
+    echo "Failed to acquire $archMsg from the pool. Will retry soon."
 done
 
 exit 1
