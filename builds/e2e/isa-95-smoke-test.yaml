@@ -106,14 +106,14 @@ stages:
           arch: X64
           identityArtifactName: aziot-identity-ubuntu24.04-amd64
           artifactName: iotedged-ubuntu24.04-amd64
-          parentName: $[ dependencies.SetupVM_level5.x64.outputs['deployIoTEdge.deviceName'] ]
-          parentDeviceId: $[ dependencies.SetupVM_level5.x64.outputs['createIdentity.parentDeviceId'] ]
+          parentName: $[ dependencies.SetupVM_level5.outputs['x64.deployIoTEdge.deviceName'] ]
+          parentDeviceId: $[ dependencies.SetupVM_level5.outputs['x64.createIdentity.parentDeviceId'] ]
         arm64:
           arch: ARM64
           identityArtifactName: aziot-identity-ubuntu22.04-aarch64
           artifactName: iotedged-ubuntu22.04-aarch64
-          parentName: $[ dependencies.SetupVM_level5.arm64.outputs['deployIoTEdge.deviceName'] ]
-          parentDeviceId: $[ dependencies.SetupVM_level5.arm64.outputs['createIdentity.parentDeviceId'] ]
+          parentName: $[ dependencies.SetupVM_level5.outputs['arm64.deployIoTEdge.deviceName'] ]
+          parentDeviceId: $[ dependencies.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
     variables:
       level: 4
       upstreamProtocol: amqp
@@ -151,14 +151,14 @@ stages:
           arch: X64
           identityArtifactName: aziot-identity-ubuntu24.04-amd64
           artifactName: iotedged-ubuntu24.04-amd64
-          parentName: $[ dependencies.SetupVM_level4.x64.outputs['deployIoTEdge.deviceName'] ]
-          parentDeviceId: $[ dependencies.SetupVM_level4.x64.outputs['createIdentity.parentDeviceId'] ]
+          parentName: $[ dependencies.SetupVM_level4.outputs['x64.deployIoTEdge.deviceName'] ]
+          parentDeviceId: $[ dependencies.SetupVM_level4.outputs['x64.createIdentity.parentDeviceId'] ]
         arm64:
           arch: ARM64
           identityArtifactName: aziot-identity-ubuntu22.04-aarch64
           artifactName: iotedged-ubuntu22.04-aarch64
-          parentName: $[ dependencies.SetupVM_level4.arm64.outputs['deployIoTEdge.deviceName'] ]
-          parentDeviceId: $[ dependencies.SetupVM_level4.arm64.outputs['createIdentity.parentDeviceId'] ]
+          parentName: $[ dependencies.SetupVM_level4.outputs['arm64.deployIoTEdge.deviceName'] ]
+          parentDeviceId: $[ dependencies.SetupVM_level4.outputs['arm64.createIdentity.parentDeviceId'] ]
     variables:
       level: 3
       upstreamProtocol: amqp
