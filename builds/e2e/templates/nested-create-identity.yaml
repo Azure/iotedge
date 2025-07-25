@@ -1,3 +1,6 @@
+parameters:
+  arch: 'X64'
+
 steps: 
   - task: AzureCLI@2
     displayName: 'Create identity'
@@ -17,7 +20,7 @@ steps:
         echo "Found Hub name: ${iotHubName}"
 
         az config set extension.use_dynamic_install=yes_without_prompt
-        deviceId="level_$(level)_$(arch)_$(Build.BuildId)$(upstreamProtocol)"
+        deviceId="level_$(level)_${{ parameters.arch }}_$(Build.BuildId)$(upstreamProtocol)"
 
         echo "Creating ${deviceId} iotedge in iothub: ${iotHubName}, in subscription $(azure.subscription)"
         if [ "$LEVEL" = "5" ]; then

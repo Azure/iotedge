@@ -85,6 +85,8 @@ stages:
       - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-create-identity.yaml
+        parameters:
+          arch: $(arch)
       - template: templates/nested-agent-deploy.yaml
       - task: Bash@3
         displayName: 'Exporting agentName'
@@ -141,6 +143,8 @@ stages:
       - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-create-identity.yaml
+        parameters:
+          arch: $(arch)
       - template: templates/nested-agent-deploy.yaml
       - task: Bash@3
         displayName: 'Exporting agentName'
@@ -190,6 +194,8 @@ stages:
       - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-create-identity.yaml
+        parameters:
+          arch: $(arch)
       - template: templates/nested-agent-deploy.yaml
       - task: Bash@3
         displayName: 'Exporting agentName'
