@@ -20,6 +20,7 @@ steps:
         . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
 
         chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
+        set -x
         sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
