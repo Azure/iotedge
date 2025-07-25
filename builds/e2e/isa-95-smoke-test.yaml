@@ -359,15 +359,24 @@ stages:
     condition: always()
     timeoutInMinutes: 10
     variables:
-      deviceLvl5DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
-      deviceLvl4DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
-      deviceLvl3DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['createIdentity.parentDeviceId'] ]
-      deviceLvl5IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['createIdentity.iotHubName'] ]
-      deviceLvl4IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
-      deviceLvl3IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['createIdentity.iotHubName'] ]
-      deviceLvl5AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['exportAgentName.agentName'] ]
-      deviceLvl4AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['exportAgentName.agentName'] ]
-      deviceLvl3AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['exportAgentName.agentName'] ]
+      x64Lvl5DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['x64.createIdentity.parentDeviceId'] ]
+      x64Lvl4DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['x64.createIdentity.parentDeviceId'] ]
+      x64Lvl3DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['x64.createIdentity.parentDeviceId'] ]
+      x64DeviceLvl5IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['x64.createIdentity.iotHubName'] ]
+      x64DeviceLvl4IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['x64.createIdentity.iotHubName'] ]
+      x64DeviceLvl3IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['x64.createIdentity.iotHubName'] ]
+      x64DeviceLvl5AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['x64.exportAgentName.agentName'] ]
+      x64DeviceLvl4AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['x64.exportAgentName.agentName'] ]
+      x64DeviceLvl3AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['x64.exportAgentName.agentName'] ]
+      arm64Lvl5DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
+      arm64Lvl4DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['arm64.createIdentity.parentDeviceId'] ]
+      arm64Lvl3DeviceId: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['arm64.createIdentity.parentDeviceId'] ]
+      arm64DeviceLvl5IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['arm64.createIdentity.iotHubName'] ]
+      arm64DeviceLvl4IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['arm64.createIdentity.iotHubName'] ]
+      arm64DeviceLvl3IoTHubName: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['arm64.createIdentity.iotHubName'] ]
+      arm64DeviceLvl5AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level5.outputs['arm64.exportAgentName.agentName'] ]
+      arm64DeviceLvl4AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level4.outputs['arm64.exportAgentName.agentName'] ]
+      arm64DeviceLvl3AgentName: $[ stageDependencies.RunISA95Tests.SetupVM_level3.outputs['arm64.exportAgentName.agentName'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -379,16 +388,37 @@ stages:
       - template: templates/nested-get-secrets.yaml
       - template: templates/nested-clean-identity.yaml
         parameters:
-          iotHubName: $(deviceLvl5IoTHubName)
-          deviceId: $(deviceLvl5DeviceId)
+          arch: 'x64'
+          iotHubName: $(x64DeviceLvl5IoTHubName)
+          deviceId: $(x64Lvl5DeviceId)
           lvl: 5
       - template: templates/nested-clean-identity.yaml
         parameters:
-          iotHubName: $(deviceLvl4IoTHubName)
-          deviceId: $(deviceLvl4DeviceId)
+          arch: 'x64'
+          iotHubName: $(x64DeviceLvl4IoTHubName)
+          deviceId: $(x64Lvl4DeviceId)
           lvl: 4
       - template: templates/nested-clean-identity.yaml
         parameters:
-          iotHubName: $(deviceLvl3IoTHubName)
-          deviceId: $(deviceLvl3DeviceId)
+          arch: 'x64'
+          iotHubName: $(x64DeviceLvl3IoTHubName)
+          deviceId: $(x64Lvl3DeviceId)
+          lvl: 3
+      - template: templates/nested-clean-identity.yaml
+        parameters:
+          arch: 'arm64'
+          iotHubName: $(arm64DeviceLvl5IoTHubName)
+          deviceId: $(arm64Lvl5DeviceId)
+          lvl: 5
+      - template: templates/nested-clean-identity.yaml
+        parameters:
+          arch: 'arm64'
+          iotHubName: $(arm64DeviceLvl4IoTHubName)
+          deviceId: $(arm64Lvl4DeviceId)
+          lvl: 4
+      - template: templates/nested-clean-identity.yaml
+        parameters:
+          arch: 'arm64'
+          iotHubName: $(arm64DeviceLvl3IoTHubName)
+          deviceId: $(arm64Lvl3DeviceId)
           lvl: 3
