@@ -207,12 +207,18 @@ stages:
     displayName: Run ISA-95 test
     condition: succeeded()
     variables:
-      Lvl3DeviceId: $[ dependencies.SetupVM_level3.outputs['createIdentity.parentDeviceId'] ]
-      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['exportAgentName.agentName'] ]
-      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['exportAgentName.agentName'] ]
-      deviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['exportAgentName.agentName'] ]
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
+      x64Lvl3DeviceId: $[ dependencies.SetupVM_level3.outputs['x64.createIdentity.parentDeviceId'] ]
+      x64DeviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['x64.exportAgentName.agentName'] ]
+      x64DeviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['x64.exportAgentName.agentName'] ]
+      x64DeviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['x64.exportAgentName.agentName'] ]
+      x64ParentName: $[ dependencies.SetupVM_level5.outputs['x64.deployIoTEdge.deviceName'] ]
+      x64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['x64.createIdentity.parentDeviceId'] ]
+      arm64Lvl3DeviceId: $[ dependencies.SetupVM_level3.outputs['arm64.createIdentity.parentDeviceId'] ]
+      arm64DeviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['arm64.exportAgentName.agentName'] ]
+      arm64DeviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['arm64.exportAgentName.agentName'] ]
+      arm64DeviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['arm64.exportAgentName.agentName'] ]
+      arm64ParentName: $[ dependencies.SetupVM_level5.outputs['arm64.deployIoTEdge.deviceName'] ]
+      arm64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
       os: linux
       arch: amd64
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
@@ -221,6 +227,22 @@ stages:
       proxyAddress: $(otProxy)
       test_type: nestededge_isa95
       verbose: false
+    strategy:
+      matrix:
+        x64:
+          Lvl3DeviceId: $(x64Lvl3DeviceId)
+          deviceLvl5AgentName: $(x64DeviceLvl5AgentName)
+          deviceLvl4AgentName: $(x64DeviceLvl4AgentName)
+          deviceLvl3AgentName: $(x64DeviceLvl3AgentName)
+          parentName: $(x64ParentName)
+          parentDeviceId: $(x64ParentDeviceId)
+        arm64:
+          Lvl3DeviceId: $(arm64Lvl3DeviceId)
+          deviceLvl5AgentName: $(arm64DeviceLvl5AgentName)
+          deviceLvl4AgentName: $(arm64DeviceLvl4AgentName)
+          deviceLvl3AgentName: $(arm64DeviceLvl3AgentName)
+          parentName: $(arm64ParentName)
+          parentDeviceId: $(arm64ParentDeviceId)
     pool:
       name: $(pool.name)
       demands:
