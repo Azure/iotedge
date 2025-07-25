@@ -100,9 +100,7 @@ stages:
     displayName: SettingUp level 4
     condition: succeeded()
     strategy:
-      matrix:
-        x64: $[ dependencies.SetupVM_level5.outputs['x64.l4matrix'] ]
-        arm64: $[ dependencies.SetupVM_level5.outputs['arm64.l4matrix'] ]
+      matrix: $[ format('{{ "x64": "{0}", "arm64": "{1}" }}', dependencies.SetupVM_level5.outputs['x64.l4matrix'], dependencies.SetupVM_level5.outputs['arm64.l4matrix']) ]
     variables:
       level: 4
       upstreamProtocol: amqp
