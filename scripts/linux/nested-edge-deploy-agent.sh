@@ -246,7 +246,7 @@ function set_output_params() {
     echo "##vso[task.setvariable variable=deviceName;isOutput=true]${device_name}"
 }
 
-set -e
+set -ex
 
 # Import test-related functions
 . $(dirname "$0")/NestTestHelper.sh
