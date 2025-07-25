@@ -154,25 +154,29 @@ stages:
     dependsOn: SetupVM_level4
     displayName: SettingUp level 3
     condition: succeeded()
+    variables:
+      level: 3
+      upstreamProtocol: amqp
+      deploymentFile: nestededge_isa95_smoke_test_BaseDeployment.json
+      proxyAddress: $(otProxy)
+      x64ParentName: $[ dependencies.SetupVM_level4.outputs['x64.deployIoTEdge.deviceName'] ]
+      x64ParentDeviceId: $[ dependencies.SetupVM_level4.outputs['x64.createIdentity.parentDeviceId'] ]
+      arm64ParentName: $[ dependencies.SetupVM_level4.outputs['arm64.deployIoTEdge.deviceName'] ]
+      arm64ParentDeviceId: $[ dependencies.SetupVM_level4.outputs['arm64.createIdentity.parentDeviceId'] ]
     strategy:
       matrix:
         x64:
           arch: X64
           identityArtifactName: aziot-identity-ubuntu24.04-amd64
           artifactName: iotedged-ubuntu24.04-amd64
-          parentName: $[ dependencies.SetupVM_level4.outputs['x64.deployIoTEdge.deviceName'] ]
-          parentDeviceId: $[ dependencies.SetupVM_level4.outputs['x64.createIdentity.parentDeviceId'] ]
+          parentName: $(x64ParentName)
+          parentDeviceId: $(x64ParentDeviceId)
         arm64:
           arch: ARM64
           identityArtifactName: aziot-identity-ubuntu22.04-aarch64
           artifactName: iotedged-ubuntu22.04-aarch64
-          parentName: $[ dependencies.SetupVM_level4.outputs['arm64.deployIoTEdge.deviceName'] ]
-          parentDeviceId: $[ dependencies.SetupVM_level4.outputs['arm64.createIdentity.parentDeviceId'] ]
-    variables:
-      level: 3
-      upstreamProtocol: amqp
-      deploymentFile: nestededge_isa95_smoke_test_BaseDeployment.json
-      proxyAddress: $(otProxy)
+          parentName: $(arm64ParentName)
+          parentDeviceId: $(arm64ParentDeviceId)
     pool:
      name: $(pool.name)
      demands:
