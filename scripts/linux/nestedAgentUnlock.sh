@@ -82,7 +82,7 @@ fi
 
 lockedAgents=($(
     echo $agentsInfo |
-    jq -r --arg build_id "$BUILD_ID" '.value | .[] | select(.userCapabilities.status != null) | select(.userCapabilities.status == "locked_\($build_id)") | .id'
+    jq -r --arg build_id "$BUILD_ID" '.value | .[] | select(.userCapabilities.status != null) | select(.userCapabilities.status | startswith("locked_\($build_id)")) | .id'
 ))
 
 echo "Found locked agents:"
