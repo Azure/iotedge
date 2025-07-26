@@ -69,24 +69,21 @@ process_args()
     for arg in $@
     do
         if [ $save_next_arg -eq 1 ]; then
-            ASSIGN_LEVELS='true'
-            save_next_arg=0
-        elif [ $save_next_arg -eq 2 ]; then
             ARCH="${arg,,}"
             save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
+        elif [ $save_next_arg -eq 2 ]; then
             BUILD_ID="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 4 ]; then
+        elif [ $save_next_arg -eq 3 ]; then
             AGENT_GROUP="$arg"
             save_next_arg=0
         else
             case "$arg" in
                 "--help" ) usage;;
-                "--assign-levels" ) save_next_arg=1;;
-                "--arch" ) save_next_arg=2;;
-                "--build-id" ) save_next_arg=3;;
-                "--group" ) save_next_arg=4;;
+                "--assign-levels" ) ASSIGN_LEVELS='true';;
+                "--arch" ) save_next_arg=1;;
+                "--build-id" ) save_next_arg=2;;
+                "--group" ) save_next_arg=3;;
                 * ) usage;;
             esac
         fi
