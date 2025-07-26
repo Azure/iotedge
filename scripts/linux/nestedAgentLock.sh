@@ -187,7 +187,7 @@ function attempt_agent_lock() {
         local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         local lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities | .status')
 
-        if [ ! "$lockStatus" =~ ^"locked_${BUILD_ID}" ]; then
+        if [[ ! "$lockStatus" =~ ^"locked_${BUILD_ID}" ]]; then
             agentsAllLockedCorrectly=false
             break
         fi
@@ -207,7 +207,7 @@ function unlock_agents() {
         local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         local lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status')
 
-        if [ "$lockStatus" =~ ^"locked_${BUILD_ID}" ]; then
+        if [[ "$lockStatus" =~ ^"locked_${BUILD_ID}" ]]; then
             echo "Unlocking agent $agentId"
 
             local newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | .status |= "unlocked"')
