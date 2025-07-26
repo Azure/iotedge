@@ -8,7 +8,7 @@ jobs:
         - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     steps:
       - template: nested-get-secrets.yaml
-      - script: scripts/linux/nestedAgentLock.sh --arch amd64 --group '$(agent.group)' --build-id '$(Build.BuildId)'
+      - script: scripts/linux/nestedAgentLock.sh --arch x64 --group '$(agent.group)' --build-id '$(Build.BuildId)'
         env:
           PAT: "$(IotEdgePAT)"
         displayName: Lock agents for nested topology
