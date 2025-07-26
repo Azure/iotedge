@@ -30,6 +30,7 @@ POOL_ID=123 # Devops agent pool id corresponding to "Azure-IoT-Edge-Core"
 API_VER=6.0
 TIMEOUT_SECONDS=$((60*60*3)) # 3 hours
 AGENTS_PER_ARCH=3 # Number of agents we want to book per architecture
+ASSIGN_LEVELS='false'
 
 ARCH=
 AGENT_GROUP=
@@ -45,10 +46,11 @@ usage()
     echo "This 'PAT' is a DevOps API PAT for booking the agents. This PAT must have permissions to read builds in devops."
     echo ""
     echo "options"
-    echo " --arch          Architecture of the agents to book. Valid values are x64, arm64. If not specified, agents for both architectures will be locked."
-    echo " --build-id      Devops build ID used to tag locked agents."
-    echo " --group         Agent Group from which we want to book agents. This agent group is a capability named 'agent-group'."
-    echo " --help          Print this help message and exit."
+    echo " --assign-levels     Add level information to the lock status for each agent."
+    echo " --arch              Architecture of the agents to book. Valid values are x64, arm64. If not specified, agents for both architectures will be locked."
+    echo " --build-id          Devops build ID used to tag locked agents."
+    echo " --group             Agent Group from which we want to book agents. This agent group is a capability named 'agent-group'."
+    echo " --help              Print this help message and exit."
     exit 1;
 }
 
@@ -67,20 +69,24 @@ process_args()
     for arg in $@
     do
         if [ $save_next_arg -eq 1 ]; then
-            ARCH="${arg,,}"
+            ASSIGN_LEVELS='true'
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
-            BUILD_ID="$arg"
+            ARCH="${arg,,}"
             save_next_arg=0
         elif [ $save_next_arg -eq 3 ]; then
+            BUILD_ID="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 4 ]; then
             AGENT_GROUP="$arg"
             save_next_arg=0
         else
             case "$arg" in
                 "--help" ) usage;;
-                "--arch" ) save_next_arg=1;;
-                "--build-id" ) save_next_arg=2;;
-                "--group" ) save_next_arg=3;;
+                "--assign-levels" ) save_next_arg=1;;
+                "--arch" ) save_next_arg=2;;
+                "--build-id" ) save_next_arg=3;;
+                "--group" ) save_next_arg=4;;
                 * ) usage;;
             esac
         fi
@@ -116,10 +122,12 @@ process_args()
 
 function print_agent_names() {
     local agents=("$@")
-
+    # format is 'id=tag', remove tags keeping only agent IDs
     for i in "${!agents[@]}"; do
-        local agentId="${agents[$i]}"
+        agents[$i]="${agents[$i]%%=*}"
+    done
 
+    for agentId in "${agents[@]}"; do
         local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         local agentName=$(echo $agentCapabilities | jq -r '.systemCapabilities."Agent.Name"')
         local lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities.status')
@@ -159,14 +167,20 @@ EOF
 
 function attempt_agent_lock() {
     local agents=("$@")
+    local amend_tags=()
+    # format is 'id=tag', move tags into their own array
+    for i in "${!agents[@]}"; do
+        amend_tags[$i]="${agents[$i]#*=}"
+        agents[$i]="${agents[$i]%%=*}"
+    done
 
     # Lock the agents by updating the user capability 'status'.
-    for agentId in "${agents[@]}"; do
-        local agentCapabilityTag="locked_${BUILD_ID}"
-        local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+    for i in "${!agents[@]}"; do
+        local agentCapabilityTag="locked_${BUILD_ID}$([ -n "${amend_tags[$i]}" ] && echo "_${amend_tags[$i]}")"
+        local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/${agents[$i]}?includeCapabilities=true&api-version=$API_VER")
         local newAgentUserCapabilities=$(echo $agentCapabilities | jq --arg tag "$agentCapabilityTag" '.userCapabilities | .status |= $tag')
 
-        update_user_capabilities "$agentId" "$newAgentUserCapabilities"
+        update_user_capabilities "${agents[$i]}" "$newAgentUserCapabilities"
     done
 
     # Wait a while then check to make sure there were no overlapping bookings.
@@ -176,7 +190,7 @@ function attempt_agent_lock() {
         local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         local lockStatus=$(echo $agentCapabilities | jq -r '.userCapabilities | .status')
 
-        if [ "$lockStatus" != "locked_${BUILD_ID}" ]; then
+        if [ ! "$lockStatus" =~ ^"locked_${BUILD_ID}" ]; then
             agentsAllLockedCorrectly=false
             break
         fi
@@ -187,12 +201,16 @@ function attempt_agent_lock() {
 
 function unlock_agents() {
     local agents=("$@")
+    # format is 'id=tag', remove tags keeping only agent IDs
+    for i in "${!agents[@]}"; do
+        agents[$i]="${agents[$i]%%=*}"
+    done
 
     for agentId in "${agents[@]}"; do
         local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         local lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status')
 
-        if [ "$lockStatus" == "locked_${BUILD_ID}" ]; then
+        if [ "$lockStatus" =~ ^"locked_${BUILD_ID}" ]; then
             echo "Unlocking agent $agentId"
 
             local newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | .status |= "unlocked"')
@@ -300,11 +318,21 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
         if [ $x64Needed -gt 0 ]; then
             shuffledUnlockedX64Agents=($(shuf -e "${unlockedX64Agents[@]}"))
             filteredX64Agents=(${shuffledUnlockedX64Agents[@]:0:$AGENTS_PER_ARCH})
+            if [ "$ASSIGN_LEVELS" == "true" ]; then
+                for i in "${!filteredX64Agents[@]}"; do
+                    filteredX64Agents[$i]="${filteredX64Agents[$i]}=L$((5 - $i))"
+                done
+            fi
         fi
         
         if [ $arm64Needed -gt 0 ]; then
             shuffledUnlockedArm64Agents=($(shuf -e "${unlockedArm64Agents[@]}"))
             filteredArm64Agents=(${shuffledUnlockedArm64Agents[@]:0:$AGENTS_PER_ARCH})
+            if [ "$ASSIGN_LEVELS" == "true" ]; then
+                for i in "${!filteredArm64Agents[@]}"; do
+                    filteredArm64Agents[$i]="${filteredArm64Agents[$i]}=L$((5 - $i))"
+                done
+            fi
         fi
 
         if [ ${#filteredX64Agents[@]} -gt 0 ]; then
