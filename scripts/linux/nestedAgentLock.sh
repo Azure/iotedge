@@ -164,18 +164,16 @@ EOF
 
 function attempt_agent_lock() {
     local agents=("$@")
-    local amend_tags=()
+    local tags=()
     # format is 'id[=tag]', move tags into their own array
     for i in "${!agents[@]}"; do
-        if [[ "${agents[$i]}" =~ '=' ]]; then
-            amend_tags[$i]="${agents[$i]#*=}"
-            agents[$i]="${agents[$i]%%=*}"
-        fi
+        [[ "${agents[$i]}" =~ '=' ]] && tags[$i]="${agents[$i]#*=}" || tags[$i]=''
+        agents[$i]="${agents[$i]%%=*}"
     done
 
     # Lock the agents by updating the user capability 'status'.
     for i in "${!agents[@]}"; do
-        local agentCapabilityTag="locked_${BUILD_ID}$([ -n "${amend_tags[$i]}" ] && echo "_${amend_tags[$i]}")"
+        local agentCapabilityTag="locked_${BUILD_ID}$([ -n "${tags[$i]}" ] && echo "_${tags[$i]}")"
         local agentCapabilities=$(curl -s -f -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/${agents[$i]}?includeCapabilities=true&api-version=$API_VER")
         local newAgentUserCapabilities=$(echo $agentCapabilities | jq --arg tag "$agentCapabilityTag" '.userCapabilities | .status |= $tag')
 
