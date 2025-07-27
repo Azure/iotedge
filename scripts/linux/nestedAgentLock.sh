@@ -119,7 +119,7 @@ process_args()
 
 function print_agent_names() {
     local agents=("$@")
-    # format is 'id=tag', remove tags keeping only agent IDs
+    # format is 'id[=tag]', remove tags keeping only agent IDs
     for i in "${!agents[@]}"; do
         agents[$i]="${agents[$i]%%=*}"
     done
@@ -165,10 +165,12 @@ EOF
 function attempt_agent_lock() {
     local agents=("$@")
     local amend_tags=()
-    # format is 'id=tag', move tags into their own array
+    # format is 'id[=tag]', move tags into their own array
     for i in "${!agents[@]}"; do
-        amend_tags[$i]="${agents[$i]#*=}"
-        agents[$i]="${agents[$i]%%=*}"
+        if [[ "${agents[$i]}" =~ '=' ]]; then
+            amend_tags[$i]="${agents[$i]#*=}"
+            agents[$i]="${agents[$i]%%=*}"
+        fi
     done
 
     # Lock the agents by updating the user capability 'status'.
@@ -198,7 +200,7 @@ function attempt_agent_lock() {
 
 function unlock_agents() {
     local agents=("$@")
-    # format is 'id=tag', remove tags keeping only agent IDs
+    # format is 'id[=tag]', remove tags keeping only agent IDs
     for i in "${!agents[@]}"; do
         agents[$i]="${agents[$i]%%=*}"
     done
