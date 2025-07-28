@@ -7,7 +7,7 @@ FROM alpine:3.22
 WORKDIR /app
 
 RUN	apk update && \
-    apk add --no-cache libcap
+    apk add --no-cache libcap libgcc libssl3 libcrypto3
 
 ENV NGINXUSER_ID ${NGINXUSER_ID:-13624}
 RUN adduser -Ds /bin/sh -u ${NGINXUSER_ID} nginx
