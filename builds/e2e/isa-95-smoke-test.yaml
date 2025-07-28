@@ -386,37 +386,37 @@ stages:
       - template: templates/nested-get-secrets.yaml
       - template: templates/nested-clean-identity.yaml
         parameters:
-          arch: 'x64'
+          arch: x64
           iotHubName: $(x64DeviceLvl5IoTHubName)
           deviceId: $(x64Lvl5DeviceId)
           lvl: 5
       - template: templates/nested-clean-identity.yaml
         parameters:
-          arch: 'x64'
+          arch: x64
           iotHubName: $(x64DeviceLvl4IoTHubName)
           deviceId: $(x64Lvl4DeviceId)
           lvl: 4
       - template: templates/nested-clean-identity.yaml
         parameters:
-          arch: 'x64'
+          arch: x64
           iotHubName: $(x64DeviceLvl3IoTHubName)
           deviceId: $(x64Lvl3DeviceId)
           lvl: 3
       - template: templates/nested-clean-identity.yaml
         parameters:
-          arch: 'arm64'
+          arch: arm64
           iotHubName: $(arm64DeviceLvl5IoTHubName)
           deviceId: $(arm64Lvl5DeviceId)
           lvl: 5
       - template: templates/nested-clean-identity.yaml
         parameters:
-          arch: 'arm64'
+          arch: arm64
           iotHubName: $(arm64DeviceLvl4IoTHubName)
           deviceId: $(arm64Lvl4DeviceId)
           lvl: 4
       - template: templates/nested-clean-identity.yaml
         parameters:
-          arch: 'arm64'
+          arch: arm64
           iotHubName: $(arm64DeviceLvl3IoTHubName)
           deviceId: $(arm64Lvl3DeviceId)
           lvl: 3
