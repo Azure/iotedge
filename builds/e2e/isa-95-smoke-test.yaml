@@ -130,14 +130,6 @@ stages:
        - Agent.OSArchitecture -equals $(arch)
        - level -equals $(level)
     steps:
-      - bash: |
-          echo 'matrix var: parentName: $(parentName)'
-          echo 'matrix var: parentDeviceId: $(parentDeviceId)'
-          echo 'x64 var: x64ParentName: $(x64ParentName)'
-          echo 'x64 var: x64ParentDeviceId: $(x64ParentDeviceId)'
-          echo 'arm64 var: arm64ParentName: $(arm64ParentName)'
-          echo 'arm64 var: arm64ParentDeviceId: $(arm64ParentDeviceId)'
-        displayName: Dump parent device Ids
       - template: templates/clean-drive-and-images.yaml
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml
