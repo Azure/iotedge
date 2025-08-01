@@ -1,11 +1,12 @@
 parameters:
+  arch: 'x64'
   iotHubName: ''
   deviceId: ''
   lvl: ''
 
 steps:
   - task: AzureCLI@2
-    displayName: 'Clean identity  ${{ parameters.lvl }}'
+    displayName: 'Clean identity level=${{ parameters.lvl }} arch=${{ parameters.arch }}'
     condition: always()
     inputs:
       azureSubscription: 'IoTEdge1-msazure'
