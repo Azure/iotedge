@@ -50,20 +50,6 @@ parameters:
             identity: iot-identity-service/packages/debian12/aarch64
             iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
       - os:
-          container: mcr.microsoft.com/mirror/docker/library/ubuntu:20.04
-          identity: ubuntu:20.04
-          iotedge: ubuntu20.04
-        targets:
-          - arch: amd64
-            identity: iot-identity-service/packages/ubuntu2004/amd64
-            iotedged: edgelet/target/release
-          - arch: arm32v7
-            identity: iot-identity-service/packages/ubuntu2004/arm32v7
-            iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-          - arch: aarch64
-            identity: iot-identity-service/packages/ubuntu2004/aarch64
-            iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-      - os:
           container: mcr.microsoft.com/mirror/docker/library/ubuntu:22.04
           identity: ubuntu:22.04
           iotedge: ubuntu22.04

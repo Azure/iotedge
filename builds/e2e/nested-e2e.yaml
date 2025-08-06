@@ -34,8 +34,6 @@ stages:
 - stage: LockAgents
   jobs:
   - template: templates/lock-test-agents.yaml
-    parameters:
-      upstream.protocol: 'mqtt'
 
 - stage: RunNestedTests
   dependsOn: LockAgents
@@ -72,7 +70,7 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
+        - status -equals locked_$(Build.BuildId)_L3
     steps:
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml
@@ -129,7 +127,7 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_L$(level)_mqtt
+        - status -equals locked_$(Build.BuildId)_L$(level)
     steps:
       - template: templates/e2e-clean-all-images.yaml
 

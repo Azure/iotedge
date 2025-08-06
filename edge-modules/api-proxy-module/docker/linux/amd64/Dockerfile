@@ -3,11 +3,11 @@
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
 
-FROM alpine:3.16
+FROM alpine:3.22
 WORKDIR /app
 
 RUN	apk update && \
-    apk add --no-cache libcap
+    apk add --no-cache libcap libgcc libssl3 libcrypto3
 
 ENV NGINXUSER_ID ${NGINXUSER_ID:-13624}
 RUN adduser -Ds /bin/sh -u ${NGINXUSER_ID} nginx

@@ -1,10 +1,6 @@
-parameters:
-  upstream.protocol: 'amqp'
-  testRunnerCount: '1'
-
 jobs:
-  - job: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
-    displayName: Lock nested agents for ${{ parameters['upstream.protocol'] }}
+  - job: Lock_Nested_Agents
+    displayName: Lock nested agents
     timeoutInMinutes: 180
     pool:
       name: $(pool.linux.name)
@@ -12,7 +8,7 @@ jobs:
         - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     steps:
       - template: nested-get-secrets.yaml
-      - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)" -n ${{ parameters['testRunnerCount'] }} -u ${{ parameters['upstream.protocol'] }}
+      - script: scripts/linux/nestedAgentLock.sh --assign-levels --arch x64 --group '$(agent.group)' --build-id '$(Build.BuildId)'
         env:
           PAT: "$(IotEdgePAT)"
         displayName: Lock agents for nested topology
