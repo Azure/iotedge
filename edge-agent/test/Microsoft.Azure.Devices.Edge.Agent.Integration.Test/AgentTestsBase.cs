@@ -172,7 +172,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
                 configStore,
                 deploymentConfigInfoSerde,
                 NullEncryptionProvider.Instance,
-                availabilityMetric);
+                availabilityMetric,
+                Option.None<OfflineCheckInfo>());
             await agent.ReconcileAsync(CancellationToken.None);
             Assert.True(testConfig.Validator.Validate(commandFactory));
         }
