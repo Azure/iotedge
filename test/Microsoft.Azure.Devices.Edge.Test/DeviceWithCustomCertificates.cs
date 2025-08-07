@@ -29,34 +29,24 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 ? Option.None<string>()
                 : Option.Some(this.runtime.DeviceId);
 
-            LeafDevice leaf = null;
-            try
-            {
-                leaf = await LeafDevice.CreateAsync(
-                    leafDeviceId,
-                    protocol,
-                    testAuth.ToAuthenticationType(),
-                    parentId,
-                    testAuth.UseSecondaryCertificate(),
-                    this.ca,
-                    this.daemon.GetCertificatesPath(),
-                    this.IotHub,
-                    this.device.NestedEdge.DeviceHostname,
-                    token,
-                    Option.None<string>(),
-                    this.device.NestedEdge.IsNestedEdge);
-            }
-            catch (Exception) when (!parentId.HasValue)
-            {
-                return;
-            }
-
             if (!parentId.HasValue)
             {
                 Assert.Fail("Expected to fail when not in scope.");
             }
 
-            Assert.NotNull(leaf);
+            using var leaf = await LeafDevice.CreateAsync(
+                leafDeviceId,
+                protocol,
+                testAuth.ToAuthenticationType(),
+                parentId,
+                testAuth.UseSecondaryCertificate(),
+                this.ca,
+                this.daemon.GetCertificatesPath(),
+                this.IotHub,
+                this.device.NestedEdge.DeviceHostname,
+                token,
+                Option.None<string>(),
+                this.device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -68,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 async () =>
                 {
+                    await leaf.CloseAsync();
                     await leaf.DeleteIdentityAsync(token);
                 });
         }
@@ -89,6 +80,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             Option<string> parentId = Option.Some(this.runtime.DeviceId);
+            if (!parentId.HasValue)
+            {
+                Assert.Fail("Expected to fail when not in scope.");
+            }
 
             CancellationToken token = this.TestToken;
 
@@ -96,34 +91,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string leafDeviceId = DeviceId.Current.Generate();
 
-            LeafDevice leaf = null;
-            try
-            {
-                leaf = await LeafDevice.CreateAsync(
-                    leafDeviceId,
-                    protocol,
-                    testAuth.ToAuthenticationType(),
-                    parentId,
-                    testAuth.UseSecondaryCertificate(),
-                    this.ca,
-                    this.daemon.GetCertificatesPath(),
-                    this.IotHub,
-                    this.device.NestedEdge.ParentHostname,
-                    token,
-                    Option.None<string>(),
-                    this.device.NestedEdge.IsNestedEdge);
-            }
-            catch (Exception) when (!parentId.HasValue)
-            {
-                return;
-            }
-
-            if (!parentId.HasValue)
-            {
-                Assert.Fail("Expected to fail when not in scope.");
-            }
-
-            Assert.NotNull(leaf);
+            using var leaf = await LeafDevice.CreateAsync(
+                leafDeviceId,
+                protocol,
+                testAuth.ToAuthenticationType(),
+                parentId,
+                testAuth.UseSecondaryCertificate(),
+                this.ca,
+                this.daemon.GetCertificatesPath(),
+                this.IotHub,
+                this.device.NestedEdge.ParentHostname,
+                token,
+                Option.None<string>(),
+                this.device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -135,8 +115,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 async () =>
                 {
+                    await leaf.CloseAsync();
                     await leaf.DeleteIdentityAsync(token);
-                    await Task.CompletedTask;
                 });
         }
     }

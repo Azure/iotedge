@@ -122,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.DeviceId = Option.Maybe(Get("deviceId"));
             this.ISA95Tag = context.GetValue("isa95Tag", false);
             this.GetSupportBundle = context.GetValue("getSupportBundle", false);
+            this.EnableSdkLoggingForLeafDevice = context.GetValue("enableSdkLoggingForLeafDevice", false);
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -211,5 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public bool ISA95Tag { get; }
 
         public bool GetSupportBundle { get; }
+
+        public bool EnableSdkLoggingForLeafDevice { get; }
     }
 }
