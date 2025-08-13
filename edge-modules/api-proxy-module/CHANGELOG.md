@@ -1,3 +1,8 @@
+# 1.1.6 (2025-08-12)
+
+## Bug fixes
+* Mark API Proxy module's entrypoint as executable ( [c016c38](https://github.com/Azure/iotedge/commit/c016c3834c41577dec816ae1176d3abdbf00b3b4) )
+
 # 1.1.5 (2025-07-28)
 
 ## Bug fixes
