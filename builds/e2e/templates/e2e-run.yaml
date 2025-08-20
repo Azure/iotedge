@@ -1,4 +1,5 @@
 parameters:
+  continue_on_error: false
   EventHubCompatibleEndpoint: '$(TestEventHubCompatibleEndpoint)'
   IotHubConnectionString: '$(TestIotHubConnectionString)'
   test_type: ''
@@ -67,6 +68,7 @@ steps:
     sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 
   displayName: Run tests ${{ parameters.test_type }}
+  continueOnError: ${{ parameters.continue_on_error }}
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
     E2E_EVENT_HUB_ENDPOINT: ${{ parameters['EventHubCompatibleEndpoint'] }}

@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token,
                 Context.Current.NestedEdge);
 
-            var leaf = await LeafDevice.CreateAsync(
+            using var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 protocol,
                 AuthenticationType.Sas,
@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 async () =>
                 {
+                    await leaf.CloseAsync();
                     await leaf.DeleteIdentityAsync(token);
                 });
         }
