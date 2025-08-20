@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<int> storageMaxOpenFiles;
         readonly Option<StorageLogLevel> storageLogLevel;
         readonly ModuleUpdateMode moduleUpdateMode;
+        readonly Option<OfflineCheckInfo> offlineCheckInfo;
 
         public AgentModule(
             int maxRestartCount,
@@ -67,7 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 storageMaxManifestFileSize,
                 storageMaxOpenFiles,
                 storageLogLevel,
-                moduleUpdateMode)
+                moduleUpdateMode,
+                Option.None<OfflineCheckInfo>())
         {
         }
 
@@ -87,7 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<ulong> storageMaxManifestFileSize,
             Option<int> storageMaxOpenFiles,
             Option<StorageLogLevel> storageLogLevel,
-            ModuleUpdateMode moduleUpdateMode)
+            ModuleUpdateMode moduleUpdateMode,
+            Option<OfflineCheckInfo> offlineCheckInfo)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -105,6 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.storageMaxOpenFiles = storageMaxOpenFiles;
             this.storageLogLevel = storageLogLevel;
             this.moduleUpdateMode = moduleUpdateMode;
+            this.offlineCheckInfo = offlineCheckInfo;
         }
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
@@ -340,7 +344,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             deploymentConfigInfoStore,
                             deploymentConfigInfoSerde,
                             await encryptionProvider,
-                            availabilityMetric);
+                            availabilityMetric,
+                            this.offlineCheckInfo);
                     })
                 .As<Task<Agent>>()
                 .SingleInstance();
