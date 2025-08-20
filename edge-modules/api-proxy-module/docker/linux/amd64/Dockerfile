@@ -7,7 +7,7 @@ FROM alpine:3.22
 WORKDIR /app
 
 RUN	apk update && \
-    apk add --no-cache libcap
+    apk add --no-cache libcap libgcc libssl3 libcrypto3
 
 ENV NGINXUSER_ID ${NGINXUSER_ID:-13624}
 RUN adduser -Ds /bin/sh -u ${NGINXUSER_ID} nginx
@@ -28,6 +28,15 @@ RUN chown -R nginx:nginx /app && \
     chown -R nginx:nginx /var/log/nginx
 RUN touch /var/run/nginx/nginx.pid && \
         chown -R nginx:nginx /var/run/nginx/nginx.pid
+
+# The api-proxy-release pipeline in ADO uses PublishPipelineArtifact and DownloadPipelineArtifact tasks
+# to shuttle the binary between jobs (one compiles the binary and the other uses it to build the Docker image).
+# These tasks round-trip the file through a .zip container so the binary loses its +x mode bits.
+# So we fix up the mode manually.
+#
+# The build-image.yaml pipeline doesn't have this problem because it uses PublishBuildArtifacts and DownloadBuildArtifacts
+# with `storeAsTar: true` and `extractTars: true`, so the round-tripping happens in a .tar that preserves the mode bits.
+RUN chmod 0755 /app/api-proxy-module
 
 
 USER nginx

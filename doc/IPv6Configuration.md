@@ -135,21 +135,21 @@ sudo ./configureDockerIPv6.sh "2021:ffff:e0:3b1:0::/80" "2021:ffff:e0:3b1:1::/80
 
 # IoT Edge configuration
 
-* Specify the IPv6 network configuration for the `azure-iot-edge` network in the config.yaml file of IoT Edge. The subnet defined for this network needs to be exclusive of the subnet defined in docker's daemon.json file earlier. In other words, the subnets shouldn’t overlap. The modules in the network will pick up IP addresses from this subnet. The subnet and IP ranges specified in the configuration below should match the ones picked for the `azure-iot-edge` network while configuring the device earlier.
+* Specify the IPv6 network configuration for the `azure-iot-edge` network in the config.toml file of IoT Edge (in `/etc/aziot/config.toml`). The subnet defined for this network needs to be exclusive of the subnet defined in docker's daemon.json file earlier. In other words, the subnets shouldn’t overlap. The modules in the network will pick up IP addresses from this subnet. The subnet and IP ranges specified in the configuration below should match the ones picked for the `azure-iot-edge` network while configuring the device earlier.
 Sample config changes:
 
-  ```yaml
-  moby_runtime:
-    uri: "unix:///var/run/docker.sock"
-    network:
-      name: "azure-iot-edge"
-      ipv6: true
-      ipam:
-        config:
-          - 
-              gateway: '2021:ffff:e0:3b1:1::1'
-              subnet: '2021:ffff:e0:3b1:1::/80'
-              ip_range: '2021:ffff:e0:3b1:1::/80'
+  ```toml
+  [moby_runtime]
+  uri = "unix:///var/run/docker.sock"
+  
+  [moby_runtime.network]
+  name: "azure-iot-edge"
+  ipv6: true
+
+  [[moby_runtime.network.ipam.config]]
+  gateway: '2021:ffff:e0:3b1:1::1'
+  subnet: '2021:ffff:e0:3b1:1::/80'
+  ip_range: '2021:ffff:e0:3b1:1::/80'
   ```
 
   The key changes in the config above are the specification of the `ipv6` flag with value 'true' and the IPv6 network configuration for the network itself which includes the subnet, IP range and gateway of the `azure-iot-edge` container network that will be created (Details for these can be obtained from your IaaS provider)
@@ -157,7 +157,8 @@ Sample config changes:
 * Restart the docker service for the changes made above to take effect
 
   ```bash
-  systemctl restart aziot-edged
+  sudo iotedge config apply
+  sudo iotedge system restart
   ```
 
 IoT Edge will subsequently start up and create the `azure-iot-edge` network with IPv6 configuration as specified in the config.yaml file. Modules deployed to this network will have IPv6 addresses from within the specified subnet and IP range.

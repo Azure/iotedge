@@ -22,8 +22,6 @@ stages:
 - stage: SetupAgents
   jobs:
   - template: templates/lock-test-agents.yaml
-    parameters:
-      upstream.protocol: 'amqp'
 
 - stage: RunNestedTests
   dependsOn: SetupAgents
