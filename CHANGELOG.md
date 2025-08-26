@@ -1,3 +1,10 @@
+# 1.5.26 (2025-08-26)
+
+## Edge Agent
+### Bug fixes
+* Introduce `UseOfflineCheck` environment variable to help Edge Agent start without network connectivity ( [ce63def](https://github.com/Azure/iotedge/commit/ce63defcaae3eda64e2ec4c176c169dae14b0ab4), [8d74df0](https://github.com/Azure/iotedge/commit/8d74df08f6d07aa5babdecc364f34b3e2e746022) )
+
+
 # 1.5.25 (2025-08-06)
 
 Only Docker images are updated in this release. The daemon remains at version 1.5.21.
