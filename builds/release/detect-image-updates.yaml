@@ -105,6 +105,9 @@ steps:
       # $base_images contains entries in the form of:
       # mcr.microsoft.com/dotnet/runtime@6.0-alpine,sha256:b7a9b8fbdb096327a1e05cda40d40afbec54b96e1a6a1bb7577e67344f9d99e4
 
+      # rebuild the multi-platform image if *any* of its base images are out of date
+      remove_image=true
+
       for base_info in ${base_images[@]}; do
         IFS=',' read base_image current_digest <<< "$base_info"
         latest_digest="$(docker buildx imagetools inspect $base_image --format '{{json .Manifest}}' | jq -r '.digest')"
@@ -113,10 +116,14 @@ steps:
         if [ -n "$current_digest" ] && [ "$current_digest" != "$latest_digest" ]
         then
           echo "  ## NEEDS UPDATE ##"
-        else
-          remove+=( "$image" )
+          remove_image=false
         fi
       done
+
+      if [ "$remove_image" == 'true' ]
+      then
+        remove+=( "$image" )
+      fi
     done
 
     # filter up-to-date images out of the list
