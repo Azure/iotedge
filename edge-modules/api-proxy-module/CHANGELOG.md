@@ -1,3 +1,8 @@
+# 1.1.7 (2025-09-04)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
 # 1.1.6 (2025-08-12)
 
 ## Bug fixes
