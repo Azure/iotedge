@@ -36,8 +36,7 @@ steps:
     #!/bin/bash
     set -euo pipefail
 
-    #branch="${BUILD_SOURCEBRANCH#refs/heads/}"
-    branch=main
+    branch="${BUILD_SOURCEBRANCH#refs/heads/}"
     echo "Filtering product-versions.json for images on branch '$branch'"
 
     # transform product-versions.json into a list of images for each product in this branch
