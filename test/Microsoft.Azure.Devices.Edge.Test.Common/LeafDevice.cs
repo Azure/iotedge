@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
+    using System.Diagnostics.Tracing;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -14,25 +15,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Extensions.Logging;
     using Serilog;
 
-    public class LeafDevice
+    public class LeafDevice : IDisposable
     {
-        readonly DeviceClient client;
         readonly Device device;
         readonly IotHub iotHub;
         readonly string messageId;
+        DeviceClient client;
+        Option<LeafDeviceSdkLogger> sdkLogger;
 
-        LeafDevice(Device device, DeviceClient client, IotHub iotHub)
+        LeafDevice(Device device, DeviceClient client, IotHub iotHub, Option<LeafDeviceSdkLogger> sdkLogger)
         {
             this.client = client;
             this.device = device;
             this.iotHub = iotHub;
             this.messageId = Guid.NewGuid().ToString();
+            this.sdkLogger = sdkLogger;
         }
 
         public static Task<LeafDevice> CreateAsync(
@@ -316,19 +321,86 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         static async Task<LeafDevice> CreateLeafDeviceAsync(Device device, Func<DeviceClient> clientFactory, IotHub iotHub, CancellationToken token)
         {
-            DeviceClient client = clientFactory();
+            DeviceClient client;
+            Option<LeafDeviceSdkLogger> logger = Option.None<LeafDeviceSdkLogger>();
+            ConnectionStatus status = ConnectionStatus.Disconnected;
+            ConnectionStatusChangeReason reason = ConnectionStatusChangeReason.Connection_Ok;
 
-            client.SetConnectionStatusChangesHandler((status, reason) =>
+            while (true)
             {
-                Log.Verbose($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
-            });
+                client = clientFactory();
+                logger = Option.Maybe(Context.Current.EnableSdkLoggingForLeafDevice
+                    ? new LeafDeviceSdkLogger(new string[]
+                    {
+                        "DotNetty-Default",
+                        "Microsoft-Azure-Devices",
+                        "Azure-Core", "Azure-Identity"
+                    })
+                    : null);
 
-            await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
+                client.SetConnectionStatusChangesHandler((s, r) =>
+                {
+                    status = s;
+                    reason = r;
+                    Log.Verbose($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+                });
 
-            return new LeafDevice(device, client, iotHub);
+                using var innerCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(innerCts.Token, token);
+                try
+                {
+                    await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, linkedCts.Token);
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    await client.CloseAsync();
+                    client.Dispose();
+                    logger.ForEach(l => l.Dispose());
+
+                    // Only throw if the caller-supplied token was cancelled. If the inner (30 second) token was
+                    // cancelled, fall through and allow the device client to retry.
+                    if (token.IsCancellationRequested)
+                    {
+                        token.ThrowIfCancellationRequested();
+                    }
+                }
+                catch (IotHubCommunicationException)
+                {
+                    await client.CloseAsync();
+                    client.Dispose();
+                    logger.ForEach(l => l.Dispose());
+
+                    // In the {status == Disconnected, reason == Retry_Expired } scenario, fall through and allow the
+                    // client to retry, otherwise throw.
+                    if (status != ConnectionStatus.Disconnected || reason != ConnectionStatusChangeReason.Retry_Expired)
+                    {
+                        throw;
+                    }
+                }
+            }
+
+            return new LeafDevice(device, client, iotHub, logger);
         }
 
-        public Task Close() => this.client.CloseAsync();
+        public Task CloseAsync() => this.client.CloseAsync();
+
+        public void Dispose()
+        {
+            if (this.client != null)
+            {
+                this.client.Dispose();
+                this.client = null;
+            }
+
+            this.sdkLogger.ForEach(l => l.Dispose());
+            this.sdkLogger = Option.None<LeafDeviceSdkLogger>();
+        }
+
+        ~LeafDevice()
+        {
+            this.Dispose();
+        }
 
         public Task SendEventAsync(CancellationToken token)
         {
