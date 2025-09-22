@@ -94,8 +94,9 @@ jobs:
     condition: succeeded('Token')
 
     pool:
-      name: $(pool.custom.name)
-      demands: debian12-arm64-e2e-tests
+      name: $(pool.linux.arm.name)
+      demands:
+      - ImageOverride -equals agent-aziotedge-debian-12-arm64-msmoby
 
     variables:
       os: linux
