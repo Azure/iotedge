@@ -76,4 +76,4 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             }
         }
     }
-   }
+}
