@@ -39,7 +39,7 @@ apt-get install -y \
 GO_VERSION=1.23.0
 [ "$ARCH" == 'aarch64' ] && GO_ARCH='arm64' || GO_ARCH='amd64'
 mkdir -p /usr/local/go
-curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" | sudo tar -C /usr/local -xzf -
+curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" | tar -C /usr/local -xzf -
 rm -f /usr/bin/go
 ln -vs /usr/local/go/bin/go /usr/local/bin/go
 touch /.mariner-toolkit-ignore-dockerenv
