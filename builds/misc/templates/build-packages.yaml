@@ -233,6 +233,9 @@ stages:
               sudo snap refresh
               sudo snap install snapcraft --classic
               lxd init --minimal
+              # Create a runtime directory for this user.
+              sudo mkdir -p /run/user/$(id -u)
+              sudo chown $(id -u):$(id -g) /run/user/$(id -u)
             displayName: Set up build environment for snaps
           - bash: |
               set -xeuo pipefail
