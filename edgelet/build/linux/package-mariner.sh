@@ -30,19 +30,18 @@ REVISION="${REVISION:-1}"
 apt-get update -y
 apt-get upgrade -y
 
-if [ "${AZURELINUX_RELEASE:0:3}" = '2.0' ]; then
-    apt-get install -y software-properties-common
-    add-apt-repository -y ppa:longsleep/golang-backports
-    apt-get update -y
-fi
-
 apt-get install -y \
-    acl cmake cpio curl g++ gcc genisoimage git golang-1.21-go jq libclang1 libssl-dev \
+    acl cmake cpio curl g++ gcc genisoimage git jq libclang1 libssl-dev \
     llvm-dev make pigz pkg-config python3-distutils python3-pip qemu-utils rpm tar \
     wget zstd
 
+# Install Go 1.23
+GO_VERSION=1.23.0
+[ "$ARCH" == 'aarch64' ] && GO_ARCH='arm64' || GO_ARCH='amd64'
+mkdir -p /usr/local/go
+curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" | tar -C /usr/local -xzf -
 rm -f /usr/bin/go
-ln -vs /usr/lib/go-1.21/bin/go /usr/bin/go
+ln -vs /usr/local/go/bin/go /usr/local/bin/go
 touch /.mariner-toolkit-ignore-dockerenv
 
 # Build Azure Linux toolkit
