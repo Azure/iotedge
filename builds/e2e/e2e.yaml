@@ -293,6 +293,39 @@ jobs:
       parameters:
         sas_uri: $(sas_uri)
 
+################################################################################
+  - job: snaps_ubuntu_core
+################################################################################
+    displayName: Snaps (Ubuntu Core)
+    dependsOn: Token
+    condition: succeeded('Token')
+
+    pool:
+      name: $(pool.custom.name)
+      demands: ubucore-e2e-tests
+
+    variables:
+      os: linux
+      arch: arm64v8
+      artifactName: iotedged-snap-aarch64
+      identityServiceArtifactName: packages_snap_aarch64
+      identityServicePackageFilter: azure-iot-identity_*_arm64.snap
+      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+
+    timeoutInMinutes: 90
+
+    steps:
+    - script: |
+        sudo snap install docker
+      displayName: Install Docker as a snap
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+      parameters:
+        continue_on_error: true
+        sas_uri: $(sas_uri)
+
   ################################################################################
   - job: redhat8_amd64
   ################################################################################
