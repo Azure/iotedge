@@ -31,7 +31,8 @@ steps:
             --resource-group '$(resourceGroup)' \
             --name "$network_interface" \
             --output tsv \
-            --query 'value[?contains(keys(association), `networkInterface` || `subnet`)].networkSecurityGroup | [0].id'
+            --query 'value[?contains(keys(association), `networkInterface`) ||
+                     contains(keys(association), `subnet`)].networkSecurityGroup | [0].id'
         )
         echo "$nsg_resource"
         nsgName=$(echo "$nsg_resource" | sed -n 's/.*\/\(.*\)/\1/p')
