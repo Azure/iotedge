@@ -20,10 +20,8 @@ schedules:
 variables:
   Codeql.Enabled: false
   DisableDockerDetector: true
-  itProxy: http://10.16.8.4:3128
-  otProxy: http://10.16.5.4:3128
   resourceGroup: nested-edge-isa95
-  otProxyName: "otproxy"
+  otProxyName: iotedge-isa95-otproxy
 
 resources:
   pipelines:
@@ -71,7 +69,7 @@ stages:
       deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
       parentName: ''
       parentDeviceId: ''
-      proxyAddress: $(itProxy)
+      proxyAddress: $(proxyUrl.it)
     pool:
       name: $(pool.name)
       demands:
@@ -154,7 +152,7 @@ stages:
       level: 3
       upstreamProtocol: amqp
       deploymentFile: nestededge_isa95_smoke_test_BaseDeployment.json
-      proxyAddress: $(otProxy)
+      proxyAddress: $(proxyUrl.ot)
       x64ParentName: $[ dependencies.SetupVM_level4.outputs['x64.deployIoTEdge.deviceName'] ]
       x64ParentDeviceId: $[ dependencies.SetupVM_level4.outputs['x64.createIdentity.parentDeviceId'] ]
       arm64ParentName: $[ dependencies.SetupVM_level4.outputs['arm64.deployIoTEdge.deviceName'] ]
@@ -222,7 +220,7 @@ stages:
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
       nestededge: true
-      proxyAddress: $(otProxy)
+      proxyAddress: $(proxyUrl.ot)
       test_type: nestededge_isa95
       verbose: false
     strategy:
