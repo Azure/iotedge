@@ -158,13 +158,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
     public class MemoryStatsExtended
     {
         [JsonConstructor]
-        public MemoryStatsExtended(double? cache)
+        public MemoryStatsExtended(double? cache, double? inactive_file, double? total_inactive_file)
         {
             this.Cache = Option.Maybe(cache);
+            this.InactiveFile = Option.Maybe(inactive_file);
+            this.TotalInactiveFile = Option.Maybe(total_inactive_file);
         }
 
         [JsonProperty("cache", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public Option<double> Cache { get; }
+
+        [JsonProperty("inactive_file", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Option<double> InactiveFile { get; }
+
+        [JsonProperty("total_inactive_file", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Option<double> TotalInactiveFile { get; }
     }
 
     public class NetworkInfo
