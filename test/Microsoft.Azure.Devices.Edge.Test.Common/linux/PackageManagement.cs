@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "sudo mv -f ~/override.conf ${pathToOverride}/overrides.conf",
                         "sudo systemctl daemon-reload"
                     },
-                    "mariner" or "azurelinux" => new[]
+                    "azurelinux" => new[]
                     {
                         "set -e",
                         $"sudo dnf -y install {string.Join(' ', packages)}",
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
                         "sudo systemctl daemon-reload"
                     },
-                    _ => throw new NotImplementedException($"RPM packaging is set up only for RHEL and Mariner, current OS '.{this.os}'"),
+                    _ => throw new NotImplementedException($"RPM packaging is set up only for RHEL and Azure Linux, current OS is '.{this.os}'"),
                 },
                 SupportedPackageExtension.Snap => new[]
                 {
