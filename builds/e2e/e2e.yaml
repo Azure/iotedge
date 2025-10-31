@@ -380,59 +380,6 @@ jobs:
         sas_uri: $(sas_uri)
 
 ################################################################################
-  - job: mariner2_amd64
-################################################################################
-    displayName: Mariner 2.0 amd64 (minimal)
-    dependsOn: Token
-    condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'))
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-mariner-2.0-msmoby
-
-    variables:
-      os: linux
-      arch: amd64
-      identityArtifactName: aziot-identity-mariner2-amd64
-      artifactName: iotedged-mariner2-amd64
-      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      minimal: true
-
-    timeoutInMinutes: 90
-
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
-      parameters:
-        sas_uri: $(sas_uri)
-
-################################################################################
-  - job: mariner2_arm64v8
-################################################################################
-    displayName: Mariner 2.0 arm64v8 (minimal)
-    dependsOn: Token
-    pool:
-      name: $(pool.linux.arm.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-mariner-2.0-arm64-msmoby
-
-    variables:
-      os: linux
-      arch: arm64v8
-      identityArtifactName: aziot-identity-mariner2-aarch64
-      artifactName: iotedged-mariner2-aarch64
-      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      minimal: true
-
-    timeoutInMinutes: 90
-
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
-      parameters:
-        sas_uri: $(sas_uri)
-
-################################################################################
   - job: azurelinux3_amd64
 ################################################################################
     displayName: Azure Linux 3.0 amd64
