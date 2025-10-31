@@ -81,14 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     }
 
                     break;
-                case "mariner":
-                    if (version != "2.0")
-                    {
-                        ThrowUnsupportedOs();
-                    }
-
-                    packageExtension = SupportedPackageExtension.Rpm;
-                    break;
                 case "azurelinux":
                     if (version != "3.0")
                     {
