@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                         ms.Limit.ForEach(limit => this.totalMemory.Set(limit, tags));
                         ms.Usage.ForEach(usage =>
                         {
-                            double actualUsage = usage - ms.Stats.AndThen(s => s.Cache).GetOrElse(0);
+                            double actualUsage = usage - ms.Stats.AndThen(s => s.InactiveFile.Else(s.TotalInactiveFile).Else(s.Cache)).OrDefault();
                             this.usedMemory.Set((long)actualUsage, tags);
                         });
                     }
