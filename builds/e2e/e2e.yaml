@@ -132,6 +132,7 @@ jobs:
       identityArtifactName: aziot-identity-debian12-arm32v7
       artifactName: iotedged-debian12-arm32v7
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      minimal: true
 
     timeoutInMinutes: 120
 
