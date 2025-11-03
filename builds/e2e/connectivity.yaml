@@ -30,7 +30,7 @@ resources:
     branch: 'main'
 
 jobs:
-  - template: templates/get-storage-uri.yaml
+  - template: templates/get-e2e-secrets.yaml
     parameters:
       azureSubscription: $(azure.subscription)
 

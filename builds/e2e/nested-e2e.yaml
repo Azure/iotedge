@@ -38,7 +38,7 @@ stages:
 - stage: RunNestedTests
   dependsOn: LockAgents
   jobs:
-  - template: templates/get-storage-uri.yaml
+  - template: templates/get-e2e-secrets.yaml
     parameters:
       azureSubscription: $(az.subscription)
   - template: templates/nested-parent-vm-setup.yaml
