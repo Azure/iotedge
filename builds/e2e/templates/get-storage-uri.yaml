@@ -1,6 +1,7 @@
 # get-sas-uri.yaml
 parameters:
     azureSubscription: ''
+    keyVaultName: ''
 
 jobs:
   - job: Token
@@ -10,6 +11,31 @@ jobs:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
     steps:
+      - task: AzureKeyVault@2
+        displayName: Get secrets
+        inputs:
+          azureSubscription: ${{ parameters.azureSubscription }}
+          keyVaultName: ${{ parameters.keyVaultName }}
+          secretsFilter: >-
+            TestContainerRegistryPassword,
+            TestDpsGroupKeySymmetric,
+            TestEventHubCompatibleEndpoint,
+            TestIotHubConnectionString,
+            TestIotHubResourceId,
+            TestRootCaCertificate,
+            TestRootCaKey,
+            TestRootCaPassword
+      - bash: |
+          echo "##vso[task.setvariable variable=containerRegistryPassword;issecret=true;isoutput=true]$(TestContainerRegistryPassword)"
+          echo "##vso[task.setvariable variable=dpsGroupKeySymmetric;issecret=true;isoutput=true]$(TestDpsGroupKeySymmetric)"
+          echo "##vso[task.setvariable variable=eventHubCompatibleEndpoint;issecret=true;isoutput=true]$(TestEventHubCompatibleEndpoint)"
+          echo "##vso[task.setvariable variable=iotHubConnectionString;issecret=true;isoutput=true]$(TestIotHubConnectionString)"
+          echo "##vso[task.setvariable variable=iotHubResourceId;issecret=true;isoutput=true]$(TestIotHubResourceId)"
+          echo "##vso[task.setvariable variable=rootCaCertificate;issecret=true;isoutput=true]$(TestRootCaCertificate)"
+          echo "##vso[task.setvariable variable=rootCaKey;issecret=true;isoutput=true]$(TestRootCaKey)"
+          echo "##vso[task.setvariable variable=rootCaPassword;issecret=true;isoutput=true]$(TestRootCaPassword)"
+        name: scripts
+        displayName: 'Make Key Vault secrets available to pipeline'
       - task: AzureCLI@2
         name: generate
         displayName: 'Get Storage URI'

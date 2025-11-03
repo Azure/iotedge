@@ -1,24 +1,14 @@
+parameters:
+  iotHubResourceId: ''
+  rootCaCertificate: ''
+  rootCaKey: ''
+
 steps:
   - checkout: self
     clean: true
     fetchDepth: 100
     submodules: recursive
   
-  - task: AzureKeyVault@2
-    displayName: Get secrets
-    inputs:
-      azureSubscription: $(az.subscription)
-      keyVaultName: $(kv.name)
-      secretsFilter: >-
-        TestContainerRegistryPassword,
-        TestDpsGroupKeySymmetric,
-        TestEventHubCompatibleEndpoint,
-        TestIotHubConnectionString,
-        TestIotHubResourceId,
-        TestRootCaCertificate,
-        TestRootCaKey,
-        TestRootCaPassword
-
   - bash: | 
       echo "Built Images Result is '$(builtImages)'"
       echo "Built Packages Result is '$(builtPackages)'"
@@ -113,9 +103,9 @@ steps:
       Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
     displayName: Install CA keys
     env:
-      ROOT_CERT: $(TestRootCaCertificate)
-      ROOT_KEY: $(TestRootCaKey)
-  
+      ROOT_CERT: ${{ parameters.rootCaCertificate }}
+      ROOT_KEY: ${{ parameters.rootCaKey }}
+
   - pwsh: |
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       dotnet build $testDir
@@ -238,4 +228,4 @@ steps:
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
     env:
-      IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
+      IOT_HUB_RESOURCE_ID: ${{ parameters.iotHubResourceId }}

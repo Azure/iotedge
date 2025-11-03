@@ -1,8 +1,11 @@
 parameters:
-  EventHubCompatibleEndpoint: '$(TestEventHubCompatibleEndpoint)'
-  IotHubConnectionString: '$(TestIotHubConnectionString)'
-  test_type: ''
+  containerRegistryPassword: ''
+  dpsGroupKeySymmetric: ''
+  eventHubCompatibleEndpoint: ''
+  iotHubConnectionString: ''
+  rootCaPassword: ''
   sas_uri: ''
+  test_type: ''
 
 steps:
 # This E2E test pipeline uses the following filters in order to skip certain tests:
@@ -68,11 +71,11 @@ steps:
 
   displayName: Run tests ${{ parameters.test_type }}
   env:
-    E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
-    E2E_EVENT_HUB_ENDPOINT: ${{ parameters['EventHubCompatibleEndpoint'] }}
-    E2E_IOT_HUB_CONNECTION_STRING: ${{ parameters['IotHubConnectionString'] }}
-    E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
-    E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
+    E2E_DPS_GROUP_KEY: ${{ parameters['dpsGroupKeySymmetric'] }}
+    E2E_EVENT_HUB_ENDPOINT: ${{ parameters['eventHubCompatibleEndpoint'] }}
+    E2E_IOT_HUB_CONNECTION_STRING: ${{ parameters['iotHubConnectionString'] }}
+    E2E_REGISTRIES__0__PASSWORD: ${{ parameters['containerRegistryPassword'] }}
+    E2E_ROOT_CA_PASSWORD: ${{ parameters['rootCaPassword'] }}
     E2E_BLOB_STORE_SAS: ${{ parameters['sas_uri'] }} 
     no_proxy: 'localhost'
 
