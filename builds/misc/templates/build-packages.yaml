@@ -292,26 +292,6 @@ stages:
         timeoutInMinutes: 90
         strategy:
           matrix:
-            2.0-amd64:
-              agent-pool: $(pool.linux.name)
-              agent-image: agent-aziotedge-ubuntu-22.04-msmoby
-              arch: amd64
-              os: mariner
-              os_id: cm
-              os_version: 2
-              release_tag: 2.0-stable
-              target.identity: iot-identity-service/packages/mariner2/amd64
-              target.iotedged: builds/mariner2/out/RPMS/x86_64
-            2.0-aarch64:
-              agent-pool: $(pool.linux.arm.name)
-              agent-image: agent-aziotedge-ubuntu-22.04-arm64-msmoby
-              arch: aarch64
-              os: mariner
-              os_id: cm
-              os_version: 2
-              release_tag: 2.0-stable
-              target.identity: iot-identity-service/packages/mariner2/aarch64
-              target.iotedged: builds/mariner2/out/RPMS/aarch64
             3.0-amd64:
               agent-pool: $(pool.linux.name)
               agent-image: agent-aziotedge-ubuntu-22.04-msmoby

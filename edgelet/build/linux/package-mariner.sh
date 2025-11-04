@@ -10,11 +10,6 @@ export TZ=UTC
 
 
 case "$AZURELINUX_RELEASE" in
-    '2.0'*)
-        UsePreview=n
-        AzureLinuxIdentity=mariner2
-        PackageExtension=cm2
-        ;;
     '3.0'*)
         UsePreview=n
         AzureLinuxIdentity=azurelinux3
