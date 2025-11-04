@@ -98,8 +98,8 @@ steps:
   - pwsh: |
       $certsDir = '$(System.ArtifactsDirectory)/certs'
       New-Item "$certsDir" -ItemType Directory -Force | Out-Null
-      $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
-      $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+      $env:ROOT_CERT -replace '\\x0A', "`n" | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+      $env:ROOT_KEY -replace '\\x0A', "`n" | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
       Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
     displayName: Install CA keys
     env:
