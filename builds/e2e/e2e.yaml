@@ -68,11 +68,11 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        ContainerRegistryPassword: '$(containerRegistryPassword)'
-        DpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        EventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        IotHubConnectionString: '$(iotHubConnectionString)'
-        RootCaPassword: '$(rootCaPassword)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
+        dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
+        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
+        iotHubConnectionString: '$(iotHubConnectionString)'
+        rootCaPassword: '$(rootCaPassword)'
         sas_uri: $(sas_uri)
 
 ################################################################################
