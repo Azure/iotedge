@@ -80,8 +80,8 @@ stages:
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
+          eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          iotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: nestededge_mqtt
           sas_uri: $(sas_uri)
       - template: templates/nested-deploy-config.yaml
@@ -100,8 +100,8 @@ stages:
           name: 4
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
+          eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          iotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: nestededge_amqp
           sas_uri: $(sas_uri)
 
