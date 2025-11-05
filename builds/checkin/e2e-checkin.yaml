@@ -45,10 +45,6 @@ stages:
       builtImages: $[stageDependencies.CheckBuildImages.check_source_change_runtime.outputs['check_files.RUNTIMECHANGES']]
       builtPackages: $[stageDependencies.CheckBuildPackages.check_source_change_edgelet.outputs['check_files.EDGELETCHANGES']]
     jobs:
-      - template: ../e2e/templates/e2e-secrets.yaml
-        parameters:
-          azureSubscription: $(az.subscription)
-          keyVaultName: $(kv.name)
       - job: ubuntu_2204_amd64
         displayName: Ubuntu 22.04 amd64
         dependsOn: Token
@@ -59,20 +55,18 @@ stages:
           arch: amd64
           identityArtifactName: aziot-identity-ubuntu22.04-amd64
           artifactName: iotedged-ubuntu22.04-amd64
-          containerRegistryPassword: $[ dependencies.Token.outputs['secrets.containerRegistryPassword'] ]
-          dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-          eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-          iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-          iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
-          rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
-          rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
-          rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
-          sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
         pool:
           name: $(pool.linux.name)
           demands:
             - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
         steps:
+        - template: ../e2e/templates/e2e-vault-secrets.yaml
+          parameters:
+            azureSubscription: $(az.subscription)
+            keyVaultName: $(kv.name)
+        - template: ../e2e/templates/storage-token.yaml
+          parameters:
+            azureSubscription: $(az.subscription)
         - template: ../e2e/templates/e2e-setup.yaml
           parameters:
             iotHubResourceId: '$(iotHubResourceId)'
