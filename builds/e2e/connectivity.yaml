@@ -30,9 +30,16 @@ resources:
     branch: 'main'
 
 jobs:
-  - template: templates/e2e-secrets.yaml
-    parameters:
-      azureSubscription: $(azure.subscription)
+  - job: Token
+    displayName: 'Get SAS URI for Blob Storage Account'
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+    steps:
+      - template: templates/storage-token.yaml
+        parameters:
+          azureSubscription: $(azure.subscription)
 
 ################################################################################
   - job: linux_amd64_moby
