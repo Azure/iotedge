@@ -1,5 +1,10 @@
 parameters:
-  azureSubscription: ''
+  - name: azureSubscription
+    type: string
+    default: ''
+  - name: crossJobVariables
+    type: boolean
+    default: false
 
 steps:
 - task: AzureCLI@2
@@ -27,4 +32,4 @@ steps:
       # Construct the SAS URI
       endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
       sas_uri="$endpoint$container_name?$sasToken"
-      echo "##vso[task.setvariable variable=sas_uri;issecret=true;isoutput=true]$sas_uri"
+      echo "##vso[task.setvariable variable=sas_uri;issecret=true;isoutput=${{ parameters.crossJobVariables }}]$sas_uri"
