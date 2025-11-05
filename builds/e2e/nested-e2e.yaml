@@ -114,10 +114,13 @@ stages:
           name: 4
       - template: templates/e2e-run.yaml
         parameters:
+          containerRegistryPassword: '$(containerRegistryPassword)'
+          dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
           eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
           iotHubConnectionString: '$(IotHub-ConnStr)'
-          test_type: nestededge_amqp
+          rootCaPassword: '$(rootCaPassword)'
           sas_uri: $(sas_uri)
+          test_type: nestededge_amqp
 
 - stage: Cleanup
   condition: always()
