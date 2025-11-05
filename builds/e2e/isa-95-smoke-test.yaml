@@ -270,6 +270,10 @@ stages:
           Start-Sleep -s 30
         displayName: Wait for network to lock
       - template: templates/nested-get-root-ca.yaml
+      - template: templates/e2e-vault-secrets.yaml
+        parameters:
+          azureSubscription: $(az.subscription)
+          keyVaultName: $(kv.name)
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-run.yaml
         parameters:
