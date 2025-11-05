@@ -1,0 +1,30 @@
+parameters:
+  azureSubscription: ''
+
+steps:
+- task: AzureCLI@2
+  name: generate
+  displayName: 'Get storage container token'
+  inputs:
+    azureSubscription: ${{ parameters.azureSubscription }}
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      # Hardcoded resource group and storage account name
+      resource_group="EdgeBuilds"
+      storage_account="e2eteststorageedge"
+      # Set container name with name of storage account container
+      container_name="e2etest"
+      # Set expiry time for the SAS token
+      expiry_time=$(date --utc --date "+2 days" +"%Y-%m-%dT%H:%MZ")
+      # Generate the SAS token for the container
+      sasToken=$(az storage container generate-sas --account-name "$storage_account" --name "$container_name" --https-only --expiry "$expiry_time" --as-user --auth-mode login --permissions drwl --output tsv)
+      if [ $? -ne 0 ]; then
+        echo "Failed to generate SAS token."
+        exit 1
+      fi
+      echo "SAS token for Azure Storage account acquired.  Expires $expiry_time"
+      # Construct the SAS URI
+      endpoint=$(az storage account show --name "$storage_account" --resource-group "$resource_group" --query 'primaryEndpoints.blob' -o tsv)
+      sas_uri="$endpoint$container_name?$sasToken"
+      echo "##vso[task.setvariable variable=sas_uri;issecret=true;isoutput=true]$sas_uri"
