@@ -47,8 +47,6 @@ stages:
     jobs:
       - job: ubuntu_2204_amd64
         displayName: Ubuntu 22.04 amd64
-        dependsOn: Token
-        condition: succeeded('Token')
         variables:
           verbose: false
           os: linux
