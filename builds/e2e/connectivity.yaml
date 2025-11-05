@@ -30,7 +30,7 @@ resources:
     branch: 'main'
 
 jobs:
-  - template: templates/get-e2e-secrets.yaml
+  - template: templates/e2e-secrets.yaml
     parameters:
       azureSubscription: $(azure.subscription)
 
