@@ -40,6 +40,7 @@ jobs:
       - template: templates/storage-token.yaml
         parameters:
           azureSubscription: $(azure.subscription)
+          crossJobVariables: true
 
 ################################################################################
   - job: linux_amd64_moby
