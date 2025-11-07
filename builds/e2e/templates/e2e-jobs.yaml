@@ -57,8 +57,8 @@ parameters:
         agentImage: agent-aziotedge-rhel-8-msmoby
         artifact:
           edge: iotedged-redhat8-amd64
-        identity: aziot-identity-redhat8-amd64
-      pool: $(pool.linux.name)
+          identity: aziot-identity-redhat8-amd64
+        pool: $(pool.linux.name)
     - version: 9
       targets:
       - arch: amd64
