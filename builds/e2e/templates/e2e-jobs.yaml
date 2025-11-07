@@ -133,51 +133,51 @@ jobs:
         dependsOn: Token
         condition: succeeded('Token')
 
-      pool:
-        name: ${{ target.pool }}
-        demands:
-        - ${{ coalesce(target.agentDemand, format('ImageOverride -equals {0}', target.agentImage)) }}
+        pool:
+          name: ${{ target.pool }}
+          demands:
+          - ${{ coalesce(target.agentDemand, format('ImageOverride -equals {0}', target.agentImage)) }}
 
-        variables:
-          os: linux
-          arch: ${{ target.arch }}
-          identityArtifactName: ${{ target.artifact.identity }}
-          artifactName: ${{ target.artifact.edge }}
-          containerRegistryPassword: $[ dependencies.Token.outputs['secrets.containerRegistryPassword'] ]
-          dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-          eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-          iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-          iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
-          rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
-          rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
-          rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
-          sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-          minimal: ${{ coalesce(target.minimal, false) }}
+          variables:
+            os: linux
+            arch: ${{ target.arch }}
+            identityArtifactName: ${{ target.artifact.identity }}
+            artifactName: ${{ target.artifact.edge }}
+            containerRegistryPassword: $[ dependencies.Token.outputs['secrets.containerRegistryPassword'] ]
+            dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
+            eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
+            iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
+            iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
+            rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
+            rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
+            rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
+            sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+            minimal: ${{ coalesce(target.minimal, false) }}
 
-        ${{ if and(eq(target.arch, 'arm32v7'), eq(target.minimal, false)) }}:
-          timeoutInMinutes: 90
+          ${{ if and(eq(target.arch, 'arm32v7'), eq(target.minimal, false)) }}:
+            timeoutInMinutes: 90
 
-        steps:
-        - ${{ if eq(config.name, 'snap') }}:
-          - script: |
-              sudo snap install docker
-            displayName: Install Docker as a snap
-        - ${{ if eq(target.pool, parameters.pool.custom) }}:
-          - template: templates/e2e-clean-directory.yaml
-        - template: e2e-setup.yaml
-          parameters:
-            iotHubResourceId: '$(iotHubResourceId)'
-            rootCaCertificate: '$(rootCaCertificate)'
-            rootCaKey: '$(rootCaKey)'
-        - ${{ if eq(target.pool, parameters.pool.custom) }}:
-          - template: templates/e2e-clear-docker-cached-images.yaml
-        - template: e2e-run.yaml
-          parameters:
-            containerRegistryPassword: '$(containerRegistryPassword)'
-            dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-            eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-            iotHubConnectionString: '$(iotHubConnectionString)'
-            rootCaPassword: '$(rootCaPassword)'
-            sas_uri: $(sas_uri)
-            ${{ if eq(config.name, 'proxy') }}:
-              test_type: http_proxy
+          steps:
+          - ${{ if eq(config.name, 'snap') }}:
+            - script: |
+                sudo snap install docker
+              displayName: Install Docker as a snap
+          - ${{ if eq(target.pool, parameters.pool.custom) }}:
+            - template: templates/e2e-clean-directory.yaml
+          - template: e2e-setup.yaml
+            parameters:
+              iotHubResourceId: '$(iotHubResourceId)'
+              rootCaCertificate: '$(rootCaCertificate)'
+              rootCaKey: '$(rootCaKey)'
+          - ${{ if eq(target.pool, parameters.pool.custom) }}:
+            - template: templates/e2e-clear-docker-cached-images.yaml
+          - template: e2e-run.yaml
+            parameters:
+              containerRegistryPassword: '$(containerRegistryPassword)'
+              dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
+              eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
+              iotHubConnectionString: '$(iotHubConnectionString)'
+              rootCaPassword: '$(rootCaPassword)'
+              sas_uri: $(sas_uri)
+              ${{ if eq(config.name, 'proxy') }}:
+                test_type: http_proxy
