@@ -1,4 +1,11 @@
 parameters:
+- name: pool
+  type: object
+  default:
+    hosted:
+      x64: $(pool.linux.name)
+      arm64: $(pool.linux.arm64name)
+    custom: $(pool.custom.name)
 - name: configurations
   type: object
   default:
@@ -11,13 +18,13 @@ parameters:
         artifact:
           edge: iotedged-azurelinux3-amd64
           identity: aziot-identity-azurelinux3-amd64
-        pool: $(pool.linux.name)
+        pool: ${{ parameters.pool.hosted.x64 }}
       - arch: arm64v8
         agentImage: agent-aziotedge-azurelinux-3.0-arm64-msmoby
         artifact:
           edge: iotedged-azurelinux3-aarch64
           identity: aziot-identity-azurelinux3-aarch64
-        pool: $(pool.linux.arm64.name)
+        pool: ${{ parameters.pool.hosted.arm64 }}
   - name: debian
     versions:
     - version: 11
@@ -28,7 +35,7 @@ parameters:
           edge: iotedged-debian11-arm32v7
           identity: aziot-identity-debian11-arm32v7
         minimal: true
-        pool: $(pool.custom.name)
+        pool: ${{ parameters.pool.custom }}
     - version: 12
       targets:
       - arch: amd64
@@ -36,19 +43,19 @@ parameters:
         artifact:
           edge: iotedged-debian12-amd64
           identity: aziot-identity-debian12-amd64
-        pool: $(pool.linux.name)
+        pool: ${{ parameters.pool.hosted.x64 }}
       - arch: arm64v8
         agentImage: agent-aziotedge-debian-12-arm64-msmoby
         artifact:
           edge: iotedged-debian12-aarch64
           identity: aziot-identity-debian12-aarch64
-        pool: $(pool.linux.arm64.name)
+        pool: ${{ parameters.pool.hosted.arm64 }}
       - arch: arm32v7
         agentDemand: deb12-e2e-tests
         artifact:
           edge: iotedged-debian12-arm32v7
           identity: aziot-identity-debian12-arm32v7
-        pool: $(pool.custom.name)
+        pool: ${{ parameters.pool.custom }}
   - name: redhat
     versions:
     - version: 8
@@ -58,7 +65,7 @@ parameters:
         artifact:
           edge: iotedged-redhat8-amd64
         identity: aziot-identity-redhat8-amd64
-      pool: $(pool.linux.name)
+      pool: ${{ parameters.pool.hosted.x64 }}
     - version: 9
       targets:
       - arch: amd64
@@ -66,7 +73,7 @@ parameters:
         artifact:
           edge: iotedged-redhat9-amd64
           identity: aziot-identity-redhat9-amd64
-        pool: $(pool.linux.name)
+        pool: ${{ parameters.pool.hosted.x64 }}
   - name: ubuntu
     versions:
     - version: 2204
@@ -76,13 +83,13 @@ parameters:
         artifact:
           edge: iotedged-ubuntu22.04-amd64
           identity: aziot-identity-ubuntu22.04-amd64
-        pool: $(pool.linux.name)
+        pool: ${{ parameters.pool.hosted.x64 }}
       - arch: arm64v8
         agentImage: agent-aziotedge-ubuntu-22.04-arm64-msmoby
         artifact:
           edge: iotedged-ubuntu22.04-aarch64
           identity: aziot-identity-ubuntu22.04-aarch64
-        pool: $(pool.linux.arm64.name)
+        pool: ${{ parameters.pool.hosted.arm64 }}
     - version: 2404
       targets:
       - arch: amd64
@@ -90,13 +97,13 @@ parameters:
         artifact:
           edge: iotedged-ubuntu24.04-amd64
           identity: aziot-identity-ubuntu24.04-amd64
-        pool: $(pool.linux.name)
+        pool: ${{ parameters.pool.hosted.x64 }}
       - arch: arm64v8
         agentImage: agent-aziotedge-ubuntu-24.04-arm64-msmoby
         artifact:
           edge: iotedged-ubuntu24.04-aarch64
           identity: aziot-identity-ubuntu24.04-aarch64
-        pool: $(pool.linux.arm64.name)
+        pool: ${{ parameters.pool.hosted.arm64 }}
   - name: snap
     versions:
     - version: latest
@@ -106,13 +113,13 @@ parameters:
         artifact:
           edge: iotedged-snap-amd64
           identity: aziot-identity-snap-amd64
-        pool: $(pool.linux.name)
+        pool: ${{ parameters.pool.hosted.x64 }}
       - arch: arm64
         agentImage: agent-aziotedge-ubuntu-22.04-arm64
         artifact:
           edge: iotedged-snap-aarch64
           identity: aziot-identity-snap-aarch64
-        pool: $(pool.linux.arm64.name)
+        pool: ${{ parameters.pool.hosted.arm64 }}
   - name: proxy
     versions:
     - version: latest
@@ -122,7 +129,7 @@ parameters:
         artifact:
           edge: iotedged-ubuntu24.04-amd64
           identity: aziot-identity-ubuntu24.04-amd64
-        pool: $(pool.custom.name)
+        pool: ${{ parameters.pool.custom }}
 
 jobs:
 - ${{ each config in parameters.configurations }}:
