@@ -186,7 +186,6 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      minimal: true
 
     steps:
     - template: templates/e2e-clean-directory.yaml
