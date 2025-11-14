@@ -17,7 +17,7 @@ parameters:
         artifact:
           edge: iotedged-azurelinux3-aarch64
           identity: aziot-identity-azurelinux3-aarch64
-        pool: $(pool.linux.arm.name)
+        pool: $(pool.linux.arm64.name)
   - name: debian
     versions:
     - version: 11
@@ -42,7 +42,7 @@ parameters:
         artifact:
           edge: iotedged-debian12-aarch64
           identity: aziot-identity-debian12-aarch64
-        pool: $(pool.linux.arm.name)
+        pool: $(pool.linux.arm64.name)
       - arch: arm32v7
         agentDemand: deb12-e2e-tests
         artifact:
@@ -82,7 +82,7 @@ parameters:
         artifact:
           edge: iotedged-ubuntu22.04-aarch64
           identity: aziot-identity-ubuntu22.04-aarch64
-        pool: $(pool.linux.arm.name)
+        pool: $(pool.linux.arm64.name)
     - version: 2404
       targets:
       - arch: amd64
@@ -96,7 +96,7 @@ parameters:
         artifact:
           edge: iotedged-ubuntu24.04-aarch64
           identity: aziot-identity-ubuntu24.04-aarch64
-        pool: $(pool.linux.arm.name)
+        pool: $(pool.linux.arm64.name)
   - name: snap
     versions:
     - version: latest
@@ -112,7 +112,7 @@ parameters:
         artifact:
           edge: iotedged-snap-aarch64
           identity: aziot-identity-snap-aarch64
-        pool: $(pool.linux.arm.name)
+        pool: $(pool.linux.arm64.name)
   - name: proxy
     versions:
     - version: latest
