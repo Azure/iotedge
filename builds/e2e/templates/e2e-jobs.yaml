@@ -101,13 +101,13 @@ parameters:
     versions:
     - version: latest
       targets:
-      - arch: amd64
+      - arch: x64
         agentImage: agent-aziotedge-ubuntu-22.04
         artifact:
           edge: iotedged-snap-amd64
           identity: aziot-identity-snap-amd64
         pool: $(pool.linux.name)
-      - arch: arm64v8
+      - arch: arm64
         agentImage: agent-aziotedge-ubuntu-22.04-arm64
         artifact:
           edge: iotedged-snap-aarch64
