@@ -187,6 +187,8 @@ jobs:
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
 
+    timeoutInMinutes: 120
+
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
