@@ -33,6 +33,12 @@ steps:
       $filter += '&Category!=FlakyOnArm'
       $filter += '&Category!=Amd64Only'
     }
+    if ('$(arch)' -eq 'arm32v7' -And '$(minimal)' -eq 'false')
+    {
+      # TestUploadModuleLogs and TestUploadSupportBundle use a storage account that is only accessible via private link.
+      # If the tests are running from custom on-premises agents (e.g., Raspberry Pis) then they won't have access.
+      $filter += '&FullyQualifiedName!~TestUploadModuleLogs&FullyQualifiedName!~TestUploadSupportBundle'
+    }
     if ($test_type -eq 'nestededge_mqtt')
     {
       $filter += '&Category!=SingleNodeOnly'
