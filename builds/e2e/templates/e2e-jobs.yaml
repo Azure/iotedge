@@ -154,7 +154,7 @@ jobs:
           sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
           minimal: ${{ coalesce(target.minimal, false) }}
 
-        ${{ if and(eq(target.arch, 'arm32v7'), eq(target.minimal, false)) }}:
+        - ${{ if and(eq(target.arch, 'arm32v7'), eq(target.minimal, false)) }}:
           timeoutInMinutes: 90
 
         steps:
