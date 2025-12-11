@@ -33,12 +33,25 @@ jobs:
   - template: templates/get-storage-uri.yaml
     parameters:
       azureSubscription: $(azure.subscription)
+  - job: ContainerRegistryCredentials
+    displayName: 'Get ACR Credentials'
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+    steps:
+      - template: templates/acr-credentials.yaml
+        parameters:
+          acrName: '$(cr.name)'
+          serviceConnection: $(azure.subscription)
 
 ################################################################################
   - job: linux_amd64_moby
 ################################################################################
     displayName: Linux AMD64 Moby
-    dependsOn: Token
+    dependsOn:
+      - Token
+      - ContainerRegistryCredentials
     condition: and(succeeded('Token'), eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
     timeoutInMinutes: 240
     strategy:
@@ -99,6 +112,9 @@ jobs:
       identity.artifact.name: 'aziot-identity-ubuntu22.04-amd64'
       edgelet.artifact.name: 'iotedged-ubuntu22.04-amd64'
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters
@@ -126,8 +142,6 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: 'edgebuildkv'
           SecretsFilter: >-
-            edgebuilds-azurecr-io-username,
-            edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
       - task: AzureKeyVault@2
@@ -197,9 +211,9 @@ jobs:
           identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          container.registry: '$(container.registry)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          container.registry: '$(cr.server)'
+          container.registry.username: '$(cr.username)'
+          container.registry.password: '$(cr.token)'
           iotHub.connectionString: '$(IotHub-ConnStr)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           deploymentFileName: '$(deploymentFileName)'
@@ -230,7 +244,9 @@ jobs:
   - job: linux_arm32v7_moby
 ################################################################################
     displayName: Linux ARM32v7 Moby
-    dependsOn: Token
+    dependsOn:
+      - Token
+      - ContainerRegistryCredentials
     condition: and(succeeded('Token'), eq(variables['run.linux.arm32v7.moby'], 'true'), ne(variables['agent.group'], ''))
     timeoutInMinutes: 240 
     strategy:
@@ -295,6 +311,9 @@ jobs:
       identity.artifact.name: 'aziot-identity-debian11-arm32v7'
       edgelet.artifact.name: 'iotedged-debian11-arm32v7'
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters
@@ -322,8 +341,6 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: 'edgebuildkv'
           SecretsFilter: >-
-            edgebuilds-azurecr-io-username,
-            edgebuilds-azurecr-io-pwd,
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
       - task: AzureKeyVault@2
@@ -390,9 +407,9 @@ jobs:
           identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          container.registry: '$(container.registry)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          container.registry: '$(cr.server)'
+          container.registry.username: '$(cr.username)'
+          container.registry.password: '$(cr.token)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubARM32ConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubARM32ConnString)'
           deploymentFileName: '$(deploymentFileName)'
