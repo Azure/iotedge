@@ -77,9 +77,9 @@ stages:
       artifactName: iotedged-ubuntu24.04-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       nestededge: true
-      cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -102,9 +102,9 @@ stages:
           sas_uri: $(sas_uri)
       - template: templates/nested-deploy-config.yaml
         parameters:
-          acrServer: $(cr.server)
-          acrUsername: $(cr.username)
-          acrToken: $(cr.token)
+          acrServer: $(acrServer)
+          acrUsername: $(acrUsername)
+          acrToken: $(acrToken)
           deviceId: $(lvl5DeviceId)
           deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
           changeDeployConfigOnly: true
@@ -112,9 +112,9 @@ stages:
           name: 5
       - template: templates/nested-deploy-config.yaml
         parameters:
-          acrServer: $(cr.server)
-          acrUsername: $(cr.username)
-          acrToken: $(cr.token)
+          acrServer: $(acrServer)
+          acrUsername: $(acrUsername)
+          acrToken: $(acrToken)
           deviceId: $(parentDeviceId)
           deploymentFile: nestededge_middleLayer_e2e_amqp.json
           changeDeployConfigOnly: true
