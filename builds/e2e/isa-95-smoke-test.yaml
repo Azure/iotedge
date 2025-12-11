@@ -51,8 +51,23 @@ stages:
 - stage: RunISA95Tests
   dependsOn: LockAgents
   jobs:
+  - job: ContainerRegistryCredentials
+    displayName: 'Get ACR Credentials'
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+    steps:
+      - template: templates/acr-credentials.yaml
+        parameters:
+          acrName: '$(cr.name)'
+          serviceConnection: $(azure.subscription)
+
   - job: SetupVM_level5
     displayName: SettingUp level 5
+    dependsOn: ContainerRegistryCredentials
     strategy:
       matrix:
         x64:
@@ -70,6 +85,9 @@ stages:
       parentName: ''
       parentDeviceId: ''
       proxyAddress: $(proxyUrl.it)
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -86,6 +104,10 @@ stages:
         parameters:
           arch: $(arch)
       - template: templates/nested-agent-deploy.yaml
+        parameters:
+          acrServer: $(acrServer)
+          acrUsername: $(acrUsername)
+          acrToken: $(acrToken)
       - task: Bash@3
         displayName: 'Exporting agentName'
         name: exportAgentName
@@ -95,7 +117,9 @@ stages:
             echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
 
   - job: SetupVM_level4
-    dependsOn: SetupVM_level5
+    dependsOn:
+      - ContainerRegistryCredentials
+      - SetupVM_level5
     displayName: SettingUp level 4
     condition: succeeded()
     variables:
@@ -106,6 +130,9 @@ stages:
       x64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['x64.createIdentity.parentDeviceId'] ]
       arm64ParentName: $[ dependencies.SetupVM_level5.outputs['arm64.deployIoTEdge.deviceName'] ]
       arm64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
     strategy:
       matrix:
         x64:
@@ -136,6 +163,10 @@ stages:
         parameters:
           arch: $(arch)
       - template: templates/nested-agent-deploy.yaml
+        parameters:
+          acrServer: $(acrServer)
+          acrUsername: $(acrUsername)
+          acrToken: $(acrToken)
       - task: Bash@3
         displayName: 'Exporting agentName'
         name: exportAgentName
@@ -145,7 +176,9 @@ stages:
             echo "##vso[task.setvariable variable=agentName;isOutput=true]$(Agent.Name)"
 
   - job: SetupVM_level3
-    dependsOn: SetupVM_level4
+    dependsOn:
+      - ContainerRegistryCredentials
+      - SetupVM_level4
     displayName: SettingUp level 3
     condition: succeeded()
     variables:
@@ -157,6 +190,9 @@ stages:
       x64ParentDeviceId: $[ dependencies.SetupVM_level4.outputs['x64.createIdentity.parentDeviceId'] ]
       arm64ParentName: $[ dependencies.SetupVM_level4.outputs['arm64.deployIoTEdge.deviceName'] ]
       arm64ParentDeviceId: $[ dependencies.SetupVM_level4.outputs['arm64.createIdentity.parentDeviceId'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
     strategy:
       matrix:
         x64:
@@ -187,6 +223,10 @@ stages:
         parameters:
           arch: $(arch)
       - template: templates/nested-agent-deploy.yaml
+        parameters:
+          acrServer: $(acrServer)
+          acrUsername: $(acrUsername)
+          acrToken: $(acrToken)
       - task: Bash@3
         displayName: 'Exporting agentName'
         name: exportAgentName
