@@ -1,6 +1,6 @@
 # get-sas-uri.yaml
 parameters:
-    azureSubscription: ''
+  azureSubscription: ''
 
 jobs:
   - job: Token
