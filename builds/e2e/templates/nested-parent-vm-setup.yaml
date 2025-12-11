@@ -5,6 +5,8 @@ parameters:
 jobs:
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 5 for ${{ parameters['upstream.protocol'] }}
+    dependsOn:
+      - ContainerRegistryCredentials
     timeoutInMinutes: 180
     variables:
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
@@ -14,23 +16,31 @@ jobs:
       parentName: ''
       parentDeviceId: ''
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
     pool:
-     name: $(pool.name)
-     demands:
-       - agent-group -equals $(agent.group)
-       - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
-       - status -equals locked_$(Build.BuildId)_L5
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - status -equals locked_$(Build.BuildId)_L5
     steps:
-     - template: nested-get-secrets.yaml
-     - template: e2e-clean-directory.yaml            
-     - template: nested-get-root-ca.yaml       
-     - template: nested-create-identity.yaml   
-     - template: nested-agent-deploy.yaml
+      - template: nested-get-secrets.yaml
+      - template: e2e-clean-directory.yaml            
+      - template: nested-get-root-ca.yaml       
+      - template: nested-create-identity.yaml   
+      - template: nested-agent-deploy.yaml
+        parameters:
+          acrServer: $(acrServer)
+          acrUsername: $(acrUsername)
+          acrToken: $(acrToken)
 
   - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
     dependsOn:
       - SetupVM_level5_${{ parameters['upstream.protocol'] }}
+      - ContainerRegistryCredentials
     displayName: SettingUp level 4 for ${{ parameters['upstream.protocol'] }}
     condition: succeeded()
     timeoutInMinutes: 180
@@ -42,6 +52,9 @@ jobs:
       deploymentFile: "${{ parameters['test.l4DeploymentFileName'] }}"
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
     pool:
      name: $(pool.name)
      demands:
@@ -55,3 +68,7 @@ jobs:
       - template: nested-get-root-ca.yaml         
       - template: nested-create-identity.yaml          
       - template: nested-agent-deploy.yaml
+        parameters:
+          acrServer: $(acrServer)
+          acrUsername: $(acrUsername)
+          acrToken: $(acrToken)

@@ -1,4 +1,13 @@
 parameters:
+- name: acrServer
+  type: string
+  default: ''
+- name: acrUsername
+  type: string
+  default: ''
+- name: acrToken
+  type: string
+  default: ''
 - name: skipInstall
   type: boolean
   default: false
@@ -123,6 +132,9 @@ steps:
   - ${{ if not(parameters.skipInstall) }}:
     - template: nested-deploy-config.yaml
       parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
+        acrToken: $(acrToken)
         deploymentFile: $(deploymentFile)
         deviceId: $(deviceId)
         level: $(level)

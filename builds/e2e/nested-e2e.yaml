@@ -41,6 +41,18 @@ stages:
   - template: templates/get-storage-uri.yaml
     parameters:
       azureSubscription: $(az.subscription)
+  - job: ContainerRegistryCredentials
+    displayName: 'Get ACR Credentials'
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+    steps:
+      - template: templates/acr-credentials.yaml
+        parameters:
+          acrName: $(cr.name)
+          crossJobVariables: true
+          serviceConnection: $(azure.subscription)
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: mqtt
@@ -48,6 +60,7 @@ stages:
   - job:  SetupVM_and_RunTest_level3
     dependsOn:
       - Token
+      - ContainerRegistryCredentials
       - SetupVM_level5_mqtt
       - SetupVM_level4_mqtt
     displayName: Set up and run tests
@@ -64,6 +77,9 @@ stages:
       artifactName: iotedged-ubuntu24.04-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       nestededge: true
+      cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -86,6 +102,9 @@ stages:
           sas_uri: $(sas_uri)
       - template: templates/nested-deploy-config.yaml
         parameters:
+          acrServer: $(cr.server)
+          acrUsername: $(cr.username)
+          acrToken: $(cr.token)
           deviceId: $(lvl5DeviceId)
           deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
           changeDeployConfigOnly: true
@@ -93,6 +112,9 @@ stages:
           name: 5
       - template: templates/nested-deploy-config.yaml
         parameters:
+          acrServer: $(cr.server)
+          acrUsername: $(cr.username)
+          acrToken: $(cr.token)
           deviceId: $(parentDeviceId)
           deploymentFile: nestededge_middleLayer_e2e_amqp.json
           changeDeployConfigOnly: true
