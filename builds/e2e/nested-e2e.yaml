@@ -52,7 +52,7 @@ stages:
         parameters:
           acrName: $(cr.name)
           crossJobVariables: true
-          serviceConnection: $(azure.subscription)
+          serviceConnection: $(az.subscription)
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: mqtt

@@ -63,7 +63,7 @@ stages:
       - template: templates/acr-credentials.yaml
         parameters:
           acrName: '$(cr.name)'
-          serviceConnection: $(azure.subscription)
+          serviceConnection: $(az.subscription)
 
   - job: SetupVM_level5
     displayName: SettingUp level 5
