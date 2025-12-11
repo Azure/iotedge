@@ -1,3 +1,9 @@
+# 1.5.31 (2025-11-20)
+
+## Edge Agent
+### Bug fixes
+- Update module memory metric calculation based on dockerd recommendations ( [9097fc0](https://github.com/Azure/iotedge/commit/9097fc040d3a40ef073fd5ba735b4d15acaf3a27) )
+
 # 1.5.30 (2025-11-11)
 
 Only Docker images are updated in this release. The daemon remains at version 1.5.21.
@@ -906,7 +912,7 @@ retry = "4%"
 To enable the certificate renewal feature, changes were made to consolidate and improve IoT Edge's certificate management system. There are some important differences in 1.3 compared to 1.2:
 - All modules restart when Edge CA certificate is renewed. This is necessary so that each module receives the updated trust bundle with the new CA certificate. By default, and when there's no specific `auto_renew` configuration, Edge CA renews at 80% certificate lifetime and so modules would restart at that time.
 - The device identity certificate no longer renews when reprovisioned within 1 day of certificate expiry. This old behavior in 1.2 is removed because it causes authentication errors with IoT Hub or DPS when using X.509 thumbprint authentication, since the new certificate comes with a new thumbprint that the user must manually update in Azure. In 1.3, device identity automatic renewal must be explicitly enabled similar to example above and should only be used with DPS X.509 CA authentication.
-- The device identity certificate no longer renews when reprovisioned after certificate expiry. The reason for this change is same as above: device identity certificates do not renew by default since it causes issues with X.509 thumbprint authentication. 
+- The device identity certificate no longer renews when reprovisioned after certificate expiry. The reason for this change is same as above: device identity certificates do not renew by default since it causes issues with X.509 thumbprint authentication.
 
 ## OS support
 * Adding RedHat Enterprise Linux 8 for AMD and Intel 64-bit architectures.
@@ -923,7 +929,7 @@ We recommend using Bullseye instead of Buster as the host OS.  Seccomp on Buster
 
 If you need to use Buster, then apply the following workaround to change the default seccomp profile for Moby's `defaultAction` to `SCMP_ACT_TRACE`:
 1. Make sure you are runing latest docker and latest seccomp package from oldstable channel
-2. Download [Moby's default seccomp profile](https://github.com/moby/moby/blob/master/profiles/seccomp/default.json) and put it somewhere. 
+2. Download [Moby's default seccomp profile](https://github.com/moby/moby/blob/master/profiles/seccomp/default.json) and put it somewhere.
 4. On line 2 change the value for _defaultAction_ from `SCMP_ACT_ERRNO` to `SCMP_ACT_TRACE`
 5. Edit file _/etc/systemd/system/multi-user.target.wants/docker.service_ to have it contain: `--seccomp-profile=/path/to/default.json`
 6. Restart your container engine by running:
