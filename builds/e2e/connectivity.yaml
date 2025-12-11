@@ -42,7 +42,8 @@ jobs:
     steps:
       - template: templates/acr-credentials.yaml
         parameters:
-          acrName: '$(cr.name)'
+          acrName: $(cr.name)
+          crossJobVariables: true
           serviceConnection: $(azure.subscription)
 
 ################################################################################
