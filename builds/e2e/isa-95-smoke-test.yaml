@@ -313,15 +313,25 @@ stages:
           Start-Sleep -s 30
         displayName: Wait for network to lock
       - template: templates/nested-get-root-ca.yaml
+      - template: templates/e2e-vault-secrets.yaml
+        parameters:
+          azureSubscription: $(az.subscription)
+          keyVaultName: $(kv.name)
       - template: templates/e2e-setup.yaml
         parameters:
-          acrServer: $(acrServer)
-          acrUsername: $(acrUsername)
+          acrServer: '$(acrServer)'
+          acrUsername: '$(acrUsername)'
+          iotHubResourceId: '$(iotHubResourceId)'
+          rootCaCertificate: '$(rootCaCertificate)'
+          rootCaKey: '$(rootCaKey)'
       - template: templates/e2e-run.yaml
         parameters:
-          acrToken: $(acrToken)
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
+          containerRegistryPassword: '$(acrToken)'
+          dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
+          eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          iotHubConnectionString: '$(IotHub-ConnStr)'
+          rootCaPassword: '$(rootCaPassword)'
+          sas_uri: '$(sas_uri)'
           test_type: $(test_type)
       - template: templates/nested-isa95-unlock.yaml
         parameters:

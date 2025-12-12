@@ -45,48 +45,42 @@ stages:
       builtImages: $[stageDependencies.CheckBuildImages.check_source_change_runtime.outputs['check_files.RUNTIMECHANGES']]
       builtPackages: $[stageDependencies.CheckBuildPackages.check_source_change_edgelet.outputs['check_files.EDGELETCHANGES']]
     jobs:
-      - template: ../e2e/templates/get-storage-uri.yaml
-        parameters:
-          azureSubscription: $(az.subscription)
-
-      - job: ContainerRegistryCredentials
-        displayName: 'Get ACR Credentials'
-        pool:
-          name: $(pool.linux.name)
-          demands:
-            - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
-        steps:
-          - template: ../e2e/templates/acr-credentials.yaml
-            parameters:
-              acrName: '$(cr.name)'
-              serviceConnection: $(az.subscription)
-
       - job: ubuntu_2204_amd64
         displayName: Ubuntu 22.04 amd64
-        dependsOn:
-          - Token
-          - ContainerRegistryCredentials
-        condition: succeeded('Token')
         variables:
           verbose: false
           os: linux
           arch: amd64
           identityArtifactName: aziot-identity-ubuntu22.04-amd64
           artifactName: iotedged-ubuntu22.04-amd64
-          sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-          acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-          acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-          acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
         pool:
           name: $(pool.linux.name)
           demands:
             - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
         steps:
+        - template: ../e2e/templates/e2e-vault-secrets.yaml
+          parameters:
+            azureSubscription: '$(az.subscription)'
+            keyVaultName: '$(kv.name)'
+        - template: ../e2e/templates/storage-token.yaml
+          parameters:
+            azureSubscription: '$(az.subscription)'
+        - template: ../e2e/templates/acr-credentials.yaml
+          parameters:
+            acrName: '$(cr.name)'
+            serviceConnection: '$(az.subscription)'
         - template: ../e2e/templates/e2e-setup.yaml
           parameters:
-            acrServer: $(acrServer)
-            acrUsername: $(acrUsername)
+            acrServer: '$(acrServer)'
+            acrUsername: '$(acrUsername)'
+            iotHubResourceId: '$(iotHubResourceId)'
+            rootCaCertificate: '$(rootCaCertificate)'
+            rootCaKey: '$(rootCaKey)'
         - template: ../e2e/templates/e2e-run.yaml
           parameters:
-            acrToken: $(acrToken)
-            sas_uri: $(sas_uri)
+            containerRegistryPassword: '$(acrToken)'
+            dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
+            eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
+            iotHubConnectionString: '$(iotHubConnectionString)'
+            rootCaPassword: '$(rootCaPassword)'
+            sas_uri: '$(sas_uri)'

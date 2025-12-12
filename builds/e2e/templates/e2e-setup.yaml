@@ -1,6 +1,9 @@
 parameters:
   acrServer: ''
   acrUsername: ''
+  iotHubResourceId: ''
+  rootCaCertificate: ''
+  rootCaKey: ''
 
 steps:
   - checkout: self
@@ -8,20 +11,6 @@ steps:
     fetchDepth: 100
     submodules: recursive
   
-  - task: AzureKeyVault@2
-    displayName: Get secrets
-    inputs:
-      azureSubscription: $(az.subscription)
-      keyVaultName: $(kv.name)
-      secretsFilter: >-
-        TestDpsGroupKeySymmetric,
-        TestEventHubCompatibleEndpoint,
-        TestIotHubConnectionString,
-        TestIotHubResourceId,
-        TestRootCaCertificate,
-        TestRootCaKey,
-        TestRootCaPassword
-
   - bash: | 
       echo "Built Images Result is '$(builtImages)'"
       echo "Built Packages Result is '$(builtPackages)'"
@@ -111,14 +100,14 @@ steps:
   - pwsh: |
       $certsDir = '$(System.ArtifactsDirectory)/certs'
       New-Item "$certsDir" -ItemType Directory -Force | Out-Null
-      $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
-      $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+      $env:ROOT_CERT -replace '\\x0A', "`n" | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+      $env:ROOT_KEY -replace '\\x0A', "`n" | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
       Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
     displayName: Install CA keys
     env:
-      ROOT_CERT: $(TestRootCaCertificate)
-      ROOT_KEY: $(TestRootCaKey)
-  
+      ROOT_CERT: ${{ parameters.rootCaCertificate }}
+      ROOT_KEY: ${{ parameters.rootCaKey }}
+
   - pwsh: |
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       dotnet build $testDir
@@ -241,4 +230,4 @@ steps:
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
     env:
-      IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
+      IOT_HUB_RESOURCE_ID: ${{ parameters.iotHubResourceId }}

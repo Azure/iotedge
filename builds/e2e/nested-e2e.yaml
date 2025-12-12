@@ -38,9 +38,10 @@ stages:
 - stage: RunNestedTests
   dependsOn: LockAgents
   jobs:
-  - template: templates/get-storage-uri.yaml
+  - template: templates/e2e-secrets.yaml
     parameters:
       azureSubscription: $(az.subscription)
+      keyVaultName: $(kv.name)
   - job: ContainerRegistryCredentials
     displayName: 'Get ACR Credentials'
     pool:
@@ -75,6 +76,12 @@ stages:
       arch: amd64
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
+      containerRegistryPassword: $[ dependencies.Token.outputs['secrets.containerRegistryPassword'] ]
+      dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
+      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
+      rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
+      rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
+      rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       nestededge: true
       acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
@@ -96,14 +103,19 @@ stages:
         parameters:
           acrServer: $(acrServer)
           acrUsername: $(acrUsername)
+          iotHubResourceId: '$(iotHubResourceId)'
+          rootCaCertificate: '$(rootCaCertificate)'
+          rootCaKey: '$(rootCaKey)'
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
-          acrToken: $(acrToken)
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
-          test_type: nestededge_mqtt
+          containerRegistryPassword: '$(acrToken)'
+          dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
+          eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          iotHubConnectionString: '$(IotHub-ConnStr)'
+          rootCaPassword: '$(rootCaPassword)'
           sas_uri: $(sas_uri)
+          test_type: nestededge_mqtt
       - template: templates/nested-deploy-config.yaml
         parameters:
           acrServer: $(acrServer)
@@ -126,11 +138,13 @@ stages:
           name: 4
       - template: templates/e2e-run.yaml
         parameters:
-          acrToken: $(acrToken)
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
-          test_type: nestededge_amqp
+          containerRegistryPassword: '$(acrToken)'
+          dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
+          eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          iotHubConnectionString: '$(IotHub-ConnStr)'
+          rootCaPassword: '$(rootCaPassword)'
           sas_uri: $(sas_uri)
+          test_type: nestededge_amqp
 
 - stage: Cleanup
   condition: always()
