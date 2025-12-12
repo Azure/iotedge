@@ -84,9 +84,9 @@ stages:
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       nestededge: true
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
     pool:
       name: $(pool.name)
       demands:

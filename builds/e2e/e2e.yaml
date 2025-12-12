@@ -70,9 +70,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
       minimal: true
 
     steps:
@@ -122,9 +122,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     timeoutInMinutes: 90
 
@@ -173,9 +173,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -221,9 +221,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     timeoutInMinutes: 120
 
@@ -274,9 +274,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     timeoutInMinutes: 90
 
@@ -325,9 +325,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     timeoutInMinutes: 90
 
@@ -376,9 +376,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     timeoutInMinutes: 90
 
@@ -427,9 +427,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -468,9 +468,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     strategy:
       matrix:
@@ -540,9 +540,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -589,9 +589,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -637,9 +637,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true
       'agent.disablelogplugin.testresultlogplugin': true
@@ -695,9 +695,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     timeoutInMinutes: 90
 
@@ -744,9 +744,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
 
     timeoutInMinutes: 90
 

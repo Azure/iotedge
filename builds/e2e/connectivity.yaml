@@ -122,9 +122,9 @@ jobs:
       identity.artifact.name: 'aziot-identity-ubuntu22.04-amd64'
       edgelet.artifact.name: 'iotedged-ubuntu22.04-amd64'
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters
@@ -321,9 +321,9 @@ jobs:
       identity.artifact.name: 'aziot-identity-debian11-arm32v7'
       edgelet.artifact.name: 'iotedged-debian11-arm32v7'
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters

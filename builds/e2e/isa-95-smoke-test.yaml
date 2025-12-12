@@ -85,9 +85,9 @@ stages:
       parentName: ''
       parentDeviceId: ''
       proxyAddress: $(proxyUrl.it)
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -130,9 +130,9 @@ stages:
       x64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['x64.createIdentity.parentDeviceId'] ]
       arm64ParentName: $[ dependencies.SetupVM_level5.outputs['arm64.deployIoTEdge.deviceName'] ]
       arm64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
     strategy:
       matrix:
         x64:
@@ -190,9 +190,9 @@ stages:
       x64ParentDeviceId: $[ dependencies.SetupVM_level4.outputs['x64.createIdentity.parentDeviceId'] ]
       arm64ParentName: $[ dependencies.SetupVM_level4.outputs['arm64.deployIoTEdge.deviceName'] ]
       arm64ParentDeviceId: $[ dependencies.SetupVM_level4.outputs['arm64.createIdentity.parentDeviceId'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
     strategy:
       matrix:
         x64:
@@ -255,9 +255,9 @@ stages:
       arm64DeviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['arm64.exportAgentName.agentName'] ]
       arm64ParentName: $[ dependencies.SetupVM_level5.outputs['arm64.deployIoTEdge.deviceName'] ]
       arm64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
       os: linux
       arch: amd64
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
