@@ -1,3 +1,7 @@
+parameters:
+  acrServer: ''
+  acrUsername: ''
+
 steps:
   - checkout: self
     clean: true
@@ -10,7 +14,6 @@ steps:
       azureSubscription: $(az.subscription)
       keyVaultName: $(kv.name)
       secretsFilter: >-
-        TestContainerRegistryPassword,
         TestDpsGroupKeySymmetric,
         TestEventHubCompatibleEndpoint,
         TestIotHubConnectionString,
@@ -144,8 +147,8 @@ steps:
       }else
       {
         $nestededge = "false"
-        $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
-        $diagnosticImagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+        $imagePrefix = '${{ parameters.acrServer }}/$(cr.labelPrefix)azureiotedge'
+        $diagnosticImagePrefix = '${{ parameters.acrServer }}/$(cr.labelPrefix)azureiotedge'
         $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
         $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
         $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
@@ -194,8 +197,8 @@ steps:
         edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
         registries = @(
           @{
-            address = '$(cr.address)';
-            username = '$(cr.username)';
+            address = '${{ parameters.acrServer }}';
+            username = '${{ parameters.acrUsername }}';
           }
         );
         packagePath = Convert-Path '$(System.ArtifactsDirectory)';

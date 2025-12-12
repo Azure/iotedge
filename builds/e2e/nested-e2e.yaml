@@ -93,9 +93,13 @@ stages:
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-get-device-name.yaml
       - template: templates/e2e-setup.yaml
+        parameters:
+          acrServer: $(acrServer)
+          acrUsername: $(acrUsername)
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
+          acrToken: $(acrToken)
           EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
           IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: nestededge_mqtt
@@ -122,6 +126,7 @@ stages:
           name: 4
       - template: templates/e2e-run.yaml
         parameters:
+          acrToken: $(acrToken)
           EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
           IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: nestededge_amqp

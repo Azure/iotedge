@@ -255,6 +255,9 @@ stages:
       arm64DeviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['arm64.exportAgentName.agentName'] ]
       arm64ParentName: $[ dependencies.SetupVM_level5.outputs['arm64.deployIoTEdge.deviceName'] ]
       arm64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
       os: linux
       arch: amd64
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
@@ -311,8 +314,12 @@ stages:
         displayName: Wait for network to lock
       - template: templates/nested-get-root-ca.yaml
       - template: templates/e2e-setup.yaml
+        parameters:
+          acrServer: $(acrServer)
+          acrUsername: $(acrUsername)
       - template: templates/e2e-run.yaml
         parameters:
+          acrToken: $(acrToken)
           EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
           IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: $(test_type)

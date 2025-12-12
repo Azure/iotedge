@@ -30,11 +30,25 @@ jobs:
     parameters:
       azureSubscription: $(az.subscription)
 
+  - job: ContainerRegistryCredentials
+    displayName: 'Get ACR Credentials'
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+    steps:
+      - template: templates/acr-credentials.yaml
+        parameters:
+          acrName: '$(cr.name)'
+          serviceConnection: $(az.subscription)
+
 ################################################################################
   - job: debian_11_arm32v7
 ################################################################################
     displayName: Debian 11 arm32v7 (minimal)
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -47,6 +61,9 @@ jobs:
       identityArtifactName: aziot-identity-debian11-arm32v7
       artifactName: iotedged-debian11-arm32v7
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
       minimal: true
 
     timeoutInMinutes: 120
@@ -54,16 +71,22 @@ jobs:
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: debian_12_amd64
 ################################################################################
     displayName: Debian 12 amd64
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -77,20 +100,29 @@ jobs:
       identityArtifactName: aziot-identity-debian12-amd64
       artifactName: iotedged-debian12-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: debian_12_arm64v8
 ################################################################################
     displayName: Debian 12 arm64v8
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -104,22 +136,31 @@ jobs:
       identityArtifactName: aziot-identity-debian12-aarch64
       artifactName: iotedged-debian12-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     timeoutInMinutes: 120
 
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: debian_12_arm32v7
 ################################################################################
     displayName: Debian 12 arm32v7
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -132,22 +173,31 @@ jobs:
       identityArtifactName: aziot-identity-debian12-arm32v7
       artifactName: iotedged-debian12-arm32v7
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     timeoutInMinutes: 120
 
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2204_amd64
 ################################################################################
     displayName: Ubuntu 22.04 amd64
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -161,20 +211,29 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu22.04-amd64
       artifactName: iotedged-ubuntu22.04-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2204_arm64v8
 ################################################################################
     displayName: Ubuntu 22.04 arm64v8
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -188,20 +247,29 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu22.04-aarch64
       artifactName: iotedged-ubuntu22.04-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2404_amd64
 ################################################################################
     displayName: Ubuntu 24.04 amd64
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -215,20 +283,29 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: ubuntu_2404_arm64v8
 ################################################################################
     displayName: Ubuntu 24.04 arm64v8
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -242,27 +319,39 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu24.04-aarch64
       artifactName: iotedged-ubuntu24.04-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: snaps
 ################################################################################
     displayName: Snaps
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     variables:
       os: linux
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     strategy:
       matrix:
@@ -289,15 +378,21 @@ jobs:
         sudo snap install docker
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
   ################################################################################
   - job: redhat8_amd64
   ################################################################################
     displayName: RedHat8 amd64
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -311,18 +406,27 @@ jobs:
       identityArtifactName: aziot-identity-redhat8-amd64
       artifactName: iotedged-redhat8-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
   ################################################################################
   - job: redhat9_amd64
   ################################################################################
     displayName: RedHat9 amd64
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -336,18 +440,27 @@ jobs:
       identityArtifactName: aziot-identity-redhat9-amd64
       artifactName: iotedged-redhat9-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: linux_amd64_proxy
 ################################################################################
     displayName: Linux amd64 behind a proxy
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: succeeded('Token')
 
     pool:
@@ -360,6 +473,9 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true
       'agent.disablelogplugin.testresultlogplugin': true
@@ -373,9 +489,13 @@ jobs:
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         test_type: http_proxy
         sas_uri: $(sas_uri)
 
@@ -383,7 +503,9 @@ jobs:
   - job: azurelinux3_amd64
 ################################################################################
     displayName: Azure Linux 3.0 amd64
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'))
     pool:
       name: $(pool.linux.name)
@@ -396,20 +518,29 @@ jobs:
       identityArtifactName: aziot-identity-azurelinux3-amd64
       artifactName: iotedged-azurelinux3-amd64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
 
 ################################################################################
   - job: azurelinux3_arm64v8
 ################################################################################
     displayName: Azure Linux 3.0 arm64v8
-    dependsOn: Token
+    dependsOn:
+    - Token
+    - ContainerRegistryCredentials
     pool:
       name: $(pool.linux.arm.name)
       demands:
@@ -421,11 +552,18 @@ jobs:
       identityArtifactName: aziot-identity-azurelinux3-aarch64
       artifactName: iotedged-azurelinux3-aarch64
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
+      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrServer'] ]
+      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrUsername'] ]
+      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['generate.acrToken'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
+      parameters:
+        acrServer: $(acrServer)
+        acrUsername: $(acrUsername)
     - template: templates/e2e-run.yaml
       parameters:
+        acrToken: $(acrToken)
         sas_uri: $(sas_uri)
