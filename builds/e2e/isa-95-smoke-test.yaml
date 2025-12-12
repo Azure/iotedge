@@ -97,6 +97,13 @@ stages:
         - Agent.OSArchitecture -equals $(arch)
         - level -equals $(level)
     steps:
+      - bash: |
+          set -euo pipefail
+          echo "Container registry information:"
+          echo "  Server: $(containerRegistryServer)"
+          echo "  Username: $(containerRegistryUsername)"
+          echo -n "  Password (length): " && echo -n '$(containerRegistryPassword)' | wc --chars
+        displayName: 'Debug dump'
       - template: templates/clean-drive-and-images.yaml
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml
