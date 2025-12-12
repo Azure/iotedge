@@ -41,7 +41,8 @@ jobs:
       - template: templates/acr-credentials.yaml
         parameters:
           acrName: '$(cr.name)'
-          serviceConnection: $(az.subscription)
+          crossJobVariables: true
+          serviceConnection: '$(az.subscription)'
 
 ################################################################################
   - job: debian_11_arm32v7

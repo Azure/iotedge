@@ -63,7 +63,8 @@ stages:
       - template: templates/acr-credentials.yaml
         parameters:
           acrName: '$(cr.name)'
-          serviceConnection: $(az.subscription)
+          crossJobVariables: true
+          serviceConnection: '$(az.subscription)'
 
   - job: SetupVM_level5
     displayName: SettingUp level 5
