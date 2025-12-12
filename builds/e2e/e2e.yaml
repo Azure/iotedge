@@ -79,8 +79,8 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -130,8 +130,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -178,8 +178,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -228,8 +228,8 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -279,8 +279,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -329,8 +329,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -379,8 +379,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -427,8 +427,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -490,8 +490,8 @@ jobs:
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -538,8 +538,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -586,8 +586,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -641,8 +641,8 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -692,8 +692,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
@@ -740,8 +740,8 @@ jobs:
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        acrServer: '$(acrServer)'
-        acrUsername: '$(acrUsername)'
+        containerRegistryServer: '$(acrServer)'
+        containerRegistryUsername: '$(acrUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'

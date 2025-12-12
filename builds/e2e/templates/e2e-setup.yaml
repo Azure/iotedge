@@ -1,6 +1,6 @@
 parameters:
-  acrServer: ''
-  acrUsername: ''
+  containerRegistryServer: ''
+  containerRegistryUsername: ''
   iotHubResourceId: ''
   rootCaCertificate: ''
   rootCaKey: ''
@@ -136,8 +136,8 @@ steps:
       }else
       {
         $nestededge = "false"
-        $imagePrefix = '${{ parameters.acrServer }}/$(cr.labelPrefix)azureiotedge'
-        $diagnosticImagePrefix = '${{ parameters.acrServer }}/$(cr.labelPrefix)azureiotedge'
+        $imagePrefix = '${{ parameters.containerRegistryServer }}/$(cr.labelPrefix)azureiotedge'
+        $diagnosticImagePrefix = '${{ parameters.containerRegistryServer }}/$(cr.labelPrefix)azureiotedge'
         $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
         $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
         $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
@@ -186,8 +186,8 @@ steps:
         edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
         registries = @(
           @{
-            address = '${{ parameters.acrServer }}';
-            username = '${{ parameters.acrUsername }}';
+            address = '${{ parameters.containerRegistryServer }}';
+            username = '${{ parameters.containerRegistryUsername }}';
           }
         );
         packagePath = Convert-Path '$(System.ArtifactsDirectory)';

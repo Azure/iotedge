@@ -100,8 +100,8 @@ stages:
       - template: templates/nested-get-device-name.yaml
       - template: templates/e2e-setup.yaml
         parameters:
-          acrServer: $(acrServer)
-          acrUsername: $(acrUsername)
+          containerRegistryServer: $(acrServer)
+          containerRegistryUsername: $(acrUsername)
           iotHubResourceId: '$(iotHubResourceId)'
           rootCaCertificate: '$(rootCaCertificate)'
           rootCaKey: '$(rootCaKey)'

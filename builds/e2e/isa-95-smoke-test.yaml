@@ -321,8 +321,8 @@ stages:
           keyVaultName: '$(kv.name)'
       - template: templates/e2e-setup.yaml
         parameters:
-          acrServer: '$(acrServer)'
-          acrUsername: '$(acrUsername)'
+          containerRegistryServer: '$(acrServer)'
+          containerRegistryUsername: '$(acrUsername)'
           iotHubResourceId: '$(iotHubResourceId)'
           rootCaCertificate: '$(rootCaCertificate)'
           rootCaKey: '$(rootCaKey)'

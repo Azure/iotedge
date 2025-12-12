@@ -71,8 +71,8 @@ stages:
             serviceConnection: '$(az.subscription)'
         - template: ../e2e/templates/e2e-setup.yaml
           parameters:
-            acrServer: '$(acrServer)'
-            acrUsername: '$(acrUsername)'
+            containerRegistryServer: '$(acrServer)'
+            containerRegistryUsername: '$(acrUsername)'
             iotHubResourceId: '$(iotHubResourceId)'
             rootCaCertificate: '$(rootCaCertificate)'
             rootCaKey: '$(rootCaKey)'
