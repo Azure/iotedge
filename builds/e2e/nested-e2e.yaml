@@ -119,7 +119,7 @@ stages:
         parameters:
           containerRegistryServer: $(containerRegistryServer)
           containerRegistryUsername: $(containerRegistryUsername)
-          containerRegistryToken: $(containerRegistryPassword)
+          containerRegistryPassword: $(containerRegistryPassword)
           deviceId: $(lvl5DeviceId)
           deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
           changeDeployConfigOnly: true
@@ -129,7 +129,7 @@ stages:
         parameters:
           containerRegistryServer: $(containerRegistryServer)
           containerRegistryUsername: $(containerRegistryUsername)
-          containerRegistryToken: $(containerRegistryPassword)
+          containerRegistryPassword: $(containerRegistryPassword)
           deviceId: $(parentDeviceId)
           deploymentFile: nestededge_middleLayer_e2e_amqp.json
           changeDeployConfigOnly: true

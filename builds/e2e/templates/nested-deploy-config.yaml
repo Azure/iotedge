@@ -1,7 +1,7 @@
 parameters:
   containerRegistryServer: ''
   containerRegistryUsername: ''
-  containerRegistryToken: ''
+  containerRegistryPassword: ''
   changeDeployConfigOnly: ''
   deploymentFile: ''
   deviceId: ''
@@ -28,7 +28,7 @@ steps:
           -artifactImageBuildNumber "$BuildNumber" \
           -containerRegistry "${{ parameters.containerRegistryServer }}" \
           -containerRegistryUsername "${{ parameters.containerRegistryUsername }}" \
-          -containerRegistryPassword "${{ parameters.containerRegistryToken }}" \
+          -containerRegistryPassword "${{ parameters.containerRegistryPassword }}" \
           -iotHubConnectionString "$(IotHub-ConnStr)" \
           -deploymentFileName "${{ parameters.deploymentFile }}" \
           -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \

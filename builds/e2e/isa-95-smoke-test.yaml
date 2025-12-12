@@ -108,7 +108,7 @@ stages:
         parameters:
           containerRegistryServer: $(containerRegistryServer)
           containerRegistryUsername: $(containerRegistryUsername)
-          containerRegistryToken: $(containerRegistryPassword)
+          containerRegistryPassword: $(containerRegistryPassword)
       - task: Bash@3
         displayName: 'Exporting agentName'
         name: exportAgentName
@@ -167,7 +167,7 @@ stages:
         parameters:
           containerRegistryServer: $(containerRegistryServer)
           containerRegistryUsername: $(containerRegistryUsername)
-          containerRegistryToken: $(containerRegistryPassword)
+          containerRegistryPassword: $(containerRegistryPassword)
       - task: Bash@3
         displayName: 'Exporting agentName'
         name: exportAgentName
@@ -227,7 +227,7 @@ stages:
         parameters:
           containerRegistryServer: $(containerRegistryServer)
           containerRegistryUsername: $(containerRegistryUsername)
-          containerRegistryToken: $(containerRegistryPassword)
+          containerRegistryPassword: $(containerRegistryPassword)
       - task: Bash@3
         displayName: 'Exporting agentName'
         name: exportAgentName

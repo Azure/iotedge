@@ -5,7 +5,7 @@ parameters:
 - name: containerRegistryUsername
   type: string
   default: ''
-- name: containerRegistryToken
+- name: containerRegistryPassword
   type: string
   default: ''
 - name: skipInstall
@@ -134,7 +134,7 @@ steps:
       parameters:
         containerRegistryServer: $(containerRegistryServer)
         containerRegistryUsername: $(containerRegistryUsername)
-        containerRegistryToken: $(containerRegistryToken)
+        containerRegistryPassword: $(containerRegistryPassword)
         deploymentFile: $(deploymentFile)
         deviceId: $(deviceId)
         level: $(level)

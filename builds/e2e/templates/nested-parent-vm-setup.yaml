@@ -35,7 +35,7 @@ jobs:
         parameters:
           containerRegistryServer: $(containerRegistryServer)
           containerRegistryUsername: $(containerRegistryUsername)
-          containerRegistryToken: $(containerRegistryPassword)
+          containerRegistryPassword: $(containerRegistryPassword)
 
   - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
     dependsOn:
@@ -71,4 +71,4 @@ jobs:
         parameters:
           containerRegistryServer: $(containerRegistryServer)
           containerRegistryUsername: $(containerRegistryUsername)
-          containerRegistryToken: $(containerRegistryPassword)
+          containerRegistryPassword: $(containerRegistryPassword)
