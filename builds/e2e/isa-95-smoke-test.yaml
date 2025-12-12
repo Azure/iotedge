@@ -315,8 +315,8 @@ stages:
       - template: templates/nested-get-root-ca.yaml
       - template: templates/e2e-vault-secrets.yaml
         parameters:
-          azureSubscription: $(az.subscription)
-          keyVaultName: $(kv.name)
+          azureSubscription: '$(az.subscription)'
+          keyVaultName: '$(kv.name)'
       - template: templates/e2e-setup.yaml
         parameters:
           acrServer: '$(acrServer)'
