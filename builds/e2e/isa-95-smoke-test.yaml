@@ -238,6 +238,7 @@ stages:
 
   - job: Run_ISA95_test
     dependsOn:
+      - ContainerRegistryCredentials
       - SetupVM_level5
       - SetupVM_level4
       - SetupVM_level3
