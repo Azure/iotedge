@@ -56,7 +56,7 @@ stages:
           demands:
             - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
         steps:
-          - template: templates/acr-credentials.yaml
+          - template: ../e2e/templates/acr-credentials.yaml
             parameters:
               acrName: '$(cr.name)'
               serviceConnection: $(az.subscription)
