@@ -76,7 +76,6 @@ stages:
       arch: amd64
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
-      containerRegistryPassword: $[ dependencies.Token.outputs['secrets.containerRegistryPassword'] ]
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
       iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
