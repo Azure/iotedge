@@ -1,4 +1,13 @@
 parameters:
+- name: containerRegistryServer
+  type: string
+  default: ''
+- name: containerRegistryUsername
+  type: string
+  default: ''
+- name: containerRegistryPassword
+  type: string
+  default: ''
 - name: skipInstall
   type: boolean
   default: false
@@ -123,6 +132,9 @@ steps:
   - ${{ if not(parameters.skipInstall) }}:
     - template: nested-deploy-config.yaml
       parameters:
+        containerRegistryServer: $(containerRegistryServer)
+        containerRegistryUsername: $(containerRegistryUsername)
+        containerRegistryPassword: $(containerRegistryPassword)
         deploymentFile: $(deploymentFile)
         deviceId: $(deviceId)
         level: $(level)
