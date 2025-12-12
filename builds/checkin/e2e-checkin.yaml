@@ -78,7 +78,7 @@ stages:
             rootCaKey: '$(rootCaKey)'
         - template: ../e2e/templates/e2e-run.yaml
           parameters:
-            containerRegistryPassword: '$(acrToken)'
+            containerRegistryPassword: '$(acrPassword)'
             dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
             eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
             iotHubConnectionString: '$(iotHubConnectionString)'

@@ -1,7 +1,7 @@
 parameters:
-  acrServer: ''
-  acrUsername: ''
-  acrToken: ''
+  containerRegistryServer: ''
+  containerRegistryUsername: ''
+  containerRegistryToken: ''
   changeDeployConfigOnly: ''
   deploymentFile: ''
   deviceId: ''
@@ -26,9 +26,9 @@ steps:
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
           -artifactImageBuildNumber "$BuildNumber" \
-          -containerRegistry "${{ parameters.acrServer }}" \
-          -containerRegistryUsername "${{ parameters.acrUsername }}" \
-          -containerRegistryPassword "${{ parameters.acrToken }}" \
+          -containerRegistry "${{ parameters.containerRegistryServer }}" \
+          -containerRegistryUsername "${{ parameters.containerRegistryUsername }}" \
+          -containerRegistryPassword "${{ parameters.containerRegistryToken }}" \
           -iotHubConnectionString "$(IotHub-ConnStr)" \
           -deploymentFileName "${{ parameters.deploymentFile }}" \
           -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \

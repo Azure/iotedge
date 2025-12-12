@@ -83,9 +83,9 @@ stages:
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       nestededge: true
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -100,15 +100,15 @@ stages:
       - template: templates/nested-get-device-name.yaml
       - template: templates/e2e-setup.yaml
         parameters:
-          containerRegistryServer: $(acrServer)
-          containerRegistryUsername: $(acrUsername)
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
           iotHubResourceId: '$(iotHubResourceId)'
           rootCaCertificate: '$(rootCaCertificate)'
           rootCaKey: '$(rootCaKey)'
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
-          containerRegistryPassword: '$(acrToken)'
+          containerRegistryPassword: '$(containerRegistryPassword)'
           dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
           eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
           iotHubConnectionString: '$(IotHub-ConnStr)'
@@ -117,9 +117,9 @@ stages:
           test_type: nestededge_mqtt
       - template: templates/nested-deploy-config.yaml
         parameters:
-          acrServer: $(acrServer)
-          acrUsername: $(acrUsername)
-          acrToken: $(acrToken)
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
+          containerRegistryToken: $(containerRegistryPassword)
           deviceId: $(lvl5DeviceId)
           deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
           changeDeployConfigOnly: true
@@ -127,9 +127,9 @@ stages:
           name: 5
       - template: templates/nested-deploy-config.yaml
         parameters:
-          acrServer: $(acrServer)
-          acrUsername: $(acrUsername)
-          acrToken: $(acrToken)
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
+          containerRegistryToken: $(containerRegistryPassword)
           deviceId: $(parentDeviceId)
           deploymentFile: nestededge_middleLayer_e2e_amqp.json
           changeDeployConfigOnly: true
@@ -137,7 +137,7 @@ stages:
           name: 4
       - template: templates/e2e-run.yaml
         parameters:
-          containerRegistryPassword: '$(acrToken)'
+          containerRegistryPassword: '$(containerRegistryPassword)'
           dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
           eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
           iotHubConnectionString: '$(IotHub-ConnStr)'

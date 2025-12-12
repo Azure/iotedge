@@ -70,24 +70,24 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
       minimal: true
 
     steps:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -121,23 +121,23 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -171,21 +171,21 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -218,9 +218,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     timeoutInMinutes: 120
 
@@ -228,15 +228,15 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -270,23 +270,23 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -320,23 +320,23 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -370,23 +370,23 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -420,21 +420,21 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -460,9 +460,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     strategy:
       matrix:
@@ -490,14 +490,14 @@ jobs:
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -531,21 +531,21 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -579,21 +579,21 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -626,9 +626,9 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true
       'agent.disablelogplugin.testresultlogplugin': true
@@ -641,15 +641,15 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -683,23 +683,23 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'
@@ -731,23 +731,23 @@ jobs:
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
 
     timeoutInMinutes: 90
 
     steps:
     - template: templates/e2e-setup.yaml
       parameters:
-        containerRegistryServer: '$(acrServer)'
-        containerRegistryUsername: '$(acrUsername)'
+        containerRegistryServer: '$(containerRegistryServer)'
+        containerRegistryUsername: '$(containerRegistryUsername)'
         iotHubResourceId: '$(iotHubResourceId)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
-        containerRegistryPassword: '$(acrToken)'
+        containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
         eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
         iotHubConnectionString: '$(iotHubConnectionString)'

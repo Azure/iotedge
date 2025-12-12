@@ -16,9 +16,9 @@ jobs:
       parentName: ''
       parentDeviceId: ''
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -33,9 +33,9 @@ jobs:
       - template: nested-create-identity.yaml   
       - template: nested-agent-deploy.yaml
         parameters:
-          acrServer: $(acrServer)
-          acrUsername: $(acrUsername)
-          acrToken: $(acrToken)
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
+          containerRegistryToken: $(containerRegistryPassword)
 
   - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
     dependsOn:
@@ -52,9 +52,9 @@ jobs:
       deploymentFile: "${{ parameters['test.l4DeploymentFileName'] }}"
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
     pool:
      name: $(pool.name)
      demands:
@@ -69,6 +69,6 @@ jobs:
       - template: nested-create-identity.yaml          
       - template: nested-agent-deploy.yaml
         parameters:
-          acrServer: $(acrServer)
-          acrUsername: $(acrUsername)
-          acrToken: $(acrToken)
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
+          containerRegistryToken: $(containerRegistryPassword)

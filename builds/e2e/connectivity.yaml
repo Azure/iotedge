@@ -124,7 +124,7 @@ jobs:
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
       cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters
@@ -323,7 +323,7 @@ jobs:
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
       cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      cr.token: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
     steps:
       - task: Bash@3
         name: Print_test_parameters

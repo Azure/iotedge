@@ -1,11 +1,11 @@
 parameters:
-- name: acrServer
+- name: containerRegistryServer
   type: string
   default: ''
-- name: acrUsername
+- name: containerRegistryUsername
   type: string
   default: ''
-- name: acrToken
+- name: containerRegistryToken
   type: string
   default: ''
 - name: skipInstall
@@ -132,9 +132,9 @@ steps:
   - ${{ if not(parameters.skipInstall) }}:
     - template: nested-deploy-config.yaml
       parameters:
-        acrServer: $(acrServer)
-        acrUsername: $(acrUsername)
-        acrToken: $(acrToken)
+        containerRegistryServer: $(containerRegistryServer)
+        containerRegistryUsername: $(containerRegistryUsername)
+        containerRegistryToken: $(containerRegistryToken)
         deploymentFile: $(deploymentFile)
         deviceId: $(deviceId)
         level: $(level)

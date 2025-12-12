@@ -86,9 +86,9 @@ stages:
       parentName: ''
       parentDeviceId: ''
       proxyAddress: $(proxyUrl.it)
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -106,9 +106,9 @@ stages:
           arch: $(arch)
       - template: templates/nested-agent-deploy.yaml
         parameters:
-          acrServer: $(acrServer)
-          acrUsername: $(acrUsername)
-          acrToken: $(acrToken)
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
+          containerRegistryToken: $(containerRegistryPassword)
       - task: Bash@3
         displayName: 'Exporting agentName'
         name: exportAgentName
@@ -131,9 +131,9 @@ stages:
       x64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['x64.createIdentity.parentDeviceId'] ]
       arm64ParentName: $[ dependencies.SetupVM_level5.outputs['arm64.deployIoTEdge.deviceName'] ]
       arm64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
     strategy:
       matrix:
         x64:
@@ -165,9 +165,9 @@ stages:
           arch: $(arch)
       - template: templates/nested-agent-deploy.yaml
         parameters:
-          acrServer: $(acrServer)
-          acrUsername: $(acrUsername)
-          acrToken: $(acrToken)
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
+          containerRegistryToken: $(containerRegistryPassword)
       - task: Bash@3
         displayName: 'Exporting agentName'
         name: exportAgentName
@@ -191,9 +191,9 @@ stages:
       x64ParentDeviceId: $[ dependencies.SetupVM_level4.outputs['x64.createIdentity.parentDeviceId'] ]
       arm64ParentName: $[ dependencies.SetupVM_level4.outputs['arm64.deployIoTEdge.deviceName'] ]
       arm64ParentDeviceId: $[ dependencies.SetupVM_level4.outputs['arm64.createIdentity.parentDeviceId'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
     strategy:
       matrix:
         x64:
@@ -225,9 +225,9 @@ stages:
           arch: $(arch)
       - template: templates/nested-agent-deploy.yaml
         parameters:
-          acrServer: $(acrServer)
-          acrUsername: $(acrUsername)
-          acrToken: $(acrToken)
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
+          containerRegistryToken: $(containerRegistryPassword)
       - task: Bash@3
         displayName: 'Exporting agentName'
         name: exportAgentName
@@ -257,9 +257,9 @@ stages:
       arm64DeviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['arm64.exportAgentName.agentName'] ]
       arm64ParentName: $[ dependencies.SetupVM_level5.outputs['arm64.deployIoTEdge.deviceName'] ]
       arm64ParentDeviceId: $[ dependencies.SetupVM_level5.outputs['arm64.createIdentity.parentDeviceId'] ]
-      acrServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      acrUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      acrToken: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrToken'] ]
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
       os: linux
       arch: amd64
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
@@ -321,14 +321,14 @@ stages:
           keyVaultName: '$(kv.name)'
       - template: templates/e2e-setup.yaml
         parameters:
-          containerRegistryServer: '$(acrServer)'
-          containerRegistryUsername: '$(acrUsername)'
+          containerRegistryServer: '$(containerRegistryServer)'
+          containerRegistryUsername: '$(containerRegistryUsername)'
           iotHubResourceId: '$(iotHubResourceId)'
           rootCaCertificate: '$(rootCaCertificate)'
           rootCaKey: '$(rootCaKey)'
       - template: templates/e2e-run.yaml
         parameters:
-          containerRegistryPassword: '$(acrToken)'
+          containerRegistryPassword: '$(containerRegistryPassword)'
           dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
           eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
           iotHubConnectionString: '$(IotHub-ConnStr)'
