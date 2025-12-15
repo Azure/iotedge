@@ -60,21 +60,27 @@ stages:
         steps:
         - template: ../e2e/templates/e2e-vault-secrets.yaml
           parameters:
-            azureSubscription: $(az.subscription)
-            keyVaultName: $(kv.name)
+            azureSubscription: '$(az.subscription)'
+            keyVaultName: '$(kv.name)'
         - template: ../e2e/templates/storage-token.yaml
           parameters:
-            azureSubscription: $(az.subscription)
+            azureSubscription: '$(az.subscription)'
+        - template: ../e2e/templates/acr-credentials.yaml
+          parameters:
+            acrName: '$(cr.name)'
+            serviceConnection: '$(az.subscription)'
         - template: ../e2e/templates/e2e-setup.yaml
           parameters:
+            containerRegistryServer: '$(acrServer)'
+            containerRegistryUsername: '$(acrUsername)'
             iotHubResourceId: '$(iotHubResourceId)'
             rootCaCertificate: '$(rootCaCertificate)'
             rootCaKey: '$(rootCaKey)'
         - template: ../e2e/templates/e2e-run.yaml
           parameters:
-            containerRegistryPassword: '$(containerRegistryPassword)'
+            containerRegistryPassword: '$(acrPassword)'
             dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
             eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
             iotHubConnectionString: '$(iotHubConnectionString)'
             rootCaPassword: '$(rootCaPassword)'
-            sas_uri: $(sas_uri)
+            sas_uri: '$(sas_uri)'

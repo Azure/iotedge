@@ -92,7 +92,6 @@ steps:
     inputs:
       targetType: inline
       script: |
-        declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.BuildDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
         testName="Connectivity"
