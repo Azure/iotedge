@@ -12,6 +12,7 @@ namespace LeafDeviceTest
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -218,7 +219,7 @@ namespace LeafDeviceTest
             var settings = new HttpTransportSettings();
             this.proxy.ForEach(p => settings.Proxy = p);
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
+            RegistryManager rm = RegistryManager.Create(builder.HostName, new DefaultAzureCredential(), settings);
 
             Option<string> edgeScope = await this.edgeDeviceId
                 .Map(id => GetScopeIfExitsAsync(rm, id))
@@ -321,8 +322,9 @@ namespace LeafDeviceTest
             // User Service SDK to invoke Direct Method on the device.
             var settings = new ServiceClientTransportSettings();
             this.proxy.ForEach(p => settings.HttpProxy = p);
+            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             ServiceClient serviceClient =
-                ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
+                ServiceClient.Create(builder.HostName, new DefaultAzureCredential(), this.serviceClientTransportType, settings);
 
             // Call a direct method
             TimeSpan testDuration = TimeSpan.FromSeconds(300);
