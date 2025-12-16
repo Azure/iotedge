@@ -24,14 +24,15 @@
       },
       "Microsoft.Azure.Devices": {
         "type": "Direct",
-        "requested": "[1.31.6, )",
-        "resolved": "1.31.6",
-        "contentHash": "/skCDrkfdyiWsJc9Lbm3nrkHZVboFCxzpd4RaLYrx1t59qfBDAydGQYDY/sKEKFXy1Kpttk9MFN7Qy91LSEISQ==",
+        "requested": "[1.41.0, )",
+        "resolved": "1.41.0",
+        "contentHash": "J3tr63fgQOeCLMJQt67TXmx7HG2ZhH9TyTgm699pmcCR1tAsUaJrsKWX/IJYB+5SfwRGaXVFzy2aSbabzFS+/Q==",
         "dependencies": {
-          "Microsoft.Azure.Amqp": "2.5.12",
-          "Microsoft.Azure.Devices.Shared": "1.27.2",
-          "Microsoft.Rest.ClientRuntime": "2.3.21",
-          "Newtonsoft.Json": "12.0.3",
+          "Azure.Core": "1.44.1",
+          "Microsoft.Azure.Amqp": "2.6.9",
+          "Microsoft.Azure.Devices.Shared": "1.30.4",
+          "Microsoft.Rest.ClientRuntime": "2.3.24",
+          "Newtonsoft.Json": "13.0.3",
           "System.Diagnostics.Contracts": "4.3.0",
           "System.Diagnostics.TraceSource": "4.3.0"
         }
@@ -57,6 +58,15 @@
         "requested": "[1.2.4, )",
         "resolved": "1.2.4",
         "contentHash": "ndU9F3ohMQpCe34cen8LvtVY2xCUWF++jEJworvq6IuazF9FQUwnuT/8we6wbgOdHC20aHCduGnjuA5D0azbAQ=="
+      },
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.2.0-beta.164, )",
+        "resolved": "1.2.0-beta.164",
+        "contentHash": "IWMH8RyJGDu8ZrYFKIwjfcuXizpJnjnMGE8tDRnZ36AIAQeFDjeUPH2EUEMwj4+63oQBu/KkzRe9clSW9s5mdA==",
+        "dependencies": {
+          "StyleCop.Analyzers.Unstable": "1.2.0.164"
+        }
       },
       "YamlDotNet": {
         "type": "Direct",
@@ -195,16 +205,16 @@
       },
       "Microsoft.Azure.Amqp": {
         "type": "Transitive",
-        "resolved": "2.5.12",
-        "contentHash": "0SlEl+TSQdpjXWf9/37dXWAa0zk6R1EJKmGtGZeKUAH7WEQpJOWMxJ9I43igcBCnTkFwa28CdPnpSCjFZVQlkw=="
+        "resolved": "2.6.9",
+        "contentHash": "5i9XzfqxK1H5IBl+OuOV1jwJdrOvi5RUwsZgVOryZm0GCzcM9NWPNRxzPAbsSeaR2T6+1gGvdT3vR+Vbha6KFQ=="
       },
       "Microsoft.Azure.Devices.Shared": {
         "type": "Transitive",
-        "resolved": "1.27.2",
-        "contentHash": "nE6JbS1nEwOJmjVLRzOe0Fj757hQDJKmzchDkSSuiIegmmTeYuM5jhz8T3prQBiwEpmN55ScJBiAyRtWdGf1bw==",
+        "resolved": "1.30.4",
+        "contentHash": "c24XKJ2PnugnDe/CHSYVcvP0TBua/P2S520PrV/edIcz+UmmNziV0U0aWpxmbj0BaVlIVhAtj26CcQuO0q+UjQ==",
         "dependencies": {
           "Microsoft.CSharp": "4.7.0",
-          "Newtonsoft.Json": "12.0.3"
+          "Newtonsoft.Json": "13.0.3"
         }
       },
       "Microsoft.Azure.EventHubs": {
@@ -486,8 +496,8 @@
       },
       "Microsoft.Rest.ClientRuntime": {
         "type": "Transitive",
-        "resolved": "2.3.21",
-        "contentHash": "KDYlgTyO693V6pi6SGk9eg+dDvKjuOgmkapbHdpnB1SmTPKpvWxVLIMyARJsCFLfB6axyURUJHOfvxBQ0yJKeg==",
+        "resolved": "2.3.24",
+        "contentHash": "hZH7XgM3eV2jFrnq7Yf0nBD4WVXQzDrer2gEY7HMNiwio2hwDsTHO6LWuueNQAfRpNp4W7mKxcXpwXUiuVIlYw==",
         "dependencies": {
           "Newtonsoft.Json": "10.0.3"
         }
@@ -579,8 +589,8 @@
       },
       "Newtonsoft.Json": {
         "type": "Transitive",
-        "resolved": "13.0.2",
-        "contentHash": "R2pZ3B0UjeyHShm9vG+Tu0EBb2lC8b0dFzV9gVn50ofHXh9Smjk6kTn7A/FdAsC8B5cKib1OnGYOXxRBz5XQDg=="
+        "resolved": "13.0.3",
+        "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
       },
       "Nito.AsyncEx": {
         "type": "Transitive",
@@ -816,6 +826,11 @@
           "System.Runtime.InteropServices": "4.3.0",
           "System.Runtime.InteropServices.RuntimeInformation": "4.3.0"
         }
+      },
+      "StyleCop.Analyzers.Unstable": {
+        "type": "Transitive",
+        "resolved": "1.2.0.164",
+        "contentHash": "3WJ5JvRP9QjdrwspeLFjwD2AZw2CcDmYLQ7x8oofxvOzXvboZdFlPsSV8h56hLyK0lnMFvtpb48nxz7oQ4RgCQ=="
       },
       "System.AppContext": {
         "type": "Transitive",

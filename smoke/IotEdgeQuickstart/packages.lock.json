@@ -49,6 +49,15 @@
         "resolved": "1.2.4",
         "contentHash": "ndU9F3ohMQpCe34cen8LvtVY2xCUWF++jEJworvq6IuazF9FQUwnuT/8we6wbgOdHC20aHCduGnjuA5D0azbAQ=="
       },
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.2.0-beta.164, )",
+        "resolved": "1.2.0-beta.164",
+        "contentHash": "IWMH8RyJGDu8ZrYFKIwjfcuXizpJnjnMGE8tDRnZ36AIAQeFDjeUPH2EUEMwj4+63oQBu/KkzRe9clSW9s5mdA==",
+        "dependencies": {
+          "StyleCop.Analyzers.Unstable": "1.2.0.164"
+        }
+      },
       "System.ServiceProcess.ServiceController": {
         "type": "Direct",
         "requested": "[4.5.0, )",
@@ -820,6 +829,11 @@
           "System.Runtime.InteropServices": "4.3.0",
           "System.Runtime.InteropServices.RuntimeInformation": "4.3.0"
         }
+      },
+      "StyleCop.Analyzers.Unstable": {
+        "type": "Transitive",
+        "resolved": "1.2.0.164",
+        "contentHash": "3WJ5JvRP9QjdrwspeLFjwD2AZw2CcDmYLQ7x8oofxvOzXvboZdFlPsSV8h56hLyK0lnMFvtpb48nxz7oQ4RgCQ=="
       },
       "System.AppContext": {
         "type": "Transitive",

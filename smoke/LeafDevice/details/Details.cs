@@ -71,7 +71,7 @@ namespace LeafDeviceTest
             this.trustedCACertificateFileName = trustedCACertificateFileName;
             this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
             this.edgeHostName = edgeHostName;
-            if (!edgeDeviceId.IsNullOrWhiteSpace())
+            if (!string.IsNullOrWhiteSpace(edgeDeviceId))
             {
                 this.edgeDeviceId = Option.Some(edgeDeviceId);
             }
