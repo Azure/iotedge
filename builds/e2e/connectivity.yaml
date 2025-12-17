@@ -211,7 +211,7 @@ jobs:
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
-          connection.arm: $(azure.subscription)
+          connection.arm: '$(azure.subscription)'
           release.label: 'ct$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -408,7 +408,7 @@ jobs:
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
-          connection.arm: $(azure.subscription)
+          connection.arm: '$(azure.subscription)'
           release.label: 'ct$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
