@@ -1,4 +1,5 @@
 parameters:
+  connection.arm: ''
   release.label: ''
   test.buildNumber: ''
   test.buildId: ''
@@ -86,12 +87,16 @@ steps:
           echo "##vso[task.setvariable variable=DeviceCaKey]$(pwd)/private/iot-edge-device-ca-ConnectivityTestDeviceCA.key.pem" 
         fi
         
-  - task: Bash@3
+  - task: AzureCLI@2
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
     inputs:
-      targetType: inline
-      script: |
+      azureSubscription: $(connection.arm)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+
         . $(Agent.BuildDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
         testName="Connectivity"
@@ -147,9 +152,7 @@ steps:
         scriptExitCode=$?
         echo "script exit code=$scriptExitCode"
         exit $scriptExitCode
-
       workingDirectory: "$(Agent.BuildDirectory)/.."
-  
     env:
       E2E_nestedEdgeTest: $(nestededge)
       E2E_trustedCaCerts: $(TrustBundle)
