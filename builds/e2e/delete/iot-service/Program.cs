@@ -13,7 +13,7 @@ using AzureEventSourceListener listener = new((args, message) =>
 
 var hostname = "EdgeConnectivityTestHub.azure-devices.net";
 var settings = new HttpTransportSettings();
-RegistryManager rm = RegistryManager.Create(hostname, new AzureCliCredential(), settings);
+RegistryManager rm = RegistryManager.Create(hostname, new DefaultAzureCredential(), settings);
 
 var deviceId = "ct1-Linux-amd64-connect-L0Wzdev6-Amqp-leaf";
 var device = await rm.GetDeviceAsync(deviceId);
