@@ -91,7 +91,7 @@ steps:
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
     inputs:
-      azureSubscription: ${{ parameters.connection.arm }}
+      azureSubscription: ${{ parameters['connection.arm'] }}
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
