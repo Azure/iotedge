@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.Tracing;
-using Azure.Core.Diagnostics;
-using Azure.Identity;
+﻿using Azure.Identity;
 using Microsoft.Azure.Devices;
 
 using AzureEventSourceListener listener = new((args, message) =>
