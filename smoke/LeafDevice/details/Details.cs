@@ -219,7 +219,7 @@ namespace LeafDeviceTest
             var settings = new HttpTransportSettings();
             this.proxy.ForEach(p => settings.Proxy = p);
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            RegistryManager rm = RegistryManager.Create(builder.HostName, new DefaultAzureCredential(), settings);
+            RegistryManager rm = RegistryManager.Create(builder.HostName, new AzureCliCredential(), settings);
 
             Option<string> edgeScope = await this.edgeDeviceId
                 .Map(id => GetScopeIfExitsAsync(rm, id))
@@ -324,7 +324,7 @@ namespace LeafDeviceTest
             this.proxy.ForEach(p => settings.HttpProxy = p);
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             ServiceClient serviceClient =
-                ServiceClient.Create(builder.HostName, new DefaultAzureCredential(), this.serviceClientTransportType, settings);
+                ServiceClient.Create(builder.HostName, new AzureCliCredential(), this.serviceClientTransportType, settings);
 
             // Call a direct method
             TimeSpan testDuration = TimeSpan.FromSeconds(300);

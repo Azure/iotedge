@@ -237,7 +237,7 @@ namespace IotEdgeQuickstart.Details
             var settings = new HttpTransportSettings();
             this.proxy.ForEach(p => settings.Proxy = p);
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            RegistryManager rm = RegistryManager.Create(builder.HostName, new DefaultAzureCredential(), settings);
+            RegistryManager rm = RegistryManager.Create(builder.HostName, new AzureCliCredential(), settings);
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
             if (device != null)
@@ -314,7 +314,7 @@ namespace IotEdgeQuickstart.Details
 
                     IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
                     ServiceClient serviceClient =
-                        ServiceClient.Create(builder.HostName, new DefaultAzureCredential(), this.serviceClientTransportType, settings);
+                        ServiceClient.Create(builder.HostName, new AzureCliCredential(), this.serviceClientTransportType, settings);
 
                     while (!cts.IsCancellationRequested)
                     {
