@@ -1,6 +1,14 @@
 ﻿using Azure.Identity;
 using Microsoft.Azure.Devices;
 
+using AzureEventSourceListener listener = new((args, message) =>
+{
+    if (args is { EventSource.Name: "Azure-Identity" })
+    {
+        Console.WriteLine(message);
+    }
+}, EventLevel.LogAlways);
+
 var hostname = "EdgeConnectivityTestHub.azure-devices.net";
 var settings = new HttpTransportSettings();
 RegistryManager rm = RegistryManager.Create(hostname, new DefaultAzureCredential(), settings);
