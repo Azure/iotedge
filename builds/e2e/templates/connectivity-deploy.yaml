@@ -104,7 +104,6 @@ steps:
         ${{ parameters['build.repo.path'] }}/builds/e2e/delete/iot-service/bin/Debug/net8.0/publish/iot-service
         echo 'Run iot-service sample app as sudo'
         sudo --preserve-env ${{ parameters['build.repo.path'] }}/builds/e2e/delete/iot-service/bin/Debug/net8.0/publish/iot-service
-
         . $(Agent.BuildDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
         testName="Connectivity"
