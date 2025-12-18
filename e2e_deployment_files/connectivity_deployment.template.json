@@ -145,8 +145,8 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "directMethodReceiver1"
@@ -205,8 +205,8 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "directMethodReceiver2"
@@ -268,8 +268,8 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "$edgeAgent"
@@ -382,8 +382,8 @@
               "logAnalyticsLogType": {
                 "value": "<TestResultCoordinator.LogAnalyticsLogType>"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "logUploadEnabled": {
                 "value": "<TestResultCoordinator.logUploadEnabled>"
@@ -427,8 +427,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
+              "IotHubHostname": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "twinTester2"
@@ -469,8 +469,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
+              "IotHubHostname": {
+                "value": "<IotHubHostname>"
               },
               "TransportType": {
                 "value": "Amqp"
@@ -511,8 +511,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
+              "IotHubHostname": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "twinTester4"
@@ -553,8 +553,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
+              "IotHubHostname": {
+                "value": "<IotHubHostname>"
               },
               "TransportType": {
                 "value": "Mqtt"
@@ -589,8 +589,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -640,8 +640,8 @@
               "C2DMESSAGE_TESTER_MODE": {
                 "value": "Sender"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -670,8 +670,8 @@
               "C2DMESSAGE_TESTER_MODE": {
                 "value": "Receiver"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "transportType": {
                 "value": "Amqp"
@@ -694,8 +694,8 @@
               "C2DMESSAGE_TESTER_MODE": {
                 "value": "Sender"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -727,8 +727,8 @@
               "C2DMESSAGE_TESTER_MODE": {
                 "value": "Receiver"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "transportType": {
                 "value": "Mqtt"

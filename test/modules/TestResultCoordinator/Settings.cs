@@ -6,6 +6,7 @@ namespace TestResultCoordinator
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
@@ -32,7 +33,7 @@ namespace TestResultCoordinator
             bool useTestResultReportingService,
             bool useResultEventReceivingService,
             string eventHubConnectionString,
-            string iotHubConnectionString,
+            string iotHubHostname,
             string deviceId,
             string moduleId,
             ushort webHostPort,
@@ -106,7 +107,7 @@ namespace TestResultCoordinator
             }
 
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
-            this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.WebHostPort = Preconditions.CheckNotNull(webHostPort, nameof(webHostPort));
@@ -150,7 +151,7 @@ namespace TestResultCoordinator
                 configuration.GetValue("useTestResultReportingService", true),
                 configuration.GetValue("useResultEventReceivingService", true),
                 configuration.GetValue<string>("eventHubConnectionString"),
-                configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
+                configuration.GetValue<string>("IOT_HUB_HOSTNAME"),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("webhostPort", DefaultWebHostPort),
@@ -175,7 +176,7 @@ namespace TestResultCoordinator
                 configuration.GetValue("eventHubDelayTolerance", TimeSpan.FromHours(1)));
         }
 
-        public string IoTHubConnectionString { get; }
+        public string IotHubHostname { get; }
 
         public string DeviceId { get; }
 
@@ -252,7 +253,7 @@ namespace TestResultCoordinator
         {
             if (this.reportMetadatas == null)
             {
-                RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
+                RegistryManager rm = RegistryManager.Create(this.IotHubHostname, new AzureCliCredential());
                 Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
                 this.reportMetadatas = TestReportUtil.ParseReportMetadataJson(moduleTwin.Properties.Desired["reportMetadataList"].ToString(), logger);
             }

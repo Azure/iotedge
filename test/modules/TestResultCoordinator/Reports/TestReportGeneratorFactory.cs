@@ -271,7 +271,7 @@ namespace TestResultCoordinator.Reports
 
             string[] sources = reportMetadata.ExpectedSource.Split('.');
             string moduleId = sources.Length > 0 ? sources[0] : Settings.Current.ModuleId;
-            return new CloudTwinTestResultCollection(reportMetadata.ExpectedSource, Settings.Current.IoTHubConnectionString, moduleId, Settings.Current.TrackingId);
+            return new CloudTwinTestResultCollection(reportMetadata.ExpectedSource, Settings.Current.IotHubHostname, moduleId, Settings.Current.TrackingId);
         }
     }
 }

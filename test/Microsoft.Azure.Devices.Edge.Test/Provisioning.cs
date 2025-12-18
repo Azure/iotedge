@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public Provisioning()
         {
             this.iotHub = new IotHub(
-                Context.Current.ConnectionString,
+                Context.Current.IotHubHostname,
                 Context.Current.EventHubEndpoint,
                 Context.Current.TestRunnerProxy);
         }

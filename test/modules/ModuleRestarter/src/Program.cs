@@ -6,6 +6,7 @@ namespace ModuleRestarter
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -44,7 +45,7 @@ namespace ModuleRestarter
 
             try
             {
-                ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
+                ServiceClient iotHubServiceClient = ServiceClient.Create(Settings.Current.IotHubHostname, new AzureCliCredential());
                 CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
                 Random random = new Random();
                 string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";

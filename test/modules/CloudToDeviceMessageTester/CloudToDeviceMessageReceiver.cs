@@ -7,6 +7,7 @@ namespace CloudToDeviceMessageTester
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -20,7 +21,7 @@ namespace CloudToDeviceMessageTester
     sealed class CloudToDeviceMessageReceiver : ICloudToDeviceMessageTester
     {
         readonly ILogger logger;
-        readonly string iotHubConnectionString;
+        readonly string iotHubHostname;
         readonly string deviceId;
         readonly string edgeDeviceId;
         readonly string moduleId;
@@ -31,7 +32,6 @@ namespace CloudToDeviceMessageTester
         readonly string apiVersion;
         readonly string workloadClientApiVersion = "2019-01-30";
         readonly string moduleGenerationId;
-        readonly string iotHubHostName;
         DeviceClient deviceClient;
 
         internal CloudToDeviceMessageReceiver(
@@ -41,7 +41,7 @@ namespace CloudToDeviceMessageTester
             TestResultReportingClient testResultReportingClient)
         {
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
-            this.iotHubConnectionString = Preconditions.CheckNonWhiteSpace(sharedMetadata.IotHubConnectionString, nameof(sharedMetadata.IotHubConnectionString));
+            this.iotHubHostname = Preconditions.CheckNonWhiteSpace(sharedMetadata.IotHubHostname, nameof(sharedMetadata.IotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(sharedMetadata.DeviceId, nameof(sharedMetadata.DeviceId));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(receiverMetadata.EdgeDeviceId, nameof(receiverMetadata.EdgeDeviceId));
             this.moduleId = Preconditions.CheckNonWhiteSpace(sharedMetadata.ModuleId, nameof(sharedMetadata.ModuleId));
@@ -50,7 +50,6 @@ namespace CloudToDeviceMessageTester
             this.workloadUri = Preconditions.CheckNonWhiteSpace(receiverMetadata.WorkloadUri, nameof(receiverMetadata.WorkloadUri));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(receiverMetadata.ApiVersion, nameof(receiverMetadata.ApiVersion));
             this.moduleGenerationId = Preconditions.CheckNonWhiteSpace(receiverMetadata.ModuleGenerationId, nameof(receiverMetadata.ModuleGenerationId));
-            this.iotHubHostName = Preconditions.CheckNonWhiteSpace(receiverMetadata.IotHubHostName, nameof(receiverMetadata.IotHubHostName));
             this.testResultReportingClient = Preconditions.CheckNotNull(testResultReportingClient, nameof(testResultReportingClient));
         }
 
@@ -80,12 +79,12 @@ namespace CloudToDeviceMessageTester
 
             try
             {
-                registryManager = Microsoft.Azure.Devices.RegistryManager.CreateFromConnectionString(this.iotHubConnectionString);
+                registryManager = Microsoft.Azure.Devices.RegistryManager.Create(this.iotHubHostname, new AzureCliCredential());
                 var edgeDevice = await registryManager.GetDeviceAsync(this.edgeDeviceId);
                 var leafDevice = new Microsoft.Azure.Devices.Device(this.deviceId);
                 leafDevice.Scope = edgeDevice.Scope;
                 Microsoft.Azure.Devices.Device device = await registryManager.AddDeviceAsync(leafDevice, ct);
-                string deviceConnectionString = $"HostName={this.iotHubHostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
+                string deviceConnectionString = $"HostName={this.iotHubHostname};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
                 this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings });
 
                 var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);

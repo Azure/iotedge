@@ -5,6 +5,7 @@ namespace CloudToDeviceMessageTester
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -15,7 +16,7 @@ namespace CloudToDeviceMessageTester
     sealed class CloudToDeviceMessageSender : ICloudToDeviceMessageTester
     {
         readonly ILogger logger;
-        readonly string iotHubConnectionString;
+        readonly string iotHubHostname;
         readonly string deviceId;
         readonly string moduleId;
         readonly TimeSpan testDuration;
@@ -33,7 +34,7 @@ namespace CloudToDeviceMessageTester
             TestResultReportingClient testResultReportingClient)
         {
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
-            this.iotHubConnectionString = Preconditions.CheckNonWhiteSpace(sharedMetadata.IotHubConnectionString, nameof(sharedMetadata.IotHubConnectionString));
+            this.iotHubHostname = Preconditions.CheckNonWhiteSpace(sharedMetadata.IotHubHostname, nameof(sharedMetadata.IotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(sharedMetadata.DeviceId, nameof(sharedMetadata.DeviceId));
             this.moduleId = Preconditions.CheckNonWhiteSpace(sharedMetadata.ModuleId, nameof(sharedMetadata.ModuleId));
             this.trackingId = Preconditions.CheckNonWhiteSpace(senderMetadata.TrackingId, nameof(senderMetadata.TrackingId));
@@ -51,7 +52,7 @@ namespace CloudToDeviceMessageTester
             await Task.Delay(this.testStartDelay, ct);
             DateTime testStartAt = DateTime.UtcNow;
 
-            this.serviceClient = ServiceClient.CreateFromConnectionString(this.iotHubConnectionString);
+            this.serviceClient = ServiceClient.Create(this.iotHubHostname, new AzureCliCredential());
             await this.serviceClient.OpenAsync();
 
             Guid batchId = Guid.NewGuid();

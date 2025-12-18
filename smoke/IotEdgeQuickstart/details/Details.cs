@@ -111,7 +111,7 @@ namespace IotEdgeQuickstart.Details
 
         readonly Option<RegistryCredentials> credentials;
 
-        readonly string iothubConnectionString;
+        readonly string iothubHostName;
 
         readonly Option<DPSAttestation> dpsAttestation;
 
@@ -152,7 +152,7 @@ namespace IotEdgeQuickstart.Details
         protected Details(
             IBootstrapper bootstrapper,
             Option<RegistryCredentials> credentials,
-            string iothubConnectionString,
+            string iothubHostName,
             string eventhubCompatibleEndpointWithEntityPath,
             UpstreamProtocolType upstreamProtocol,
             Option<string> proxy,
@@ -174,7 +174,7 @@ namespace IotEdgeQuickstart.Details
         {
             this.bootstrapper = bootstrapper;
             this.credentials = credentials;
-            this.iothubConnectionString = iothubConnectionString;
+            this.iothubHostName = iothubHostName;
             this.dpsAttestation = dpsAttestation;
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
 
@@ -236,15 +236,14 @@ namespace IotEdgeQuickstart.Details
             Console.WriteLine("Getting or Creating device Identity.");
             var settings = new HttpTransportSettings();
             this.proxy.ForEach(p => settings.Proxy = p);
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            RegistryManager rm = RegistryManager.Create(builder.HostName, new AzureCliCredential(), settings);
+            RegistryManager rm = RegistryManager.Create(this.iothubHostName, new AzureCliCredential(), settings);
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
             if (device != null)
             {
-                Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
+                Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{this.iothubHostName}'");
                 Console.WriteLine($"Clean up Existing device? {this.cleanUpExistingDeviceOnSuccess}");
-                this.context = new DeviceContext(device, this.iothubConnectionString, rm, this.cleanUpExistingDeviceOnSuccess);
+                this.context = new DeviceContext(device, this.iothubHostName, rm, this.cleanUpExistingDeviceOnSuccess);
             }
             else
             {
@@ -252,7 +251,7 @@ namespace IotEdgeQuickstart.Details
                 // ESD will register with DPS to create the device in IoT Hub
                 if (this.dpsAttestation.HasValue)
                 {
-                    this.context = new DeviceContext(this.deviceId, this.iothubConnectionString, rm, this.cleanUpExistingDeviceOnSuccess);
+                    this.context = new DeviceContext(this.deviceId, this.iothubHostName, rm, this.cleanUpExistingDeviceOnSuccess);
                 }
                 else
                 {
@@ -268,11 +267,9 @@ namespace IotEdgeQuickstart.Details
                 dps => { return new DeviceProvisioningMethod(dps); },
                 () =>
                 {
-                    IotHubConnectionStringBuilder builder =
-                        IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
                     Device device = this.context.Device.Expect(() => new InvalidOperationException("Expected a valid device instance"));
                     string connectionString =
-                        $"HostName={builder.HostName};" +
+                        $"HostName={this.context.IotHubHostName};" +
                         $"DeviceId={device.Id};" +
                         $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}";
 
@@ -312,9 +309,8 @@ namespace IotEdgeQuickstart.Details
                     var settings = new ServiceClientTransportSettings();
                     this.proxy.ForEach(p => settings.HttpProxy = p);
 
-                    IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
                     ServiceClient serviceClient =
-                        ServiceClient.Create(builder.HostName, new AzureCliCredential(), this.serviceClientTransportType, settings);
+                        ServiceClient.Create(this.iothubHostName, new AzureCliCredential(), this.serviceClientTransportType, settings);
 
                     while (!cts.IsCancellationRequested)
                     {
@@ -544,8 +540,7 @@ namespace IotEdgeQuickstart.Details
                 device.ParentScopes.Add(parentDevice.Scope);
             });
 
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
+            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{this.iothubHostName}'");
 
             var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
             var retryPolicy = new RetryPolicy(new TransientNetworkErrorDetectionStrategy(), retryStrategy);
@@ -556,7 +551,7 @@ namespace IotEdgeQuickstart.Details
                 device = await rm.AddDeviceAsync(device);
             }, new CancellationTokenSource(TimeSpan.FromMinutes(10)).Token);
 
-            this.context = new DeviceContext(device, builder.ToString(), rm, true);
+            this.context = new DeviceContext(device, this.iothubHostName, rm, true);
         }
 
         string EdgeAgentImage()
@@ -627,20 +622,20 @@ namespace IotEdgeQuickstart.Details
 
     public class DeviceContext
     {
-        public DeviceContext(string deviceId, string iothubConnectionString, RegistryManager rm, bool removeDevice)
+        public DeviceContext(string deviceId, string iothubHostName, RegistryManager rm, bool removeDevice)
         {
             this.DeviceId = deviceId;
             this.Device = Option.None<Device>();
-            this.IotHubConnectionString = iothubConnectionString;
+            this.IotHubHostName = iothubHostName;
             this.RegistryManager = rm;
             this.RemoveDevice = removeDevice;
         }
 
-        public DeviceContext(Device device, string iothubConnectionString, RegistryManager rm, bool removeDevice)
+        public DeviceContext(Device device, string iothubHostName, RegistryManager rm, bool removeDevice)
         {
             this.DeviceId = device.Id;
             this.Device = Option.Some(device);
-            this.IotHubConnectionString = iothubConnectionString;
+            this.IotHubHostName = iothubHostName;
             this.RegistryManager = rm;
             this.RemoveDevice = removeDevice;
         }
@@ -649,7 +644,7 @@ namespace IotEdgeQuickstart.Details
 
         public string DeviceId { get; }
 
-        public string IotHubConnectionString { get; }
+        public string IotHubHostName { get; }
 
         public RegistryManager RegistryManager { get; }
 

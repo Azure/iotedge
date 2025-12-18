@@ -37,7 +37,7 @@ namespace LeafDeviceTest
 
     public class Details
     {
-        readonly string iothubConnectionString;
+        readonly string iothubHostName;
         readonly string eventhubCompatibleEndpointWithEntityPath;
         readonly string deviceId;
         readonly string trustedCACertificateFileName;
@@ -54,7 +54,7 @@ namespace LeafDeviceTest
         Option<IWebProxy> proxy;
 
         protected Details(
-            string iothubConnectionString,
+            string iothubHostName,
             string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
             string trustedCACertificateFileName,
@@ -65,7 +65,7 @@ namespace LeafDeviceTest
             Option<DeviceCertificate> clientCertificatePaths,
             Option<IList<string>> thumbprintCertificatePaths)
         {
-            this.iothubConnectionString = iothubConnectionString;
+            this.iothubHostName = iothubHostName;
             this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
             this.deviceId = deviceId;
             this.trustedCACertificateFileName = trustedCACertificateFileName;
@@ -153,17 +153,16 @@ namespace LeafDeviceTest
 
                 try
                 {
-                    var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
                     DeviceClient deviceClient;
                     if (this.authType == AuthenticationType.Sas)
                     {
-                        string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+                        string leafDeviceConnectionString = $"HostName={this.iothubHostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
                         deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
                     }
                     else
                     {
                         var auth = new DeviceAuthenticationWithX509Certificate(this.deviceId, this.clientCertificate.Expect(() => new InvalidOperationException("Missing client certificate")));
-                        deviceClient = DeviceClient.Create(builder.HostName, this.edgeHostName, auth, this.deviceTransportSettings);
+                        deviceClient = DeviceClient.Create(this.iothubHostName, this.edgeHostName, auth, this.deviceTransportSettings);
                     }
 
                     this.context.DeviceClientInstance = Option.Some(deviceClient);
@@ -218,8 +217,7 @@ namespace LeafDeviceTest
         {
             var settings = new HttpTransportSettings();
             this.proxy.ForEach(p => settings.Proxy = p);
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            RegistryManager rm = RegistryManager.Create(builder.HostName, new AzureCliCredential(), settings);
+            RegistryManager rm = RegistryManager.Create(this.iothubHostName, new AzureCliCredential(), settings);
 
             Option<string> edgeScope = await this.edgeDeviceId
                 .Map(id => GetScopeIfExitsAsync(rm, id))
@@ -228,7 +226,7 @@ namespace LeafDeviceTest
             Device device = await rm.GetDeviceAsync(this.deviceId);
             if (device != null)
             {
-                Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
+                Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{this.iothubHostName}'");
 
                 if (this.authType == AuthenticationType.SelfSigned)
                 {
@@ -247,7 +245,6 @@ namespace LeafDeviceTest
                 this.context = new DeviceContext
                 {
                     Device = device,
-                    IotHubConnectionString = this.iothubConnectionString,
                     RegistryManager = rm,
                     RemoveDevice = false,
                     MessageGuid = Guid.NewGuid().ToString()
@@ -322,9 +319,8 @@ namespace LeafDeviceTest
             // User Service SDK to invoke Direct Method on the device.
             var settings = new ServiceClientTransportSettings();
             this.proxy.ForEach(p => settings.HttpProxy = p);
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             ServiceClient serviceClient =
-                ServiceClient.Create(builder.HostName, new AzureCliCredential(), this.serviceClientTransportType, settings);
+                ServiceClient.Create(this.iothubHostName, new AzureCliCredential(), this.serviceClientTransportType, settings);
 
             // Call a direct method
             TimeSpan testDuration = TimeSpan.FromSeconds(300);
@@ -532,8 +528,7 @@ namespace LeafDeviceTest
             };
             edgeDeviceScope.ForEach(scope => device.Scope = scope);
 
-            var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
+            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{this.iothubHostName}'");
 
             device = await rm.AddDeviceAsync(device);
 
@@ -541,7 +536,6 @@ namespace LeafDeviceTest
             {
                 Device = device,
                 DeviceClientInstance = Option.None<DeviceClient>(),
-                IotHubConnectionString = this.iothubConnectionString,
                 RegistryManager = rm,
                 RemoveDevice = true,
                 MessageGuid = Guid.NewGuid().ToString()
@@ -554,8 +548,6 @@ namespace LeafDeviceTest
         public Device Device { get; set; }
 
         public Option<DeviceClient> DeviceClientInstance { get; set; }
-
-        public string IotHubConnectionString { get; set; }
 
         public RegistryManager RegistryManager { get; set; }
 

@@ -1,5 +1,5 @@
 {
-  "ServiceClientConnectionString": "",
+  "IotHubHostname": "",
   "DesiredModulesToRestartCSV": "moduleRestarter",
   "RestartIntervalInMins": "10"
 }

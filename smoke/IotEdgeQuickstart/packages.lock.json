@@ -1978,7 +1978,8 @@
       "microsoft.azure.devices.edge.test.common": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Azure.Devices": "[1.31.6, )",
+          "Azure.Identity": "[1.17.1, )",
+          "Microsoft.Azure.Devices": "[1.41.0, )",
           "Microsoft.Azure.Devices.Client": "[1.36.10, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
           "Microsoft.Azure.EventHubs": "[4.3.2, )",
@@ -1986,7 +1987,7 @@
           "Microsoft.Extensions.Configuration.EnvironmentVariables": "[5.0.0, )",
           "Microsoft.Extensions.Configuration.Json": "[5.0.0, )",
           "Nett": "[0.15.0, )",
-          "Newtonsoft.Json": "[13.0.2, )",
+          "Newtonsoft.Json": "[13.0.3, )",
           "System.ServiceProcess.ServiceController": "[4.5.0, )"
         }
       },

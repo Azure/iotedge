@@ -4,6 +4,7 @@ namespace DirectMethodSender
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -27,11 +28,11 @@ namespace DirectMethodSender
         public override void Dispose() => this.serviceClient.Dispose();
 
         public static async Task<DirectMethodCloudSender> CreateAsync(
-            string connectionString,
+            string iotHubHostname,
             TransportType transportType,
             ILogger logger)
         {
-            ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(connectionString, transportType);
+            ServiceClient serviceClient = ServiceClient.Create(iotHubHostname, new AzureCliCredential(), transportType);
             await serviceClient.OpenAsync();
             return new DirectMethodCloudSender(
                 serviceClient,

@@ -5,6 +5,7 @@ namespace TestResultCoordinator
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Azure.Storage.Blobs;
     using Azure.Storage.Sas;
     using Microsoft.Azure.Devices;
@@ -141,16 +142,16 @@ namespace TestResultCoordinator
             return GetContainerSasUri(containerClient);
         }
 
-        internal static async Task UploadLogsAsync(string iotHubConnectionString, Uri blobContainerWriteUri, Option<TimeSpan> logUploadDuration, ILogger logger)
+        internal static async Task UploadLogsAsync(string iotHubHostname, Uri blobContainerWriteUri, Option<TimeSpan> logUploadDuration, ILogger logger)
         {
-            Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
+            Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             Preconditions.CheckNotNull(blobContainerWriteUri, nameof(blobContainerWriteUri));
             Preconditions.CheckNotNull(logger, nameof(logger));
 
             DateTime uploadLogStartAt = DateTime.UtcNow;
             logger.LogInformation("Send upload logs request to edgeAgent.");
 
-            ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+            ServiceClient serviceClient = ServiceClient.Create(iotHubHostname, new AzureCliCredential());
 
             CloudToDeviceMethod uploadLogRequest =
                 new CloudToDeviceMethod("UploadModuleLogs");

@@ -4,6 +4,7 @@ namespace TwinTester
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -23,7 +24,7 @@ namespace TwinTester
             ITwinTestInitializer twinOperator = null;
             try
             {
-                using (RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString))
+                using (RegistryManager registryManager = RegistryManager.Create(Settings.Current.IotHubHostname, new AzureCliCredential()))
                 {
                     twinOperator = await GetTwinOperatorAsync(registryManager);
                     await twinOperator.StartAsync(cts.Token);

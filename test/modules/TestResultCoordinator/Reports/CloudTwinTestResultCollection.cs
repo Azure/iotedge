@@ -5,6 +5,7 @@ namespace TestResultCoordinator.Reports
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Shared;
@@ -14,9 +15,9 @@ namespace TestResultCoordinator.Reports
     {
         CloudTwinTestResultCollectionEnumerator enumerator;
 
-        public CloudTwinTestResultCollection(string source, string serviceClientConnectionString, string moduleId, string trackingId)
+        public CloudTwinTestResultCollection(string source, string iotHubHostname, string moduleId, string trackingId)
         {
-            CloudTwinTestResultCollectionEnumerator enumerator = new CloudTwinTestResultCollectionEnumerator(source, serviceClientConnectionString, moduleId, trackingId);
+            CloudTwinTestResultCollectionEnumerator enumerator = new CloudTwinTestResultCollectionEnumerator(source, iotHubHostname, moduleId, trackingId);
             this.enumerator = enumerator;
         }
 
@@ -35,9 +36,9 @@ namespace TestResultCoordinator.Reports
             TestOperationResult current;
             bool isLoaded;
 
-            internal CloudTwinTestResultCollectionEnumerator(string source, string serviceClientConnectionString, string moduleId, string trackingId)
+            internal CloudTwinTestResultCollectionEnumerator(string source, string iotHubHostname, string moduleId, string trackingId)
             {
-                this.registryManager = RegistryManager.CreateFromConnectionString(serviceClientConnectionString);
+                this.registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
                 this.isLoaded = false;
                 this.moduleId = moduleId;
                 this.source = source;
