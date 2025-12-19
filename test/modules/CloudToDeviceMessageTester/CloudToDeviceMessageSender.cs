@@ -52,7 +52,7 @@ namespace CloudToDeviceMessageTester
             await Task.Delay(this.testStartDelay, ct);
             DateTime testStartAt = DateTime.UtcNow;
 
-            this.serviceClient = ServiceClient.Create(this.iotHubHostname, new EnvironmentCredential());
+            this.serviceClient = ServiceClient.Create(this.iotHubHostname, new WorkloadIdentityCredential());
             await this.serviceClient.OpenAsync();
 
             Guid batchId = Guid.NewGuid();

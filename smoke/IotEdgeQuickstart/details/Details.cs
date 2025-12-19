@@ -236,7 +236,7 @@ namespace IotEdgeQuickstart.Details
             Console.WriteLine("Getting or Creating device Identity.");
             var settings = new HttpTransportSettings();
             this.proxy.ForEach(p => settings.Proxy = p);
-            RegistryManager rm = RegistryManager.Create(this.iothubHostName, new EnvironmentCredential(), settings);
+            RegistryManager rm = RegistryManager.Create(this.iothubHostName, new AzureCliCredential(), settings);
 
             Device device = await rm.GetDeviceAsync(this.deviceId);
             if (device != null)
@@ -310,7 +310,7 @@ namespace IotEdgeQuickstart.Details
                     this.proxy.ForEach(p => settings.HttpProxy = p);
 
                     ServiceClient serviceClient =
-                        ServiceClient.Create(this.iothubHostName, new EnvironmentCredential(), this.serviceClientTransportType, settings);
+                        ServiceClient.Create(this.iothubHostName, new AzureCliCredential(), this.serviceClientTransportType, settings);
 
                     while (!cts.IsCancellationRequested)
                     {

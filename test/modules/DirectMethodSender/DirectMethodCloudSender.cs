@@ -32,7 +32,7 @@ namespace DirectMethodSender
             TransportType transportType,
             ILogger logger)
         {
-            ServiceClient serviceClient = ServiceClient.Create(iotHubHostname, new EnvironmentCredential(), transportType);
+            ServiceClient serviceClient = ServiceClient.Create(iotHubHostname, new WorkloadIdentityCredential(), transportType);
             await serviceClient.OpenAsync();
             return new DirectMethodCloudSender(
                 serviceClient,

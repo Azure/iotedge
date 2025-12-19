@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     proxy.ForEach(p => settings.Proxy = p);
                     return RegistryManager.Create(
                         this.iotHubHostname,
-                        new EnvironmentCredential(),
+                        new AzureCliCredential(),
                         settings);
                 });
 
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     proxy.ForEach(p => settings.HttpProxy = p);
                     return ServiceClient.Create(
                         this.iotHubHostname,
-                        new EnvironmentCredential(),
+                        new AzureCliCredential(),
                         DeviceTransportType.Amqp_WebSocket_Only,
                         settings);
                 });

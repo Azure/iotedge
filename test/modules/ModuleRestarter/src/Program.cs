@@ -45,7 +45,7 @@ namespace ModuleRestarter
 
             try
             {
-                ServiceClient iotHubServiceClient = ServiceClient.Create(Settings.Current.IotHubHostname, new EnvironmentCredential());
+                ServiceClient iotHubServiceClient = ServiceClient.Create(Settings.Current.IotHubHostname, new WorkloadIdentityCredential());
                 CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
                 Random random = new Random();
                 string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";

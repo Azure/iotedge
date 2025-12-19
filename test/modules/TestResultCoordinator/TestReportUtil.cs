@@ -151,7 +151,7 @@ namespace TestResultCoordinator
             DateTime uploadLogStartAt = DateTime.UtcNow;
             logger.LogInformation("Send upload logs request to edgeAgent.");
 
-            ServiceClient serviceClient = ServiceClient.Create(iotHubHostname, new EnvironmentCredential());
+            ServiceClient serviceClient = ServiceClient.Create(iotHubHostname, new WorkloadIdentityCredential());
 
             CloudToDeviceMethod uploadLogRequest =
                 new CloudToDeviceMethod("UploadModuleLogs");

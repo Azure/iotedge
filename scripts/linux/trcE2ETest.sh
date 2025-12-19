@@ -165,6 +165,9 @@ function prepare_test_from_artifacts() {
     mkdir -p "$quickstart_working_folder"
     tar -C "$quickstart_working_folder" -xzf "$(get_artifact_file "$E2E_TEST_DIR" quickstart)"
 
+    echo "Create federated token file for OIDC authentication to IoT Hub at $quickstart_working_folder/oidc.json"
+    echo "$AZURE_CLIENT_SECRET" > "$quickstart_working_folder/oidc.json"
+
     echo "Copy deployment artifact $DEPLOYMENT_FILE_NAME to $deployment_working_file"
     cp "$REPO_PATH/e2e_deployment_files/$DEPLOYMENT_FILE_NAME" "$deployment_working_file"
 
@@ -182,7 +185,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
     sed -i -e "s@<AzureTenantId>@$AZURE_TENANT_ID@g" "$deployment_working_file"
     sed -i -e "s@<AzureClientId>@$AZURE_CLIENT_ID@g" "$deployment_working_file"
-    sed -i -e "s@<AzureClientSecret>@$AZURE_CLIENT_SECRET@g" "$deployment_working_file"
+    sed -i -e "s@<AzureFederatedTokenFile>@$quickstart_working_folder/oidc.json@g" "$deployment_working_file"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
@@ -667,10 +670,6 @@ function run_connectivity_test() {
         echo "Running with nested Edge."
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
-
-        export AZURE_TENANT_ID
-        export AZURE_CLIENT_ID
-        export AZURE_CLIENT_SECRET
 
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \

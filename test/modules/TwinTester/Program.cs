@@ -24,7 +24,7 @@ namespace TwinTester
             ITwinTestInitializer twinOperator = null;
             try
             {
-                using (RegistryManager registryManager = RegistryManager.Create(Settings.Current.IotHubHostname, new EnvironmentCredential()))
+                using (RegistryManager registryManager = RegistryManager.Create(Settings.Current.IotHubHostname, new WorkloadIdentityCredential()))
                 {
                     twinOperator = await GetTwinOperatorAsync(registryManager);
                     await twinOperator.StartAsync(cts.Token);

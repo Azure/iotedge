@@ -172,13 +172,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "directMethodReceiver1": {
@@ -241,13 +241,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "directMethodReceiver2": {
@@ -313,13 +313,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "relayer1": {
@@ -433,13 +433,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"PortBindings\":{\"5001/tcp\":[{\"HostPort\":\"5001\"}]}}}"
             }
           },
           "twinTester1": {
@@ -484,13 +484,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "twinTester2": {
@@ -535,13 +535,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"]}}"
             }
           },
           "twinTester3": {
@@ -586,13 +586,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "twinTester4": {
@@ -637,13 +637,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"]}}"
             }
           },
           "deploymentTester1": {
@@ -682,13 +682,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "deploymentTester2": {
@@ -742,13 +742,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "cloudToDeviceMessageReceiver1": {
@@ -775,13 +775,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"]}}"
             }
           },
           "cloudToDeviceMessageSender2": {
@@ -817,13 +817,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "cloudToDeviceMessageReceiver2": {
@@ -850,13 +850,13 @@
               "AZURE_CLIENT_ID": {
                 "value": "<AzureClientId>"
               },
-              "AZURE_CLIENT_SECRET": {
-                "value": "<AzureClientSecret>"
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"]}}"
             }
           },
           "networkController": {

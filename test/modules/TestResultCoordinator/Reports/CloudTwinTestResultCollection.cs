@@ -38,7 +38,7 @@ namespace TestResultCoordinator.Reports
 
             internal CloudTwinTestResultCollectionEnumerator(string source, string iotHubHostname, string moduleId, string trackingId)
             {
-                this.registryManager = RegistryManager.Create(iotHubHostname, new EnvironmentCredential());
+                this.registryManager = RegistryManager.Create(iotHubHostname, new WorkloadIdentityCredential());
                 this.isLoaded = false;
                 this.moduleId = moduleId;
                 this.source = source;

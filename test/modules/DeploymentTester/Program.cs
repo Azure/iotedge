@@ -58,7 +58,7 @@ namespace DeploymentTester
 
             try
             {
-                registryManager = RegistryManager.Create(Settings.Current.IotHubHostname.OrDefault(), new EnvironmentCredential());
+                registryManager = RegistryManager.Create(Settings.Current.IotHubHostname.OrDefault(), new WorkloadIdentityCredential());
 
                 DateTime testStartAt = DateTime.UtcNow;
                 long count = 1;
