@@ -668,6 +668,10 @@ function run_connectivity_test() {
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
 
+        export AZURE_TENANT_ID
+        export AZURE_CLIENT_ID
+        export AZURE_CLIENT_SECRET
+
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "$E2E_TEST_DIR/artifacts/" \
