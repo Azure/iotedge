@@ -253,7 +253,7 @@ namespace TestResultCoordinator
         {
             if (this.reportMetadatas == null)
             {
-                RegistryManager rm = RegistryManager.Create(this.IotHubHostname, new AzureCliCredential());
+                RegistryManager rm = RegistryManager.Create(this.IotHubHostname, new EnvironmentCredential());
                 Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
                 this.reportMetadatas = TestReportUtil.ParseReportMetadataJson(moduleTwin.Properties.Desired["reportMetadataList"].ToString(), logger);
             }

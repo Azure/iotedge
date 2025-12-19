@@ -56,6 +56,9 @@ function usage() {
     echo " -trackingId                              Tracking id used to tag test events. Needed if running nested tests and test events are sent to TRC from L4 node. Otherwise generated."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     echo ' -packageType                             Package type to be used [deb, rpm]'
+    echo ' -tenantId                                Azure Tenant ID used by test modules to authenticate to the IoT hub'"'"'s control plane.'
+    echo ' -clientId                                Azure Client ID used by test modules to authenticate to the IoT hub'"'"'s control plane.'
+    echo ' -clientSecret                            Azure Client Secret used by test modules to authenticate to the IoT hub'"'"'s control plane.'
     exit 1;
 }
 
@@ -177,6 +180,9 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
+    sed -i -e "s@<AzureTenantId>@$AZURE_TENANT_ID@g" "$deployment_working_file"
+    sed -i -e "s@<AzureClientId>@$AZURE_CLIENT_ID@g" "$deployment_working_file"
+    sed -i -e "s@<AzureClientSecret>@$AZURE_CLIENT_SECRET@g" "$deployment_working_file"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
@@ -488,6 +494,15 @@ function process_args() {
         elif [ $saveNextArg -eq 49 ]; then
             PACKAGE_TYPE="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 50 ]; then
+            AZURE_TENANT_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 51 ]; then
+            AZURE_CLIENT_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 52 ]; then
+            AZURE_CLIENT_SECRET="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -542,6 +557,9 @@ function process_args() {
                 '-packageType' ) saveNextArg=49;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
+                '-tenantId' ) saveNextArg=50;;
+                '-clientId' ) saveNextArg=51;;
+                '-clientSecret' ) saveNextArg=52;;
 
                 * )
                     echo "Unsupported argument: $saveNextArg $arg"

@@ -79,7 +79,7 @@ namespace CloudToDeviceMessageTester
 
             try
             {
-                registryManager = Microsoft.Azure.Devices.RegistryManager.Create(this.iotHubHostname, new AzureCliCredential());
+                registryManager = Microsoft.Azure.Devices.RegistryManager.Create(this.iotHubHostname, new EnvironmentCredential());
                 var edgeDevice = await registryManager.GetDeviceAsync(this.edgeDeviceId);
                 var leafDevice = new Microsoft.Azure.Devices.Device(this.deviceId);
                 leafDevice.Scope = edgeDevice.Scope;

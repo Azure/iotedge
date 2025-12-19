@@ -97,6 +97,12 @@ steps:
       inlineScript: |
         set -euo pipefail
 
+        accessToken=$(az account get-access-token --resource 'https://iothubs.azure.net')
+        echo "AAD token acquired for IoT hub control plane. Expires $(echo $accessToken | jq -r .expiresOn)"
+        tenantId=$(echo $accessToken | jq -r .tenant)
+        clientId='00000000-0000-0000-0000-000000000000'
+        clientSecret=$(echo $accessToken | jq -r .accessToken)
+
         . $(Agent.BuildDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
         testName="Connectivity"
@@ -147,7 +153,10 @@ steps:
           -repoPath "${{ parameters['build.repo.path'] }}" \
           -topology "${{ parameters['topology'] }}" \
           -waitForTestComplete \
-          -cleanAll
+          -cleanAll \
+          -tenantId "$tenantId" \
+          -clientId "$clientId" \
+          -clientSecret "$clientSecret"
 
         scriptExitCode=$?
         echo "script exit code=$scriptExitCode"

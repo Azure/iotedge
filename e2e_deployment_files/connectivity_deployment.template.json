@@ -165,6 +165,15 @@
               },
               "DirectMethodFrequency": {
                 "value": "<DirectMethodFrequency>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -225,6 +234,15 @@
               },
               "DirectMethodFrequency": {
                 "value": "<DirectMethodFrequency>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -288,6 +306,15 @@
               },
               "DirectMethodFrequency": {
                 "value": "<DirectMethodFrequency>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -399,6 +426,15 @@
               },
               "topology": {
                 "value": "<Topology>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -441,6 +477,15 @@
               },
               "StorageOptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -483,6 +528,15 @@
               },
               "StorageOptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -525,6 +579,15 @@
               },
               "StorageOptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -567,6 +630,15 @@
               },
               "StorageOptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -603,6 +675,15 @@
               },
               "DEPLOYMENT_UPDATE_PERIOD": {
                 "value": "<DeploymentTester1.DeploymentUpdatePeriod>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -654,6 +735,15 @@
               },
               "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -678,6 +768,15 @@
               },
               "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -711,6 +810,15 @@
               },
               "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {
@@ -735,6 +843,15 @@
               },
               "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_CLIENT_SECRET": {
+                "value": "<AzureClientSecret>"
               }
             },
             "settings": {

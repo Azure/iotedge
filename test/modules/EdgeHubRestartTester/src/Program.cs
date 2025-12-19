@@ -34,7 +34,7 @@ namespace EdgeHubRestartTester
             List<ModuleClient> moduleClients = new List<ModuleClient>();
             try
             {
-                iotHubServiceClient = ServiceClient.Create(Settings.Current.IotHubHostname, new AzureCliCredential());
+                iotHubServiceClient = ServiceClient.Create(Settings.Current.IotHubHostname, new EnvironmentCredential());
 
                 List<IEdgeHubConnectorTest> edgeHubConnectorTests = new List<IEdgeHubConnectorTest>();
 
