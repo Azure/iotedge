@@ -92,16 +92,11 @@ steps:
     displayName: 'Run Connectivity Deployment'
     inputs:
       azureSubscription: ${{ parameters['connection.arm'] }}
+      addSpnToEnvironment: true
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
         set -euo pipefail
-
-        accessToken=$(az account get-access-token --resource 'https://iothubs.azure.net')
-        echo "AAD token acquired for IoT hub control plane. Expires $(echo $accessToken | jq -r .expiresOn)"
-        tenantId=$(echo $accessToken | jq -r .tenant)
-        clientId='00000000-0000-0000-0000-000000000000'
-        clientSecret=$(echo $accessToken | jq -r .accessToken)
 
         . $(Agent.BuildDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
@@ -155,8 +150,8 @@ steps:
           -waitForTestComplete \
           -cleanAll \
           -tenantId "$tenantId" \
-          -clientId "$clientId" \
-          -clientSecret "$clientSecret"
+          -clientId "$servicePrincipalId" \
+          -clientSecret "$servicePrincipalKey"
 
         scriptExitCode=$?
         echo "script exit code=$scriptExitCode"
