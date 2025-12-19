@@ -151,7 +151,7 @@ steps:
           -cleanAll \
           -tenantId "$tenantId" \
           -clientId "$servicePrincipalId" \
-          -clientSecret "$servicePrincipalKey"
+          -clientSecret "$idToken"
 
         scriptExitCode=$?
         echo "script exit code=$scriptExitCode"
