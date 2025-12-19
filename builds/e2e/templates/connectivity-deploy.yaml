@@ -97,9 +97,6 @@ steps:
       inlineScript: |
         set -euo pipefail
 
-        # TODO: REMOVE
-        az account show
-
         accessToken=$(az account get-access-token --resource 'https://iothubs.azure.net')
         echo "AAD token acquired for IoT hub control plane. Expires $(echo $accessToken | jq -r .expiresOn)"
         tenantId=$(echo $accessToken | jq -r .tenant)
