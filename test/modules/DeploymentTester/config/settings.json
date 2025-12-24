@@ -1,6 +1,6 @@
 {
   "DEPLOYMENT_TESTER_MODE": "Receiver",
-  "IOT_HUB_CONNECTION_STRING": "",
+  "IOT_HUB_HOSTNAME": "",
   "testStartDelay": "00:02:00",
   "testDuration": "01:00:00",
   "trackingId": "",

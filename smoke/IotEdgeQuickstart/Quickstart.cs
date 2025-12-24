@@ -17,7 +17,7 @@ namespace IotEdgeQuickstart
         public Quickstart(
             IBootstrapper bootstrapper,
             Option<RegistryCredentials> credentials,
-            string iothubConnectionString,
+            string iothubHostName,
             string eventhubCompatibleEndpointWithEntityPath,
             UpstreamProtocolType upstreamProtocol,
             Option<string> proxy,
@@ -40,7 +40,7 @@ namespace IotEdgeQuickstart
             LogLevel runtimeLogLevel,
             bool cleanUpExistingDeviceOnSuccess,
             Option<DPSAttestation> dpsAttestation)
-            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, parentHostname, parentEdgeDevice, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, initializeWithAgentArtifact, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
+            : base(bootstrapper, credentials, iothubHostName, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, parentHostname, parentEdgeDevice, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, initializeWithAgentArtifact, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
         {
             this.leaveRunning = leaveRunning;
             this.noVerify = noVerify;

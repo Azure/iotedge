@@ -34,7 +34,7 @@ namespace TwinTester
                 configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
                 configuration.GetValue<string>("testResultCoordinatorUrl"),
-                configuration.GetValue<string>("ServiceClientConnectionString"),
+                configuration.GetValue<string>("IotHubHostname"),
                 configuration.GetValue<string>("StoragePath"),
                 configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
                 configuration.GetValue<TwinTestMode>("TwinTestMode", TwinTestMode.TwinAllOperations),
@@ -54,7 +54,7 @@ namespace TwinTester
             TransportType transportType,
             string analyzerUrl,
             string testResultCoordinatorUrl,
-            string serviceClientConnectionString,
+            string iotHubHostname,
             string storagePath,
             bool storageOptimizeForPerformance,
             TwinTestMode testMode,
@@ -70,7 +70,7 @@ namespace TwinTester
             this.TwinUpdateFailureThreshold = Preconditions.CheckNotNull(twinUpdateFailureThreshold);
             this.EdgeHubRestartFailureTolerance = Preconditions.CheckNotNull(edgeHubRestartFailureTolerance);
             this.TransportType = Preconditions.CheckNotNull(transportType);
-            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.StoragePath = Preconditions.CheckNotNull(storagePath);
             this.StorageOptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
             this.TwinTestMode = testMode;
@@ -107,7 +107,7 @@ namespace TwinTester
 
         public Uri ReporterUrl { get; }
 
-        public string ServiceClientConnectionString { get; }
+        public string IotHubHostname { get; }
 
         public string StoragePath { get; }
 
