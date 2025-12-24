@@ -104,7 +104,7 @@ where
             let key_client = self.key_client.lock().await;
 
             key_client
-                .create_key_pair_if_not_exists(&self.config.edge_ca_key, Some("rsa-2048:*"))
+                .create_key_pair_if_not_exists(&self.config.edge_ca_key, Some("ec-p256:rsa-4096:*"))
                 .await
                 .map_err(|err| err.to_string())?
         };
