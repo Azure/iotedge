@@ -15,7 +15,7 @@ function usage() {
     echo " -containerRegistry                       Host address of container registry."
     echo " -containerRegistryUsername               Username of container registry."
     echo ' -containerRegistryPassword               Password of given username for container registory.'
-    echo ' -iotHubConnectionString                  IoT hub connection string for creating edge device.'
+    echo ' -iotHubHostName                          Hostname of IoT hub where edge device will be created.'
     echo ' -eventHubConnectionString                Event hub connection string for receive D2C messages.'
     echo ' -eventHubConsumerGroupId                 Event hub consumer group for receive D2C messages.'
     echo ' -testDuration                            Connectivity test duration'
@@ -56,6 +56,9 @@ function usage() {
     echo " -trackingId                              Tracking id used to tag test events. Needed if running nested tests and test events are sent to TRC from L4 node. Otherwise generated."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     echo ' -packageType                             Package type to be used [deb, rpm]'
+    echo ' -tenantId                                Azure Tenant ID used by test modules to authenticate to the IoT hub'"'"'s control plane.'
+    echo ' -clientId                                Azure Client ID used by test modules to authenticate to the IoT hub'"'"'s control plane.'
+    echo ' -clientSecret                            Azure Client Secret used by test modules to authenticate to the IoT hub'"'"'s control plane.'
     exit 1;
 }
 
@@ -162,6 +165,9 @@ function prepare_test_from_artifacts() {
     mkdir -p "$quickstart_working_folder"
     tar -C "$quickstart_working_folder" -xzf "$(get_artifact_file "$E2E_TEST_DIR" quickstart)"
 
+    echo "Create federated token file for OIDC authentication to IoT Hub at $quickstart_working_folder/oidc.json"
+    echo "$AZURE_CLIENT_SECRET" > "$quickstart_working_folder/oidc.json"
+
     echo "Copy deployment artifact $DEPLOYMENT_FILE_NAME to $deployment_working_file"
     cp "$REPO_PATH/e2e_deployment_files/$DEPLOYMENT_FILE_NAME" "$deployment_working_file"
 
@@ -171,12 +177,15 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<Container_Registry>@$CONTAINER_REGISTRY@g" "$deployment_working_file"
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
-    sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
+    sed -i -e "s@<IotHubHostname>@$IOT_HUB_HOSTNAME@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$TRACKING_ID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
+    sed -i -e "s@<AzureTenantId>@$AZURE_TENANT_ID@g" "$deployment_working_file"
+    sed -i -e "s@<AzureClientId>@$AZURE_CLIENT_ID@g" "$deployment_working_file"
+    sed -i -e "s@<AzureFederatedTokenFile>@$quickstart_working_folder/oidc.json@g" "$deployment_working_file"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
@@ -360,7 +369,7 @@ function process_args() {
             CONTAINER_REGISTRY_PASSWORD="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 7 ]; then
-            IOT_HUB_CONNECTION_STRING="$arg"
+            IOT_HUB_HOSTNAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 8 ]; then
             EVENTHUB_CONNECTION_STRING="$arg"
@@ -488,6 +497,15 @@ function process_args() {
         elif [ $saveNextArg -eq 49 ]; then
             PACKAGE_TYPE="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 50 ]; then
+            AZURE_TENANT_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 51 ]; then
+            AZURE_CLIENT_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 52 ]; then
+            AZURE_CLIENT_SECRET="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -497,7 +515,7 @@ function process_args() {
                 '-containerRegistry' ) saveNextArg=4;;
                 '-containerRegistryUsername' ) saveNextArg=5;;
                 '-containerRegistryPassword' ) saveNextArg=6;;
-                '-iotHubConnectionString' ) saveNextArg=7;;
+                '-iotHubHostName' ) saveNextArg=7;;
                 '-eventHubConnectionString' ) saveNextArg=8;;
                 '-eventHubConsumerGroupId' ) saveNextArg=9;;
                 '-testDuration' ) saveNextArg=10;;
@@ -542,6 +560,9 @@ function process_args() {
                 '-packageType' ) saveNextArg=49;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
+                '-tenantId' ) saveNextArg=50;;
+                '-clientId' ) saveNextArg=51;;
+                '-clientSecret' ) saveNextArg=52;;
 
                 * )
                     echo "Unsupported argument: $saveNextArg $arg"
@@ -559,7 +580,7 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
-    [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
+    [[ -z "$IOT_HUB_HOSTNAME" ]] && { print_error 'IoT hub hostname is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_LOGTYPE" ]] && { print_error 'Log analytics log type is required'; exit 1; }
@@ -571,10 +592,13 @@ function process_args() {
     [[ -z "$REPO_PATH" ]] && { print_error 'Repo path is required'; exit 1; }
     [[ (-z "${TEST_NAME,,}") || ("${TEST_NAME,,}" != "${LONGHAUL_TEST_NAME,,}" && "${TEST_NAME,,}" != "${CONNECTIVITY_TEST_NAME,,}") ]] && { print_error 'Invalid test name'; exit 1; }
     [[ (-z "${CLIENT_MODULE_TRANSPORT_TYPE,,}") && ("${image_architecture_label,,}" == "arm32v7" || "${image_architecture_label,,}" == "arm64v8") ]] && { print_error 'Arm platform needs to run with client module transport type set'; exit 1; }
+    [[ -z "$AZURE_TENANT_ID" ]] && { print_error 'Azure Tenant ID is required'; exit 1; }
+    [[ -z "$AZURE_CLIENT_ID" ]] && { print_error 'Azure Client ID is required'; exit 1; }
+    [[ -z "$AZURE_CLIENT_SECRET" ]] && { print_error 'Azure Client Secret is required'; exit 1; }
 
     echo 'Required parameters are provided'
 
-    if [ -z "$TRACKING_ID"]; then
+    if [ -z "$TRACKING_ID" ]; then
         TRACKING_ID=$(cat /proc/sys/kernel/random/uuid)
     fi
 }
@@ -648,31 +672,31 @@ function run_connectivity_test() {
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
 
         "$quickstart_working_folder/IotEdgeQuickstart" \
-        -d "$device_id" \
-        -a "$E2E_TEST_DIR/artifacts/" \
-        -c "$IOT_HUB_CONNECTION_STRING" \
-        -e "$EVENTHUB_CONNECTION_STRING" \
-        -r "$CONTAINER_REGISTRY" \
-        -u "$CONTAINER_REGISTRY_USERNAME" \
-        -p "$CONTAINER_REGISTRY_PASSWORD" \
-        -n "$(hostname)" \
-        --parent-hostname "$PARENT_HOSTNAME" \
-        --parent-edge-device "$PARENT_EDGE_DEVICE" \
-        --device_ca_cert "$DEVICE_CA_CERT" \
-        --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
-        --trusted_ca_certs "$TRUSTED_CA_CERTS" \
-        --initialize-with-agent-artifact true \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --leave-running=All \
-        -l "$deployment_working_file" \
-        --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
-        --no-verify \
-        --overwrite-packages && funcRet=$? || funcRet=$?
+            -d "$device_id" \
+            -a "$E2E_TEST_DIR/artifacts/" \
+            --iothub-hostname "$IOT_HUB_HOSTNAME" \
+            -e "$EVENTHUB_CONNECTION_STRING" \
+            -r "$CONTAINER_REGISTRY" \
+            -u "$CONTAINER_REGISTRY_USERNAME" \
+            -p "$CONTAINER_REGISTRY_PASSWORD" \
+            -n "$(hostname)" \
+            --parent-hostname "$PARENT_HOSTNAME" \
+            --parent-edge-device "$PARENT_EDGE_DEVICE" \
+            --device_ca_cert "$DEVICE_CA_CERT" \
+            --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
+            --trusted_ca_certs "$TRUSTED_CA_CERTS" \
+            --initialize-with-agent-artifact true \
+            -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+            --leave-running=All \
+            -l "$deployment_working_file" \
+            --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
+            --no-verify \
+            --overwrite-packages && funcRet=$? || funcRet=$?
     else
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "$E2E_TEST_DIR/artifacts/" \
-            -c "$IOT_HUB_CONNECTION_STRING" \
+            --iothub-hostname "$IOT_HUB_HOSTNAME" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
@@ -797,7 +821,7 @@ function run_longhaul_test() {
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "$E2E_TEST_DIR/artifacts/" \
-            -c "$IOT_HUB_CONNECTION_STRING" \
+            --iothub-hostname "$IOT_HUB_HOSTNAME" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
@@ -823,7 +847,7 @@ function run_longhaul_test() {
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "$E2E_TEST_DIR/artifacts/" \
-            -c "$IOT_HUB_CONNECTION_STRING" \
+            --iothub-hostname "$IOT_HUB_HOSTNAME" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \

@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using global::Azure.Identity;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -19,16 +20,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     public class IotHub
     {
         readonly string eventHubEndpoint;
-        readonly string iotHubConnectionString;
+        readonly string iotHubHostname;
         readonly Lazy<RegistryManager> registryManager;
         readonly Lazy<ServiceClient> serviceClient;
         readonly Lazy<EventHubClient> eventHubClient;
         static readonly TimeSpan eventHubRequestDuration = TimeSpan.FromSeconds(20);
 
-        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<Uri> proxyUri)
+        public IotHub(string iotHubHostname, string eventHubEndpoint, Option<Uri> proxyUri)
         {
             this.eventHubEndpoint = eventHubEndpoint;
-            this.iotHubConnectionString = iotHubConnectionString;
+            this.iotHubHostname = iotHubHostname;
             Option<IWebProxy> proxy = proxyUri.Map(p => new WebProxy(p) as IWebProxy);
 
             this.registryManager = new Lazy<RegistryManager>(
@@ -36,8 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     var settings = new HttpTransportSettings();
                     proxy.ForEach(p => settings.Proxy = p);
-                    return RegistryManager.CreateFromConnectionString(
-                        this.iotHubConnectionString,
+                    return RegistryManager.Create(
+                        this.iotHubHostname,
+                        new AzureCliCredential(),
                         settings);
                 });
 
@@ -46,8 +48,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     var settings = new ServiceClientTransportSettings();
                     proxy.ForEach(p => settings.HttpProxy = p);
-                    return ServiceClient.CreateFromConnectionString(
-                        this.iotHubConnectionString,
+                    return ServiceClient.Create(
+                        this.iotHubHostname,
+                        new AzureCliCredential(),
                         DeviceTransportType.Amqp_WebSocket_Only,
                         settings);
                 });
@@ -65,8 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 });
         }
 
-        public string Hostname =>
-            IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
+        public string Hostname => this.iotHubHostname;
 
         public string EntityPath =>
             new EventHubsConnectionStringBuilder(this.eventHubEndpoint).EntityPath;

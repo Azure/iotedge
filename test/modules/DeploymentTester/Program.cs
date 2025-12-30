@@ -6,6 +6,7 @@ namespace DeploymentTester
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
@@ -57,7 +58,7 @@ namespace DeploymentTester
 
             try
             {
-                registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.IoTHubConnectionString.OrDefault());
+                registryManager = RegistryManager.Create(Settings.Current.IotHubHostname.OrDefault(), new WorkloadIdentityCredential());
 
                 DateTime testStartAt = DateTime.UtcNow;
                 long count = 1;

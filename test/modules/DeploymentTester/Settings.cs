@@ -18,7 +18,7 @@ namespace DeploymentTester
             string deviceId,
             string moduleId,
             DeploymentTesterMode testMode,
-            Option<string> iotHubConnectionString,
+            Option<string> iotHubHostname,
             Uri testResultCoordinatorUrl,
             TimeSpan testStartDelay,
             TimeSpan testDuration,
@@ -33,8 +33,8 @@ namespace DeploymentTester
 
             if (testMode == DeploymentTesterMode.Sender)
             {
-                Preconditions.CheckArgument(iotHubConnectionString.HasValue, nameof(iotHubConnectionString));
-                this.IoTHubConnectionString = iotHubConnectionString;
+                Preconditions.CheckArgument(iotHubHostname.HasValue, nameof(iotHubHostname));
+                this.IotHubHostname = iotHubHostname;
 
                 Preconditions.CheckArgument(targetModuleId.HasValue, nameof(targetModuleId));
                 this.TargetModuleId = targetModuleId;
@@ -58,7 +58,7 @@ namespace DeploymentTester
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("DEPLOYMENT_TESTER_MODE", DeploymentTesterMode.Receiver),
-                Option.Maybe(configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING")),
+                Option.Maybe(configuration.GetValue<string>("IOT_HUB_HOSTNAME")),
                 configuration.GetValue("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
@@ -73,7 +73,7 @@ namespace DeploymentTester
 
         public DeploymentTesterMode TestMode { get; }
 
-        public Option<string> IoTHubConnectionString { get; }
+        public Option<string> IotHubHostname { get; }
 
         public Uri TestResultCoordinatorUrl { get; }
 
