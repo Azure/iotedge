@@ -32,7 +32,8 @@ namespace TestResultCoordinator
             string trackingId,
             bool useTestResultReportingService,
             bool useResultEventReceivingService,
-            string eventHubConnectionString,
+            string fullyQualifiedNamespace,
+            string eventHubName,
             string iotHubHostname,
             string deviceId,
             string moduleId,
@@ -63,7 +64,8 @@ namespace TestResultCoordinator
             {
                 this.TestResultEventReceivingServiceSettings = Option.Some(new TestResultEventReceivingServiceSettings()
                 {
-                    EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString)),
+                    FullyQualifiedNamespace = Preconditions.CheckNonWhiteSpace(fullyQualifiedNamespace, nameof(fullyQualifiedNamespace)),
+                    EventHubName = Preconditions.CheckNonWhiteSpace(eventHubName, nameof(eventHubName)),
                     ConsumerGroupName = "$Default"
                 });
             }
@@ -150,7 +152,8 @@ namespace TestResultCoordinator
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue("useTestResultReportingService", true),
                 configuration.GetValue("useResultEventReceivingService", true),
-                configuration.GetValue<string>("eventHubConnectionString"),
+                configuration.GetValue<string>("fullyQualifiedNamespace"),
+                configuration.GetValue<string>("eventHubName"),
                 configuration.GetValue<string>("IOT_HUB_HOSTNAME"),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
@@ -233,7 +236,12 @@ namespace TestResultCoordinator
                 { nameof(this.MqttBrokerEnabled), this.MqttBrokerEnabled.ToString() }
             };
 
-            this.TestResultEventReceivingServiceSettings.ForEach(settings => fields.Add(nameof(settings.ConsumerGroupName), settings.ConsumerGroupName));
+            this.TestResultEventReceivingServiceSettings.ForEach(settings =>
+            {
+                fields.Add(nameof(settings.FullyQualifiedNamespace), settings.FullyQualifiedNamespace);
+                fields.Add(nameof(settings.EventHubName), settings.EventHubName);
+                fields.Add(nameof(settings.ConsumerGroupName), settings.ConsumerGroupName);
+            });
             this.LongHaulSpecificSettings.ForEach(settings =>
             {
                 fields.Add(nameof(settings.SendReportFrequency), settings.SendReportFrequency.ToString());
@@ -277,7 +285,8 @@ namespace TestResultCoordinator
 
     internal struct TestResultEventReceivingServiceSettings
     {
-        public string EventHubConnectionString;
+        public string FullyQualifiedNamespace;
+        public string EventHubName;
         public string ConsumerGroupName;
     }
 

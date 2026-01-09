@@ -10,13 +10,14 @@ namespace IotEdgeQuickstart.Details
     using System.Threading;
     using System.Threading.Tasks;
     using Azure.Identity;
+    using Azure.Messaging.EventHubs.Consumer;
+    using Azure.Messaging.EventHubs.Primitives;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
-    using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
@@ -374,6 +375,22 @@ namespace IotEdgeQuickstart.Details
 
             // First Verify if module is already running.
             await this.bootstrapper.VerifyModuleIsRunning(moduleId);
+
+            var consumer = new EventHubConsumerClient(
+                EventHubConsumerClient.DefaultConsumerGroupName,
+                this.serviceSpecificSettings.FullyQualifiedNamespace,
+                this.serviceSpecificSettings.EventHubName,
+                new AzureCliCredential());
+            int numPartitions = (await consumer.GetPartitionIdsAsync()).Length;
+            await consumer.CloseAsync();
+
+            var receiver = new PartitionReceiver(
+                this.serviceSpecificSettings.ConsumerGroupName,
+                EventHubPartitionKeyResolver.ResolveToPartition(Settings.Current.DeviceId, numPartitions),
+                EventPosition.FromEnqueuedTime(eventEnqueuedFrom),
+                this.serviceSpecificSettings.FullyQualifiedNamespace,
+                this.serviceSpecificSettings.EventHubName,
+                new AzureCliCredential());
 
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath)
             {

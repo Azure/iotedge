@@ -15,7 +15,8 @@ parameters:
   container.registry.password: ''
   testResultCoordinator.blobStorageAccountUriWithSasToken: ''
   iotHub.hostName: ''
-  eventHub.connectionString: ''
+  eventHub.namespace: ''
+  eventHub.name: ''
   upstream.protocol: ''
   networkController.description: ''
   networkController.frequencies: ''
@@ -123,7 +124,8 @@ steps:
           -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
           -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
           -iotHubHostName "${{ parameters['iotHub.hostName'] }}" \
-          -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+          -eventHubNamespace "${{ parameters['eventHub.namespace'] }}" \
+          -eventHubName "${{ parameters['eventHub.name'] }}" \
           -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
           -testDuration "${{ parameters['testDuration'] }}" \
           -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \

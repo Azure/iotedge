@@ -391,8 +391,8 @@
               "verificationDelay": {
                 "value": "<TestResultCoordinator.VerificationDelay>"
               },
-              "eventHubConnectionString": {
-                "value": "<TestResultCoordinator.EventHubConnectionString>"
+              "eventHubNamespace": {
+                "value": "<TestResultCoordinator.EventHubNamespace>"
               },
               "ConsumerGroupName": {
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
