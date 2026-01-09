@@ -233,7 +233,7 @@ steps:
       IOT_HUB_RESOURCE_ID: ${{ parameters.iotHubResourceId }}
 
   - pwsh: |
-      mkdir -p /etc/docker
+      sudo mkdir -p /etc/docker
       $dockerConfig = (Test-Path /etc/docker/daemon.json -PathType Leaf) `
         ? (Get-Content -Raw -Encoding Utf8 /etc/docker/daemon.json | ConvertFrom-Json)
         : @{}
