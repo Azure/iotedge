@@ -231,3 +231,11 @@ steps:
     displayName: Create test arguments file (context.json)
     env:
       IOT_HUB_RESOURCE_ID: ${{ parameters.iotHubResourceId }}
+
+  - pwsh: |
+      $dockerConfig = (Test-Path /etc/docker/daemon.json -PathType Leaf) `
+        ? (Get-Content -Raw -Encoding Utf8 /etc/docker/daemon.json | ConvertFrom-Json)
+        : @{}
+      $dockerConfig.'min-version' = '1.34'
+      $dockerConfig | ConvertTo-Json | sudo tee /etc/docker/daemon.json
+    displayName: Update minimum version in Docker config to work around IoT Edge issue
