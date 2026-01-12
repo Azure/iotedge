@@ -236,24 +236,6 @@ steps:
       Set-PSDebug -Trace 1
       if (systemctl list-unit-files | grep '^docker.service')
       {
-        # # Restore daemon.json to previous state on persistent agents
-        # $dockerConfig = (Test-Path /etc/docker/daemon.json -PathType Leaf) `
-        #   ? (Get-Content -Raw -Encoding Utf8 /etc/docker/daemon.json | ConvertFrom-Json)
-        #   : @{}
-        # if ($dockerConfig.PSObject.Properties.Length -eq 1 -and $dockerConfig.PSObject.Properties.Name -contains 'min-api-version')
-        # {
-        #   sudo rm /etc/docker/daemon.json
-        #   if ((Get-ChildItem /etc/docker/ | Measure-Object).Count -eq 0)
-        #   {
-        #     sudo rmdir /etc/docker
-        #   }
-        # }
-        # elseif ($dockerConfig.PSObject.Properties.Length -gt 1)
-        # {
-        #   $dockerConfig.PSObject.Properties.Remove('min-api-version')
-        #   $dockerConfig | ConvertTo-Json | sudo tee /etc/docker/daemon.json
-        # }
-
         # Configure docker using environment variables in systemd config because min-api-version in daemon.json doesn't seem to work
         sudo mkdir -p /etc/systemd/system/docker.service.d
         if (-not (Test-Path /etc/systemd/system/docker.service.d/min-version.override.conf -PathType Leaf))
@@ -269,3 +251,4 @@ steps:
         sudo systemctl restart docker
       }
     displayName: Update minimum version in Docker config to work around IoT Edge issue
+    ignoreLASTEXITCODE: true
