@@ -233,35 +233,38 @@ steps:
       IOT_HUB_RESOURCE_ID: ${{ parameters.iotHubResourceId }}
 
   - pwsh: |
-      # Restore daemon.json to previous state on persistent agents
-      $dockerConfig = (Test-Path /etc/docker/daemon.json -PathType Leaf) `
-        ? (Get-Content -Raw -Encoding Utf8 /etc/docker/daemon.json | ConvertFrom-Json)
-        : @{}
-      if ($dockerConfig.PSObject.Properties.Length -eq 1 -and $dockerConfig.PSObject.Properties.Name -contains 'min-api-version')
+      if (systemctl list-unit-files | grep '^docker.service')
       {
-        sudo rm /etc/docker/daemon.json
-        if ((Get-ChildItem /etc/docker/ | Measure-Object).Count -eq 0)
+        # Restore daemon.json to previous state on persistent agents
+        $dockerConfig = (Test-Path /etc/docker/daemon.json -PathType Leaf) `
+          ? (Get-Content -Raw -Encoding Utf8 /etc/docker/daemon.json | ConvertFrom-Json)
+          : @{}
+        if ($dockerConfig.PSObject.Properties.Length -eq 1 -and $dockerConfig.PSObject.Properties.Name -contains 'min-api-version')
         {
-          sudo rmdir /etc/docker
+          sudo rm /etc/docker/daemon.json
+          if ((Get-ChildItem /etc/docker/ | Measure-Object).Count -eq 0)
+          {
+            sudo rmdir /etc/docker
+          }
         }
-      }
-      elseif ($dockerConfig.PSObject.Properties.Length -gt 1)
-      {
-        $dockerConfig.PSObject.Properties.Remove('min-api-version')
-        $dockerConfig | ConvertTo-Json | sudo tee /etc/docker/daemon.json
-      }
+        elseif ($dockerConfig.PSObject.Properties.Length -gt 1)
+        {
+          $dockerConfig.PSObject.Properties.Remove('min-api-version')
+          $dockerConfig | ConvertTo-Json | sudo tee /etc/docker/daemon.json
+        }
 
-      # Configure docker using environment variables in systemd config because min-api-version in daemon.json doesn't seem to work
-      sudo mkdir -p /etc/systemd/system/docker.service.d
-      if (-not (Test-Path /etc/systemd/system/docker.service.d/min-version.override.conf -PathType Leaf))
-      {
-        $minverContent = @"
+        # Configure docker using environment variables in systemd config because min-api-version in daemon.json doesn't seem to work
+        sudo mkdir -p /etc/systemd/system/docker.service.d
+        if (-not (Test-Path /etc/systemd/system/docker.service.d/min-version.override.conf -PathType Leaf))
+        {
+          $minverContent = @"
       [Service]
       Environment="DOCKER_MIN_API_VERSION=1.34
       "@
-        $minverContent | sudo tee /etc/systemd/system/docker.service.d/min-version.override.conf
-      }
+          $minverContent | sudo tee /etc/systemd/system/docker.service.d/min-version.override.conf
+        }
 
-      sudo systemctl daemon-reload
-      sudo systemctl restart docker
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
+      }
     displayName: Update minimum version in Docker config to work around IoT Edge issue
