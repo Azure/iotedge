@@ -245,7 +245,7 @@ steps:
           sudo rmdir /etc/docker
         }
       }
-      else if ($dockerConfig.PSObject.Properties.Length -gt 1)
+      elseif ($dockerConfig.PSObject.Properties.Length -gt 1)
       {
         $dockerConfig.PSObject.Properties.Remove('min-api-version')
         $dockerConfig | ConvertTo-Json | sudo tee /etc/docker/daemon.json
