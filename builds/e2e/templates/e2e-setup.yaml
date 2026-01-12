@@ -250,5 +250,5 @@ steps:
         sudo systemctl daemon-reload
         sudo systemctl restart docker
       }
-    displayName: Update minimum version in Docker config to work around IoT Edge issue
+    displayName: Update Docker's minimum API version to work around IoT Edge issue
     ignoreLASTEXITCODE: true
