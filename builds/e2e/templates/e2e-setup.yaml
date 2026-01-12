@@ -253,7 +253,7 @@ steps:
 
       # Configure docker using environment variables in systemd config because min-api-version in daemon.json doesn't seem to work
       sudo mkdir -p /etc/systemd/system/docker.service.d
-      if (-not Test-Path /etc/systemd/system/docker.service.d/min-version.override.conf -PathType Leaf)
+      if (-not (Test-Path /etc/systemd/system/docker.service.d/min-version.override.conf -PathType Leaf))
       {
         $minverContent = @"
       [Service]
