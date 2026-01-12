@@ -256,9 +256,9 @@ steps:
       if (-not Test-Path /etc/systemd/system/docker.service.d/min-version.override.conf -PathType Leaf)
       {
         $minverContent = @"
-[Service]
-Environment="DOCKER_MIN_API_VERSION=1.34
-"@
+      [Service]
+      Environment="DOCKER_MIN_API_VERSION=1.34
+      "@
         $minverContent | sudo tee /etc/systemd/system/docker.service.d/min-version.override.conf
       }
 
