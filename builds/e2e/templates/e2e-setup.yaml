@@ -232,23 +232,18 @@ steps:
     env:
       IOT_HUB_RESOURCE_ID: ${{ parameters.iotHubResourceId }}
 
-  - pwsh: |
-      Set-PSDebug -Trace 1
-      if (systemctl list-unit-files | grep '^docker.service')
-      {
-        # Configure docker using environment variables in systemd config because min-api-version in daemon.json doesn't seem to work
-        sudo mkdir -p /etc/systemd/system/docker.service.d
-        if (-not (Test-Path /etc/systemd/system/docker.service.d/min-version.override.conf -PathType Leaf))
-        {
-          $minverContent = @"
-      [Service]
-      Environment=DOCKER_MIN_API_VERSION=1.34
-      "@
-          $minverContent | sudo tee /etc/systemd/system/docker.service.d/min-version.override.conf
-        }
+  - bash: |
+      set -x
 
-        sudo systemctl daemon-reload
-        sudo systemctl restart docker
-      }
+      if ! systemctl list-unit-files | grep -q '^docker.service'; then
+        echo 'Docker service not found'
+        exit 0
+      fi
+
+      echo 'Updating minimum Docker API version to 1.34'
+      sudo mkdir -p /etc/systemd/system/docker.service.d
+      echo -e '[Service]\nEnvironment=DOCKER_MIN_API_VERSION=1.34' \
+        | sudo tee /etc/systemd/system/docker.service.d/min-api-version.override.conf
+      sudo systemctl daemon-reload
+      sudo systemctl restart docker
     displayName: Update Docker's minimum API version to work around IoT Edge issue
-    ignoreLASTEXITCODE: true
