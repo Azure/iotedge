@@ -233,7 +233,6 @@ steps:
       IOT_HUB_RESOURCE_ID: ${{ parameters.iotHubResourceId }}
 
   - pwsh: |
-      set -x
       if (systemctl list-unit-files | grep '^docker.service')
       {
         # # Restore daemon.json to previous state on persistent agents
