@@ -234,9 +234,10 @@ steps:
 
   - bash: |
       set -euo pipefail
-      set -x
 
       if ! systemctl cat docker.service >/dev/null 2>&1; then
+        # Skip the workaround on agents where Docker is installed as a snap. Note that we'll need
+        # a different workaround for those agents if/when they exhibit the same issue.
         echo 'Docker service not found'
         exit 0
       fi
