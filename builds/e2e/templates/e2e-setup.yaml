@@ -236,7 +236,7 @@ steps:
       set -euo pipefail
       set -x
 
-      if ! systemctl list-unit-files | grep -q '^docker.service'; then
+      if ! systemctl cat docker.service >/dev/null 2>&1; then
         echo 'Docker service not found'
         exit 0
       fi
