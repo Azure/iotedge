@@ -211,6 +211,7 @@ jobs:
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
+          connection.arm: '$(azure.subscription)'
           release.label: 'ct$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -224,7 +225,7 @@ jobs:
           container.registry: '$(cr.server)'
           container.registry.username: '$(cr.username)'
           container.registry.password: '$(cr.token)'
-          iotHub.connectionString: '$(IotHub-ConnStr)'
+          iotHub.hostName: '$(iothub.hostname)'
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
@@ -407,6 +408,7 @@ jobs:
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
+          connection.arm: '$(azure.subscription)'
           release.label: 'ct$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -420,7 +422,7 @@ jobs:
           container.registry: '$(cr.server)'
           container.registry.username: '$(cr.username)'
           container.registry.password: '$(cr.token)'
-          iotHub.connectionString: '$(EdgeConnectivityTestHubARM32ConnString)'
+          iotHub.hostName: '$(iothub.hostname)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubARM32ConnString)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'

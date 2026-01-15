@@ -105,7 +105,7 @@ namespace TestResultCoordinator.Services
             {
                 try
                 {
-                    await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, this.serviceSpecificSettings.BlobStorageAccountUriWithSasToken, this.logUploadDuration, this.logger);
+                    await TestReportUtil.UploadLogsAsync(Settings.Current.IotHubHostname, this.serviceSpecificSettings.BlobStorageAccountUriWithSasToken, this.logUploadDuration, this.logger);
                 }
                 catch (Exception ex)
                 {

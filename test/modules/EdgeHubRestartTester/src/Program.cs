@@ -6,6 +6,7 @@ namespace EdgeHubRestartTester
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -33,7 +34,7 @@ namespace EdgeHubRestartTester
             List<ModuleClient> moduleClients = new List<ModuleClient>();
             try
             {
-                iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.IoTHubConnectionString);
+                iotHubServiceClient = ServiceClient.Create(Settings.Current.IotHubHostname, new WorkloadIdentityCredential());
 
                 List<IEdgeHubConnectorTest> edgeHubConnectorTests = new List<IEdgeHubConnectorTest>();
 
