@@ -154,13 +154,6 @@ jobs:
           SecretsFilter: >-
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-      - task: AzureKeyVault@2
-        displayName: 'Azure Key Vault: $(azure.keyVault)'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: >-
-            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Identity Artifacts'
@@ -224,8 +217,9 @@ jobs:
           container.registry: '$(cr.server)'
           container.registry.username: '$(cr.username)'
           container.registry.password: '$(cr.token)'
+          eventHub.name: '$(eventhub.name)'
+          eventHub.fullyQualifiedNamespace: '$(eventhub.namespace.fqdn)'
           iotHub.hostName: '$(iothub.hostname)'
-          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
@@ -353,13 +347,6 @@ jobs:
           SecretsFilter: >-
             kvLogAnalyticWorkspaceId,
             kvLogAnalyticSharedKey,
-      - task: AzureKeyVault@2
-        displayName: 'Azure Key Vault: $(azure.keyVault)'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
-          SecretsFilter: >-
-            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Identity Artifacts'
@@ -420,8 +407,9 @@ jobs:
           container.registry: '$(cr.server)'
           container.registry.username: '$(cr.username)'
           container.registry.password: '$(cr.token)'
+          eventHub.name: '$(eventhub.name.arm32v7)'
+          eventHub.fullyQualifiedNamespace: '$(eventhub.namespace.fqdn.arm32v7)'
           iotHub.hostName: '$(iothub.hostname)'
-          eventHub.connectionString: '$(EdgeConnectivityEventHubARM32ConnString)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'

@@ -123,9 +123,9 @@ steps:
           -containerRegistry "${{ parameters['container.registry'] }}" \
           -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
           -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
-          -iotHubHostName "${{ parameters['iotHub.hostName'] }}" \
-          -eventHubNamespace "${{ parameters['eventHub.namespace'] }}" \
           -eventHubName "${{ parameters['eventHub.name'] }}" \
+          -eventHubNamespace "${{ parameters['eventHub.namespace'] }}" \
+          -iotHubHostName "${{ parameters['iotHub.hostName'] }}" \
           -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
           -testDuration "${{ parameters['testDuration'] }}" \
           -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
