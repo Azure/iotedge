@@ -21,15 +21,16 @@ Environment Variables:
   the value of the corresponding environment variable will be used unless the
   option is specified on the command line.
 
-  Option                    Environment variable
-  --bootstrapper-archive    bootstrapperArchivePath
-  --eventhub-endpoint       eventhubCompatibleEndpointWithEntityPath
-  --iothub-hostname         iothubHostName
-  --password                registryPassword
-  --registry                registryAddress
-  --tag                     imageTag
-  --username                registryUser
-  --proxy                   https_proxy
+  Option                        Environment variable
+  --bootstrapper-archive        bootstrapperArchivePath
+  --fully-qualified-namespace   fullyQualifiedNamespace
+  --event-hub-name              eventHubName
+  --iothub-hostname             iothubHostName
+  --password                    registryPassword
+  --registry                    registryAddress
+  --tag                         imageTag
+  --username                    registryUser
+  --proxy                       https_proxy
 
 Defaults:
   All options to this command have defaults. If an option is not specified and
@@ -41,7 +42,8 @@ Defaults:
   --bootstrapper-archive                no path (archive is installed from apt or pypi)
   --device-id                           an auto-generated unique identifier
   --edge-hostname                       'quickstart'
-  --eventhub-endpoint                   get the value from Key Vault
+  --fully-qualified-namespace           get the value from Key Vault
+  --event-hub-name                      get the value from Key Vault
   --initialize-with-agent-artifact      false
   --iothub-hostname                     get the value from Key Vault
   --leave-running                       none (or 'all' if given as a switch)
@@ -75,8 +77,11 @@ Defaults:
         [Option("-d|--device-id", Description = "Edge device identifier registered with IoT Hub")]
         public string DeviceId { get; } = $"iot-edge-quickstart-{Guid.NewGuid()}";
 
-        [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
-        public string EventHubCompatibleEndpointWithEntityPath { get; } = Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath");
+        [Option("--event-hub-name <value>", Description = "Event Hub name")]
+        public string EventHubName { get; } = Environment.GetEnvironmentVariable("eventHubName");
+
+        [Option("--fully-qualified-namespace <value>", Description = "Fully qualified namespace for Event Hub")]
+        public string FullyQualifiedNamespace { get; } = Environment.GetEnvironmentVariable("fullyQualifiedNamespace");
 
         [Option("-h|--use-http=<hostname>", Description = "Modules talk to iotedged via tcp instead of unix domain socket")]
         public (bool useHttp, string hostname) UseHttp { get; } = (false, string.Empty);
@@ -298,8 +303,11 @@ Defaults:
                     }
                 }
 
-                string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
-                                  await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
+                string eventHubName = this.EventHubName ??
+                                  await SecretsHelper.GetSecretFromConfigKey("eventHubName");
+
+                string fullyQualifiedNamespace = this.FullyQualifiedNamespace ??
+                                  await SecretsHelper.GetSecretFromConfigKey("fullyQualifiedNamespace");
 
                 Option<string> deployment = this.DeploymentFileName != null ? Option.Some(this.DeploymentFileName) : Option.None<string>();
 
@@ -310,8 +318,9 @@ Defaults:
                 var test = new Quickstart(
                     bootstrapper,
                     credentials,
+                    eventHubName,
+                    fullyQualifiedNamespace,
                     iothubHostName,
-                    endpoint,
                     this.UpstreamProtocol.Item2,
                     proxy,
                     tag,

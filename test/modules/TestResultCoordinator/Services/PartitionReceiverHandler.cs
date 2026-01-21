@@ -4,14 +4,14 @@ namespace TestResultCoordinator.Services
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Azure.Messaging.EventHubs;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
     using TestResultCoordinator.Storage;
 
-    class PartitionReceiveHandler : IPartitionReceiveHandler
+    class PartitionReceiveHandler
     {
         const string DeviceIdPropertyName = "iothub-connection-device-id";
         const string ModuleIdPropertyName = "iothub-connection-module-id";

@@ -10,16 +10,17 @@ namespace IotEdgeQuickstart.Details
     using System.Threading;
     using System.Threading.Tasks;
     using Azure.Identity;
+    using Azure.Messaging.EventHubs;
+    using Azure.Messaging.EventHubs.Consumer;
+    using Azure.Messaging.EventHubs.Primitives;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
-    using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
     using RetryPolicy = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.RetryPolicy;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
@@ -111,15 +112,15 @@ namespace IotEdgeQuickstart.Details
 
         readonly Option<RegistryCredentials> credentials;
 
+        readonly string eventHubName;
+
+        readonly string fullyQualifiedNamespace;
+
         readonly string iothubHostName;
 
         readonly Option<DPSAttestation> dpsAttestation;
 
-        readonly string eventhubCompatibleEndpointWithEntityPath;
-
         readonly ServiceClientTransportType serviceClientTransportType;
-
-        readonly EventHubClientTransportType eventHubClientTransportType;
 
         readonly string imageTag;
 
@@ -152,8 +153,9 @@ namespace IotEdgeQuickstart.Details
         protected Details(
             IBootstrapper bootstrapper,
             Option<RegistryCredentials> credentials,
+            string eventHubName,
+            string fullyQualifiedNamespace,
             string iothubHostName,
-            string eventhubCompatibleEndpointWithEntityPath,
             UpstreamProtocolType upstreamProtocol,
             Option<string> proxy,
             string imageTag,
@@ -174,22 +176,21 @@ namespace IotEdgeQuickstart.Details
         {
             this.bootstrapper = bootstrapper;
             this.credentials = credentials;
+            this.eventHubName = eventHubName;
+            this.fullyQualifiedNamespace = fullyQualifiedNamespace;
             this.iothubHostName = iothubHostName;
             this.dpsAttestation = dpsAttestation;
-            this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
 
             switch (upstreamProtocol)
             {
                 case UpstreamProtocolType.Amqp:
                 case UpstreamProtocolType.Mqtt:
                     this.serviceClientTransportType = ServiceClientTransportType.Amqp;
-                    this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
                     break;
 
                 case UpstreamProtocolType.AmqpWs:
                 case UpstreamProtocolType.MqttWs:
                     this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
-                    this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
                     break;
 
                 default:
@@ -368,62 +369,74 @@ namespace IotEdgeQuickstart.Details
             }, new CancellationTokenSource(TimeSpan.FromMinutes(10)).Token);
         }
 
-        protected async Task VerifyDataOnIoTHub(string moduleId)
+        protected async Task VerifyDataOnIoTHub(string moduleId, DateTime dataEnqueuedFrom)
         {
             Console.WriteLine($"Verifying data on IoTHub from {moduleId}");
 
             // First Verify if module is already running.
             await this.bootstrapper.VerifyModuleIsRunning(moduleId);
 
-            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath)
+            var consumerOptions = new EventHubConsumerClientOptions();
+            this.proxy.ForEach(p =>
             {
-                TransportType = this.eventHubClientTransportType
-            };
+                consumerOptions.ConnectionOptions.TransportType = EventHubsTransportType.AmqpWebSockets;
+                consumerOptions.ConnectionOptions.Proxy = p;
+            });
 
-            Console.WriteLine($"Receiving events from device '{this.context.DeviceId}' on Event Hub '{builder.EntityPath}'");
+            var consumer = new EventHubConsumerClient(
+                EventHubConsumerClient.DefaultConsumerGroupName,
+                this.fullyQualifiedNamespace,
+                this.eventHubName,
+                new AzureCliCredential(),
+                consumerOptions);
+            int numPartitions = (await consumer.GetPartitionIdsAsync()).Length;
+            await consumer.CloseAsync();
 
-            EventHubClient eventHubClient =
-                EventHubClient.CreateFromConnectionString(builder.ToString());
+            var receiver = new PartitionReceiver(
+                EventHubConsumerClient.DefaultConsumerGroupName,
+                EventHubPartitionKeyResolver.ResolveToPartition(this.context.DeviceId, numPartitions),
+                EventPosition.FromEnqueuedTime(dataEnqueuedFrom),
+                this.fullyQualifiedNamespace,
+                this.eventHubName,
+                new AzureCliCredential());
 
-            this.proxy.ForEach(p => eventHubClient.WebProxy = p);
+            Console.WriteLine($"Receiving events from device '{this.context.DeviceId}' on Event Hub '{this.eventHubName}' enqueued on or after {dataEnqueuedFrom}");
 
-            PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
-                "$Default",
-                EventHubPartitionKeyResolver.ResolveToPartition(
-                    this.context.DeviceId,
-                    (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                EventPosition.FromEnd());
-
-            // TODO: [Improvement] should verify test results without using event hub, which introduce latency.
             var result = new TaskCompletionSource<bool>();
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20))) // This long timeout is needed in case event hub is slow to process messages
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
-                    eventHubReceiver.SetReceiveHandler(
-                        new PartitionReceiveHandler(
-                            eventData =>
+                    try
+                    {
+                        while (!cts.IsCancellationRequested && !result.Task.IsCompleted)
+                        {
+                            var batch = await receiver.ReceiveBatchAsync(50, cts.Token);
+                            foreach (EventData eventData in batch)
                             {
-                                eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
-                                eventData.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
+                                eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out var devId);
+                                eventData.SystemProperties.TryGetValue("iothub-connection-module-id", out var modId);
 
                                 if (devId != null && devId.ToString().Equals(this.context.DeviceId) &&
                                     modId != null && modId.ToString().Equals(moduleId))
                                 {
                                     result.TrySetResult(true);
-                                    return true;
+                                    break;
                                 }
-
-                                return false;
-                            }));
-
-                    await result.Task;
+                            }
+                        }
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // This is expected when the service is stopping.
+                    }
+                    finally
+                    {
+                        await receiver.CloseAsync();
+                        Console.WriteLine("VerifyDataOnIoTHub completed.");
+                    }
                 }
             }
-
-            Console.WriteLine("VerifyDataOnIoTHub completed.");
-            await eventHubReceiver.CloseAsync();
-            await eventHubClient.CloseAsync();
         }
 
         protected async Task VerifyTwinAsync()

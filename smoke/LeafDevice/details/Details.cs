@@ -13,17 +13,16 @@ namespace LeafDeviceTest
     using System.Threading;
     using System.Threading.Tasks;
     using Azure.Identity;
+    using Azure.Messaging.EventHubs;
+    using Azure.Messaging.EventHubs.Consumer;
+    using Azure.Messaging.EventHubs.Primitives;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
-    using Microsoft.Azure.EventHubs;
     using DeviceClientTransportType = Microsoft.Azure.Devices.Client.TransportType;
-    using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
-    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
     using Message = Microsoft.Azure.Devices.Client.Message;
     using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
@@ -37,14 +36,14 @@ namespace LeafDeviceTest
 
     public class Details
     {
+        readonly string eventHubName;
+        readonly string fullyQualifiedNamespace;
         readonly string iothubHostName;
-        readonly string eventhubCompatibleEndpointWithEntityPath;
         readonly string deviceId;
         readonly string trustedCACertificateFileName;
         readonly string edgeHostName;
         readonly Option<string> edgeDeviceId;
         readonly ServiceClientTransportType serviceClientTransportType;
-        readonly EventHubClientTransportType eventHubClientTransportType;
         readonly ITransportSettings[] deviceTransportSettings;
         readonly AuthenticationType authType = AuthenticationType.None;
         readonly Option<X509Certificate2> clientCertificate;
@@ -54,8 +53,9 @@ namespace LeafDeviceTest
         Option<IWebProxy> proxy;
 
         protected Details(
+            string eventHubName,
+            string fullyQualifiedNamespace,
             string iothubHostName,
-            string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
             string trustedCACertificateFileName,
             string edgeHostName,
@@ -65,8 +65,9 @@ namespace LeafDeviceTest
             Option<DeviceCertificate> clientCertificatePaths,
             Option<IList<string>> thumbprintCertificatePaths)
         {
+            this.eventHubName = eventHubName;
+            this.fullyQualifiedNamespace = fullyQualifiedNamespace;
             this.iothubHostName = iothubHostName;
-            this.eventhubCompatibleEndpointWithEntityPath = eventhubCompatibleEndpointWithEntityPath;
             this.deviceId = deviceId;
             this.trustedCACertificateFileName = trustedCACertificateFileName;
             this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
@@ -84,7 +85,6 @@ namespace LeafDeviceTest
             if (protocol == DeviceProtocol.AmqpWS || protocol == DeviceProtocol.MqttWs)
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
-                this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
                 if (protocol == DeviceProtocol.MqttWs)
                 {
                     this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_WebSocket_Only) };
@@ -97,7 +97,6 @@ namespace LeafDeviceTest
             else
             {
                 this.serviceClientTransportType = ServiceClientTransportType.Amqp;
-                this.eventHubClientTransportType = this.proxy.HasValue ? EventHubClientTransportType.AmqpWebSockets : EventHubClientTransportType.Amqp;
                 if (protocol == DeviceProtocol.Mqtt)
                 {
                     this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_Tcp_Only) };
@@ -114,7 +113,6 @@ namespace LeafDeviceTest
                 + $"\t[clientCertificate subject name={this.clientCertificate.Match(c => c.SubjectName.ToString(), () => string.Empty)}] \n"
                 + $"\t[clientCertificateChain count={this.clientCertificateChain.Match(c => c.Count(), () => 0)}] \n"
                 + $"\t[service client transport type={this.serviceClientTransportType}]\n"
-                + $"\t[event hub client transport type={this.eventHubClientTransportType}]\n"
                 + $"\t[device transport type={this.deviceTransportSettings.First().GetTransportType()}]");
         }
 
@@ -262,52 +260,68 @@ namespace LeafDeviceTest
             if (!this.edgeDeviceId.HasValue)
                 return;
 
-            var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath)
+            var consumerOptions = new EventHubConsumerClientOptions();
+            this.proxy.ForEach(p =>
             {
-                TransportType = this.eventHubClientTransportType
-            };
+                consumerOptions.ConnectionOptions.TransportType = EventHubsTransportType.AmqpWebSockets;
+                consumerOptions.ConnectionOptions.Proxy = p;
+            });
 
-            Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{builder.EntityPath}'");
+            var consumer = new EventHubConsumerClient(
+                EventHubConsumerClient.DefaultConsumerGroupName,
+                this.fullyQualifiedNamespace,
+                this.eventHubName,
+                new AzureCliCredential(),
+                consumerOptions);
+            int numPartitions = (await consumer.GetPartitionIdsAsync()).Length;
+            await consumer.CloseAsync();
 
-            EventHubClient eventHubClient =
-                EventHubClient.CreateFromConnectionString(builder.ToString());
+            var dataEnqueuedFrom = DateTime.Now.AddMinutes(-5);
 
-            this.proxy.ForEach(p => eventHubClient.WebProxy = p);
+            var receiver = new PartitionReceiver(
+                EventHubConsumerClient.DefaultConsumerGroupName,
+                EventHubPartitionKeyResolver.ResolveToPartition(this.context.Device.Id, numPartitions),
+                EventPosition.FromEnqueuedTime(dataEnqueuedFrom),
+                this.fullyQualifiedNamespace,
+                this.eventHubName,
+                new AzureCliCredential());
 
-            PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
-                "$Default",
-                EventHubPartitionKeyResolver.ResolveToPartition(
-                    this.context.Device.Id,
-                    (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                EventPosition.FromEnqueuedTime(DateTime.Now.AddMinutes(-5)));
+            Console.WriteLine($"Receiving events from device '{this.context.Device.Id}' on Event Hub '{this.eventHubName}' enqueued on or after {dataEnqueuedFrom}");
 
             var result = new TaskCompletionSource<bool>();
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3)))
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
-                    eventHubReceiver.SetReceiveHandler(
-                        new PartitionReceiveHandler(
-                            eventData =>
+                    try
+                    {
+                        while (!cts.IsCancellationRequested && !result.Task.IsCompleted)
+                        {
+                            var batch = await receiver.ReceiveBatchAsync(50, cts.Token);
+                            foreach (EventData eventData in batch)
                             {
                                 eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out var devId);
 
-                                if (devId != null && devId.ToString().Equals(this.context.Device.Id, StringComparison.Ordinal)
-                                                  && Encoding.UTF8.GetString(eventData.Body).Contains(this.context.MessageGuid, StringComparison.Ordinal))
+                                if (devId != null && devId.ToString().Equals(this.context.Device.Id, StringComparison.Ordinal) &&
+                                    Encoding.UTF8.GetString(eventData.EventBody.ToArray()).Contains(this.context.MessageGuid, StringComparison.Ordinal))
                                 {
                                     result.TrySetResult(true);
-                                    return true;
+                                    break;
                                 }
-
-                                return false;
-                            }));
-
-                    await result.Task;
+                            }
+                        }
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // This is expected when the service is stopping.
+                    }
+                    finally
+                    {
+                        await receiver.CloseAsync();
+                        Console.WriteLine("VerifyDataOnIoTHub completed.");
+                    }
                 }
             }
-
-            await eventHubReceiver.CloseAsync();
-            await eventHubClient.CloseAsync();
         }
 
         protected async Task VerifyDirectMethodAsync()

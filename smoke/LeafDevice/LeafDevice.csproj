@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.17.1" />
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.12.2" />
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="2.3.2" />
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.41.0" />
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.10" />

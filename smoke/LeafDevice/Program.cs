@@ -17,29 +17,34 @@ Environment Variables:
   the value of the corresponding environment variable will be used unless the
   option is specified on the command line.
 
-  Option                    Environment variable
-  --iothub-hostname         iothubHostName
-  --eventhub-endpoint       eventhubCompatibleEndpointWithEntityPath
-  --proxy                   https_proxy
+  Option                        Environment variable
+  --event-hub-name              eventHubName
+  --fully-qualified-namespace   fullyQualifiedNamespace
+  --iothub-hostname             iothubHostName
+  --proxy                       https_proxy
 
 Defaults:
   All options to this command have defaults. If an option is not specified and
   its corresponding environment variable is not defined, then the default will
   be used.
 
-  Option                    Default value
-  --iothub-hostname         get the value from Key Vault
-  --eventhub-endpoint       get the value from Key Vault
-  --device-id               an auto-generated unique identifier
-  --certificate             empty string
-  --edge-hostname           empty string
-  --proxy                   no proxy is used
+  Option                        Default value
+  --event-hub-name              get the value from Key Vault
+  --fully-qualified-namespace   get the value from Key Vault
+  --iothub-hostname             get the value from Key Vault
+  --device-id                   an auto-generated unique identifier
+  --certificate                 empty string
+  --edge-hostname               empty string
+  --proxy                       no proxy is used
 ")]
     [HelpOption]
     class Program
     {
-        [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
-        public string EventHubCompatibleEndpointWithEntityPath { get; } = Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath");
+        [Option("--event-hub-name <value>", Description = "Event Hub name")]
+        public string EventHubName { get; } = Environment.GetEnvironmentVariable("eventHubName");
+
+        [Option("--fully-qualified-namespace <value>", Description = "Fully qualified namespace for Event Hub")]
+        public string FullyQualifiedNamespace { get; } = Environment.GetEnvironmentVariable("fullyQualifiedNamespace");
 
         [Option("-ct|--certificate <value>", Description = "Trust bundle CA Certificate(s) file to be installed on the machine.")]
         public string TrustedCACertificateFileName { get; } = string.Empty;
@@ -97,11 +102,14 @@ Defaults:
         {
             try
             {
+                string eventHubName = this.EventHubName ??
+                                  await SecretsHelper.GetSecretFromConfigKey("eventHubName");
+
+                string fullyQualifiedNamespace = this.FullyQualifiedNamespace ??
+                                  await SecretsHelper.GetSecretFromConfigKey("fullyQualifiedNamespace");
+
                 string iothubHostName = this.IotHubHostName ??
                                           await SecretsHelper.GetSecretFromConfigKey("iotHubHostName");
-
-                string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
-                                  await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
 
                 (bool useProxy, string proxyUrl) = this.Proxy;
                 Option<string> proxy = useProxy
@@ -109,8 +117,9 @@ Defaults:
                     : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
 
                 var builder = new LeafDevice.LeafDeviceBuilder(
+                    eventHubName,
+                    fullyQualifiedNamespace,
                     iothubHostName,
-                    endpoint,
                     this.DeviceId,
                     this.TrustedCACertificateFileName,
                     this.EdgeHostName,

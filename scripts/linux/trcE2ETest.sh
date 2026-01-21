@@ -16,7 +16,8 @@ function usage() {
     echo " -containerRegistryUsername               Username of container registry."
     echo ' -containerRegistryPassword               Password of given username for container registory.'
     echo ' -iotHubHostName                          Hostname of IoT hub where edge device will be created.'
-    echo ' -eventHubConnectionString                Event hub connection string for receive D2C messages.'
+    echo ' -eventHubNamespace                       Fully qualified event hub namespace to receive D2C messages.'
+    echo ' -eventHubName                            Event hub name to receive D2C messages.'
     echo ' -eventHubConsumerGroupId                 Event hub consumer group for receive D2C messages.'
     echo ' -testDuration                            Connectivity test duration'
     echo ' -testStartDelay                          Tests start after delay for applicable modules'
@@ -198,7 +199,8 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
 
     sed -i -e "s@<TestResultCoordinator.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.EventHubNamespace>@$EVENTHUB_NAMESPACE@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.EventHubName>@$EVENTHUB_NAME@g" "$deployment_working_file"
     sed -i -e "s@<OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
@@ -372,7 +374,10 @@ function process_args() {
             IOT_HUB_HOSTNAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 8 ]; then
-            EVENTHUB_CONNECTION_STRING="$arg"
+            EVENTHUB_NAMESPACE="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 53 ]; then
+            EVENTHUB_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 9 ]; then
             EVENT_HUB_CONSUMER_GROUP_ID="$arg"
@@ -516,7 +521,8 @@ function process_args() {
                 '-containerRegistryUsername' ) saveNextArg=5;;
                 '-containerRegistryPassword' ) saveNextArg=6;;
                 '-iotHubHostName' ) saveNextArg=7;;
-                '-eventHubConnectionString' ) saveNextArg=8;;
+                '-eventHubNamespace' ) saveNextArg=8;;
+                '-eventHubName' ) saveNextArg=53;;
                 '-eventHubConsumerGroupId' ) saveNextArg=9;;
                 '-testDuration' ) saveNextArg=10;;
                 '-testStartDelay' ) saveNextArg=11;;
@@ -579,7 +585,8 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
-    [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
+    [[ -z "$EVENTHUB_NAMESPACE" ]] && { print_error 'Event hub namespace is required'; exit 1; }
+    [[ -z "$EVENTHUB_NAME" ]] && { print_error 'Event hub name is required'; exit 1; }
     [[ -z "$IOT_HUB_HOSTNAME" ]] && { print_error 'IoT hub hostname is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
@@ -675,7 +682,8 @@ function run_connectivity_test() {
             -d "$device_id" \
             -a "$E2E_TEST_DIR/artifacts/" \
             --iothub-hostname "$IOT_HUB_HOSTNAME" \
-            -e "$EVENTHUB_CONNECTION_STRING" \
+            --fully-qualified-namespace "$EVENTHUB_NAMESPACE" \
+            --event-hub-name "$EVENTHUB_NAME" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
             -p "$CONTAINER_REGISTRY_PASSWORD" \
@@ -697,7 +705,8 @@ function run_connectivity_test() {
             -d "$device_id" \
             -a "$E2E_TEST_DIR/artifacts/" \
             --iothub-hostname "$IOT_HUB_HOSTNAME" \
-            -e "$EVENTHUB_CONNECTION_STRING" \
+            --fully-qualified-namespace "$EVENTHUB_NAMESPACE" \
+            --event-hub-name "$EVENTHUB_NAME" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
             -p "$CONTAINER_REGISTRY_PASSWORD" \
@@ -822,7 +831,8 @@ function run_longhaul_test() {
             -d "$device_id" \
             -a "$E2E_TEST_DIR/artifacts/" \
             --iothub-hostname "$IOT_HUB_HOSTNAME" \
-            -e "$EVENTHUB_CONNECTION_STRING" \
+            --fully-qualified-namespace "$EVENTHUB_NAMESPACE" \
+            --event-hub-name "$EVENTHUB_NAME" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
             -p "$CONTAINER_REGISTRY_PASSWORD" \
@@ -848,7 +858,8 @@ function run_longhaul_test() {
             -d "$device_id" \
             -a "$E2E_TEST_DIR/artifacts/" \
             --iothub-hostname "$IOT_HUB_HOSTNAME" \
-            -e "$EVENTHUB_CONNECTION_STRING" \
+            --fully-qualified-namespace "$EVENTHUB_NAMESPACE" \
+            --event-hub-name "$EVENTHUB_NAME" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
             -p "$CONTAINER_REGISTRY_PASSWORD" \
