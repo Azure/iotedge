@@ -231,3 +231,21 @@ steps:
     displayName: Create test arguments file (context.json)
     env:
       IOT_HUB_RESOURCE_ID: ${{ parameters.iotHubResourceId }}
+
+  - bash: |
+      set -euo pipefail
+
+      if ! systemctl cat docker.service >/dev/null 2>&1; then
+        # Skip the workaround on agents where Docker is installed as a snap. Note that we'll need
+        # a different workaround for those agents if/when they exhibit the same issue.
+        echo 'Docker service not found'
+        exit 0
+      fi
+
+      echo 'Updating minimum Docker API version to 1.34'
+      sudo mkdir -p /etc/systemd/system/docker.service.d
+      echo -e '[Service]\nEnvironment=DOCKER_MIN_API_VERSION=1.34' \
+        | sudo tee /etc/systemd/system/docker.service.d/min-api-version.override.conf
+      sudo systemctl daemon-reload
+      sudo systemctl restart docker
+    displayName: Update Docker's minimum API version to work around IoT Edge issue
