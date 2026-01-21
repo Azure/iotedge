@@ -160,7 +160,6 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: >-
-            IotHub-ConnStr,
             IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -360,7 +359,6 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: >-
-            IotHub-ConnStr,
             IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
