@@ -9,9 +9,8 @@ namespace LeafDeviceTest
     internal class LeafDevice : Details
     {
         LeafDevice(
-            string eventHubName,
-            string fullyQualifiedNamespace,
-            string iothubHostName,
+            string iothubConnectionString,
+            string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
             string trustedCACertificateFileName,
             string edgeHostName,
@@ -21,9 +20,8 @@ namespace LeafDeviceTest
             Option<DeviceCertificate> deviceCertificate,
             Option<IList<string>> thumbprintCertificates)
             : base(
-                eventHubName,
-                fullyQualifiedNamespace,
-                iothubHostName,
+                iothubConnectionString,
+                eventhubCompatibleEndpointWithEntityPath,
                 deviceId,
                 trustedCACertificateFileName,
                 edgeHostName,
@@ -65,9 +63,8 @@ namespace LeafDeviceTest
 
         public class LeafDeviceBuilder
         {
-            readonly string eventHubName;
-            readonly string fullyQualifiedNamespace;
-            readonly string iothubHostName;
+            readonly string iothubConnectionString;
+            readonly string eventhubCompatibleEndpointWithEntityPath;
             readonly string deviceId;
             readonly string trustedCACertificateFileName;
             readonly string edgeHostName;
@@ -80,9 +77,8 @@ namespace LeafDeviceTest
             Option<IList<string>> thumbprintCerts;
 
             public LeafDeviceBuilder(
-                string eventHubName,
-                string fullyQualifiedNamespace,
-                string iothubHostName,
+                string iothubConnectionString,
+                string eventhubCompatibleEndpointWithEntityPath,
                 string deviceId,
                 string trustedCACertificateFileName,
                 string edgeHostName,
@@ -90,9 +86,8 @@ namespace LeafDeviceTest
                 DeviceProtocol protocol,
                 Option<string> proxy)
             {
-                this.eventHubName = Preconditions.CheckNotNull(eventHubName);
-                this.fullyQualifiedNamespace = Preconditions.CheckNotNull(fullyQualifiedNamespace);
-                this.iothubHostName = Preconditions.CheckNotNull(iothubHostName);
+                this.iothubConnectionString = Preconditions.CheckNotNull(iothubConnectionString);
+                this.eventhubCompatibleEndpointWithEntityPath = Preconditions.CheckNotNull(eventhubCompatibleEndpointWithEntityPath);
                 this.deviceId = Preconditions.CheckNotNull(deviceId);
                 this.trustedCACertificateFileName = Preconditions.CheckNotNull(trustedCACertificateFileName);
                 this.edgeHostName = Preconditions.CheckNotNull(edgeHostName);
@@ -152,9 +147,8 @@ namespace LeafDeviceTest
                         };
                     });
                 return new LeafDevice(
-                    this.eventHubName,
-                    this.fullyQualifiedNamespace,
-                    this.iothubHostName,
+                    this.iothubConnectionString,
+                    this.eventhubCompatibleEndpointWithEntityPath,
                     this.deviceId,
                     this.trustedCACertificateFileName,
                     this.edgeHostName,
