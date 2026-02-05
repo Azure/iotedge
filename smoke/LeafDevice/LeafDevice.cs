@@ -9,7 +9,7 @@ namespace LeafDeviceTest
     internal class LeafDevice : Details
     {
         LeafDevice(
-            string iothubConnectionString,
+            string iothubHostName,
             string eventhubCompatibleEndpointWithEntityPath,
             string deviceId,
             string trustedCACertificateFileName,
@@ -20,7 +20,7 @@ namespace LeafDeviceTest
             Option<DeviceCertificate> deviceCertificate,
             Option<IList<string>> thumbprintCertificates)
             : base(
-                iothubConnectionString,
+                iothubHostName,
                 eventhubCompatibleEndpointWithEntityPath,
                 deviceId,
                 trustedCACertificateFileName,
@@ -63,7 +63,7 @@ namespace LeafDeviceTest
 
         public class LeafDeviceBuilder
         {
-            readonly string iothubConnectionString;
+            readonly string iothubHostName;
             readonly string eventhubCompatibleEndpointWithEntityPath;
             readonly string deviceId;
             readonly string trustedCACertificateFileName;
@@ -77,7 +77,7 @@ namespace LeafDeviceTest
             Option<IList<string>> thumbprintCerts;
 
             public LeafDeviceBuilder(
-                string iothubConnectionString,
+                string iothubHostName,
                 string eventhubCompatibleEndpointWithEntityPath,
                 string deviceId,
                 string trustedCACertificateFileName,
@@ -86,7 +86,7 @@ namespace LeafDeviceTest
                 DeviceProtocol protocol,
                 Option<string> proxy)
             {
-                this.iothubConnectionString = Preconditions.CheckNotNull(iothubConnectionString);
+                this.iothubHostName = Preconditions.CheckNotNull(iothubHostName);
                 this.eventhubCompatibleEndpointWithEntityPath = Preconditions.CheckNotNull(eventhubCompatibleEndpointWithEntityPath);
                 this.deviceId = Preconditions.CheckNotNull(deviceId);
                 this.trustedCACertificateFileName = Preconditions.CheckNotNull(trustedCACertificateFileName);
@@ -147,7 +147,7 @@ namespace LeafDeviceTest
                         };
                     });
                 return new LeafDevice(
-                    this.iothubConnectionString,
+                    this.iothubHostName,
                     this.eventhubCompatibleEndpointWithEntityPath,
                     this.deviceId,
                     this.trustedCACertificateFileName,
