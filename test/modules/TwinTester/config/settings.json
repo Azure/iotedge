@@ -5,7 +5,7 @@
     "twinUpdateFailureThreshold": "00:01:00",
     "transportType": "amqp",
     "analyzerURL": "http://analyzer:15000",
-    "serviceClientConnectionString": "",
+    "iotHubHostname": "",
     "StoragePath": "",
     "StorageOptimizeForPerformance": true,
     "TwinTestMode": "TwinAllOperations"

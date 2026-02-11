@@ -1,4 +1,5 @@
 parameters:
+  connection.arm: ''
   release.label: ''
   test.buildNumber: ''
   test.buildId: ''
@@ -13,8 +14,9 @@ parameters:
   container.registry.username: ''
   container.registry.password: ''
   testResultCoordinator.blobStorageAccountUriWithSasToken: ''
-  iotHub.connectionString: ''
-  eventHub.connectionString: ''
+  eventHub.name: ''
+  eventHub.fullyQualifiedNamespace: ''
+  iotHub.hostName: ''
   upstream.protocol: ''
   networkController.description: ''
   networkController.frequencies: ''
@@ -86,12 +88,17 @@ steps:
           echo "##vso[task.setvariable variable=DeviceCaKey]$(pwd)/private/iot-edge-device-ca-ConnectivityTestDeviceCA.key.pem" 
         fi
         
-  - task: Bash@3
+  - task: AzureCLI@2
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
     inputs:
-      targetType: inline
-      script: |
+      azureSubscription: ${{ parameters['connection.arm'] }}
+      addSpnToEnvironment: true
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+
         . $(Agent.BuildDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
         testName="Connectivity"
@@ -116,8 +123,9 @@ steps:
           -containerRegistry "${{ parameters['container.registry'] }}" \
           -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
           -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
-          -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
-          -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+          -eventHubName "${{ parameters['eventHub.name'] }}" \
+          -eventHubNamespace "${{ parameters['eventHub.fullyQualifiedNamespace'] }}" \
+          -iotHubHostName "${{ parameters['iotHub.hostName'] }}" \
           -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
           -testDuration "${{ parameters['testDuration'] }}" \
           -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
@@ -142,14 +150,15 @@ steps:
           -repoPath "${{ parameters['build.repo.path'] }}" \
           -topology "${{ parameters['topology'] }}" \
           -waitForTestComplete \
-          -cleanAll
+          -cleanAll \
+          -tenantId "$tenantId" \
+          -clientId "$servicePrincipalId" \
+          -clientSecret "$idToken"
 
         scriptExitCode=$?
         echo "script exit code=$scriptExitCode"
         exit $scriptExitCode
-
       workingDirectory: "$(Agent.BuildDirectory)/.."
-  
     env:
       E2E_nestedEdgeTest: $(nestededge)
       E2E_trustedCaCerts: $(TrustBundle)

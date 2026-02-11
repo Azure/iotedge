@@ -145,8 +145,8 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "directMethodReceiver1"
@@ -165,11 +165,20 @@
               },
               "DirectMethodFrequency": {
                 "value": "<DirectMethodFrequency>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "directMethodReceiver1": {
@@ -205,8 +214,8 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "directMethodReceiver2"
@@ -225,11 +234,20 @@
               },
               "DirectMethodFrequency": {
                 "value": "<DirectMethodFrequency>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "directMethodReceiver2": {
@@ -268,8 +286,8 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "$edgeAgent"
@@ -288,11 +306,20 @@
               },
               "DirectMethodFrequency": {
                 "value": "<DirectMethodFrequency>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "relayer1": {
@@ -364,8 +391,8 @@
               "verificationDelay": {
                 "value": "<TestResultCoordinator.VerificationDelay>"
               },
-              "eventHubConnectionString": {
-                "value": "<TestResultCoordinator.EventHubConnectionString>"
+              "eventHubNamespace": {
+                "value": "<TestResultCoordinator.EventHubNamespace>"
               },
               "ConsumerGroupName": {
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
@@ -382,8 +409,8 @@
               "logAnalyticsLogType": {
                 "value": "<TestResultCoordinator.LogAnalyticsLogType>"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "logUploadEnabled": {
                 "value": "<TestResultCoordinator.logUploadEnabled>"
@@ -399,11 +426,20 @@
               },
               "topology": {
                 "value": "<Topology>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"PortBindings\":{\"5001/tcp\":[{\"HostPort\":\"5001\"}]}}}"
             }
           },
           "twinTester1": {
@@ -427,8 +463,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
+              "IotHubHostname": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "twinTester2"
@@ -441,11 +477,20 @@
               },
               "StorageOptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "twinTester2": {
@@ -469,8 +514,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
+              "IotHubHostname": {
+                "value": "<IotHubHostname>"
               },
               "TransportType": {
                 "value": "Amqp"
@@ -483,11 +528,20 @@
               },
               "StorageOptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"]}}"
             }
           },
           "twinTester3": {
@@ -511,8 +565,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
+              "IotHubHostname": {
+                "value": "<IotHubHostname>"
               },
               "TargetModuleId": {
                 "value": "twinTester4"
@@ -525,11 +579,20 @@
               },
               "StorageOptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "twinTester4": {
@@ -553,8 +616,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
+              "IotHubHostname": {
+                "value": "<IotHubHostname>"
               },
               "TransportType": {
                 "value": "Mqtt"
@@ -567,11 +630,20 @@
               },
               "StorageOptimizeForPerformance": {
                 "value": "<OptimizeForPerformance>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"]}}"
             }
           },
           "deploymentTester1": {
@@ -589,8 +661,8 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -603,11 +675,20 @@
               },
               "DEPLOYMENT_UPDATE_PERIOD": {
                 "value": "<DeploymentTester1.DeploymentUpdatePeriod>"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "deploymentTester2": {
@@ -640,8 +721,8 @@
               "C2DMESSAGE_TESTER_MODE": {
                 "value": "Sender"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -654,11 +735,20 @@
               },
               "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "cloudToDeviceMessageReceiver1": {
@@ -670,19 +760,28 @@
               "C2DMESSAGE_TESTER_MODE": {
                 "value": "Receiver"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "transportType": {
                 "value": "Amqp"
               },
               "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"]}}"
             }
           },
           "cloudToDeviceMessageSender2": {
@@ -694,8 +793,8 @@
               "C2DMESSAGE_TESTER_MODE": {
                 "value": "Sender"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -711,11 +810,20 @@
               },
               "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"],\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "cloudToDeviceMessageReceiver2": {
@@ -727,19 +835,28 @@
               "C2DMESSAGE_TESTER_MODE": {
                 "value": "Receiver"
               },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
+              "IOT_HUB_HOSTNAME": {
+                "value": "<IotHubHostname>"
               },
               "transportType": {
                 "value": "Mqtt"
               },
               "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
+              },
+              "AZURE_TENANT_ID": {
+                "value": "<AzureTenantId>"
+              },
+              "AZURE_CLIENT_ID": {
+                "value": "<AzureClientId>"
+              },
+              "AZURE_FEDERATED_TOKEN_FILE": {
+                "value": "/var/run/oidc.json"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"<AzureFederatedTokenFile>:/var/run/oidc.json\"]}}"
             }
           },
           "networkController": {

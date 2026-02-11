@@ -333,10 +333,11 @@ namespace Microsoft.Azure.Devices.Client.Samples
             var (cert, certChain) = GetClientCertificateAndChainFromFile(DeviceIdentityCertPath, DeviceIdentityPrivateKeyPath);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                //Windows does not natively support PEM files for TLS connections due to the platform's lack of support for ephemeral keys. 
-                //Hence need to convert the certificate to PFX format.
+                // Windows does not natively support PEM files for TLS connections due to the platform's lack of support for ephemeral keys.
+                // Hence need to convert the certificate to PFX format.
                 cert = new X509Certificate2(cert.Export(X509ContentType.Pfx));
             }
+
             InstallChainCertificates(certChain);
 
             ITransportSettings[] transportSettings = GetTransport(ClientTransportType);

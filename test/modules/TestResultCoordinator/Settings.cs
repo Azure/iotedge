@@ -6,6 +6,7 @@ namespace TestResultCoordinator
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
@@ -31,8 +32,9 @@ namespace TestResultCoordinator
             string trackingId,
             bool useTestResultReportingService,
             bool useResultEventReceivingService,
-            string eventHubConnectionString,
-            string iotHubConnectionString,
+            string fullyQualifiedNamespace,
+            string eventHubName,
+            string iotHubHostname,
             string deviceId,
             string moduleId,
             ushort webHostPort,
@@ -62,7 +64,8 @@ namespace TestResultCoordinator
             {
                 this.TestResultEventReceivingServiceSettings = Option.Some(new TestResultEventReceivingServiceSettings()
                 {
-                    EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString)),
+                    FullyQualifiedNamespace = Preconditions.CheckNonWhiteSpace(fullyQualifiedNamespace, nameof(fullyQualifiedNamespace)),
+                    EventHubName = Preconditions.CheckNonWhiteSpace(eventHubName, nameof(eventHubName)),
                     ConsumerGroupName = "$Default"
                 });
             }
@@ -106,7 +109,7 @@ namespace TestResultCoordinator
             }
 
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
-            this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.WebHostPort = Preconditions.CheckNotNull(webHostPort, nameof(webHostPort));
@@ -149,8 +152,9 @@ namespace TestResultCoordinator
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue("useTestResultReportingService", true),
                 configuration.GetValue("useResultEventReceivingService", true),
-                configuration.GetValue<string>("eventHubConnectionString"),
-                configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
+                configuration.GetValue<string>("fullyQualifiedNamespace"),
+                configuration.GetValue<string>("eventHubName"),
+                configuration.GetValue<string>("IOT_HUB_HOSTNAME"),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("webhostPort", DefaultWebHostPort),
@@ -175,7 +179,7 @@ namespace TestResultCoordinator
                 configuration.GetValue("eventHubDelayTolerance", TimeSpan.FromHours(1)));
         }
 
-        public string IoTHubConnectionString { get; }
+        public string IotHubHostname { get; }
 
         public string DeviceId { get; }
 
@@ -232,7 +236,12 @@ namespace TestResultCoordinator
                 { nameof(this.MqttBrokerEnabled), this.MqttBrokerEnabled.ToString() }
             };
 
-            this.TestResultEventReceivingServiceSettings.ForEach(settings => fields.Add(nameof(settings.ConsumerGroupName), settings.ConsumerGroupName));
+            this.TestResultEventReceivingServiceSettings.ForEach(settings =>
+            {
+                fields.Add(nameof(settings.FullyQualifiedNamespace), settings.FullyQualifiedNamespace);
+                fields.Add(nameof(settings.EventHubName), settings.EventHubName);
+                fields.Add(nameof(settings.ConsumerGroupName), settings.ConsumerGroupName);
+            });
             this.LongHaulSpecificSettings.ForEach(settings =>
             {
                 fields.Add(nameof(settings.SendReportFrequency), settings.SendReportFrequency.ToString());
@@ -252,7 +261,7 @@ namespace TestResultCoordinator
         {
             if (this.reportMetadatas == null)
             {
-                RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
+                RegistryManager rm = RegistryManager.Create(this.IotHubHostname, new WorkloadIdentityCredential());
                 Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
                 this.reportMetadatas = TestReportUtil.ParseReportMetadataJson(moduleTwin.Properties.Desired["reportMetadataList"].ToString(), logger);
             }
@@ -276,7 +285,8 @@ namespace TestResultCoordinator
 
     internal struct TestResultEventReceivingServiceSettings
     {
-        public string EventHubConnectionString;
+        public string FullyQualifiedNamespace;
+        public string EventHubName;
         public string ConsumerGroupName;
     }
 
