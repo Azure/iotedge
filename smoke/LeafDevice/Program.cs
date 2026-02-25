@@ -18,7 +18,7 @@ Environment Variables:
   option is specified on the command line.
 
   Option                    Environment variable
-  --connection-string       iothubConnectionString
+  --iothub-hostname         iothubHostName
   --eventhub-endpoint       eventhubCompatibleEndpointWithEntityPath
   --proxy                   https_proxy
 
@@ -28,7 +28,7 @@ Defaults:
   be used.
 
   Option                    Default value
-  --connection-string       get the value from Key Vault
+  --iothub-hostname         get the value from Key Vault
   --eventhub-endpoint       get the value from Key Vault
   --device-id               an auto-generated unique identifier
   --certificate             empty string
@@ -38,9 +38,6 @@ Defaults:
     [HelpOption]
     class Program
     {
-        [Option("-c|--connection-string <value>", Description = "Device connection string (hub-scoped, e.g. iothubowner)")]
-        public string DeviceConnectionString { get; } = Environment.GetEnvironmentVariable("iothubConnectionString");
-
         [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
         public string EventHubCompatibleEndpointWithEntityPath { get; } = Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath");
 
@@ -56,6 +53,9 @@ Defaults:
         [Option("-ed-id|--edge-device-id", Description = @"Device Id of the Edge device that acts as a gateway to the leaf device.
                                                          If not provided, the leaf device will not be in the Edge device's scope")]
         public string EdgeGatewayDeviceId { get; } = string.Empty;
+
+        [Option("|--iothub-hostname <value>", Description = "IoT hub hostname")]
+        public string IotHubHostName { get; } = Environment.GetEnvironmentVariable("iothubHostName");
 
         [Option("-proto|--protocol", Description = @"Protocol the leaf device will use to communicate with the Edge device.
                                                     Choices are Mqtt, MqttWs, Amqp, AmqpWs.
@@ -97,8 +97,8 @@ Defaults:
         {
             try
             {
-                string connectionString = this.DeviceConnectionString ??
-                                          await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+                string iothubHostName = this.IotHubHostName ??
+                                          await SecretsHelper.GetSecretFromConfigKey("iotHubHostName");
 
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                                   await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
@@ -109,7 +109,7 @@ Defaults:
                     : Option.Maybe(Environment.GetEnvironmentVariable("https_proxy"));
 
                 var builder = new LeafDevice.LeafDeviceBuilder(
-                    connectionString,
+                    iothubHostName,
                     endpoint,
                     this.DeviceId,
                     this.TrustedCACertificateFileName,

@@ -20,7 +20,7 @@ namespace DirectMethodSender
             TimeSpan directMethodFrequency,
             Option<Uri> reportingEndpointUrl,
             InvocationSource invocationSource,
-            Option<string> serviceClientConnectionString,
+            Option<string> iotHubHostname,
             string moduleId,
             TimeSpan testDuration,
             TimeSpan testStartDelay,
@@ -38,7 +38,7 @@ namespace DirectMethodSender
             this.DirectMethodFrequency = directMethodFrequency;
             this.InvocationSource = invocationSource;
             this.ReportingEndpointUrl = reportingEndpointUrl;
-            this.ServiceClientConnectionString = serviceClientConnectionString;
+            this.IotHubHostname = iotHubHostname;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
@@ -62,7 +62,7 @@ namespace DirectMethodSender
                 configuration.GetValue<TimeSpan>("DirectMethodFrequency", TimeSpan.FromSeconds(5)),
                 Option.Maybe(configuration.GetValue<Uri>("ReportingEndpointUrl")),
                 configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
-                Option.Maybe<string>(configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING")),
+                Option.Maybe<string>(configuration.GetValue<string>("IOT_HUB_HOSTNAME")),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("testDuration", TimeSpan.Zero),
                 configuration.GetValue("testStartDelay", TimeSpan.Zero),
@@ -81,7 +81,7 @@ namespace DirectMethodSender
 
         internal InvocationSource InvocationSource { get; }
 
-        internal Option<string> ServiceClientConnectionString { get; }
+        internal Option<string> IotHubHostname { get; }
 
         internal Option<Uri> ReportingEndpointUrl { get; }
 

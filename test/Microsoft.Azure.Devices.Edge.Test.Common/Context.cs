@@ -80,8 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
-            this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.ConnectionString), $"IOT_HUB_CONNECTION_STRING is missing from environment or context.json.");
+            this.IotHubHostname = Get("IOT_HUB_HOSTNAME");
+            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.IotHubHostname), $"IOT_HUB_HOSTNAME is missing from environment or context.json.");
             this.ParentDeviceId = Option.Maybe(Get("parentDeviceId"));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Option<string> CaCertScriptPath { get; }
 
-        public string ConnectionString { get; }
+        public string IotHubHostname { get; }
 
         public Option<string> ParentDeviceId { get; }
 

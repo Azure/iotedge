@@ -95,7 +95,7 @@ namespace DirectMethodSender
                 case InvocationSource.Cloud:
                     // Implicit OpenAsync()
                     directMethodClient = await DirectMethodCloudSender.CreateAsync(
-                            Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
+                            Settings.Current.IotHubHostname.Expect(() => new ArgumentException("IotHubHostname is null")),
                             (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
                             Logger);
                     break;

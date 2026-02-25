@@ -17,8 +17,9 @@ namespace IotEdgeQuickstart
         public Quickstart(
             IBootstrapper bootstrapper,
             Option<RegistryCredentials> credentials,
-            string iothubConnectionString,
-            string eventhubCompatibleEndpointWithEntityPath,
+            string eventHubName,
+            string fullyQualifiedNamespace,
+            string iothubHostName,
             UpstreamProtocolType upstreamProtocol,
             Option<string> proxy,
             string imageTag,
@@ -40,7 +41,7 @@ namespace IotEdgeQuickstart
             LogLevel runtimeLogLevel,
             bool cleanUpExistingDeviceOnSuccess,
             Option<DPSAttestation> dpsAttestation)
-            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, parentHostname, parentEdgeDevice, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, initializeWithAgentArtifact, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
+            : base(bootstrapper, credentials, iothubHostName, fullyQualifiedNamespace, eventHubName, upstreamProtocol, proxy, imageTag, deviceId, hostname, parentHostname, parentEdgeDevice, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, initializeWithAgentArtifact, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
         {
             this.leaveRunning = leaveRunning;
             this.noVerify = noVerify;
@@ -73,10 +74,12 @@ namespace IotEdgeQuickstart
                     await this.VerifyEdgeAgentIsRunning();
                     await this.VerifyEdgeAgentIsConnectedToIotHub();
 
+                    DateTime dataEnqueuedFrom = DateTime.UtcNow;
+
                     await this.DeployToEdgeDevice();
                     if (!this.noVerify)
                     {
-                        await this.VerifyDataOnIoTHub(this.verifyDataFromModule);
+                        await this.VerifyDataOnIoTHub(this.verifyDataFromModule, dataEnqueuedFrom);
                         await this.VerifyTwinAsync();
                     }
 

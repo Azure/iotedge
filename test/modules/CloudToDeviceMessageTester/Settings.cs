@@ -15,13 +15,12 @@ namespace CloudToDeviceMessageTester
 
         Settings(
             string deviceId,
-            string iotHubConnectionString,
+            string iotHubHostname,
             string moduleId,
             string gatewayHostName,
             string workloadUri,
             string apiVersion,
             string moduleGenerationId,
-            string iotHubHostName,
             CloudToDeviceMessageTesterMode testMode,
             string trackingId,
             TransportType transportType,
@@ -40,7 +39,7 @@ namespace CloudToDeviceMessageTester
 
             this.SharedSettings = new C2DTestSharedSettings()
             {
-                IotHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString)),
+                IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname)),
                 DeviceId = deviceId + "-" + transportType.ToString() + "-leaf",
                 ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)),
             };
@@ -53,7 +52,6 @@ namespace CloudToDeviceMessageTester
                     WorkloadUri = Preconditions.CheckNonWhiteSpace(workloadUri, nameof(workloadUri)),
                     ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion)),
                     ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId)),
-                    IotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName)),
                     TransportType = transportType,
                     EdgeDeviceId = deviceId
                 };
@@ -80,13 +78,12 @@ namespace CloudToDeviceMessageTester
 
             return new Settings(
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
-                configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
+                configuration.GetValue<string>("IOT_HUB_HOSTNAME"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue<string>("IOTEDGE_GATEWAYHOSTNAME"),
                 configuration.GetValue<string>("IOTEDGE_WORKLOADURI"),
                 configuration.GetValue<string>("IOTEDGE_APIVERSION"),
                 configuration.GetValue<string>("IOTEDGE_MODULEGENERATIONID"),
-                configuration.GetValue<string>("IOTEDGE_IOTHUBHOSTNAME"),
                 configuration.GetValue("C2DMESSAGE_TESTER_MODE", CloudToDeviceMessageTesterMode.Receiver),
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue("transportType", TransportType.Amqp),
@@ -128,7 +125,7 @@ namespace CloudToDeviceMessageTester
 
     internal struct C2DTestSharedSettings
     {
-        public string IotHubConnectionString;
+        public string IotHubHostname;
         public string DeviceId;
         public string ModuleId;
     }
@@ -140,7 +137,6 @@ namespace CloudToDeviceMessageTester
         public string WorkloadUri;
         public string ApiVersion;
         public string ModuleGenerationId;
-        public string IotHubHostName;
         public string EdgeDeviceId;
     }
 
