@@ -106,7 +106,7 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
                 }
 
                 let key_handle = key_client
-                    .create_key_pair_if_not_exists(&key_id, Some("rsa-2048:*"))
+                    .create_key_pair_if_not_exists(&key_id, Some("ec-p256:rsa-4096:*"))
                     .await
                     .map_err(|_| {
                         cert_renewal::Error::retryable_error("failed to generate temp key")
