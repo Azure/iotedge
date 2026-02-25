@@ -55,22 +55,21 @@ impl ContainerEngineLogrotate {
             .context(MESSAGE)?;
         self.daemon_config = Some(daemon_config.clone());
 
-        match daemon_config.log_driver.as_deref() {
-            Some("journald") => return Ok(CheckResult::Ok),
-            None => return Ok(CheckResult::Warning(anyhow!(MESSAGE))),
-            _ => (),
-        }
+        if matches!(
+            daemon_config.log_driver.as_deref(),
+            Some("json-file") | None
+        ) {
+            if let Some(log_opts) = &daemon_config.log_opts {
+                if log_opts.max_file.is_none() {
+                    return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
+                }
 
-        if let Some(log_opts) = &daemon_config.log_opts {
-            if log_opts.max_file.is_none() {
+                if log_opts.max_size.is_none() {
+                    return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
+                }
+            } else {
                 return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
             }
-
-            if log_opts.max_size.is_none() {
-                return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
-            }
-        } else {
-            return Ok(CheckResult::Warning(anyhow!(MESSAGE)));
         }
 
         Ok(CheckResult::Ok)
