@@ -371,7 +371,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         });
                 }
             }
+
+            // After releasing the write lock, trigger reconnection
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1)); // Brief delay
+                await this.TriggerReconnectionForAllDevices();
+            });
         }
+
+        async Task TriggerReconnectionForAllDevices()
+         {
+             var devicesSnapshot = this.devices.ToArray();
+             var reconnectionTasks = devicesSnapshot
+                 .Where(kvp => kvp.Value.DeviceConnection.Filter(dc => dc.IsActive).HasValue)
+                .Select(kvp => this.TryGetCloudConnectionInternal(kvp.Key));
+
+             await Task.WhenAll(reconnectionTasks);
+         }
 
         ConnectedDevice GetOrCreateConnectedDevice(IIdentity identity)
         {
