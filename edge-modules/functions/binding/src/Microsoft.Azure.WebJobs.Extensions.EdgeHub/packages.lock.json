@@ -20,11 +20,11 @@
       },
       "Microsoft.Azure.WebJobs": {
         "type": "Direct",
-        "requested": "[3.0.36, )",
-        "resolved": "3.0.36",
-        "contentHash": "S5wppmL8sUfanGmo/zDzpoWrcM+IOvGNFjpkD5XJFCFzrBqktZTEX6MpP/vF3RN6VZm2sFKegZYyce+RNhgE4Q==",
+        "requested": "[3.0.45, )",
+        "resolved": "3.0.45",
+        "contentHash": "SpAKlnv86/D3wwpTAHYvKk/abV47rIKw3kLYITv899Tek/exuD0WOtwdCe2fWjExeYxm8kuXDAIuTAvZCZDrZg==",
         "dependencies": {
-          "Microsoft.Azure.WebJobs.Core": "3.0.36",
+          "Microsoft.Azure.WebJobs.Core": "3.0.45",
           "Microsoft.Extensions.Configuration": "2.1.1",
           "Microsoft.Extensions.Configuration.Abstractions": "2.1.1",
           "Microsoft.Extensions.Configuration.EnvironmentVariables": "2.1.0",
@@ -40,24 +40,20 @@
       },
       "Newtonsoft.Json": {
         "type": "Direct",
-        "requested": "[13.0.2, )",
-        "resolved": "13.0.2",
-        "contentHash": "R2pZ3B0UjeyHShm9vG+Tu0EBb2lC8b0dFzV9gVn50ofHXh9Smjk6kTn7A/FdAsC8B5cKib1OnGYOXxRBz5XQDg=="
-      },
-      "StyleCop.Analyzers": {
-        "type": "Direct",
-        "requested": "[1.2.0-beta.164, )",
-        "resolved": "1.2.0-beta.164",
-        "contentHash": "IWMH8RyJGDu8ZrYFKIwjfcuXizpJnjnMGE8tDRnZ36AIAQeFDjeUPH2EUEMwj4+63oQBu/KkzRe9clSW9s5mdA==",
-        "dependencies": {
-          "StyleCop.Analyzers.Unstable": "1.2.0.164"
-        }
+        "requested": "[13.0.4, )",
+        "resolved": "13.0.4",
+        "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
       "System.Text.Encodings.Web": {
         "type": "Direct",
-        "requested": "[4.7.2, )",
-        "resolved": "4.7.2",
-        "contentHash": "iTUgB/WtrZ1sWZs84F2hwyQhiRH6QNjQv2DkwrH+WP6RoFga2Q1m3f9/Q7FG8cck8AdHitQkmkXSY8qylcDmuA=="
+        "requested": "[10.0.5, )",
+        "resolved": "10.0.5",
+        "contentHash": "opvD/nKTzGKA7GVntZ9L823kN6IxgHQfuxY+VI9gv8VE1Y7CSKoi/QS1EYDQiA63MqtZsD7X6zkISd2ZQJohTQ==",
+        "dependencies": {
+          "System.Buffers": "4.6.1",
+          "System.Memory": "4.6.3",
+          "System.Runtime.CompilerServices.Unsafe": "6.1.2"
+        }
       },
       "Azure.Core": {
         "type": "Transitive",
@@ -167,12 +163,12 @@
       },
       "Microsoft.Azure.WebJobs.Core": {
         "type": "Transitive",
-        "resolved": "3.0.36",
-        "contentHash": "4ht/u677qxDL5rviXafYI5K9qtxee8peXQd8JDqG5KBRr5VXct2pgpEs5SnNu+gDO8dAVp+83N1IRiGG2Fl7Nw==",
+        "resolved": "3.0.45",
+        "contentHash": "rlBMok9U4aqVT6B4guCmilW2dbw6qcxltckcaCOLSZTvbJOcHcuIpXSjqUMKieph+JHLUCmRt28AXHn5ew6YIQ==",
         "dependencies": {
           "System.ComponentModel.Annotations": "4.4.0",
           "System.Diagnostics.TraceSource": "4.3.0",
-          "System.Memory.Data": "1.0.1"
+          "System.Memory.Data": "1.0.2"
         }
       },
       "Microsoft.Bcl.AsyncInterfaces": {
@@ -372,10 +368,10 @@
           "Microsoft.NETCore.Targets": "1.1.0"
         }
       },
-      "StyleCop.Analyzers.Unstable": {
+      "System.Buffers": {
         "type": "Transitive",
-        "resolved": "1.2.0.164",
-        "contentHash": "3WJ5JvRP9QjdrwspeLFjwD2AZw2CcDmYLQ7x8oofxvOzXvboZdFlPsSV8h56hLyK0lnMFvtpb48nxz7oQ4RgCQ=="
+        "resolved": "4.6.1",
+        "contentHash": "N8GXpmiLMtljq7gwvyS+1QvKT/W2J8sNAvx+HVg4NGmsG/H+2k/y9QI23auLJRterrzCiDH+IWAw4V/GPwsMlw=="
       },
       "System.Collections": {
         "type": "Transitive",
@@ -466,6 +462,11 @@
         "resolved": "6.0.0",
         "contentHash": "Rfm2jYCaUeGysFEZjDe7j1R4x6Z6BzumS/vUT5a1AA/AWJuGX71PoGB0RmpyX3VmrGqVnAwtfMn39OHR8Y/5+g=="
       },
+      "System.Memory": {
+        "type": "Transitive",
+        "resolved": "4.6.3",
+        "contentHash": "qdcDOgnFZY40+Q9876JUHnlHu7bosOHX8XISRoH94fwk6hgaeQGSgfZd8srWRZNt5bV9ZW2TljcegDNxsf+96A=="
+      },
       "System.Memory.Data": {
         "type": "Transitive",
         "resolved": "1.0.2",
@@ -525,8 +526,8 @@
       },
       "System.Runtime.CompilerServices.Unsafe": {
         "type": "Transitive",
-        "resolved": "6.0.0",
-        "contentHash": "/iUeP3tq1S0XdNNoMz5C9twLSrM/TH+qElHkXWaPvuNOt+99G75NrV0OS2EqHx5wMN7popYjpc8oTjC1y16DLg=="
+        "resolved": "6.1.2",
+        "contentHash": "2hBr6zdbIBTDE3EhK7NSVNdX58uTK6iHW/P/Axmm9sl1xoGSLqDvMtpecn226TNwHByFokYwJmt/aQQNlO5CRw=="
       },
       "System.Runtime.Extensions": {
         "type": "Transitive",

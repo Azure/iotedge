@@ -16,8 +16,8 @@
       rocksdb binaries) in this library. If specified, you must ensure that rocksdb is
       installed and reachable in your runtime environment.
       -->
-    <PackageReference Include="RocksDbNative" Version="5.17.2" Condition="'$(RocksDbAsPackage)' != 'false'" />
-    <PackageReference Include="RocksDbSharp" Version="5.17.2" />
+    <PackageReference Include="RocksDbNative" Version="6.2.2" Condition="'$(RocksDbAsPackage)' != 'false'" />
+    <PackageReference Include="RocksDbSharp" Version="6.2.2" />
     <!--
       We have a transitive dependency on System.Net.Http via RocksDbNative/5.17.2 and
       RocksDbSharp/5.17.2. Use an explicit reference here to override the version and fix a

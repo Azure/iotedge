@@ -15,6 +15,6 @@
         Use an explicit reference to ensure the transitive dependency through
         Microsoft.Azure.Devices.Client is a safe version.
     -->
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 </Project>
