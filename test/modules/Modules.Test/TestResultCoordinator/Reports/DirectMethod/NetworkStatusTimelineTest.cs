@@ -4,6 +4,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
     using global::TestResultCoordinator.Reports.DirectMethod.Connectivity;
@@ -84,7 +85,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         [Theory]
         [MemberData(nameof(GetCreateReportData))]
-        public async void TestCreateNetworkStatusTimeline(
+        public async Task TestCreateNetworkStatusTimeline(
             IEnumerable<string> networkControllerResultValues,
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
@@ -111,7 +112,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         [Theory]
         [MemberData(nameof(GetInvalidCreateReportDataWithIdenticalConsecutiveOperations))]
-        public async void TestCreateNetworkStatusTimelineWithIdenticalConsecutiveOperations(
+        public async Task TestCreateNetworkStatusTimelineWithIdenticalConsecutiveOperations(
             IEnumerable<string> networkControllerResultValues,
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
@@ -124,7 +125,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         [Theory]
         [MemberData(nameof(GetInvalidCreateReportDataWithNoEndRuleSet))]
-        public async void TestCreateNetworkStatusTimelineWithNoEndRuleSet(
+        public async Task TestCreateNetworkStatusTimelineWithNoEndRuleSet(
             IEnumerable<string> networkControllerResultValues,
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
@@ -136,7 +137,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         [Theory]
         [MemberData(nameof(GetInvalidCreateReportDataWithFirstOperationIncorrect))]
-        public async void TestCreateNetworkStatusTimelineWithFirstOperationIncorrect(
+        public async Task TestCreateNetworkStatusTimelineWithFirstOperationIncorrect(
             IEnumerable<string> networkControllerResultValues,
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
@@ -149,7 +150,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         [Theory]
         [MemberData(nameof(GetInvalidCreateReportDataWithMismatchedNetworkStatuses))]
-        public async void TestCreateNetworkStatusTimelineWithMismatchedNetworkStatuses(
+        public async Task TestCreateNetworkStatusTimelineWithMismatchedNetworkStatuses(
             IEnumerable<string> networkControllerResultValues,
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
@@ -162,7 +163,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         [Theory]
         [MemberData(nameof(GetCreateReportData))]
-        public async void TestCreateNetworkStatusTimelineWithIncorrectTestOperationResultType(
+        public async Task TestCreateNetworkStatusTimelineWithIncorrectTestOperationResultType(
             IEnumerable<string> networkControllerResultValues,
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
@@ -174,7 +175,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         [Theory]
         [MemberData(nameof(GetInvalidCreateReportDataWithEmptyResults))]
-        public async void TestCreateNetworkStatusTimelineWithEmptyInput(
+        public async Task TestCreateNetworkStatusTimelineWithEmptyInput(
             IEnumerable<string> networkControllerResultValues,
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)

@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 {
     using System;
     using System.Security.Principal;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestBadInputsToAuthenticateAsync()
+        public async Task TestBadInputsToAuthenticateAsync()
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var identityFactory = Mock.Of<IClientCredentialsFactory>();
@@ -39,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestNoDeviceId()
+        public async Task TestNoDeviceId()
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var identityFactory = Mock.Of<IClientCredentialsFactory>();
@@ -51,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestGetSasTokenFailed()
+        public async Task TestGetSasTokenFailed()
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
@@ -67,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestAuthFailed()
+        public async Task TestAuthFailed()
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
@@ -86,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestAuthSucceeds_Module()
+        public async Task TestAuthSucceeds_Module()
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
@@ -113,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestAuthSucceeds_Device()
+        public async Task TestAuthSucceeds_Device()
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();

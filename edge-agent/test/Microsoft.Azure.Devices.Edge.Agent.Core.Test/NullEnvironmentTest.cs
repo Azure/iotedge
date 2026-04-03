@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -9,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     {
         [Fact]
         [Unit]
-        public async void TestNullEnvironment()
+        public async Task TestNullEnvironment()
         {
             NullEnvironment testNullEnvironment = NullEnvironment.Instance;
             Assert.NotNull(testNullEnvironment);

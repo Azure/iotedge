@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         public string CertificatePath { get; protected set; }
         public string KeyPath { get; protected set; }
 
-        public X509Certificate2 Certificate => new X509Certificate2(this.CertificatePath);
+        public X509Certificate2 Certificate => X509CertificateLoader.LoadCertificateFromFile(this.CertificatePath);
 
         public IdCertificates(string deviceId, string scriptPath)
         {

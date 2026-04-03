@@ -4,7 +4,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
@@ -35,7 +35,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.10" />
-    <PackageReference Include="System.Text.Encodings.Web" Version="10.0.5" />
     <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.45" />
     <!--
         Newtonsoft.Json < 13.0.2 has a vulnerability due to insecure defaults.

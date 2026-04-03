@@ -19,7 +19,6 @@
     <PackageReference Include="App.Metrics" Version="4.3.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.10" />
-    <PackageReference Include="System.ValueTuple" Version="4.6.2" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
 {
     using System.Collections.Generic;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -14,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
     public class TwinConfigSourceTest
     {
         [Fact]
-        public async void GetDeploymentConfigTest1()
+        public async Task GetDeploymentConfigTest1()
         {
             // Arrange
             var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
@@ -32,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.ConfigSources
         }
 
         [Fact]
-        public async void GetDeploymentConfigTest2()
+        public async Task GetDeploymentConfigTest2()
         {
             // Arrange
             var runtimeInfo = Mock.Of<IRuntimeInfo>();

@@ -244,7 +244,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static IEnumerable<X509Certificate2> GetCertificatesFromPem(IEnumerable<string> rawPemCerts) =>
             rawPemCerts
                 .Select(c => Encoding.UTF8.GetBytes(c))
-                .Select(c => new X509Certificate2(c))
+                .Select(c => X509CertificateLoader.LoadCertificate(c))
                 .ToList();
 
         public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration, ILogger logger)
@@ -385,7 +385,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             IEnumerable<X509Certificate2> certsChain = GetCertificatesFromPem(pemCerts.Skip(1));
 
-            var certWithNoKey = new X509Certificate2(Encoding.UTF8.GetBytes(pemCerts.First()));
+            var certWithNoKey = X509CertificateLoader.LoadCertificate(Encoding.UTF8.GetBytes(pemCerts.First()));
             var certWithPrivateKey = AttachPrivateKey(certWithNoKey, privateKey, logger);
 
             return (certWithPrivateKey, certsChain);
@@ -489,7 +489,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 // On Windows the certificate in 'result' gives an error when used with kestrel: "No credentials are available in the security"
                 // This is a suggested workaround that seems working (https://github.com/dotnet/runtime/issues/45680)
-                result = new X509Certificate2(result.Export(X509ContentType.Pkcs12));
+                result = X509CertificateLoader.LoadPkcs12(result.Export(X509ContentType.Pkcs12), null);
             }
 
             return result;

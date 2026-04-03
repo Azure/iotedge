@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         [Fact]
         [Unit]
-        public async void TestMinimalTest()
+        public async Task TestMinimalTest()
         {
             // Arrange
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         [Fact]
         [Unit]
-        public async void TestAddRunningModule()
+        public async Task TestAddRunningModule()
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         [Fact]
         [Unit]
-        public async void TestAddStoppedModule()
+        public async Task TestAddStoppedModule()
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         [Fact]
         [Unit]
-        public async void TestUpdateModule()
+        public async Task TestUpdateModule()
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
         [Fact]
         [Unit]
-        public async void TestRemoveModule()
+        public async Task TestRemoveModule()
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 

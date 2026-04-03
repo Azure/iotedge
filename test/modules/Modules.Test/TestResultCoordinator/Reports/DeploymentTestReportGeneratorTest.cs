@@ -227,7 +227,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             Assert.Equal(0UL, report.TotalExpectedDeployments);
             Assert.Equal(0UL, report.TotalActualDeployments);
             Assert.Equal(0UL, report.TotalMatchedDeployments);
-            Assert.Equal(0, report.UnmatchedResults.Count);
+            Assert.Empty(report.UnmatchedResults);
         }
 
         [Theory]

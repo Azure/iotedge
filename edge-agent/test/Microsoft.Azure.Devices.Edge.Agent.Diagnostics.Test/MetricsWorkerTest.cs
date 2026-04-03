@@ -43,8 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             // all values are stored
             testData = this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
             await worker.Scrape(CancellationToken.None);
-            Assert.Equal(1, scraper.Invocations.Count);
-            Assert.Equal(1, storage.Invocations.Count);
+            Assert.Single(scraper.Invocations);
+            Assert.Single(storage.Invocations);
             Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
 
             testData = this.PrometheusMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
@@ -166,12 +166,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             Task workerTask = worker.Upload(CancellationToken.None);
             await uploadStarted.Task;
             uploadedData.ToList();
-            Assert.Equal(1, uploader.Invocations.Count);
-            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
-            Assert.Empty(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+            Assert.Single(uploader.Invocations);
+            Assert.Single(storage.Invocations, i => i.Method.Name == "GetAllMetricsAsync");
+            Assert.DoesNotContain(storage.Invocations, i => i.Method.Name == "RemoveAllReturnedMetricsAsync");
             finishUpload.SetResult(true);
-            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
-            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+            Assert.Single(storage.Invocations, i => i.Method.Name == "GetAllMetricsAsync");
+            Assert.Single(storage.Invocations, i => i.Method.Name == "RemoveAllReturnedMetricsAsync");
         }
 
         [Fact]
@@ -194,8 +194,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             /* test */
             await worker.Upload(CancellationToken.None);
             TestUtilities.OrderlessCompare(metrics, uploadedData);
-            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
-            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+            Assert.Single(storage.Invocations, i => i.Method.Name == "GetAllMetricsAsync");
+            Assert.Single(storage.Invocations, i => i.Method.Name == "RemoveAllReturnedMetricsAsync");
             Assert.Single(uploader.Invocations);
         }
 
@@ -230,8 +230,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
                 Assert.Equal(numMetrics++ / 10 + 1, metricsCalls);
             }
 
-            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
-            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+            Assert.Single(storage.Invocations, i => i.Method.Name == "GetAllMetricsAsync");
+            Assert.Single(storage.Invocations, i => i.Method.Name == "RemoveAllReturnedMetricsAsync");
             Assert.Single(uploader.Invocations);
         }
 
@@ -312,7 +312,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             await worker.Upload(CancellationToken.None);
             Assert.Equal(targetRetries, actualRetries);
             Assert.Equal(targetRetries, uploader.Invocations.Count);
-            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+            Assert.Single(storage.Invocations, i => i.Method.Name == "RemoveAllReturnedMetricsAsync");
         }
 
         [Fact]
@@ -333,7 +333,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             /* test */
             await worker.Upload(CancellationToken.None);
             Assert.Equal(maxRetries + 1, uploader.Invocations.Count); // It tries once, then retries maxRetryTimes.
-            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+            Assert.Single(storage.Invocations, i => i.Method.Name == "RemoveAllReturnedMetricsAsync");
         }
 
         [Fact]
@@ -363,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             void GetOffsetToRemove(Func<long, IEnumerable<Metric>, Task<bool>> func)
             {
                 // Note: .Result was used b/c moq `Callback` does not handle tasks.
-                IEnumerable<int> newOffsetsRemoved = AsyncEnumerable.Range(0, 100).WhereAwait(async i => await func(i, null)).ToListAsync().Result;
+                IEnumerable<int> newOffsetsRemoved = AsyncEnumerable.Range(0, 100).Where(async (i, ct) => await func(i, null)).ToListAsync().Result;
 
                 offsetsRemoved.AddRange(newOffsetsRemoved);
             }

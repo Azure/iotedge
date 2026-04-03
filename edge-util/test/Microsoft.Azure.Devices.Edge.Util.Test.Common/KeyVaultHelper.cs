@@ -75,7 +75,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
         async Task<string> GetAccessToken(string authority, string resource, string scope)
         {
             var context = new AuthenticationContext(authority, TokenCache.DefaultShared);
+#pragma warning disable CS0618 // ADAL is deprecated; suppress until migrated to MSAL
             AuthenticationResult result = await context.AcquireTokenAsync(resource, this.GetClientAssertionCertificate());
+#pragma warning restore CS0618
             return result.AccessToken;
         }
     }

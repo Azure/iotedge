@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void FileBackupSuccessWhenFileNotExists()
+        public async Task FileBackupSuccessWhenFileNotExists()
         {
             if (File.Exists(this.tempFileName))
             {
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void FileBackupDoesNotHappenIfConfigSourceReportsException()
+        public async Task FileBackupDoesNotHappenIfConfigSourceReportsException()
         {
             if (File.Exists(this.tempFileName))
             {
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void FileBackupReadDoesNotThrowWhenBackupFileDoesNotExist()
+        public async Task FileBackupReadDoesNotThrowWhenBackupFileDoesNotExist()
         {
             if (File.Exists(this.tempFileName))
             {
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void FileBackupSuccessCallsEncrypt()
+        public async Task FileBackupSuccessCallsEncrypt()
         {
             if (File.Exists(this.tempFileName))
             {
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void FileBackupDoesnotThrowWhenEncryptFails()
+        public async Task FileBackupDoesnotThrowWhenEncryptFails()
         {
             if (File.Exists(this.tempFileName))
             {
@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void FileBackupReadFromBackupCallsEncryptDecrypt()
+        public async Task FileBackupReadFromBackupCallsEncryptDecrypt()
         {
             if (File.Exists(this.tempFileName))
             {
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void FileBackupReadThrowsWhenDecryptFails()
+        public async Task FileBackupReadThrowsWhenDecryptFails()
         {
             if (File.Exists(this.tempFileName))
             {

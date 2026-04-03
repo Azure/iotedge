@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [TestPriority(101)]
         [InlineData(TransportType.Mqtt_Tcp_Only)]
         // [InlineData(TransportType.Mqtt_WebSocket_Only)] // Disabled: need a valid server cert for WebSocket to work
-        public async void Receive_C2D_SingleMessage_ShouldSucceed(TransportType transportType)
+        public async Task Receive_C2D_SingleMessage_ShouldSucceed(TransportType transportType)
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Fact(Skip = "Flaky")]
         [TestPriority(102)]
-        public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
+        public async Task Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Fact]
         [TestPriority(103)]
-        public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
+        public async Task Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");

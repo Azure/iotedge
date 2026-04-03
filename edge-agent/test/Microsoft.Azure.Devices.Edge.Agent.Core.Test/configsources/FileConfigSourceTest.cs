@@ -218,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void CreateSuccess()
+        public async Task CreateSuccess()
         {
             File.WriteAllText(this.tempFileName, ValidJson1);
 
@@ -236,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void ChangeFileAndSeeChange()
+        public async Task ChangeFileAndSeeChange()
         {
             // Set up initial config file and create `FileConfigSource`
             File.WriteAllText(this.tempFileName, ValidJson1);
@@ -267,7 +267,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         [Fact]
         [Unit]
-        public async void ChangeFileToInvalidBackToOk()
+        public async Task ChangeFileToInvalidBackToOk()
         {
             // Set up initial config file and create `FileConfigSource`
             File.WriteAllText(this.tempFileName, ValidJson1);

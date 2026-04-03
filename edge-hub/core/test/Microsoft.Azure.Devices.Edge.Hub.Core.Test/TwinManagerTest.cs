@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void GetTwinWhenCloudOnlineTwinNotStoredSuccess()
+        public async Task GetTwinWhenCloudOnlineTwinNotStoredSuccess()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void GetTwinWhenCloudOfflineSuccess()
+        public async Task GetTwinWhenCloudOfflineSuccess()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void GetTwinPassthroughWhenTwinNotStoredSuccess()
+        public async Task GetTwinPassthroughWhenTwinNotStoredSuccess()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateDesiredPropertiesWhenTwinStoredVersionPlus1Success()
+        public async Task UpdateDesiredPropertiesWhenTwinStoredVersionPlus1Success()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -238,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateDesiredPropertiesWhenTwinNotStoredVersionPlus1Success()
+        public async Task UpdateDesiredPropertiesWhenTwinNotStoredVersionPlus1Success()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateDesiredPropertiesPassthroughSuccess()
+        public async Task UpdateDesiredPropertiesPassthroughSuccess()
         {
             // Arrange
             var received = new TwinCollection();
@@ -325,7 +325,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateReportedPropertiesPassthroughSuccess()
+        public async Task UpdateReportedPropertiesPassthroughSuccess()
         {
             // Arrange
             IMessage receivedMessage = null;
@@ -357,7 +357,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateReportedPropertiesWhenCloudOnlineTwinNotStoredSuccess()
+        public async Task UpdateReportedPropertiesWhenCloudOnlineTwinNotStoredSuccess()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -457,7 +457,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateReportedPropertiesWhenCloudOfflineTwinNotStoredSuccess()
+        public async Task UpdateReportedPropertiesWhenCloudOfflineTwinNotStoredSuccess()
         {
             // Arrange
             var mockProxy = new Mock<ICloudProxy>();
@@ -557,7 +557,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateReportedPropertiesWhenCloudOfflineTwinStoredSuccess()
+        public async Task UpdateReportedPropertiesWhenCloudOfflineTwinStoredSuccess()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -664,7 +664,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateReportedPropertiesWhenCloudOfflineMalformedPropertiesThrows()
+        public async Task UpdateReportedPropertiesWhenCloudOfflineMalformedPropertiesThrows()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -750,7 +750,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateReportedPropertiesWhenCloudOfflineTooLargeCollectionThrows()
+        public async Task UpdateReportedPropertiesWhenCloudOfflineTooLargeCollectionThrows()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -837,7 +837,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void AllOperationsWhenCloudOfflineTwinNotStoredThrows()
+        public async Task AllOperationsWhenCloudOfflineTwinNotStoredThrows()
         {
             // Arrange
             var mockProxy = new Mock<ICloudProxy>();
@@ -866,7 +866,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateDesiredPropertiesWhenDeviceProxyOfflineThrows()
+        public async Task UpdateDesiredPropertiesWhenDeviceProxyOfflineThrows()
         {
             // Arrange
             var mockDeviceProxy = new Mock<IDeviceProxy>();
@@ -893,7 +893,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void GetTwinDoesNotOverwriteSavedReportedPropertiesSuccess()
+        public async Task GetTwinDoesNotOverwriteSavedReportedPropertiesSuccess()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -999,7 +999,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void GetTwinWhenStorePutFailsReturnsLastKnownSuccess()
+        public async Task GetTwinWhenStorePutFailsReturnsLastKnownSuccess()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -1051,7 +1051,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void UpdateReportedPropertiesWhenStoreThrowsFailure()
+        public async Task UpdateReportedPropertiesWhenStoreThrowsFailure()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -1085,7 +1085,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void GetTwinRejectsLowerVersionTwinsSuccess()
+        public async Task GetTwinRejectsLowerVersionTwinsSuccess()
         {
             // Arrange - setup twin with version
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -1143,7 +1143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void GetTwinDoesNotGeneratesDesiredPropertyUpdateIfNotSusbribedSuccess()
+        public async Task GetTwinDoesNotGeneratesDesiredPropertyUpdateIfNotSusbribedSuccess()
         {
             // Arrange - setup twin with version
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -1211,7 +1211,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void DesiredPropertyFetchesTwinWithCallbackSuccess()
+        public async Task DesiredPropertyFetchesTwinWithCallbackSuccess()
         {
             // Arrange - make a twin with a version
             string deviceId = "device20";
@@ -1291,7 +1291,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void ConnectionReestablishedReportedPropertiesSyncSuccess()
+        public async Task ConnectionReestablishedReportedPropertiesSyncSuccess()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };
@@ -1400,7 +1400,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void ConnectionReestablishedGetTwinWithDesiredPropertyUpdateSuccess()
+        public async Task ConnectionReestablishedGetTwinWithDesiredPropertyUpdateSuccess()
         {
             // Arrange
             string deviceId = "device22";
@@ -1479,7 +1479,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async void ConnectionReestablishedDoesNotSyncReportedPropertiesWhenEmptySuccess()
+        public async Task ConnectionReestablishedDoesNotSyncReportedPropertiesWhenEmptySuccess()
         {
             // Arrange
             var twin = new Shared.Twin("d1") { Version = 1 };

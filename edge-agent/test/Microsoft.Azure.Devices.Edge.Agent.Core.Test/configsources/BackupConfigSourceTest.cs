@@ -6,10 +6,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Util;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using Xunit.Sdk;
 
     [Unit]
     public class BackupConfigSourceTest
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         }
 
         [Fact]
-        public async void GetsConfigFromUnderlyingAndBacksUp()
+        public async Task GetsConfigFromUnderlyingAndBacksUp()
         {
             DeploymentConfigInfo configInfo = SetupNonEmptyDeployment();
 
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         }
 
         [Fact]
-        public async void ConfigBacksUpEachTimeItChanges()
+        public async Task ConfigBacksUpEachTimeItChanges()
         {
             DeploymentConfigInfo configInfo1 = SetupNonEmptyDeployment();
             DeploymentConfigInfo configInfo2 = SetupNonEmptyDeployment("new-module");
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         }
 
         [Fact]
-        public async void ConfigsWithExceptionsDoNotBackUp()
+        public async Task ConfigsWithExceptionsDoNotBackUp()
         {
             DeploymentConfigInfo configInfo = SetupExceptionDeployment();
             var underlying = new Mock<IConfigSource>();
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         }
 
         [Fact]
-        public async void EmptyResultFromUnderlyingReadsBackup()
+        public async Task EmptyResultFromUnderlyingReadsBackup()
         {
             DeploymentConfigInfo configInfo = SetupNonEmptyDeployment();
 
@@ -103,12 +103,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         }
 
         [Fact]
-        public async void ExceptionFromUnderlyingReadsBackup()
+        public async Task ExceptionFromUnderlyingReadsBackup()
         {
             DeploymentConfigInfo configInfo = SetupNonEmptyDeployment();
 
             var underlying = new Mock<IConfigSource>();
-            underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ThrowsAsync(new NullException("failure"));
+            underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ThrowsAsync(new InvalidOperationException("failure"));
             var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
             backup.Setup(b => b.ReadFromBackupAsync()).ReturnsAsync(configInfo);
@@ -121,12 +121,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         }
 
         [Fact]
-        public async void ReadsBackupOnce()
+        public async Task ReadsBackupOnce()
         {
             DeploymentConfigInfo configInfo = SetupNonEmptyDeployment();
 
             var underlying = new Mock<IConfigSource>();
-            underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ThrowsAsync(new NullException("failure"));
+            underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ThrowsAsync(new InvalidOperationException("failure"));
             var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
             backup.SetupSequence(b => b.ReadFromBackupAsync())
@@ -144,13 +144,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         }
 
         [Fact]
-        public async void ReadingBackupFailureGivesEmpty()
+        public async Task ReadingBackupFailureGivesEmpty()
         {
             var underlying = new Mock<IConfigSource>();
-            underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ThrowsAsync(new NullException("underlying"));
+            underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ThrowsAsync(new InvalidOperationException("underlying"));
             var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
-            backup.Setup(b => b.ReadFromBackupAsync()).ThrowsAsync(new NullException("backup"));
+            backup.Setup(b => b.ReadFromBackupAsync()).ThrowsAsync(new InvalidOperationException("backup"));
 
             var backupSource = new BackupConfigSource(backup.Object, underlying.Object);
             var result = await backupSource.GetDeploymentConfigInfoAsync();
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         public static DeploymentConfigInfo SetupExceptionDeployment()
         {
-            return new DeploymentConfigInfo(2, new NullException("bad config"));
+            return new DeploymentConfigInfo(2, new InvalidOperationException("bad config"));
         }
     }
 }

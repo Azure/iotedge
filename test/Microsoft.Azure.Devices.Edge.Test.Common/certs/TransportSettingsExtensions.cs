@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
             byte[] input = certificate.Export(X509ContentType.Cert);
 
-            if (!chain.Build(new X509Certificate2(input)))
+            if (!chain.Build(X509CertificateLoader.LoadCertificate(input)))
             {
                 Log.Verbose("Unable to build the chain using the expected root certificate.");
                 return false;

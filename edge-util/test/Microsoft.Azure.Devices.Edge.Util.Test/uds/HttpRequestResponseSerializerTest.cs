@@ -221,36 +221,36 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Uds
         }
 
         [Fact]
-        public void TestDeserializeResponse_InvalidContentLength_ShouldThrow()
+        public async Task TestDeserializeResponse_InvalidContentLength_ShouldThrow()
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-length: 5\r\n\r\nMessage is longer");
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
             CancellationToken cancellationToken = default(CancellationToken);
-            Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
+            await Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
         [Fact]
-        public void TestDeserializeResponse_InvalidHeaderSeparator_ShouldThrow()
+        public async Task TestDeserializeResponse_InvalidHeaderSeparator_ShouldThrow()
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-length=5\r\n\r\nMessage is longer");
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
             CancellationToken cancellationToken = default(CancellationToken);
-            Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
+            await Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
         [Fact]
-        public void TestDeserializeResponse_InvalidEndOfHeaders_ShouldThrow()
+        public async Task TestDeserializeResponse_InvalidEndOfHeaders_ShouldThrow()
         {
             byte[] expected = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-length: 5\r\n");
             var memory = new MemoryStream(expected, true);
             var stream = new HttpBufferedStream(memory);
 
             CancellationToken cancellationToken = default(CancellationToken);
-            Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
+            await Assert.ThrowsAsync<HttpRequestException>(() => new HttpRequestResponseSerializer().DeserializeResponse(stream, cancellationToken));
         }
 
         [Fact]

@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             };
             (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateResponse(response);
 
-            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
+            var expected = X509CertificateLoader.LoadCertificate(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.Equal(expected, cert);
             Assert.True(cert.HasPrivateKey);
             Assert.Single(chain);
@@ -236,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
             (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(TestCertificateHelper.CertificatePem, TestCertificateHelper.PrivateKeyPemPkcs8);
 
-            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
+            var expected = X509CertificateLoader.LoadCertificate(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.Equal(expected, cert);
             Assert.True(cert.HasPrivateKey);
             Assert.Empty(chain);
@@ -248,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             TestCertificateHelper.GenerateSelfSignedCert("top secret").Export(X509ContentType.Cert);
             (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(TestCertificateHelper.CertificatePem, TestCertificateHelper.PrivateKeyPemPkcs1);
 
-            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
+            var expected = X509CertificateLoader.LoadCertificate(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.Equal(expected, cert);
             Assert.True(cert.HasPrivateKey);
             Assert.Empty(chain);
@@ -279,7 +279,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
             string certificate = $"{TestCertificateHelper.CertificatePem}\n{TestCertificateHelper.CertificatePem}";
             (X509Certificate2 cert, IEnumerable<X509Certificate2> chain) = CertificateHelper.ParseCertificateAndKey(certificate, TestCertificateHelper.PrivateKeyPemPkcs8);
 
-            var expected = new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
+            var expected = X509CertificateLoader.LoadCertificate(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem));
             Assert.Equal(expected, cert);
             Assert.True(cert.HasPrivateKey);
             Assert.Single(chain);
@@ -393,7 +393,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         [Fact]
         public void ValidatesCertificateThumbprintBySha1()
         {
-            var certificate = new X509Certificate2(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
+            var certificate = X509CertificateLoader.LoadCertificate(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
             var thumbprints = new[] { "abcdeae53da1f86112acb008cac657b8dd259e76", TestCertificateHelper.CertificateThumbprintSha1 };
 
             Assert.True(CertificateHelper.ValidateCertificateThumbprint(certificate, thumbprints));
@@ -402,7 +402,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         [Fact]
         public void InvalidatesCertificateThumbprintBySha1()
         {
-            var certificate = new X509Certificate2(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
+            var certificate = X509CertificateLoader.LoadCertificate(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
             var thumbprints = new[] { "abcdeae53da1f86112acb008cac657b8dd259e76", "1234567890a1f86112acb008cac657b8dd259e76" };
 
             Assert.False(CertificateHelper.ValidateCertificateThumbprint(certificate, thumbprints));
@@ -411,7 +411,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         [Fact]
         public void ValidatesCertificateThumbprintBySha256()
         {
-            var certificate = new X509Certificate2(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
+            var certificate = X509CertificateLoader.LoadCertificate(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
             var thumbprints = new[] { "1826331953f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071", TestCertificateHelper.CertificateThumbprintSha256 };
 
             Assert.True(CertificateHelper.ValidateCertificateThumbprint(certificate, thumbprints));
@@ -420,7 +420,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
         [Fact]
         public void InvalidatesCertificateThumbprintBySha256()
         {
-            var certificate = new X509Certificate2(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
+            var certificate = X509CertificateLoader.LoadCertificate(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
             var thumbprints = new[] { "abcdef1953f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071", "1234567893f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071" };
 
             Assert.False(CertificateHelper.ValidateCertificateThumbprint(certificate, thumbprints));

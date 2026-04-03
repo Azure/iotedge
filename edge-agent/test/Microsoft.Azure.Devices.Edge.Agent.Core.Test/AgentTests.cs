@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void AgentCreateSuccessWhenDecryptFails()
+        public async Task AgentCreateSuccessWhenDecryptFails()
         {
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironmentProvider = new Mock<IEnvironmentProvider>();
@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void ReconcileAsyncOnEmptyPlan()
+        public async Task ReconcileAsyncOnEmptyPlan()
         {
             var token = default(CancellationToken);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void ReconcileAsyncAbortsWhenConfigSourceThrows()
+        public async Task ReconcileAsyncAbortsWhenConfigSourceThrows()
         {
             // Arrange
             var mockConfigSource = new Mock<IConfigSource>();
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Theory]
         [MemberData(nameof(GetExceptionsToTest))]
-        public async void ReconcileAsyncAbortsWhenConfigSourceReturnsKnownExceptions(
+        public async Task ReconcileAsyncAbortsWhenConfigSourceReturnsKnownExceptions(
             Exception testException,
             DeploymentStatusCode statusCode)
         {
@@ -220,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void ReconcileAsyncAbortsWhenEnvironmentSourceThrows()
+        public async Task ReconcileAsyncAbortsWhenEnvironmentSourceThrows()
         {
             // Arrange
             var mockConfigSource = new Mock<IConfigSource>();
@@ -255,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void ReconcileAsyncAbortsWhenModuleIdentityLifecycleManagerThrows()
+        public async Task ReconcileAsyncAbortsWhenModuleIdentityLifecycleManagerThrows()
         {
             // Arrange
             var mockConfigSource = new Mock<IConfigSource>();
@@ -302,7 +302,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void ReconcileAsyncReportsFailedWhenEncryptProviderThrows()
+        public async Task ReconcileAsyncReportsFailedWhenEncryptProviderThrows()
         {
             var token = default(CancellationToken);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
@@ -364,7 +364,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void ReconcileAsyncOnSetPlan()
+        public async Task ReconcileAsyncOnSetPlan()
         {
             var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);
             var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);
@@ -423,7 +423,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void ReconcileAsyncWithNoDeploymentChange()
+        public async Task ReconcileAsyncWithNoDeploymentChange()
         {
             var desiredModule = new TestModule("CustomModule", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);
             var currentModule = new TestModule("CustomModule", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);
@@ -532,7 +532,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void ReconcileAsyncExecuteAsyncIncompleteDefaulsUnknown()
+        public async Task ReconcileAsyncExecuteAsyncIncompleteDefaulsUnknown()
         {
             var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);
             var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);
@@ -586,7 +586,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        public async void ReconcileAsyncExecuteAsyncIncompleteReportsLastState()
+        public async Task ReconcileAsyncExecuteAsyncIncompleteReportsLastState()
         {
             var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);
             var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);

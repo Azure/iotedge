@@ -288,7 +288,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 });
 
             // Assert
-            Assert.Equal(0, obtainedDevices.Count);
+            Assert.Empty(obtainedDevices);
 
             // Act
             first = await encryptedStore.GetFirstEntry();

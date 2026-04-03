@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 {
     using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -10,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
     {
         [Fact]
         [Unit]
-        public async void NullCommandTestAll()
+        public async Task NullCommandTestAll()
         {
             NullCommand n = NullCommand.Instance;
             var token = default(CancellationToken);

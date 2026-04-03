@@ -362,10 +362,10 @@ namespace Modules.Test.TestResultCoordinator.Reports
             Assert.Equal(0UL, report.TotalDuplicateActualResultCount);
             Assert.Equal(0UL, report.TotalMisorderedActualResultCount);
 
-            Assert.Equal(0, report.UnmatchedResults.Count);
-            Assert.Equal(0, report.DuplicateExpectedResults.Count);
-            Assert.Equal(0, report.DuplicateActualResults.Count);
-            Assert.Equal(0, report.MisorderedActualResults.Count);
+            Assert.Empty(report.UnmatchedResults);
+            Assert.Empty(report.DuplicateExpectedResults);
+            Assert.Empty(report.DuplicateActualResults);
+            Assert.Empty(report.MisorderedActualResults);
         }
 
         [Theory]

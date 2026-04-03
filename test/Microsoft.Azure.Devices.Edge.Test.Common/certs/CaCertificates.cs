@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         public IEnumerable<X509Certificate2> TrustedCertificates =>
             new[]
             {
-                new X509Certificate2(X509Certificate.CreateFromCertFile(this.TrustedCertificatesPath))
+                X509CertificateLoader.LoadCertificateFromFile(this.TrustedCertificatesPath)
             };
 
         public CaCertificates(string deviceId, string scriptPath)

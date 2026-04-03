@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   
@@ -22,23 +22,9 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.9" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.6.0" />
-    <!--
-      We have a transitive dependency on System.Net.Http via Microsoft.NET.Sdk.Functions/3.0.13.
-      Use an explicit reference here to override the version and fix a vulnerability. See
-      https://github.com/advisories/GHSA-7jgj-8wvc-jh57.
-    -->
-    <PackageReference Include="System.Net.Http" Version="4.3.4" />
-    <!--
-      We have a transitive dependency on System.Text.RegularExpressions via
-      Microsoft.NET.Sdk.Functions/3.0.13. Use an explicit reference here to override the version
-      and fix a vulnerability. See https://github.com/advisories/GHSA-cmhx-cq75-c4mj.
-    -->
-    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
-    <PackageReference Include="System.Text.Encodings.Web" Version="10.0.5" />
   </ItemGroup>
   
   <ItemGroup>

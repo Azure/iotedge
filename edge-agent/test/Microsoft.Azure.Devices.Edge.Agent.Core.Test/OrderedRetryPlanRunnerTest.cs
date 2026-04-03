@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void TestExecuteAsyncInputs()
+        public async Task TestExecuteAsyncInputs()
         {
             // Arrange
             var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void ExecuteAsyncRunsPlanCommands()
+        public async Task ExecuteAsyncRunsPlanCommands()
         {
             // Arrange
             var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void ExecuteAsyncRunsPlanCommandsTwiceForSameDeployment()
+        public async Task ExecuteAsyncRunsPlanCommandsTwiceForSameDeployment()
         {
             // Arrange
             var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void ExecuteAsyncRunsPlanCommandsEvenIfOneThrows()
+        public async Task ExecuteAsyncRunsPlanCommandsEvenIfOneThrows()
         {
             // Arrange
             var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void ExecuteAsyncSkipsCommandThatThrowsDuringSecondRun()
+        public async Task ExecuteAsyncSkipsCommandThatThrowsDuringSecondRun()
         {
             // Arrange
             var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void ExecuteAsyncDoesNotSkipCommandThatThrowsDuringSecondRunWithNewDeployment()
+        public async Task ExecuteAsyncDoesNotSkipCommandThatThrowsDuringSecondRunWithNewDeployment()
         {
             // Arrange
             var runner = new OrderedRetryPlanRunner(5, 10, SystemTime.Instance);
@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void ExecuteAsyncRunsSkippedCommandAfterInitialTimeout()
+        public async Task ExecuteAsyncRunsSkippedCommandAfterInitialTimeout()
         {
             // Arrange
             var systemTime = new Mock<ISystemTime>();
@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void ExecuteAsyncRunsSkippedCommandAfterSecondTimeout()
+        public async Task ExecuteAsyncRunsSkippedCommandAfterSecondTimeout()
         {
             // Arrange
             var systemTime = new Mock<ISystemTime>();
@@ -230,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void ExecuteAsyncGivesUpOnCommandAfterHittingMaxRetries()
+        public async Task ExecuteAsyncGivesUpOnCommandAfterHittingMaxRetries()
         {
             // Arrange
             var systemTime = new Mock<ISystemTime>();
@@ -268,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void ExecuteAsyncResetsStatsOnFailingCommandOnceItSucceeds()
+        public async Task ExecuteAsyncResetsStatsOnFailingCommandOnceItSucceeds()
         {
             // Arrange
             var systemTime = new Mock<ISystemTime>();
@@ -310,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void TestOrderedRetryPlanRunnerCancellation()
+        public async Task TestOrderedRetryPlanRunnerCancellation()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -337,7 +337,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void TestExecutionPrereqExceptionSkipsRemainingCommands()
+        public async Task TestExecutionPrereqExceptionSkipsRemainingCommands()
         {
             // Arrange
             var cts = new CancellationTokenSource();
@@ -362,7 +362,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void TestExecutionPrereqExceptionSkipsCommandWhenHitsRetryLimit()
+        public async Task TestExecutionPrereqExceptionSkipsCommandWhenHitsRetryLimit()
         {
             // Arrange
             var systemTime = new Mock<ISystemTime>();
@@ -396,7 +396,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [Fact]
         [Unit]
-        public async void TestExecutionPrereqExceptionSkipsCommandWhenWithinCooloffTime()
+        public async Task TestExecutionPrereqExceptionSkipsCommandWhenWithinCooloffTime()
         {
             // Arrange
             var cts = new CancellationTokenSource();

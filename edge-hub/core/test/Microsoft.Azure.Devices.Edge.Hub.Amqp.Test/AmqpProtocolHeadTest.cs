@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using System.Linq;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Amqp.Transport;
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestStartAsyncThrowsIfCreateListenerThrows()
+        public async Task TestStartAsyncThrowsIfCreateListenerThrows()
         {
             AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>(), new NullCredentialsCache());
 
@@ -62,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestStartAsyncThrowsIfRootCreateTransportListenerThrows()
+        public async Task TestStartAsyncThrowsIfRootCreateTransportListenerThrows()
         {
             AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>(), new NullCredentialsCache());
 
@@ -85,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         [Theory]
         [MemberData(nameof(GetThrowingListeners))]
         [Unit]
-        public async void TestStartAsyncThrowsIfOpenAsyncOrListenThrows(TransportListener amqpTransportListener)
+        public async Task TestStartAsyncThrowsIfOpenAsyncOrListenThrows(TransportListener amqpTransportListener)
         {
             AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>(), new NullCredentialsCache());
 
@@ -107,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestStartAsyncThrowsIfTransportListenerCallbackArgsHasException()
+        public async Task TestStartAsyncThrowsIfTransportListenerCallbackArgsHasException()
         {
             AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>(), new NullCredentialsCache());
 
@@ -137,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestStartAsyncDoesNotThrowIfCreateConnectionThrows()
+        public async Task TestStartAsyncDoesNotThrowIfCreateConnectionThrows()
         {
             AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>(), new NullCredentialsCache());
             var runtimeProvider = new Mock<IRuntimeProvider>();
@@ -171,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
         [Fact]
         [Unit]
-        public async void TestStartAsyncDoesNotThrowIfConnectionOpenAsyncThrows()
+        public async Task TestStartAsyncDoesNotThrowIfConnectionOpenAsyncThrows()
         {
             AmqpSettings amqpSettings = AmqpSettingsProvider.GetDefaultAmqpSettings(IotHubHostName, Mock.Of<IAuthenticator>(), Mock.Of<IClientCredentialsFactory>(), Mock.Of<ILinkHandlerProvider>(), Mock.Of<IConnectionProvider>(), new NullCredentialsCache());
             var runtimeProvider = new Mock<IRuntimeProvider>();

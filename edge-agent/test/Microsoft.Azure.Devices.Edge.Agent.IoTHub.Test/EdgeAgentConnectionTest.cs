@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
-                Assert.Equal(1, deploymentConfig.Modules.Count);
+                Assert.Single(deploymentConfig.Modules);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
                 ValidateRuntimeConfig(deploymentConfig.Runtime);
                 ValidateModules(deploymentConfig);

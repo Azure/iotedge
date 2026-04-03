@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 
         [Fact]
         [Unit]
-        public async void TestShow()
+        public async Task TestShow()
         {
             var logFactoryMock = new Mock<ILoggerFactory>();
             var factoryMock = new Mock<ICommandFactory>();
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
 
             ICommand create = await factory.CreateAsync(new ModuleWithIdentity(TestModule, moduleIdentity.Object), runtimeInfo);
 
-            Assert.Equal(create.Show(), nullCmd.Result.Show());
+            Assert.Equal(create.Show(), (await nullCmd).Show());
         }
 
         [Theory]

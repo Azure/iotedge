@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
             var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             var response = await workloadClient.CreateServerCertificateAsync("hostname", DateTime.UtcNow.AddDays(1));
 
-            Assert.Equal(new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem)), new X509Certificate2(Encoding.UTF8.GetBytes(response.Certificate)));
+            Assert.Equal(X509CertificateLoader.LoadCertificate(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem)), X509CertificateLoader.LoadCertificate(Encoding.UTF8.GetBytes(response.Certificate)));
             Assert.Equal(TestCertificateHelper.PrivateKeyPemPkcs8, response.PrivateKey);
         }
 
@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         {
             var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             string response = await workloadClient.GetTrustBundleAsync();
-            Assert.Equal(new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem)), new X509Certificate2(Encoding.UTF8.GetBytes(response)));
+            Assert.Equal(X509CertificateLoader.LoadCertificate(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem)), X509CertificateLoader.LoadCertificate(Encoding.UTF8.GetBytes(response)));
         }
 
         [Fact]

@@ -55,9 +55,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
             Assert.Equal(0UL, report.TotalMisorderedActualResultCount);
 
             Assert.Equal(2, report.UnmatchedResults.Count);
-            Assert.Equal(0, report.DuplicateExpectedResults.Count);
-            Assert.Equal(0, report.DuplicateActualResults.Count);
-            Assert.Equal(0, report.MisorderedActualResults.Count);
+            Assert.Empty(report.DuplicateExpectedResults);
+            Assert.Empty(report.DuplicateActualResults);
+            Assert.Empty(report.MisorderedActualResults);
 
             Assert.Equal("expectedSource", report.UnmatchedResults[0].Source);
             Assert.Equal("resultType1", report.UnmatchedResults[0].Type);

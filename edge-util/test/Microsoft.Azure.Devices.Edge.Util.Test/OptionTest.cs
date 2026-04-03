@@ -266,7 +266,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
         [Fact]
         [Unit]
-        public async void TestForEachAsync()
+        public async Task TestForEachAsync()
         {
             Option<int> some = Option.Some(3);
             Option<int> none = Option.None<int>();
@@ -294,7 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
         [Fact]
         [Unit]
-        public async void TestForEachAsyncNoParameter()
+        public async Task TestForEachAsyncNoParameter()
         {
             Option<int> some = Option.Some(3);
             Option<int> none = Option.None<int>();
@@ -322,7 +322,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
         [Fact]
         [Unit]
-        public async void TestForEachWithNoneMethodAsync()
+        public async Task TestForEachWithNoneMethodAsync()
         {
             var val = 0;
             Option<int> some = Option.Some(3);

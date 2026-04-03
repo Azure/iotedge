@@ -420,7 +420,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             IList<string> receivedChunks = SimpleFraming.Parse(receivedBytes.ToArray())
                 .Select(r => Encoding.UTF8.GetString(r))
                 .ToList();
-            Assert.Equal(1, receivedChunks.Count);
+            Assert.Single(receivedChunks);
         }
 
         [Fact]
@@ -455,7 +455,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             IList<ModuleLogMessage> receivedChunks = SimpleFraming.Parse(receivedBytes.ToArray())
                 .Select(r => r.FromBytes<ModuleLogMessage>())
                 .ToList();
-            Assert.Equal(1, receivedChunks.Count);
+            Assert.Single(receivedChunks);
             var logMessage = receivedChunks[0];
             Assert.Equal(iotHub, logMessage.IoTHub);
             Assert.Equal(deviceId, logMessage.DeviceId);
