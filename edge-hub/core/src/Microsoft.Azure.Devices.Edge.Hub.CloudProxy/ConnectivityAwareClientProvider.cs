@@ -18,16 +18,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.deviceConnectivityManager = Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
         }
 
-        public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings, Option<string> modelId) =>
-            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, authenticationMethod, transportSettings, modelId), this.deviceConnectivityManager, identity);
+        public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, IotHubClientOptions options, Option<string> modelId) =>
+            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, authenticationMethod, options, modelId), this.deviceConnectivityManager, identity);
 
-        public IClient Create(IIdentity identity, string connectionString, ITransportSettings[] transportSettings) =>
-            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, connectionString, transportSettings), this.deviceConnectivityManager, identity);
+        public IClient Create(IIdentity identity, string connectionString, IotHubClientOptions options) =>
+            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, connectionString, options), this.deviceConnectivityManager, identity);
 
-        public async Task<IClient> CreateAsync(IIdentity identity, ITransportSettings[] transportSettings) =>
-            new ConnectivityAwareClient(await this.underlyingClientProvider.CreateAsync(identity, transportSettings), this.deviceConnectivityManager, identity);
+        public async Task<IClient> CreateAsync(IIdentity identity, IotHubClientOptions options) =>
+            new ConnectivityAwareClient(await this.underlyingClientProvider.CreateAsync(identity, options), this.deviceConnectivityManager, identity);
 
-        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, ITransportSettings[] transportSettings, Option<string> modelId) =>
-            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, tokenProvider, transportSettings, modelId), this.deviceConnectivityManager, identity);
+        public IClient Create(IIdentity identity, ITokenProvider tokenProvider, IotHubClientOptions options, Option<string> modelId) =>
+            new ConnectivityAwareClient(this.underlyingClientProvider.Create(identity, tokenProvider, options, modelId), this.deviceConnectivityManager, identity);
     }
 }

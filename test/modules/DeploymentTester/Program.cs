@@ -10,7 +10,6 @@ namespace DeploymentTester
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -53,11 +52,11 @@ namespace DeploymentTester
 
         static async Task UpdateDeploymentEnvironmentVariablesAsync(TestResultReportingClient apiClient, CancellationTokenSource cts)
         {
-            RegistryManager registryManager = null;
+            IotHubServiceClient registryManager = null;
 
             try
             {
-                registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.IoTHubConnectionString.OrDefault());
+                registryManager = new IotHubServiceClient(Settings.Current.IoTHubConnectionString.OrDefault());
 
                 DateTime testStartAt = DateTime.UtcNow;
                 long count = 1;
@@ -69,7 +68,7 @@ namespace DeploymentTester
 
                     KeyValuePair<string, string> newEnvVar = AddEnvironmentValue(deploymentJson, Settings.Current.TargetModuleId.OrDefault(), count);
                     ConfigurationContent configContent = JsonConvert.DeserializeObject<ConfigurationContent>(deploymentJson.ToString());
-                    await registryManager.ApplyConfigurationContentOnDeviceAsync(Settings.Current.DeviceId, configContent);
+                    await registryManager.Configurations.ApplyConfigurationContentOnDeviceAsync(Settings.Current.DeviceId, configContent);
 
                     envVars.Add(newEnvVar.Key, newEnvVar.Value);
                     var testResult = new DeploymentTestResult(Settings.Current.TrackingId, Settings.Current.ModuleId + ".send", envVars, DateTime.UtcNow);
@@ -82,7 +81,7 @@ namespace DeploymentTester
             }
             finally
             {
-                registryManager?.Dispose();
+                if (registryManager != null) registryManager.Dispose();
             }
         }
 
@@ -96,9 +95,9 @@ namespace DeploymentTester
             return newEnvVar;
         }
 
-        static async Task<JObject> GetEdgeAgentDeploymentManifestJsonAsync(RegistryManager registryManager, string deviceId)
+        static async Task<JObject> GetEdgeAgentDeploymentManifestJsonAsync(IotHubServiceClient registryManager, string deviceId)
         {
-            Twin edgeAgentTwin = await registryManager.GetTwinAsync(deviceId, "$edgeAgent");
+            ClientTwin edgeAgentTwin = await registryManager.Twins.GetAsync(deviceId, "$edgeAgent");
 
             return new JObject(
                 new JProperty(
@@ -107,7 +106,7 @@ namespace DeploymentTester
                         new JProperty("$edgeAgent", GetDesiredProperties(edgeAgentTwin)))));
         }
 
-        static JToken GetDesiredProperties(Twin moduleTwin)
+        static JToken GetDesiredProperties(ClientTwin moduleTwin)
         {
             JToken desiredPropertiesJson = JToken.Parse("{ \"properties.desired\": {} }");
 

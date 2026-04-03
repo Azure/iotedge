@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
     using Xunit;
 
     [Unit]
@@ -18,13 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void FromMessageTest()
         {
             // Arrange
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["prop"] = "value",
                 ["$version"] = 1
             };
             string correlationId = Guid.NewGuid().ToString();
-            byte[] data = Encoding.UTF8.GetBytes(collection.ToJson());
+            byte[] data = Encoding.UTF8.GetBytes(collection.GetSerializedString());
             IMessage message = new EdgeMessage.Builder(data)
                 .SetSystemProperties(
                     new Dictionary<string, string>
@@ -47,13 +47,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         public void ToMessageTest()
         {
             // Arrange
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["prop"] = "value",
                 ["$version"] = 1
             };
 
-            byte[] data = Encoding.UTF8.GetBytes(collection.ToJson());
+            byte[] data = Encoding.UTF8.GetBytes(collection.GetSerializedString());
             AmqpMessage amqpMessage = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(data) });
             IMessageConverter<AmqpMessage> messageConverter = new AmqpTwinMessageConverter();
 

@@ -7,11 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json.Linq;
 
@@ -72,7 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
 
                     try
                     {
-                        await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
+                        var reportedPatch = Newtonsoft.Json.JsonConvert.DeserializeObject<PropertyCollection>(patch.ToString());
+                        await this.edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
                     }
                     catch (Exception ex2) when (!ex2.IsFatal())
                     {
@@ -103,7 +104,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                 if (patch.HasValues)
                 {
                     // send reported props
-                    bool updated = await this.edgeAgentConnection.UpdateReportedPropertiesAsync(new TwinCollection(patch.ToString()));
+                    var reportedPatch = Newtonsoft.Json.JsonConvert.DeserializeObject<PropertyCollection>(patch.ToString());
+
+                    bool updated = await this.edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
 
                     if (updated)
                     {
@@ -131,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             try
             {
                 this.ReportedState = this.ReportedState
-                    .Else(() => this.edgeAgentConnection.ReportedProperties.Map(coll => this.agentStateSerde.Deserialize(coll.ToJson())));
+                    .Else(() => this.edgeAgentConnection.ReportedProperties.Map(coll => this.agentStateSerde.Deserialize(coll.GetSerializedString())));
                 return this.ReportedState;
             }
             catch (Exception ex) when (!ex.IsFatal())
@@ -139,19 +142,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                 // An exception thrown here implies that the AgentState Deserialization failed,
                 // which implies the current ReportedProperties can't be transformed into AgentState,
                 // delete the current reported state
-                Option<TwinCollection> deletionPatch = this.MakeDeletionPatch(this.edgeAgentConnection.ReportedProperties);
+                Option<PropertyCollection> deletionPatch = this.MakeDeletionPatch(this.edgeAgentConnection.ReportedProperties);
                 Events.ClearedReportedProperties(ex);
                 await deletionPatch.ForEachAsync(patch => this.edgeAgentConnection.UpdateReportedPropertiesAsync(patch));
                 return Option.Some(AgentState.Empty);
             }
         }
 
-        Option<TwinCollection> MakeDeletionPatch(Option<TwinCollection> reportedProperties)
+        Option<PropertyCollection> MakeDeletionPatch(Option<PropertyCollection> reportedProperties)
         {
             return reportedProperties.Map(
                 coll =>
                 {
-                    var emptyCollection = new TwinCollection();
+                    var emptyCollection = new PropertyCollection();
                     foreach (KeyValuePair<string, object> section in coll)
                     {
                         emptyCollection[section.Key] = null;

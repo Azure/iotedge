@@ -11,12 +11,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     public class TestModule
     {
-        readonly ModuleClient moduleClient;
+        readonly IotHubModuleClient moduleClient;
         readonly IDictionary<string, ISet<int>> receivedForInput;
-        IList<MethodRequest> receivedMethodRequests;
+        IList<DirectMethodRequest> receivedMethodRequests;
         bool disposed = false;
 
-        TestModule(ModuleClient moduleClient)
+        TestModule(IotHubModuleClient moduleClient)
         {
             this.moduleClient = moduleClient;
             this.receivedForInput = new Dictionary<string, ISet<int>>();
@@ -42,15 +42,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             if (disposing)
             {
-                this.moduleClient?.Dispose();
+                this.moduleClient?.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
 
             this.disposed = true;
         }
 
-        public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings, int retryCount = int.MaxValue)
+        public static async Task<TestModule> CreateAndConnect(string connectionString, IotHubClientOptions options, int retryCount = int.MaxValue)
         {
-            ModuleClient moduleClient = ModuleClient.CreateFromConnectionString(connectionString, settings);
+            IotHubModuleClient moduleClient = IotHubModuleClient.CreateFromConnectionString(connectionString, options);
             IRetryPolicy defaultRetryStrategy = new ExponentialBackoff(
                 retryCount: retryCount,
                 minBackoff: TimeSpan.FromMilliseconds(100),
@@ -62,22 +62,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return new TestModule(moduleClient);
         }
 
-        public static async Task<TestModule> CreateAndConnect(RegistryManager rm, string hostName, string deviceId, string moduleId, ITransportSettings[] transportSettings, int retryCount = int.MaxValue)
+        public static async Task<TestModule> CreateAndConnect(IotHubServiceClient rm, string hostName, string deviceId, string moduleId, IotHubClientOptions options, int retryCount = int.MaxValue)
         {
             string connStr = await RegistryManagerHelper.GetOrCreateModule(rm, hostName, deviceId, moduleId);
-            return await CreateAndConnect(connStr, transportSettings, retryCount);
+            return await CreateAndConnect(connStr, options, retryCount);
         }
 
         public Task SetupReceiveMessageHandler()
         {
             this.receivedForInput["_"] = new HashSet<int>();
-            return this.moduleClient.SetMessageHandlerAsync(this.MessageHandler, this.receivedForInput["_"]);
+            return this.moduleClient.SetIncomingMessageCallbackAsync(this.MessageHandler);
         }
 
         public Task SetupReceiveMessageHandler(string input)
         {
             this.receivedForInput[input] = new HashSet<int>();
-            return this.moduleClient.SetInputMessageHandlerAsync(input, this.MessageHandler, this.receivedForInput[input]);
+            return this.moduleClient.SetIncomingMessageCallbackAsync(this.MessageHandler);
         }
 
         public ISet<int> GetReceivedMessageIndices() => this.receivedForInput["_"];
@@ -103,33 +103,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public Task<int> SendMessagesForDurationAsync(string output, TimeSpan duration) => this.SendMessagesAsync(output, 0, int.MaxValue, duration, TimeSpan.Zero);
 
-        public Task SendMessageAsync(string output, Message message)
+        public Task SendMessageAsync(string output, TelemetryMessage message)
         {
-            return this.moduleClient.SendEventAsync(output, message);
+            return this.moduleClient.SendTelemetryAsync(output, message);
         }
 
-        public void SetupReceiveMethodHandler(string methodName = null, MethodCallback callback = null)
+        public void SetupReceiveMethodHandler(string methodName = null, Func<DirectMethodRequest, Task<DirectMethodResponse>> callback = null)
         {
-            this.receivedMethodRequests = new List<MethodRequest>();
-            MethodCallback methodCallback = callback ?? this.DefaultMethodCallback;
-            if (string.IsNullOrWhiteSpace(methodName))
+            this.receivedMethodRequests = new List<DirectMethodRequest>();
+            Func<DirectMethodRequest, Task<DirectMethodResponse>> methodCallback = callback ?? this.DefaultMethodCallback;
+            if (!string.IsNullOrWhiteSpace(methodName))
             {
-                this.moduleClient.SetMethodDefaultHandlerAsync(methodCallback, null);
+                // v2 SDK only supports a single global callback; filter by method name inside the wrapper
+                var innerCallback = methodCallback;
+                methodCallback = (request) =>
+                {
+                    if (string.Equals(request.MethodName, methodName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return innerCallback(request);
+                    }
+
+                    return Task.FromResult(new DirectMethodResponse(404));
+                };
             }
-            else
-            {
-                this.moduleClient.SetMethodHandlerAsync(methodName, methodCallback, null);
-            }
+
+            this.moduleClient.SetDirectMethodCallbackAsync(methodCallback);
         }
 
         public Task Disconnect() => this.moduleClient.CloseAsync();
 
-        Task<MessageResponse> MessageHandler(Message message, object userContext)
+        Task<MessageAcknowledgement> MessageHandler(IncomingMessage message)
         {
             int messageIndex = int.Parse(message.Properties["testId"]);
-            var received = userContext as ISet<int>;
-            received?.Add(messageIndex);
-            return Task.FromResult(MessageResponse.Completed);
+            string inputName = message.InputName ?? "_";
+            if (this.receivedForInput.TryGetValue(inputName, out ISet<int> received))
+            {
+                received.Add(messageIndex);
+            }
+            else if (this.receivedForInput.TryGetValue("_", out ISet<int> defaultReceived))
+            {
+                defaultReceived.Add(messageIndex);
+            }
+
+            return Task.FromResult(MessageAcknowledgement.Complete);
         }
 
         async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration, TimeSpan sleepTime, int? size = null)
@@ -139,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             int i = startIndex;
             for (; i < startIndex + count && s.Elapsed < duration; i++)
             {
-                await this.moduleClient.SendEventAsync(output, size.HasValue ? this.GetMessageWithSize(i.ToString(), size.Value) : this.GetMessage(i.ToString()));
+                await this.moduleClient.SendTelemetryAsync(output, size.HasValue ? this.GetMessageWithSize(i.ToString(), size.Value) : this.GetMessage(i.ToString()));
                 await Task.Delay(sleepTime);
             }
 
@@ -147,30 +163,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return i - startIndex;
         }
 
-        Task<MethodResponse> DefaultMethodCallback(MethodRequest methodRequest, object context)
+        Task<DirectMethodResponse> DefaultMethodCallback(DirectMethodRequest methodRequest)
         {
             this.receivedMethodRequests.Add(methodRequest);
-            return Task.FromResult(new MethodResponse(200));
+            return Task.FromResult(new DirectMethodResponse(200));
         }
 
-        Message GetMessage(string id)
+        TelemetryMessage GetMessage(string id)
         {
             var temp = new Temperature();
             byte[] payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(temp));
-            var message = new Message(payloadBytes);
+            var message = new TelemetryMessage(payloadBytes);
             message.Properties.Add("testId", id);
             message.Properties.Add("Model", "Temperature");
             return message;
         }
 
-        Message GetMessageWithSize(string id, int size)
+        TelemetryMessage GetMessageWithSize(string id, int size)
         {
             var random = new Random();
             byte[] data = new byte[size];
             random.NextBytes(data);
             var messageBody = new { data = data };
             byte[] payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody));
-            var message = new Message(payloadBytes);
+            var message = new TelemetryMessage(payloadBytes);
             message.Properties.Add("testId", id);
             message.Properties.Add("Model", "Binary");
             return message;

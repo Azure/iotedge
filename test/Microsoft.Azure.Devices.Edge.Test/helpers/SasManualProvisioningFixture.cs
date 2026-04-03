@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Context.Current.DeviceId.GetOrElse(DeviceId.Current.Generate()),
                     this.GetNestedEdgeConfig(this.IotHub),
                     this.IotHub,
-                    AuthenticationType.Sas,
+                    ClientAuthenticationType.Sas,
                     null,
                     token);
 

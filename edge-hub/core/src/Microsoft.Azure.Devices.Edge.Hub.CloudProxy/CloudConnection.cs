@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     /// </summary>
     class CloudConnection : ICloudConnection
     {
-        readonly ITransportSettings[] transportSettingsList;
+        readonly IotHubClientOptions clientOptions;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly IClientProvider clientProvider;
         readonly ICloudListener cloudListener;
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         protected CloudConnection(
             IIdentity identity,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
-            ITransportSettings[] transportSettings,
+            IotHubClientOptions clientOptions,
             IMessageConverterProvider messageConverterProvider,
             IClientProvider clientProvider,
             ICloudListener cloudListener,
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.ConnectionStatusChangedHandler = connectionStatusChangedHandler;
-            this.transportSettingsList = Preconditions.CheckNotNull(transportSettings, nameof(transportSettings));
+            this.clientOptions = Preconditions.CheckNotNull(clientOptions, nameof(clientOptions));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
             this.cloudListener = Preconditions.CheckNotNull(cloudListener, nameof(cloudListener));
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public static async Task<CloudConnection> Create(
             IIdentity identity,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
-            ITransportSettings[] transportSettings,
+            IotHubClientOptions clientOptions,
             IMessageConverterProvider messageConverterProvider,
             IClientProvider clientProvider,
             ICloudListener cloudListener,
@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             var cloudConnection = new CloudConnection(
                 identity,
                 connectionStatusChangedHandler,
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 clientProvider,
                 cloudListener,
@@ -124,10 +124,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<IClient> ConnectToIoTHub(ITokenProvider newTokenProvider)
         {
-            Events.AttemptingConnectionWithTransport(this.transportSettingsList, this.Identity, this.modelId);
-            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.transportSettingsList, this.modelId);
+            Events.AttemptingConnectionWithTransport(this.clientOptions, this.Identity, this.modelId);
+            IClient client = this.clientProvider.Create(this.Identity, newTokenProvider, this.clientOptions, this.modelId);
 
-            client.SetOperationTimeoutInMilliseconds((uint)this.operationTimeout.TotalMilliseconds);
+            // OperationTimeoutInMilliseconds is removed in v2 SDK; use CancellationToken-based timeouts instead
             client.SetConnectionStatusChangedHandler(this.InternalConnectionStatusChangesHandler);
             if (!string.IsNullOrWhiteSpace(this.productInfo))
             {
@@ -135,22 +135,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
 
             await client.OpenAsync();
-            Events.CreateDeviceClientSuccess(this.transportSettingsList, this.operationTimeout, this.Identity);
+            Events.CreateDeviceClientSuccess(this.clientOptions, this.operationTimeout, this.Identity);
             return client;
         }
 
-        void InternalConnectionStatusChangesHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        void InternalConnectionStatusChangesHandler(ConnectionStatusInfo statusInfo)
         {
             // Don't invoke the callbacks if callbacks are not enabled, i.e. when the
             // cloudProxy is being updated. That is because this method can be called before
             // this.CloudProxy has been set/updated, so the old CloudProxy object may be returned.
             if (this.CallbacksEnabled)
             {
-                if (status == ConnectionStatus.Connected)
+                if (statusInfo.Status == ConnectionStatus.Connected)
                 {
                     this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.ConnectionEstablished);
                 }
-                else if (reason == ConnectionStatusChangeReason.Expired_SAS_Token)
+                else if (statusInfo.ChangeReason == ConnectionStatusChangeReason.ExpiredToken)
                 {
                     this.ConnectionStatusChangedHandler?.Invoke(this.Identity.Id, CloudConnectionStatus.DisconnectedTokenExpired);
                 }
@@ -172,39 +172,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 TransportConnected
             }
 
-            public static void AttemptingConnectionWithTransport(ITransportSettings[] transportSettings, IIdentity identity, Option<string> modelId)
+            public static void AttemptingConnectionWithTransport(IotHubClientOptions clientOptions, IIdentity identity, Option<string> modelId)
             {
-                string transportType = transportSettings.Length == 1
-                    ? TransportName(transportSettings[0].GetTransportType())
-                    : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
+                string transportType = clientOptions.TransportSettings switch
+                {
+                    IotHubClientAmqpSettings amqp => amqp.Protocol == IotHubClientTransportProtocol.Tcp ? "AMQP" : "AMQP over WebSockets",
+                    IotHubClientMqttSettings mqtt => mqtt.Protocol == IotHubClientTransportProtocol.Tcp ? "MQTT" : "MQTT over WebSockets",
+                    _ => clientOptions.TransportSettings?.GetType().Name ?? "Unknown"
+                };
                 string message = $"Attempting to connect to IoT Hub for client {identity.Id} via {transportType}";
                 string withModelIdMessage = modelId.Match(m => $" with modelId {m}", () => string.Empty);
                 Log.LogInformation((int)EventIds.AttemptingTransport, $"{message}{withModelIdMessage}...");
             }
 
-            public static void CreateDeviceClientSuccess(ITransportSettings[] transportSettings, TimeSpan timeout, IIdentity identity)
+            public static void CreateDeviceClientSuccess(IotHubClientOptions clientOptions, TimeSpan timeout, IIdentity identity)
             {
-                string transportType = transportSettings.Length == 1
-                    ? TransportName(transportSettings[0].GetTransportType())
-                    : transportSettings.Select(t => TransportName(t.GetTransportType())).Join("/");
-                Log.LogInformation((int)EventIds.TransportConnected, $"Created cloud proxy for client {identity.Id} via {transportType}, with client operation timeout {timeout.TotalSeconds} seconds.");
-            }
-
-            static string TransportName(TransportType type)
-            {
-                switch (type)
+                string transportType = clientOptions.TransportSettings switch
                 {
-                    case TransportType.Amqp_Tcp_Only:
-                        return "AMQP";
-                    case TransportType.Amqp_WebSocket_Only:
-                        return "AMQP over WebSockets";
-                    case TransportType.Mqtt_Tcp_Only:
-                        return "MQTT";
-                    case TransportType.Mqtt_WebSocket_Only:
-                        return "MQTT over WebSockets";
-                    default:
-                        return type.ToString();
-                }
+                    IotHubClientAmqpSettings amqp => amqp.Protocol == IotHubClientTransportProtocol.Tcp ? "AMQP" : "AMQP over WebSockets",
+                    IotHubClientMqttSettings mqtt => mqtt.Protocol == IotHubClientTransportProtocol.Tcp ? "MQTT" : "MQTT over WebSockets",
+                    _ => clientOptions.TransportSettings?.GetType().Name ?? "Unknown"
+                };
+                Log.LogInformation((int)EventIds.TransportConnected, $"Created cloud proxy for client {identity.Id} via {transportType}, with client operation timeout {timeout.TotalSeconds} seconds.");
             }
         }
     }

@@ -7,7 +7,6 @@ namespace TestResultCoordinator.Reports
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
     class CloudTwinTestResultCollection : IAsyncEnumerable<TestOperationResult>
@@ -28,7 +27,7 @@ namespace TestResultCoordinator.Reports
         public class CloudTwinTestResultCollectionEnumerator : IAsyncEnumerator<TestOperationResult>
         {
             static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(CloudTwinTestResultCollection));
-            readonly RegistryManager registryManager;
+            readonly IotHubServiceClient registryManager;
             readonly string moduleId;
             readonly string trackingId;
             readonly string source;
@@ -37,7 +36,7 @@ namespace TestResultCoordinator.Reports
 
             internal CloudTwinTestResultCollectionEnumerator(string source, string serviceClientConnectionString, string moduleId, string trackingId)
             {
-                this.registryManager = RegistryManager.CreateFromConnectionString(serviceClientConnectionString);
+                this.registryManager = new IotHubServiceClient(serviceClientConnectionString);
                 this.isLoaded = false;
                 this.moduleId = moduleId;
                 this.source = source;
@@ -49,8 +48,9 @@ namespace TestResultCoordinator.Reports
 
             public ValueTask DisposeAsync()
             {
-                RegistryManager rm = this.registryManager;
-                return new ValueTask(Task.Run(() => rm.Dispose()));
+                IotHubServiceClient rm = this.registryManager;
+                rm.Dispose();
+                return default;
             }
 
             public async ValueTask<bool> MoveNextAsync()
@@ -78,7 +78,7 @@ namespace TestResultCoordinator.Reports
             {
                 try
                 {
-                    Twin twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, this.moduleId);
+                    ClientTwin twin = await this.registryManager.Twins.GetAsync(Settings.Current.DeviceId, this.moduleId);
                     if (twin == null)
                     {
                         Logger.LogError($"Twin was null for {this.moduleId}");
@@ -87,7 +87,7 @@ namespace TestResultCoordinator.Reports
 
                     Logger.LogDebug($"Twin reported properties from cloud {twin.Properties.Reported}");
 
-                    return new TwinTestResult(this.source, twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow)
+                    return new TwinTestResult(this.source, twin.LastActiveOnUtc.HasValue ? twin.LastActiveOnUtc.Value.UtcDateTime : DateTime.UtcNow)
                     {
                         TrackingId = this.trackingId,
                         Properties = twin.Properties.Reported

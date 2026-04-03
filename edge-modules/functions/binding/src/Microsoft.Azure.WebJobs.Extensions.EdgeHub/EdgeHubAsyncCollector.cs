@@ -14,7 +14,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     /// Any user parameter that sends EdgeHub events will eventually get bound to this object.
     /// This will queue events and send in batches, also keeping under the 256kb edge hub limit per batch.
     /// </summary>
-    public class EdgeHubAsyncCollector : IAsyncCollector<Message>
+    public class EdgeHubAsyncCollector : IAsyncCollector<TelemetryMessage>
     {
         // Max batch size limit from IoTHub
         const int MaxBatchSize = 500;
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
         readonly EdgeHubAttribute attribute;
         readonly int batchSize;
-        readonly List<Message> list = new List<Message>();
+        readonly List<TelemetryMessage> list = new List<TelemetryMessage>();
 
         // total size of bytes in list that we'll be sending in this batch.
         int currentByteSize;
@@ -41,16 +41,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        ///    Add a Message
+        ///    Add a TelemetryMessage
         /// </summary>
         /// <param name="message">The event to add</param>
         /// <param name="cancellationToken">a cancellation token. </param>
         /// <returns>Task</returns>
-        public async Task AddAsync(Message message, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task AddAsync(TelemetryMessage message, CancellationToken cancellationToken = default(CancellationToken))
         {
-            byte[] payload = message.GetBytes();
-            Message copy = Utils.GetMessageCopy(payload, message);
-            IList<Message> batch = null;
+            byte[] payload = message.Payload;
+            TelemetryMessage copy = Utils.GetMessageCopy(payload, message);
+            IList<TelemetryMessage> batch = null;
 
             lock (this.list)
             {
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         /// <returns>Task</returns>
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            IList<Message> batch = this.TakeSnapshot();
+            IList<TelemetryMessage> batch = this.TakeSnapshot();
             await this.SendBatchAsync(batch);
         }
 
@@ -95,28 +95,28 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         /// </summary>
         /// <param name="batch">the set of events to send</param>
         /// <returns>Task</returns>
-        protected virtual async Task SendBatchAsync(IList<Message> batch)
+        protected virtual async Task SendBatchAsync(IList<TelemetryMessage> batch)
         {
             if (batch == null || batch.Count == 0)
             {
                 return;
             }
 
-            ModuleClient client = await ModuleClientCache.Instance.GetOrCreateAsync();
+            IotHubModuleClient client = await ModuleClientCache.Instance.GetOrCreateAsync();
 
             if (string.IsNullOrEmpty(this.attribute.OutputName))
             {
-                await client.SendEventBatchAsync(batch);
+                await client.SendTelemetryAsync(batch);
             }
             else
             {
-                await client.SendEventBatchAsync(this.attribute.OutputName, batch);
+                await client.SendMessagesToRouteAsync(this.attribute.OutputName, batch);
             }
         }
 
-        IList<Message> TakeSnapshot()
+        IList<TelemetryMessage> TakeSnapshot()
         {
-            IList<Message> batch;
+            IList<TelemetryMessage> batch;
             lock (this.list)
             {
                 batch = this.list.ToList();

@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             deviceId,
                             this.GetNestedEdgeConfig(this.IotHub),
                             this.IotHub,
-                            AuthenticationType.SelfSigned,
+                            ClientAuthenticationType.SelfSigned,
                             thumbprint,
                             token);
 

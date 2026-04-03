@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client.Exceptions;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -258,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             yield return new object[] { new TimeoutException("Dummy"), true };
 
-            yield return new object[] { new UnauthorizedException("Dummy"), true };
+            yield return new object[] { new IotHubClientException("Dummy"), true };
 
             yield return new object[] { new DeviceInvalidStateException("Dummy"), true };
 

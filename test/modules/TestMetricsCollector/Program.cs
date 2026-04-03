@@ -6,12 +6,10 @@ namespace MetricsCollector
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -27,12 +25,12 @@ namespace MetricsCollector
 
             Logger.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
 
-            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-            ITransportSettings[] transportSettings = { mqttSetting };
-            ModuleClient moduleClient = null;
+            IotHubModuleClient moduleClient = null;
             try
             {
-                moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
+                var mqttSettings = new IotHubClientMqttSettings();
+                var clientOptions = new IotHubClientOptions(mqttSettings);
+                moduleClient = await IotHubModuleClient.CreateFromEnvironmentAsync(clientOptions);
                 Option<SortedDictionary<string, string>> additionalTags = await GetAdditionalTagsFromTwin(moduleClient);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
@@ -59,7 +57,7 @@ namespace MetricsCollector
             }
             finally
             {
-                moduleClient?.Dispose();
+                if (moduleClient != null) await moduleClient.DisposeAsync();
             }
 
             completed.Set();
@@ -69,14 +67,14 @@ namespace MetricsCollector
             return 0;
         }
 
-        static async Task<Option<SortedDictionary<string, string>>> GetAdditionalTagsFromTwin(ModuleClient moduleClient)
+        static async Task<Option<SortedDictionary<string, string>>> GetAdditionalTagsFromTwin(IotHubModuleClient moduleClient)
         {
-            Twin twin = await moduleClient.GetTwinAsync();
-            TwinCollection desiredProperties = twin.Properties.Desired;
+            TwinProperties twin = await moduleClient.GetTwinPropertiesAsync();
+            PropertyCollection desiredProperties = twin.Desired;
             Logger.LogInformation($"Received {desiredProperties.Count} tags from module twin's desired properties that will be added to scraped metrics");
 
             string additionalTagsPlaceholder = "additionalTags";
-            Dictionary<string, string> deserializedTwin = JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Properties.Desired.ToJson());
+            Dictionary<string, string> deserializedTwin = JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Desired.GetSerializedString());
             if (deserializedTwin.ContainsKey(additionalTagsPlaceholder))
             {
                 return Option.Some<SortedDictionary<string, string>>(ModuleUtil.ParseKeyValuePairs(deserializedTwin[additionalTagsPlaceholder], Logger, true));

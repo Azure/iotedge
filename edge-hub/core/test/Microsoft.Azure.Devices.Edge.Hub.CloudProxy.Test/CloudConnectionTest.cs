@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Xunit;
 
@@ -26,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var tokenProvider = Mock.Of<ITokenProvider>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
             CloudConnection cloudConnection = await CloudConnection.Create(
                 identity,
                 (_, __) => { },
@@ -64,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var tokenProvider = Mock.Of<ITokenProvider>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
             await Assert.ThrowsAsync<TimeoutException>(
                 () => CloudConnection.Create(
                     identity,

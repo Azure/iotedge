@@ -2,13 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
 
     interface ICloudSync
     {
-        Task<Option<Twin>> GetTwin(string id);
+        Task<Option<TwinProperties>> GetTwin(string id);
 
-        Task<bool> UpdateReportedProperties(string id, TwinCollection patch);
+        Task<bool> UpdateReportedProperties(string id, PropertyCollection patch);
     }
 }

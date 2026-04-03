@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices;
     using Microsoft.VisualStudio.TestPlatform.ObjectModel;
     using NUnit.Framework;
 
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 protocol,
-                AuthenticationType.Sas,
+                ClientAuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         async Task ValidateIdentity(string deviceId, Option<string> moduleId, string expectedModelId, CancellationToken token)
         {
-            Twin twin = await this.IotHub.GetTwinAsync(deviceId, moduleId, token);
+            ClientTwin twin = await this.IotHub.GetTwinAsync(deviceId, moduleId, token);
             string actualModelId = twin.ModelId;
             Assert.AreEqual(expectedModelId, actualModelId);
         }

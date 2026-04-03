@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using App.Metrics;
     using App.Metrics.Counter;
     using App.Metrics.Timer;
-    using Microsoft.Azure.Devices.Client.Exceptions;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -68,9 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 typeof(TimeoutException),
                 typeof(IOException),
-                typeof(IotHubException),
+                typeof(IotHubClientException),
                 typeof(EdgeHubCloudSDKException),
-                typeof(UnauthorizedException) // This indicates the SAS token has expired, and will get a new one.
             };
 
             readonly CloudEndpoint cloudEndpoint;

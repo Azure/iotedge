@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Serilog;
@@ -135,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Retry.Do(
                 async () =>
                 {
-                    Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, Option.Some(this.Id), token);
+                    ClientTwin twin = await this.iotHub.GetTwinAsync(this.deviceId, Option.Some(this.Id), token);
                     return twin.Properties.Reported;
                 },
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),

@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
     public interface IModuleClientWrapper
     {
         Task RecreateClientAsync();
-        Task SendMessageAsync(string outputName, Message message);
+        Task SendMessageAsync(string outputName, TelemetryMessage message);
 
     }
 }

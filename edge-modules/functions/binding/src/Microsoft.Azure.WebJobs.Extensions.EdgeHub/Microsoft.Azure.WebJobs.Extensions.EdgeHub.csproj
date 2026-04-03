@@ -34,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.36.10" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="2.0.0-rc" />
     <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.45" />
     <!--
         Newtonsoft.Json < 13.0.2 has a vulnerability due to insecure defaults.

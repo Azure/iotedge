@@ -34,14 +34,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
         public IReadOnlyDictionary<string, Type> BindingDataContract => this.bindingContract;
 
-        public Type TriggerValueType => typeof(Message);
+        public Type TriggerValueType => typeof(IncomingMessage);
 
         public Task<ITriggerData> BindAsync(object value, ValueBindingContext context)
         {
-            var triggerValue = value as Message;
+            var triggerValue = value as IncomingMessage;
             if (triggerValue == null)
             {
-                throw new NotSupportedException("Message is required.");
+                throw new NotSupportedException("IncomingMessage is required.");
             }
 
             return Task.FromResult<ITriggerData>(new TriggerData(null, this.GetBindingData(triggerValue)));
@@ -66,11 +66,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             };
         }
 
-        IReadOnlyDictionary<string, object> GetBindingData(Message value)
+        IReadOnlyDictionary<string, object> GetBindingData(IncomingMessage value)
         {
             var bindingData = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            bindingData.Add("EnqueuedTimeUtc", value.CreationTimeUtc);
-            bindingData.Add("SequenceNumber", value.SequenceNumber);
             bindingData.Add("Properties", value.Properties);
 
             return bindingData;
@@ -79,8 +77,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         IReadOnlyDictionary<string, Type> CreateBindingDataContract()
         {
             var contract = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
-            contract.Add("EnqueuedTimeUtc", typeof(DateTime));
-            contract.Add("SequenceNumber", typeof(ulong));
             contract.Add("Properties", typeof(IDictionary<string, string>));
 
             return contract;
@@ -121,7 +117,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
             public void Cancel() => this.messageProcessor.UnsetEventDefaultHandler();
 
-            Task FunctionsMessageHandler(Message message, object userContext)
+            Task FunctionsMessageHandler(IncomingMessage message)
             {
                 var input = new TriggeredFunctionData
                 {

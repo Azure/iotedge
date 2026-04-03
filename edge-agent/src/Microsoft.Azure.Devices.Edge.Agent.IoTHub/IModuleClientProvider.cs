@@ -7,6 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public interface IModuleClientProvider
     {
-        Task<IModuleClient> Create(ConnectionStatusChangesHandler statusChangedHandler);
+        Task<IModuleClient> Create(Action<ConnectionStatusInfo> statusChangedHandler);
     }
 }

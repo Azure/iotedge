@@ -8,13 +8,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
     static class Utils
     {
-        public static Message GetMessageCopy(byte[] payload, Message message)
+        public static TelemetryMessage GetMessageCopy(byte[] payload, TelemetryMessage message)
         {
-            var copy = new Message(payload);
+            var copy = new TelemetryMessage(payload);
 
             foreach (KeyValuePair<string, string> kv in message.Properties)
             {
-                copy.Properties.Add(kv.Key, message.Properties[kv.Key]);
+                copy.Properties.Add(kv.Key, kv.Value);
             }
 
             return copy;

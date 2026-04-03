@@ -13,10 +13,10 @@ namespace DirectMethodSender
 
     sealed class DirectMethodLocalSender : DirectMethodSenderBase
     {
-        ModuleClient moduleClient;
+        IotHubModuleClient moduleClient;
 
         private DirectMethodLocalSender(
-            ModuleClient moduleClient,
+            IotHubModuleClient moduleClient,
             ILogger logger)
             : base(
                 logger,
@@ -26,7 +26,7 @@ namespace DirectMethodSender
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
         }
 
-        public override void Dispose() => this.moduleClient.Dispose();
+        public override async ValueTask DisposeAsync() => await this.moduleClient.DisposeAsync();
 
         public static async Task<DirectMethodLocalSender> CreateAsync(
             TransportType transportType,
@@ -35,9 +35,9 @@ namespace DirectMethodSender
             ILogger logger)
         {
             // implicit OpenAsync()
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+            IotHubModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     transportType,
-                    new ClientOptions(),
+                    null,
                     transientErrorDetectionStrategy,
                     retryStrategy,
                     logger);
@@ -54,8 +54,11 @@ namespace DirectMethodSender
             ulong directMethodCount,
             CancellationToken none)
         {
-            MethodRequest request = new MethodRequest(methodName, Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}"), TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300));
-            MethodResponse result = await this.moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+            string jsonPayload = $"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}";
+            EdgeModuleDirectMethodRequest request = new EdgeModuleDirectMethodRequest(methodName, Encoding.UTF8.GetBytes(jsonPayload));
+            request.ResponseTimeoutInSeconds = 300;
+            request.ConnectTimeoutInSeconds = 300;
+            DirectMethodResponse result = await this.moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request, CancellationToken.None);
             return result.Status;
         }
     }

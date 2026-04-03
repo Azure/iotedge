@@ -8,7 +8,6 @@ namespace TwinTester
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -17,19 +16,19 @@ namespace TwinTester
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinCloudOperationsInitializer));
         readonly ReportedPropertyUpdater reportedPropertyUpdater;
         readonly DesiredPropertyReceiver desiredPropertiesReceiver;
-        readonly RegistryManager registryManager;
+        readonly IotHubServiceClient serviceClient;
         PeriodicTask periodicUpdate;
 
-        TwinEdgeOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter, int reportedPropertyUpdateCounter)
+        TwinEdgeOperationsInitializer(IotHubServiceClient serviceClient, IotHubModuleClient moduleClient, ITwinTestResultHandler reporter, int reportedPropertyUpdateCounter)
         {
-            this.registryManager = registryManager;
+            this.serviceClient = serviceClient;
             this.reportedPropertyUpdater = new ReportedPropertyUpdater(moduleClient, reporter, reportedPropertyUpdateCounter);
             this.desiredPropertiesReceiver = new DesiredPropertyReceiver(moduleClient, reporter);
         }
 
-        public static Task<TwinEdgeOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter)
+        public static Task<TwinEdgeOperationsInitializer> CreateAsync(IotHubServiceClient serviceClient, IotHubModuleClient moduleClient, ITwinTestResultHandler reporter)
         {
-            return Task.FromResult(new TwinEdgeOperationsInitializer(registryManager, moduleClient, reporter, 0));
+            return Task.FromResult(new TwinEdgeOperationsInitializer(serviceClient, moduleClient, reporter, 0));
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -45,7 +44,7 @@ namespace TwinTester
         {
             try
             {
-                Twin twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
+                ClientTwin twin = await this.serviceClient.Twins.GetAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
             }
             catch (Exception e)

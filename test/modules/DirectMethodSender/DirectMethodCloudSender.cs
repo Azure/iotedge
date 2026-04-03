@@ -7,14 +7,13 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TransportType = Microsoft.Azure.Devices.TransportType;
 
     sealed class DirectMethodCloudSender : DirectMethodSenderBase
     {
-        readonly ServiceClient serviceClient;
+        readonly IotHubServiceClient serviceClient;
 
         DirectMethodCloudSender(
-            ServiceClient serviceClient,
+            IotHubServiceClient serviceClient,
             ILogger logger)
             : base(
                 logger,
@@ -24,18 +23,20 @@ namespace DirectMethodSender
             this.serviceClient = Preconditions.CheckNotNull(serviceClient, nameof(serviceClient));
         }
 
-        public override void Dispose() => this.serviceClient.Dispose();
+        public override ValueTask DisposeAsync()
+        {
+            this.serviceClient.Dispose();
+            return default;
+        }
 
-        public static async Task<DirectMethodCloudSender> CreateAsync(
+        public static Task<DirectMethodCloudSender> CreateAsync(
             string connectionString,
-            TransportType transportType,
             ILogger logger)
         {
-            ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(connectionString, transportType);
-            await serviceClient.OpenAsync();
-            return new DirectMethodCloudSender(
+            var serviceClient = new IotHubServiceClient(connectionString);
+            return Task.FromResult(new DirectMethodCloudSender(
                 serviceClient,
-                logger);
+                logger));
         }
 
         internal override async Task<int> InvokeDeviceMethodAsync(
@@ -45,8 +46,9 @@ namespace DirectMethodSender
             ulong directMethodCount,
             CancellationToken none)
         {
-            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod(methodName).SetPayloadJson($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}");
-            CloudToDeviceMethodResult result = await this.serviceClient.InvokeDeviceMethodAsync(deviceId, targetModuleId, cloudToDeviceMethod, CancellationToken.None);
+            var directMethodRequest = new DirectMethodServiceRequest(methodName);
+            directMethodRequest.SetPayloadJson($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}");
+            DirectMethodClientResponse result = await this.serviceClient.DirectMethods.InvokeAsync(deviceId, targetModuleId, directMethodRequest, CancellationToken.None);
             return result.Status;
         }
     }

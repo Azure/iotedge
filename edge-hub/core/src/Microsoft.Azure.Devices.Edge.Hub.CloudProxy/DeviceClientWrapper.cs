@@ -8,14 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Azure.Devices.Shared;
 
     class DeviceClientWrapper : IClient
     {
-        readonly DeviceClient underlyingDeviceClient;
+        readonly IotHubDeviceClient underlyingDeviceClient;
         readonly AtomicBoolean isActive;
 
-        public DeviceClientWrapper(DeviceClient deviceClient)
+        public DeviceClientWrapper(IotHubDeviceClient deviceClient)
         {
             this.underlyingDeviceClient = Preconditions.CheckNotNull(deviceClient);
             this.isActive = new AtomicBoolean(true);
@@ -29,10 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             if (this.isActive.GetAndSet(false))
             {
-                // To avoid issue with Dispose it needs to call CloseAsync first
-                // SDK issue: https://github.com/Azure/azure-iot-sdk-csharp/issues/2920
-                await this.underlyingDeviceClient?.CloseAsync();
-                this.underlyingDeviceClient?.Dispose();
+                await this.underlyingDeviceClient.DisposeAsync();
             }
         }
 
@@ -41,10 +37,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public void Dispose()
         {
             this.isActive.Set(false);
-            this.underlyingDeviceClient?.Dispose();
+            this.underlyingDeviceClient?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
 
-        public Task<Twin> GetTwinAsync() => this.underlyingDeviceClient.GetTwinAsync();
+        public async ValueTask DisposeAsync()
+        {
+            this.isActive.Set(false);
+            if (this.underlyingDeviceClient != null)
+            {
+                await this.underlyingDeviceClient.DisposeAsync();
+            }
+        }
+
+        public Task<TwinProperties> GetTwinPropertiesAsync() => this.underlyingDeviceClient.GetTwinPropertiesAsync();
 
         public async Task OpenAsync()
         {
@@ -59,26 +64,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => this.underlyingDeviceClient.ReceiveAsync(receiveMessageTimeout);
+        public Task<IncomingMessage> ReceiveAsync(TimeSpan receiveMessageTimeout)
+        {
+            using var cts = new CancellationTokenSource(receiveMessageTimeout);
+            return this.underlyingDeviceClient.ReceiveMessageAsync(cts.Token);
+        }
 
         public Task RejectAsync(string messageId) => this.underlyingDeviceClient.RejectAsync(messageId);
 
-        public Task SendEventAsync(Message message) => this.underlyingDeviceClient.SendEventAsync(message);
+        public Task SendTelemetryAsync(TelemetryMessage message) => this.underlyingDeviceClient.SendTelemetryAsync(message);
 
-        public Task SendEventBatchAsync(IEnumerable<Message> messages) => this.underlyingDeviceClient.SendEventBatchAsync(messages);
+        public Task SendTelemetryAsync(IEnumerable<TelemetryMessage> messages) => this.underlyingDeviceClient.SendTelemetryAsync(messages);
 
-        public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler) => this.underlyingDeviceClient.SetConnectionStatusChangesHandler(handler);
+        public void SetConnectionStatusChangedHandler(Action<ConnectionStatusInfo> handler) =>
+            this.underlyingDeviceClient.ConnectionStatusChangeCallback = (info) => handler(info);
 
-        public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyUpdates, object userContext)
-            => this.underlyingDeviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyUpdates, userContext);
+        public Task SetDesiredPropertyUpdateCallbackAsync(Func<PropertyCollection, Task> onDesiredPropertyUpdates)
+            => this.underlyingDeviceClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyUpdates);
 
-        public Task SetMethodDefaultHandlerAsync(MethodCallback methodHandler, object userContext)
-            => this.underlyingDeviceClient.SetMethodDefaultHandlerAsync(methodHandler, userContext);
+        public Task SetDirectMethodCallbackAsync(Func<Client.DirectMethodRequest, Task<Client.DirectMethodResponse>> methodHandler)
+            => this.underlyingDeviceClient.SetDirectMethodCallbackAsync(methodHandler);
 
-        public void SetOperationTimeoutInMilliseconds(uint operationTimeoutMilliseconds) => this.underlyingDeviceClient.OperationTimeoutInMilliseconds = operationTimeoutMilliseconds;
+        public void SetProductInfo(string productInfo)
+        {
+            // In v2 SDK, product info is set via IotHubClientOptions.AdditionalUserAgentInfo at construction time.
+            // This is now a no-op as the client has already been created.
+        }
 
-        public void SetProductInfo(string productInfo) => this.underlyingDeviceClient.ProductInfo = productInfo;
-
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => this.underlyingDeviceClient.UpdateReportedPropertiesAsync(reportedProperties);
+        public Task UpdateReportedPropertiesAsync(PropertyCollection reportedProperties) => this.underlyingDeviceClient.UpdateReportedPropertiesAsync(reportedProperties);
     }
 }

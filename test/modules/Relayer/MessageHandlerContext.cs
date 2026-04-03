@@ -7,10 +7,10 @@ namespace Relayer
 
     class MessageHandlerContext
     {
-        public ModuleClient ModuleClient;
+        public IotHubModuleClient ModuleClient;
         public DuplicateMessageAuditor DuplicateMessageAuditor;
 
-        public MessageHandlerContext(ModuleClient moduleClient, DuplicateMessageAuditor duplicateMessageAuditor)
+        public MessageHandlerContext(IotHubModuleClient moduleClient, DuplicateMessageAuditor duplicateMessageAuditor)
         {
             this.ModuleClient = moduleClient;
             this.DuplicateMessageAuditor = duplicateMessageAuditor;

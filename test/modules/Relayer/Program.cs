@@ -28,13 +28,13 @@ namespace Relayer
         static async Task Main(string[] args)
         {
             Logger.LogInformation($"Starting Relayer with the following settings: \r\n{Settings.Current}");
-            ModuleClient moduleClient = null;
+            IotHubModuleClient moduleClient = null;
 
             try
             {
                 moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
-                    new ClientOptions(),
+                    null,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
@@ -46,7 +46,14 @@ namespace Relayer
                 await SetIsFinishedDirectMethodAsync(moduleClient);
 
                 // Receive a message and call ProcessAndSendMessageAsync to send it on its way
-                await moduleClient.SetInputMessageHandlerAsync(Settings.Current.InputName, ProcessAndSendMessageAsync, messageHandlerContext);
+                await moduleClient.SetIncomingMessageCallbackAsync(async (IncomingMessage message) =>
+                {
+                    if (message.InputName == Settings.Current.InputName)
+                    {
+                        return await ProcessAndSendMessageAsync(message, messageHandlerContext);
+                    }
+                    return MessageAcknowledgement.Complete;
+                });
 
                 await cts.Token.WhenCanceled();
                 completed.Set();
@@ -60,13 +67,14 @@ namespace Relayer
             finally
             {
                 moduleClient?.CloseAsync();
-                moduleClient?.Dispose();
+                await (moduleClient?.DisposeAsync() ?? default);
             }
         }
 
-        static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
+        static async Task<MessageAcknowledgement> ProcessAndSendMessageAsync(IncomingMessage message, object userContext)
         {
-            Logger.LogInformation($"Received message from device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
+            // TODO: v2 SDK - IncomingMessage.SystemProperties is not accessible. Connection device/module IDs not directly available.
+            Logger.LogInformation($"Received message from device: unknown, module: unknown");
 
             var testResultCoordinatorUrl = Option.None<Uri>();
 
@@ -84,7 +92,7 @@ namespace Relayer
                     throw new InvalidOperationException("UserContext doesn't contain expected value");
                 }
 
-                ModuleClient moduleClient = messageHandlerContext.ModuleClient;
+                IotHubModuleClient moduleClient = messageHandlerContext.ModuleClient;
                 DuplicateMessageAuditor duplicateMessageAuditor = messageHandlerContext.DuplicateMessageAuditor;
 
                 // Must make a new message instead of reusing the old message because of the way the SDK sends messages
@@ -117,12 +125,12 @@ namespace Relayer
                     if (string.IsNullOrWhiteSpace(trackingId) || string.IsNullOrWhiteSpace(batchId) || string.IsNullOrWhiteSpace(sequenceNumber))
                     {
                         Logger.LogWarning($"Received message missing info: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
-                        return MessageResponse.Completed;
+                        return MessageAcknowledgement.Complete;
                     }
 
                     if (duplicateMessageAuditor.ShouldFilterMessage(sequenceNumber))
                     {
-                        return MessageResponse.Completed;
+                        return MessageAcknowledgement.Complete;
                     }
 
                     // Report receiving message successfully to Test Result Coordinator
@@ -141,11 +149,12 @@ namespace Relayer
 
                 if (!Settings.Current.ReceiveOnly)
                 {
-                    byte[] messageBytes = message.GetBytes();
-                    var messageCopy = new Message(messageBytes);
+                    byte[] messageBytes = message.Payload;
+                    var messageCopy = new TelemetryMessage(messageBytes);
                     messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
-                    await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
-                    Logger.LogInformation($"Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
+                    await moduleClient.SendMessageToRouteAsync(Settings.Current.OutputName, messageCopy);
+                    // TODO: v2 SDK - IncomingMessage.SystemProperties is not accessible. Connection device/module IDs not directly available.
+                    Logger.LogInformation($"Message relayed upstream for device: unknown, module: unknown");
 
                     if (Settings.Current.EnableTrcReporting)
                     {
@@ -180,21 +189,25 @@ namespace Relayer
                 Logger.LogError(ex, $"Error in {nameof(ProcessAndSendMessageAsync)} method");
             }
 
-            return MessageResponse.Completed;
+            return MessageAcknowledgement.Complete;
         }
 
-        private static async Task SetIsFinishedDirectMethodAsync(ModuleClient client)
+        private static async Task SetIsFinishedDirectMethodAsync(IotHubModuleClient client)
         {
-            await client.SetMethodHandlerAsync(
-                "IsFinished",
-                (MethodRequest methodRequest, object _) => Task.FromResult(IsFinished()),
-                null);
+            await client.SetDirectMethodCallbackAsync(async (DirectMethodRequest methodRequest) =>
+            {
+                if (methodRequest.MethodName == "IsFinished")
+                {
+                    return IsFinished();
+                }
+                return new DirectMethodResponse((int)HttpStatusCode.NotFound);
+            });
         }
 
-        private static MethodResponse IsFinished()
+        private static DirectMethodResponse IsFinished()
         {
             string response = JsonConvert.SerializeObject(new PriorityQueueTestStatus(isFinished, resultsReceived.Count));
-            return new MethodResponse(Encoding.UTF8.GetBytes(response), (int)HttpStatusCode.OK);
+            return new DirectMethodResponse((int)HttpStatusCode.OK) { Payload = Encoding.UTF8.GetBytes(response) };
         }
     }
 }

@@ -181,7 +181,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
-                    string clientTransport = protocol.ToTransportType().ToString();
+                    string clientTransport = protocol switch
+                    {
+                        Protocol.Amqp => "Amqp_Tcp_Only",
+                        Protocol.AmqpWs => "Amqp_WebSocket_Only",
+                        Protocol.Mqtt => "Mqtt_Tcp_Only",
+                        Protocol.MqttWs => "Mqtt_WebSocket_Only",
+                        _ => throw new System.ComponentModel.InvalidEnumArgumentException()
+                    };
 
                     builder.AddModule(methodSender, senderImage)
                         .WithEnvironment(

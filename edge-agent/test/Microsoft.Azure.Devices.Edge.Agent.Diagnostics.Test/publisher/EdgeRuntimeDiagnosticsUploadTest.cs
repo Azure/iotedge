@@ -19,13 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
     [Unit]
     public class EdgeRuntimeDiagnosticsUploadTest
     {
-        List<Message> lastUploadResult = new List<Message>();
+        List<TelemetryMessage> lastUploadResult = new List<TelemetryMessage>();
         IEdgeAgentConnection mockConnection;
 
         public EdgeRuntimeDiagnosticsUploadTest()
         {
             var connectionMock = new Mock<IEdgeAgentConnection>();
-            connectionMock.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Callback((Action<Message>)(message => this.lastUploadResult.Add(message))).Returns(Task.CompletedTask);
+            connectionMock.Setup(c => c.SendEventAsync(It.IsAny<TelemetryMessage>())).Callback((Action<TelemetryMessage>)(message => this.lastUploadResult.Add(message))).Returns(Task.CompletedTask);
 
             this.mockConnection = connectionMock.Object;
         }
@@ -39,11 +39,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
 
             await uploader.PublishAsync(new Metric[] { expectedMetric }, CancellationToken.None);
 
-            Message uploadResult = this.lastUploadResult.Single();
-            this.lastUploadResult = new List<Message>();
+            TelemetryMessage uploadResult = this.lastUploadResult.Single();
+            this.lastUploadResult = new List<TelemetryMessage>();
             Assert.Equal("application/x-azureiot-edgeruntimediagnostics", uploadResult.ContentType);
 
-            Metric uploadedMetric = MetricsSerializer.BytesToMetrics(uploadResult.GetBytes()).Single();
+            Metric uploadedMetric = MetricsSerializer.BytesToMetrics((byte[])uploadResult.Payload).Single();
             Assert.Equal(expectedMetric, uploadedMetric);
         }
 
@@ -90,8 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Publisher
 
         Metric[] ParseLastUploadResult()
         {
-            var result = this.lastUploadResult.SelectMany(message => MetricsSerializer.BytesToMetrics(message.GetBytes())).ToArray();
-            this.lastUploadResult = new List<Message>();
+            var result = this.lastUploadResult.SelectMany(message => MetricsSerializer.BytesToMetrics((byte[])message.Payload)).ToArray();
+            this.lastUploadResult = new List<TelemetryMessage>();
 
             return result;
         }

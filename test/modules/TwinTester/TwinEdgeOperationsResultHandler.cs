@@ -3,10 +3,12 @@ namespace TwinTester
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     class TwinEdgeOperationsResultHandler : ITwinTestResultHandler
     {
@@ -22,20 +24,20 @@ namespace TwinTester
             this.trackingId = trackingId.Expect(() => new ArgumentNullException(nameof(trackingId)));
         }
 
-        public Task HandleDesiredPropertyReceivedAsync(TwinCollection desiredProperties)
+        public Task HandleDesiredPropertyReceivedAsync(PropertyCollection desiredProperties)
         {
             return this.SendReportAsync($"{this.moduleId}.desiredReceived", StatusCode.DesiredPropertyReceived, desiredProperties);
         }
 
         public Task HandleDesiredPropertyUpdateAsync(string propertyKey, string value)
         {
-            TwinCollection properties = this.CreateTwinCollection(propertyKey, value);
+            PropertyCollection properties = this.CreatePropertyCollection(propertyKey, value);
             return this.SendReportAsync($"{this.moduleId}.desiredUpdated", StatusCode.DesiredPropertyUpdated, properties);
         }
 
         public Task HandleReportedPropertyUpdateAsync(string propertyKey, string value)
         {
-            TwinCollection properties = this.CreateTwinCollection(propertyKey, value);
+            PropertyCollection properties = this.CreatePropertyCollection(propertyKey, value);
             return this.SendReportAsync($"{this.moduleId}.reportedUpdated", StatusCode.ReportedPropertyUpdated, properties);
         }
 
@@ -49,20 +51,20 @@ namespace TwinTester
             return Task.CompletedTask;
         }
 
-        TwinCollection CreateTwinCollection(string propertyKey, string value)
+        PropertyCollection CreatePropertyCollection(string propertyKey, string value)
         {
-            var properties = new TwinCollection();
+            var properties = new PropertyCollection();
             properties[propertyKey] = value;
 
             return properties;
         }
 
-        async Task SendReportAsync(string source, StatusCode statusCode, TwinCollection details, string exception = "")
+        async Task SendReportAsync(string source, StatusCode statusCode, PropertyCollection details, string exception = "")
         {
             var result = new TwinTestResult(source, DateTime.UtcNow)
             {
                 Operation = statusCode.ToString(),
-                Properties = details,
+                Properties = JsonConvert.DeserializeObject<ClientTwinProperties>(JsonConvert.SerializeObject(details)),
                 ErrorMessage = exception,
                 TrackingId = this.trackingId
             };

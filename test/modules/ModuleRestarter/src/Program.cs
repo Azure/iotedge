@@ -4,6 +4,7 @@ namespace ModuleRestarter
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
@@ -44,8 +45,8 @@ namespace ModuleRestarter
 
             try
             {
-                ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
-                CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
+                IotHubServiceClient iotHubServiceClient = new IotHubServiceClient(Settings.Current.ServiceClientConnectionString);
+                DirectMethodServiceRequest c2dMethod = new DirectMethodServiceRequest("RestartModule");
                 Random random = new Random();
                 string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
                 List<string> moduleNames = Settings.Current.DesiredModulesToRestart;
@@ -64,7 +65,7 @@ namespace ModuleRestarter
                         try
                         {
                             c2dMethod.SetPayloadJson(payload);
-                            CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
+                            DirectMethodClientResponse response = await iotHubServiceClient.DirectMethods.InvokeAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
                             Logger.LogInformation($"Successfully invoke direct method to restart module {moduleToBeRestarted}.");
 
                             if (response.Status != (int)HttpStatusCode.OK)

@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using DotNetty.Transport.Channels;
-    using Microsoft.Azure.Devices.Client.Exceptions;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public static class ExceptionMapper
@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public static bool IsFailOver(this Exception ex)
         {
-            var isFailOver = ex is IotHubException
+            var isFailOver = ex is IotHubClientException
                           && ex.InnerException != null
                           && !string.IsNullOrEmpty(ex.InnerException.Message)
                           && ex.InnerException.Message.Contains(FailOverMessage);

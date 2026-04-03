@@ -4,19 +4,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
+    using Newtonsoft.Json;
     using Xunit;
 
     [Unit]
     public class TwinMessageConverterTest
     {
+        static TwinProperties CreateTwinProperties(PropertyCollection desired, PropertyCollection reported)
+        {
+            string json = JsonConvert.SerializeObject(new { desired, reported });
+            return JsonConvert.DeserializeObject<TwinProperties>(json);
+        }
+
         public static IEnumerable<object[]> GetTwinData()
         {
             yield return new object[]
             {
-                new Twin(),
+                CreateTwinProperties(new PropertyCollection(), new PropertyCollection()),
                 @"
                 {
                   'desired': {
@@ -28,17 +35,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             yield return new object[]
             {
-                new Twin()
-                {
-                    Properties = new TwinProperties()
+                CreateTwinProperties(
+                    new PropertyCollection()
                     {
-                        Desired = new TwinCollection()
-                        {
-                            ["name"] = "value",
-                            ["$version"] = 1
-                        }
-                    }
-                },
+                        ["name"] = "value",
+                        ["$version"] = 1
+                    },
+                    new PropertyCollection()),
                 @"
                 {
                   'desired': {
@@ -52,17 +55,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             yield return new object[]
             {
-                new Twin()
-                {
-                    Properties = new TwinProperties()
+                CreateTwinProperties(
+                    new PropertyCollection(),
+                    new PropertyCollection()
                     {
-                        Reported = new TwinCollection()
-                        {
-                            ["name"] = "value",
-                            ["$version"] = 1
-                        }
-                    }
-                },
+                        ["name"] = "value",
+                        ["$version"] = 1
+                    }),
                 @"
                 {
                   'desired': {
@@ -76,22 +75,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             yield return new object[]
             {
-                new Twin()
-                {
-                    Properties = new TwinProperties()
+                CreateTwinProperties(
+                    new PropertyCollection()
                     {
-                        Desired = new TwinCollection()
-                        {
-                            ["name"] = "value",
-                            ["$version"] = 1
-                        },
-                        Reported = new TwinCollection()
-                        {
-                            ["name"] = "value",
-                            ["$version"] = 1
-                        }
-                    }
-                },
+                        ["name"] = "value",
+                        ["$version"] = 1
+                    },
+                    new PropertyCollection()
+                    {
+                        ["name"] = "value",
+                        ["$version"] = 1
+                    }),
                 @"
                 {
                   'desired': {
@@ -108,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Theory]
         [MemberData(nameof(GetTwinData))]
-        public void ConvertsTwinMessagesToMqttMessages(Twin twin, string expectedJson)
+        public void ConvertsTwinMessagesToMqttMessages(TwinProperties twin, string expectedJson)
         {
             EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
                 .SetSystemProperties(
@@ -128,16 +122,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var messageConverter = new TwinMessageConverter();
 
-            var twin = new Twin("d1") { Version = 10 };
+            var twin = CreateTwinProperties(new PropertyCollection() { ["$version"] = 10 }, new PropertyCollection());
             IMessage message = messageConverter.ToMessage(twin);
-            Twin convertedTwin = messageConverter.FromMessage(message);
-            Assert.Equal(twin.Version, convertedTwin.Version);
+            TwinProperties convertedTwin = messageConverter.FromMessage(message);
+            Assert.Equal(twin.Desired.Version, convertedTwin.Desired.Version);
         }
 
         [Fact]
         public void ConvertedMessageHasAnEnqueuedTimeProperty()
         {
-            IMessage actualMessage = new TwinMessageConverter().ToMessage(new Twin());
+            IMessage actualMessage = new TwinMessageConverter().ToMessage(
+                CreateTwinProperties(new PropertyCollection(), new PropertyCollection()));
             Assert.InRange(
                 DateTime.Parse(actualMessage.SystemProperties[SystemProperties.EnqueuedTime], null, DateTimeStyles.RoundtripKind),
                 DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)),

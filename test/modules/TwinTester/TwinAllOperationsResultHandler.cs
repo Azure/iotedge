@@ -4,9 +4,9 @@ namespace TwinTester
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
     class TwinAllOperationsResultHandler : ITwinTestResultHandler
@@ -23,13 +23,12 @@ namespace TwinTester
             this.storage = storage;
         }
 
-        public async Task HandleDesiredPropertyReceivedAsync(TwinCollection desiredProperties)
+        public async Task HandleDesiredPropertyReceivedAsync(PropertyCollection desiredProperties)
         {
             try
             {
-                foreach (dynamic twinUpdate in desiredProperties)
+                foreach (KeyValuePair<string, object> pair in desiredProperties)
                 {
-                    KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
                     await this.storage.AddDesiredPropertyReceivedAsync(pair.Key);
                 }
             }

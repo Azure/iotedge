@@ -3,52 +3,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
     class CloudSync : ICloudSync
     {
         readonly IConnectionManager connectionManager;
-        readonly IMessageConverter<TwinCollection> twinCollectionConverter;
-        readonly IMessageConverter<Twin> twinConverter;
+        readonly IMessageConverter<PropertyCollection> twinCollectionConverter;
+        readonly IMessageConverter<TwinProperties> twinConverter;
 
         public CloudSync(
             IConnectionManager connectionManager,
-            IMessageConverter<TwinCollection> twinCollectionConverter,
-            IMessageConverter<Twin> twinConverter)
+            IMessageConverter<PropertyCollection> twinCollectionConverter,
+            IMessageConverter<TwinProperties> twinConverter)
         {
             this.connectionManager = connectionManager;
             this.twinCollectionConverter = twinCollectionConverter;
             this.twinConverter = twinConverter;
         }
 
-        public async Task<Option<Twin>> GetTwin(string id)
+        public async Task<Option<TwinProperties>> GetTwin(string id)
         {
             try
             {
                 Events.GettingTwin(id);
                 Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
-                Option<Twin> twin = await cloudProxy.Map(
+                Option<TwinProperties> twin = await cloudProxy.Map(
                         async cp =>
                         {
                             IMessage twinMessage = await cp.GetTwinAsync();
-                            Twin twinValue = this.twinConverter.FromMessage(twinMessage);
+                            TwinProperties twinValue = this.twinConverter.FromMessage(twinMessage);
                             Events.GetTwinSucceeded(id);
                             return Option.Some(twinValue);
                         })
-                    .GetOrElse(() => Task.FromResult(Option.None<Twin>()));
+                    .GetOrElse(() => Task.FromResult(Option.None<TwinProperties>()));
                 return twin;
             }
             catch (Exception ex)
             {
                 Events.ErrorGettingTwin(id, ex);
-                return Option.None<Twin>();
+                return Option.None<TwinProperties>();
             }
         }
 
-        public async Task<bool> UpdateReportedProperties(string id, TwinCollection patch)
+        public async Task<bool> UpdateReportedProperties(string id, PropertyCollection patch)
         {
             try
             {

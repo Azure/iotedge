@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 () => this.iotHub.InvokeMethodAsync(
                     this.deviceId,
                     this.Id,
-                    new CloudToDeviceMethod("ping"),
+                    new DirectMethodServiceRequest("ping"),
                     token),
                 "Pinged module '{Module}' from the cloud",
                 this.Id);

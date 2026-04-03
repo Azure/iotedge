@@ -6,6 +6,7 @@ namespace NetworkController
     using System.Diagnostics;
     using System.Net;
     using System.Net.NetworkInformation;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Docker.DotNet.Models;
@@ -93,19 +94,27 @@ namespace NetworkController
             // Setting GatewayHostname to empty, since the module will be talking directly to IoTHub, bypassing edge
             // NetworkController is on the host, so it should always have connection
             Environment.SetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME", string.Empty);
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(Settings.Current.TransportType, new ClientOptions(), ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
-            await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity, new Tuple<string, CancellationToken>(networkInterfaceName, token));
+            IotHubModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(Settings.Current.TransportType, null, ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
+            await moduleClient.SetDirectMethodCallbackAsync(async (DirectMethodRequest methodRequest) =>
+            {
+                if (methodRequest.MethodName == "toggleConnectivity")
+                {
+                    return await ToggleConnectivity(methodRequest, networkInterfaceName, token);
+                }
+
+                return new DirectMethodResponse((int)HttpStatusCode.NotFound);
+            });
         }
 
-        private static async Task<MethodResponse> ToggleConnectivity(MethodRequest methodRequest, object userContext)
+        private static async Task<DirectMethodResponse> ToggleConnectivity(DirectMethodRequest methodRequest, string networkInterfaceName, CancellationToken token)
         {
             Log.LogInformation("Direct method toggleConnectivity has been invoked.");
-            (string networkInterfaceName, CancellationToken token) = (Tuple<string, CancellationToken>)userContext;
 
             // true for network on (restriction disabled), false for network off (restriction enabled)
-            if (!bool.TryParse(JObject.Parse(methodRequest.DataAsJson)["networkOnValue"].ToString(), out bool networkOnValue))
+            string payloadJson = Encoding.UTF8.GetString(methodRequest.Payload);
+            if (!bool.TryParse(JObject.Parse(payloadJson)["networkOnValue"].ToString(), out bool networkOnValue))
             {
-                throw new ArgumentException($"Unable to parse methodRequest. JsonData: {methodRequest.DataAsJson}");
+                throw new ArgumentException($"Unable to parse methodRequest. JsonData: {payloadJson}");
             }
 
             Log.LogInformation($"Toggling network {networkInterfaceName} {(networkOnValue ? "on" : "off")}");
@@ -116,7 +125,7 @@ namespace NetworkController
             var controller = new OfflineController(networkInterfaceName, hubHostname, customNetworkProfileSetting);
             NetworkControllerStatus networkControllerStatus = networkOnValue ? NetworkControllerStatus.Disabled : NetworkControllerStatus.Enabled;
             await SetNetworkControllerStatus(controller, networkControllerStatus, reporter, token);
-            return new MethodResponse((int)HttpStatusCode.OK);
+            return new DirectMethodResponse((int)HttpStatusCode.OK);
         }
 
         private static string GetHostnameForExternalTraffic()

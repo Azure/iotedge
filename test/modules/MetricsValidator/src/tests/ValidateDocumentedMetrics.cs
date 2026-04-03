@@ -15,13 +15,12 @@ namespace MetricsValidator.Tests
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public class ValidateDocumentedMetrics : TestBase
     {
-        public ValidateDocumentedMetrics(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
+        public ValidateDocumentedMetrics(TestReporter testReporter, IMetricsScraper scraper, IotHubModuleClient moduleClient)
             : base(testReporter, scraper, moduleClient)
         {
         }
@@ -128,14 +127,24 @@ namespace MetricsValidator.Tests
         {
             string deviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
 
-            await this.moduleClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("Test message to seed metrics")), cancellationToken);
+            await this.moduleClient.SendTelemetryAsync(new TelemetryMessage(Encoding.UTF8.GetBytes("Test message to seed metrics")));
 
             const string methodName = "FakeDirectMethod";
-            await this.moduleClient.SetMethodHandlerAsync(methodName, (_, __) => Task.FromResult(new MethodResponse(200)), null);
-            await this.moduleClient.InvokeMethodAsync(deviceId, Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
+            // Note: In V2 SDK, SetDirectMethodCallbackAsync sets a single global callback.
+            // This temporarily replaces the "ValidateMetrics" handler, which is acceptable since
+            // we are already inside that handler's execution.
+            await this.moduleClient.SetDirectMethodCallbackAsync(async (DirectMethodRequest request) =>
+            {
+                if (request.MethodName == methodName)
+                {
+                    return new DirectMethodResponse(200);
+                }
+                return new DirectMethodResponse(404);
+            });
+            await this.moduleClient.InvokeMethodAsync(deviceId, Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new EdgeModuleDirectMethodRequest(methodName), cancellationToken);
 
-            await this.moduleClient.UpdateReportedPropertiesAsync(new TwinCollection(), cancellationToken);
-            await this.moduleClient.GetTwinAsync(cancellationToken);
+            await this.moduleClient.UpdateReportedPropertiesAsync(new PropertyCollection(), cancellationToken);
+            await this.moduleClient.GetTwinPropertiesAsync(cancellationToken);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
         }

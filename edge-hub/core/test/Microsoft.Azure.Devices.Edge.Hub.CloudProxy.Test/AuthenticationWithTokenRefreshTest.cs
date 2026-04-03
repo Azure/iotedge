@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -46,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var src = new TokenProviderException(new Exception("hello"));
             var auth = get(new ThrowingTestTokenProvider(src));
 
-            var dst = await Assert.ThrowsAnyAsync<IotHubCommunicationException>(
+            var dst = await Assert.ThrowsAnyAsync<IotHubClientException>(
                 () => auth.GetTokenAsync("iothub"));
             Assert.Equal(src.Message, dst.Message);
         }

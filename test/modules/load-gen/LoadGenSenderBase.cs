@@ -17,7 +17,7 @@ namespace LoadGen
     {
         public LoadGenSenderBase(
             ILogger logger,
-            ModuleClient moduleClient,
+            IotHubModuleClient moduleClient,
             Guid batchId,
             string trackingId)
         {
@@ -29,7 +29,7 @@ namespace LoadGen
 
         public ILogger Logger { get; }
 
-        public ModuleClient Client { get; }
+        public IotHubModuleClient Client { get; }
 
         public Guid BatchId { get; }
 
@@ -49,13 +49,13 @@ namespace LoadGen
 
                 // build message
                 var messageBody = new { data = data.Data };
-                var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
+                var message = new TelemetryMessage(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
                 message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, this.BatchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, this.TrackingId);
 
                 // sending the result via edgeHub
-                await this.Client.SendEventAsync(outputName, message);
+                await this.Client.SendMessageToRouteAsync(outputName, message);
                 this.Logger.LogInformation($"Sent message successfully: sequenceNumber={messageId}");
             }
         }

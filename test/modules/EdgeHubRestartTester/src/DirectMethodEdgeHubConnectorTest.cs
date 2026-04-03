@@ -9,7 +9,6 @@ namespace EdgeHubRestartTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -21,13 +20,13 @@ namespace EdgeHubRestartTester
         readonly ILogger logger;
         readonly string directMethodTargetModuleId;
         ulong directMethodCount = 0;
-        ModuleClient dmModuleClient = null;
+        IotHubModuleClient dmModuleClient = null;
         TestResultReportingClient reportClient = null;
 
         public DirectMethodEdgeHubConnectorTest(
             Guid batchId,
             ILogger logger,
-            ModuleClient dmModuleClient,
+            IotHubModuleClient dmModuleClient,
             string directMethodTargetModuleId)
         {
             this.batchId = batchId;
@@ -78,21 +77,20 @@ namespace EdgeHubRestartTester
                 {
                     // Direct Method sequence number is always increasing regardless of sending result.
                     this.directMethodCount++;
-                    MethodRequest request = new MethodRequest(
-                        directMethodName,
-                        Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{this.directMethodCount}\" }}"),
-                        TimeSpan.FromSeconds(5),   // Minimum value accepted by SDK
-                        Settings.Current.SdkOperationTimeout);
-                    MethodResponse result = await this.dmModuleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+                    string jsonPayload = $"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{this.directMethodCount}\" }}";
+                    EdgeModuleDirectMethodRequest request = new EdgeModuleDirectMethodRequest(directMethodName, Encoding.UTF8.GetBytes(jsonPayload));
+                    request.ResponseTimeoutInSeconds = 5;
+                    request.ConnectTimeoutInSeconds = (int)Settings.Current.SdkOperationTimeout.TotalSeconds;
+                    DirectMethodResponse result = await this.dmModuleClient.InvokeMethodAsync(deviceId, targetModuleId, request, CancellationToken.None);
                     this.logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {this.directMethodCount}");
 
                     if ((HttpStatusCode)result.Status == HttpStatusCode.OK)
                     {
-                        this.logger.LogDebug(result.ResultAsJson);
+                        this.logger.LogDebug(Encoding.UTF8.GetString(result.Payload));
                     }
                     else
                     {
-                        this.logger.LogError(result.ResultAsJson);
+                        this.logger.LogError(Encoding.UTF8.GetString(result.Payload));
                     }
 
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
@@ -146,7 +144,7 @@ namespace EdgeHubRestartTester
             // This is a socket exception error code when EdgeHub is down.
             const int EdgeHubNotAvailableErrorCode = 111;
 
-            if (e is IotHubCommunicationException)
+            if (e is IotHubClientException)
             {
                 if (e?.InnerException?.InnerException is SocketException)
                 {
@@ -160,7 +158,7 @@ namespace EdgeHubRestartTester
 
         bool IsDirectMethodReceiverNotConnected(Exception e)
         {
-            if (e is DeviceNotFoundException)
+            if (e is IotHubClientException)
             {
                 string errorMsg = e.Message;
                 return Regex.IsMatch(errorMsg, $"\\b{this.directMethodTargetModuleId}\\b");

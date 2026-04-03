@@ -10,7 +10,6 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -252,8 +251,8 @@ namespace TestResultCoordinator
         {
             if (this.reportMetadatas == null)
             {
-                RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
-                Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
+                IotHubServiceClient rm = new IotHubServiceClient(this.IoTHubConnectionString);
+                ClientTwin moduleTwin = await rm.Twins.GetAsync(this.DeviceId, this.ModuleId);
                 this.reportMetadatas = TestReportUtil.ParseReportMetadataJson(moduleTwin.Properties.Desired["reportMetadataList"].ToString(), logger);
             }
 

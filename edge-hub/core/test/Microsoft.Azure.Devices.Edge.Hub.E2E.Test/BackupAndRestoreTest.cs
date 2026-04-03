@@ -63,10 +63,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Disabling to unblock CI while we investigate")]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
-        async Task BackupAndRestoreMessageDeliveryTest(ITransportSettings[] transportSettings)
+        async Task BackupAndRestoreMessageDeliveryTest(IotHubClientOptions clientOptions)
         {
             Console.WriteLine("Running test BackupAndRestoreMessageDeliveryTest");
-            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 10, 10, 20, () => { });
+            await this.BackupAndRestoreMessageDeliveryTestBase(clientOptions, 10, 10, 20, () => { });
             Console.WriteLine("Finished test BackupAndRestoreMessageDeliveryTest");
         }
 
@@ -74,19 +74,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [Stress]
         [Theory]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
-        async Task BackupAndRestoreLargeBackupSizeTest(ITransportSettings[] transportSettings)
+        async Task BackupAndRestoreLargeBackupSizeTest(IotHubClientOptions clientOptions)
         {
             Console.WriteLine("Running test BackupAndRestoreLargeBackupSizeTest");
 
             int.TryParse(ConfigHelper.TestConfig["BackupAndRestoreLargeBackupSize_MessagesCount_SingleSender"], out int messagesCount);
-            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, messagesCount, 10, messagesCount + 10, () => { });
+            await this.BackupAndRestoreMessageDeliveryTestBase(clientOptions, messagesCount, 10, messagesCount + 10, () => { });
 
             Console.WriteLine("Finished test BackupAndRestoreLargeBackupSizeTest");
         }
 
         [Theory(Skip = "Disabling to unblock CI while we investigate")]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
-        async Task BackupAndRestoreCorruptBackupMetadataTest(ITransportSettings[] transportSettings)
+        async Task BackupAndRestoreCorruptBackupMetadataTest(IotHubClientOptions clientOptions)
         {
             Console.WriteLine("Running test BackupAndRestoreCorruptBackupMetadataTest");
 
@@ -99,14 +99,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 15, 10, 10, corruptBackupMetadata);
+            await this.BackupAndRestoreMessageDeliveryTestBase(clientOptions, 15, 10, 10, corruptBackupMetadata);
 
             Console.WriteLine("Finished test BackupAndRestoreCorruptBackupMetadataTest");
         }
 
         [Theory(Skip = "Disabling to unblock CI while we investigate")]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
-        async Task BackupAndRestoreCorruptBackupDataTest(ITransportSettings[] transportSettings)
+        async Task BackupAndRestoreCorruptBackupDataTest(IotHubClientOptions clientOptions)
         {
             Console.WriteLine("Running test BackupAndRestoreCorruptBackupDataTest");
 
@@ -122,13 +122,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 15, 10, 10, corruptBackupMetadata);
+            await this.BackupAndRestoreMessageDeliveryTestBase(clientOptions, 15, 10, 10, corruptBackupMetadata);
 
             Console.WriteLine("Finished test BackupAndRestoreCorruptBackupDataTest");
         }
 
         async Task BackupAndRestoreMessageDeliveryTestBase(
-            ITransportSettings[] transportSettings,
+            IotHubClientOptions clientOptions,
             int beforeBackupMessageCount,
             int afterBackupMessageCount,
             int expectedMessageCountAfterRestore,
@@ -140,13 +140,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
             Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(numberOfMessages / 2000d) + 2);
 
             try
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", clientOptions);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", clientOptions);
 
                 Console.WriteLine($"Sending {beforeBackupMessageCount} messages.");
 
@@ -170,8 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 protocolHeadFixture = EdgeHubFixtureCollection.GetFixture();
 
                 // Reconnect clients due to C# SDK bug where it illegally attempts to send through closed amqp link
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", clientOptions);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", clientOptions);
 
                 // Register the message handler now.
                 await receiver.SetupReceiveMessageHandler();
@@ -196,7 +196,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
                     rm.Dispose();
                 }
 

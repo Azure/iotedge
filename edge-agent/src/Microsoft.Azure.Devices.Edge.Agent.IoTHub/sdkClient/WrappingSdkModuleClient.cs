@@ -6,13 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
 
     public class WrappingSdkModuleClient : ISdkModuleClient
     {
-        readonly ModuleClient sdkModuleClient;
+        readonly IotHubModuleClient sdkModuleClient;
 
-        public WrappingSdkModuleClient(ModuleClient sdkModuleClient)
+        public WrappingSdkModuleClient(IotHubModuleClient sdkModuleClient)
             => this.sdkModuleClient = Preconditions.CheckNotNull(sdkModuleClient, nameof(sdkModuleClient));
 
         public Task OpenAsync()
@@ -23,36 +22,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
             }
             catch (Exception)
             {
-                this.sdkModuleClient?.Dispose();
+                if (this.sdkModuleClient != null)
+                {
+                    this.sdkModuleClient.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                }
+
                 throw;
             }
         }
 
-        public void SetConnectionStatusChangesHandler(ConnectionStatusChangesHandler statusChangesHandler)
-            => this.sdkModuleClient.SetConnectionStatusChangesHandler(statusChangesHandler);
+        public void SetConnectionStatusChangesHandler(Action<ConnectionStatusInfo> statusChangesHandler)
+            => this.sdkModuleClient.ConnectionStatusChangeCallback = statusChangesHandler;
 
-        public void SetOperationTimeoutInMilliseconds(uint operationTimeoutInMilliseconds)
-            => this.sdkModuleClient.OperationTimeoutInMilliseconds = operationTimeoutInMilliseconds;
+        public Task SetDesiredPropertyUpdateCallbackAsync(Func<PropertyCollection, Task> onDesiredPropertyChanged)
+            => this.sdkModuleClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged);
 
-        public void SetProductInfo(string productInfo) => this.sdkModuleClient.ProductInfo = productInfo;
+        public Task SetMethodHandlerAsync(string methodName, Func<DirectMethodRequest, Task<DirectMethodResponse>> callback)
+            => this.sdkModuleClient.SetDirectMethodCallbackAsync(callback);
 
-        public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged)
-            => this.sdkModuleClient.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged, null);
+        public Task SetDefaultMethodHandlerAsync(Func<DirectMethodRequest, Task<DirectMethodResponse>> callback)
+            => this.sdkModuleClient.SetDirectMethodCallbackAsync(callback);
 
-        public Task SetMethodHandlerAsync(string methodName, MethodCallback callback)
-            => this.sdkModuleClient.SetMethodHandlerAsync(methodName, callback, null);
+        public Task<TwinProperties> GetTwinAsync() => this.sdkModuleClient.GetTwinPropertiesAsync();
 
-        public Task SetDefaultMethodHandlerAsync(MethodCallback callback)
-            => this.sdkModuleClient.SetMethodDefaultHandlerAsync(callback, null);
-
-        public Task<Twin> GetTwinAsync() => this.sdkModuleClient.GetTwinAsync();
-
-        public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
+        public Task UpdateReportedPropertiesAsync(PropertyCollection reportedProperties)
             => this.sdkModuleClient.UpdateReportedPropertiesAsync(reportedProperties);
 
-        //// public Task SendEventBatchAsync(IEnumerable<Message> messages) => this.sdkModuleClient.SendEventBatchAsync(messages);
+        //// public Task SendEventBatchAsync(IEnumerable<TelemetryMessage> messages) => this.sdkModuleClient.SendEventBatchAsync(messages);
 
-        public Task SendEventAsync(Message message) => this.sdkModuleClient.SendEventAsync(message);
+        public Task SendEventAsync(TelemetryMessage message) => this.sdkModuleClient.SendTelemetryAsync(message);
 
         ////public Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
         ////    => this.sdkModuleClient.WaitForDeviceStreamRequestAsync(cancellationToken);
@@ -63,10 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         ////    return await EdgeClientWebSocket.Connect(deviceStreamRequest.Url, deviceStreamRequest.AuthorizationToken, cancellationToken);
         ////}
 
-        public Task CloseAsync()
+        public async Task CloseAsync()
         {
-            this.sdkModuleClient.Dispose();
-            return Task.CompletedTask;
+            await this.sdkModuleClient.DisposeAsync();
         }
     }
 }

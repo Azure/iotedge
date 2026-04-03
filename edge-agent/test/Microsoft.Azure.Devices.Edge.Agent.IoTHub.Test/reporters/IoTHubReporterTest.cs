@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
     using System.Globalization;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
@@ -14,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -50,14 +50,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
                 edgeAgentConnection.SetupGet(c => c.ReportedProperties)
-                    .Returns(Option.None<TwinCollection>());
+                    .Returns(Option.None<PropertyCollection>());
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
                 await reporter.ReportAsync(cts.Token, ModuleSet.Empty, Mock.Of<IRuntimeInfo>(), 0, DeploymentStatus.Success);
 
                 // Assert
-                edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Never);
+                edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()), Times.Never);
             }
         }
 
@@ -117,11 +117,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     versionInfo);
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
-                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                    .Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
-                var patches = new List<TwinCollection>();
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patches.Add(tc))
+                var patches = new List<PropertyCollection>();
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patches.Add(tc))
                     .Returns(Task.FromResult(true));
 
                 IEdgeAgentModule edgeAgentModule = this.CreateMockEdgeAgentModule();
@@ -183,13 +183,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Assert
                 Assert.Equal(2, patches.Count);
-                JObject patch1Json = JObject.Parse(patches[0].ToJson());
+                JObject patch1Json = JObject.Parse(patches[0].GetSerializedString());
                 foreach (KeyValuePair<string, JToken> keyValuePair in patch1Json)
                 {
                     Assert.Equal(JTokenType.Null, keyValuePair.Value.Type);
                 }
 
-                JObject patch2Json = JObject.Parse(patches[1].ToJson());
+                JObject patch2Json = JObject.Parse(patches[1].GetSerializedString());
                 JObject expectedPatch2Json = JObject.FromObject(
                     new
                     {
@@ -300,11 +300,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     versionInfo);
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
-                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                    .Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -367,7 +367,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject patchJson = JObject.Parse(patch.GetSerializedString());
                 JObject expectedPatchJson = JObject.FromObject(
                     new
                     {
@@ -445,7 +445,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var reportedState = new AgentState();
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
-                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                    .Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
                 // Attempt to apply a patch, but failed to do so.
                 var patchState = new AgentState(
@@ -484,11 +484,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
-                TwinCollection patch = new TwinCollection(JsonConvert.SerializeObject(patchState));
+                PropertyCollection patch = JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(patchState));
 
                 // The patch failed to apply here with "false" return value.
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(false));
 
                 // prepare AgentConfig
@@ -553,10 +553,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // The patch didn't go through, so the reporter should not have updated the reported properties.
                 Assert.NotNull(patch);
 
-                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject patchJson = JObject.Parse(patch.GetSerializedString());
 
-                TwinCollection expectedReport = new TwinCollection(JsonConvert.SerializeObject(reportedState));
-                JObject expectedReportJson = JObject.Parse(expectedReport.ToJson());
+                PropertyCollection expectedReport = JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState));
+                JObject expectedReportJson = JObject.Parse(expectedReport.GetSerializedString());
 
                 // Confirm the patch didn't go through
                 Assert.False(JToken.DeepEquals(expectedReportJson, patchJson));
@@ -592,7 +592,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var reportedState = new AgentState();
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
-                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                    .Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
                 // Apply a patch
                 var patchState = new AgentState(
@@ -631,10 +631,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
-                TwinCollection patch = new TwinCollection(JsonConvert.SerializeObject(patchState));
+                PropertyCollection patch = JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(patchState));
                 // Setup the patch to be successful
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -698,7 +698,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 // The patch didn't go through, so the reporter should not have updated the reported properties.
                 Assert.NotNull(patch);
-                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject patchJson = JObject.Parse(patch.GetSerializedString());
 
                 // Confirm the reported properties changed from the original `Some<AgentState>` state.
                 Assert.True(reporter.ReportedState.HasValue);
@@ -771,11 +771,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     versionInfo);
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
-                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                    .Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -838,7 +838,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject patchJson = JObject.Parse(patch.GetSerializedString());
                 JObject expectedPatchJson = JObject.FromObject(
                     new
                     {
@@ -962,15 +962,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(
                     () =>
                     {
-                        var coll = new TwinCollection(JsonConvert.SerializeObject(reportedState));
+                        var coll = JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState));
                         coll["$metadata"] = JObject.FromObject(new { foo = 10 });
                         coll["$version"] = 42;
                         return Option.Some(coll);
                     });
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -1033,7 +1033,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                var patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                var patchJson = JsonConvert.DeserializeObject(patch.GetSerializedString()) as JObject;
                 JObject expectedPatchJson = JObject.FromObject(
                     new
                     {
@@ -1143,11 +1143,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
-                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -1246,7 +1246,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                var patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                var patchJson = JsonConvert.DeserializeObject(patch.GetSerializedString()) as JObject;
                 JObject expectedPatchJson = JObject.FromObject(
                     new
                     {
@@ -1319,8 +1319,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
-                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -1384,7 +1384,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
-                edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
+                edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()), Times.Once);
             }
         }
 
@@ -1457,10 +1457,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
                     "1.0",
                     versionInfo);
-                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // build current module set
@@ -1505,7 +1505,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
-                edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
+                edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()), Times.Once);
                 Assert.Equal(200L, ((Newtonsoft.Json.Linq.JValue)patch["lastDesiredStatus"]?["code"])?.Value);
             }
         }
@@ -1531,11 +1531,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 AgentState reportedState = AgentState.Empty;
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
-                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                    .Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -1636,7 +1636,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject patchJson = JObject.Parse(patch.GetSerializedString());
                 JObject expectedPatchJson = JObject.FromObject(
                     new
                     {
@@ -1706,15 +1706,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 AgentState reportedState = AgentState.Empty;
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
-                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                    .Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
                     .Returns(reportedState);
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // Act
@@ -1725,7 +1725,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject patchJson = JObject.Parse(patch.GetSerializedString());
                 JObject expectedPatchJson = JObject.FromObject(
                     new
                     {
@@ -1756,9 +1756,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 var versionInfo = new VersionInfo("v1", "b1", "c1");
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // Act
@@ -1801,11 +1801,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     ModuleSet.Empty.Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
-                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -1873,7 +1873,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                var patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                var patchJson = JsonConvert.DeserializeObject(patch.GetSerializedString()) as JObject;
                 JObject expectedPatchJson = JObject.FromObject(
                     new
                     {
@@ -1945,11 +1945,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     ModuleSet.Empty.Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
-                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -1987,7 +1987,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                var patchJson = JsonConvert.DeserializeObject(patch.ToJson()) as JObject;
+                var patchJson = JsonConvert.DeserializeObject(patch.GetSerializedString()) as JObject;
                 JObject expectedPatchJson = JObject.FromObject(
                     new
                     {
@@ -2063,11 +2063,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     versionInfo);
                 edgeAgentConnection
                     .SetupGet(c => c.ReportedProperties)
-                    .Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                    .Returns(Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(reportedState))));
 
-                TwinCollection patch = null;
-                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
-                    .Callback<TwinCollection>(tc => patch = tc)
+                PropertyCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
+                    .Callback<PropertyCollection>(tc => patch = tc)
                     .Returns(Task.FromResult(true));
 
                 // prepare AgentConfig
@@ -2143,7 +2143,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 // Assert
                 Assert.NotNull(patch);
 
-                JObject patchJson = JObject.Parse(patch.ToJson());
+                JObject patchJson = JObject.Parse(patch.GetSerializedString());
                 JObject expectedPatchJson = JObject.FromObject(
                     new
                     {

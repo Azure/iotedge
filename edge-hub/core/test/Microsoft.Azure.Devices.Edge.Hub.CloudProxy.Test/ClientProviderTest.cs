@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -41,8 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
             var authenticationMethod = new DeviceAuthenticationWithToken(DeviceId, token);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
-            IClient client = new ClientProvider(Option.None<string>()).Create(identity, authenticationMethod, transportSettings, Option.None<string>());
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, authenticationMethod, options, Option.None<string>());
             Assert.NotNull(client);
             Assert.True(client is DeviceClientWrapper);
         }
@@ -53,8 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string connectionString = $"HostName={IotHubHostName};DeviceId=device1;SharedAccessKey={this.authKey}";
             IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
-            IClient client = new ClientProvider(Option.None<string>()).Create(identity, connectionString, transportSettings);
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, connectionString, options);
 
             Assert.NotNull(client);
             Assert.True(client is DeviceClientWrapper);
@@ -65,9 +64,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => new ClientProvider(Option.None<string>()).CreateAsync(identity, transportSettings));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => new ClientProvider(Option.None<string>()).CreateAsync(identity, options));
         }
 
         [Fact]
@@ -77,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
             var authenticationMethod = new ModuleAuthenticationWithToken(DeviceId, ModuleId, token);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
-            IClient client = new ClientProvider(Option.None<string>()).Create(identity, authenticationMethod, transportSettings, Option.None<string>());
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, authenticationMethod, options, Option.None<string>());
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);
@@ -90,8 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string connectionString = $"HostName={IotHubHostName};DeviceId={DeviceId};ModuleId={ModuleId};SharedAccessKey={this.authKey}";
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
-            IClient client = new ClientProvider(Option.None<string>()).Create(identity, connectionString, transportSettings);
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, connectionString, options);
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);
@@ -102,9 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
             ITokenProvider tokenProvider = new TestTokenProvider();
-            IClient client = new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, transportSettings, Option.None<string>());
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, options, Option.None<string>());
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);
@@ -115,9 +114,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
             ITokenProvider tokenProvider = new TestTokenProvider();
-            IClient client = new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, transportSettings, Option.None<string>());
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, options, Option.None<string>());
 
             Assert.NotNull(client);
             Assert.True(client is DeviceClientWrapper);
@@ -128,10 +127,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
             string modelId = "testModelId";
             ITokenProvider tokenProvider = new TestTokenProvider();
-            IClient client = new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, transportSettings, Option.Some(modelId));
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, options, Option.Some(modelId));
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);
@@ -142,10 +141,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
             string modelId = "testModelId";
             ITokenProvider tokenProvider = new TestTokenProvider();
-            IClient client = new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, transportSettings, Option.Some(modelId));
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, options, Option.Some(modelId));
 
             Assert.NotNull(client);
             Assert.True(client is DeviceClientWrapper);
@@ -156,10 +155,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
             string modelId = "testModelId";
             ITokenProvider tokenProvider = new TestTokenProvider();
-            IClient client = new ClientProvider(Option.Some("testGatewayHostName")).Create(identity, tokenProvider, transportSettings, Option.Some(modelId));
+            IClient client = new ClientProvider(Option.Some("testGatewayHostName")).Create(identity, tokenProvider, options, Option.Some(modelId));
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);
@@ -170,10 +169,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
             string modelId = "testModelId";
             ITokenProvider tokenProvider = new TestTokenProvider();
-            IClient client = new ClientProvider(Option.Some("testGatewayHostName")).Create(identity, tokenProvider, transportSettings, Option.Some(modelId));
+            IClient client = new ClientProvider(Option.Some("testGatewayHostName")).Create(identity, tokenProvider, options, Option.Some(modelId));
 
             Assert.NotNull(client);
             Assert.True(client is DeviceClientWrapper);
@@ -192,9 +191,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
 
-            IClient client = await new ClientProvider(Option.None<string>()).CreateAsync(identity, transportSettings);
+            IClient client = await new ClientProvider(Option.None<string>()).CreateAsync(identity, options);
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);
@@ -212,10 +211,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
             string modelId = "  ";
             ITokenProvider tokenProvider = new TestTokenProvider();
-            Assert.Throws<ArgumentException>(() => new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, transportSettings, Option.Some(modelId)));
+            Assert.Throws<ArgumentException>(() => new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, options, Option.Some(modelId)));
         }
 
         [Fact]
@@ -223,10 +222,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
 
-            var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+            var options = new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
             string modelId = string.Empty;
             ITokenProvider tokenProvider = new TestTokenProvider();
-            Assert.Throws<ArgumentException>(() => new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, transportSettings, Option.Some(modelId)));
+            Assert.Throws<ArgumentException>(() => new ClientProvider(Option.None<string>()).Create(identity, tokenProvider, options, Option.Some(modelId)));
         }
     }
 }

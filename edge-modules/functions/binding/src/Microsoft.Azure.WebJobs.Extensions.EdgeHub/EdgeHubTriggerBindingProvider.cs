@@ -17,7 +17,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     class EdgeHubTriggerBindingProvider : ITriggerBindingProvider
     {
         readonly ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>> receivers = new ConcurrentDictionary<string, IList<EdgeHubMessageProcessor>>();
-        ModuleClient moduleClient;
+        IotHubModuleClient moduleClient;
 
         public async Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
         {
@@ -65,21 +65,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             }
 
             this.moduleClient = await ModuleClientCache.Instance.GetOrCreateAsync();
-            await this.moduleClient.SetMessageHandlerAsync(this.FunctionsMessageHandler, null);
+            await this.moduleClient.SetIncomingMessageCallbackAsync(this.FunctionsMessageHandler);
         }
 
-        async Task<MessageResponse> FunctionsMessageHandler(Message message, object userContext)
+        async Task<MessageAcknowledgement> FunctionsMessageHandler(IncomingMessage message)
         {
-            byte[] payload = message.GetBytes();
             if (this.receivers.TryGetValue(message.InputName.ToLowerInvariant(), out IList<EdgeHubMessageProcessor> functionReceivers))
             {
                 foreach (EdgeHubMessageProcessor edgeHubTriggerBinding in functionReceivers)
                 {
-                    await edgeHubTriggerBinding.TriggerMessage(Utils.GetMessageCopy(payload, message), userContext);
+                    await edgeHubTriggerBinding.TriggerMessage(message);
                 }
             }
 
-            return MessageResponse.Completed;
+            return MessageAcknowledgement.Complete;
         }
     }
 }

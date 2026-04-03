@@ -48,7 +48,7 @@ namespace DirectMethodReceiver
             }
             finally
             {
-                directMethodReceiver?.Dispose();
+                if (directMethodReceiver != null) await directMethodReceiver.DisposeAsync();
             }
 
             return 0;

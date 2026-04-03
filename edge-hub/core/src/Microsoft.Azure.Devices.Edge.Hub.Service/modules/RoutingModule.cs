@@ -23,9 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
-    using Message = Microsoft.Azure.Devices.Client.Message;
 
     public class RoutingModule : Module
     {
@@ -179,19 +178,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .AutoActivate()
                 .SingleInstance();
 
-            // IMessageConverter<Message>
+            // IMessageConverter<TelemetryMessage>
             builder.Register(c => new DeviceClientMessageConverter())
-                .As<Core.IMessageConverter<Message>>()
+                .As<Core.IMessageConverter<TelemetryMessage>>()
+                .As<Core.IMessageConverter<IncomingMessage>>()
                 .SingleInstance();
 
-            // IMessageConverter<Twin>
+            // IMessageConverter<TwinProperties>
             builder.Register(c => new TwinMessageConverter())
-                .As<Core.IMessageConverter<Twin>>()
+                .As<Core.IMessageConverter<TwinProperties>>()
                 .SingleInstance();
 
-            // IMessageConverter<TwinCollection>
+            // IMessageConverter<PropertyCollection>
             builder.Register(c => new TwinCollectionMessageConverter())
-                .As<Core.IMessageConverter<TwinCollection>>()
+                .As<Core.IMessageConverter<PropertyCollection>>()
                 .SingleInstance();
 
             // IMessageConverterProvider
@@ -199,9 +199,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     c => new MessageConverterProvider(
                         new Dictionary<Type, IMessageConverter>()
                         {
-                            { typeof(Message), c.Resolve<Core.IMessageConverter<Message>>() },
-                            { typeof(Twin), c.Resolve<Core.IMessageConverter<Twin>>() },
-                            { typeof(TwinCollection), c.Resolve<Core.IMessageConverter<TwinCollection>>() }
+                            { typeof(TelemetryMessage), c.Resolve<Core.IMessageConverter<TelemetryMessage>>() },
+                            { typeof(TwinProperties), c.Resolve<Core.IMessageConverter<TwinProperties>>() },
+                            { typeof(PropertyCollection), c.Resolve<Core.IMessageConverter<PropertyCollection>>() }
                         }))
                 .As<IMessageConverterProvider>()
                 .SingleInstance();
@@ -575,7 +575,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
                         Router router = await c.Resolve<Task<Router>>();
                         var twinManagerTask = c.Resolve<Task<ITwinManager>>();
-                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
+                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<TwinProperties>>();
                         var twinManager = await twinManagerTask;
                         var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, storageSpaceChecker);
                         return configUpdater;
@@ -592,8 +592,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         if (this.useTwinConfig)
                         {
                             var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                            var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<TwinCollection>>();
-                            var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
+                            var twinCollectionMessageConverter = c.Resolve<Core.IMessageConverter<PropertyCollection>>();
+                            var twinMessageConverter = c.Resolve<Core.IMessageConverter<TwinProperties>>();
                             var twinManagerTask = c.Resolve<Task<ITwinManager>>();
                             var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
 

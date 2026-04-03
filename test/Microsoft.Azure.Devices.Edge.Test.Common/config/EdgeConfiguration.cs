@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                     .Where(m => m.DesiredProperties.Count != 0)
                     .ToDictionary(
                         m => m.Name,
-                        m => (IDictionary<string, object>)new Dictionary<string, object>
+                        m => new JsonDictionary
                         {
                             ["properties.desired"] = m.DesiredProperties
                         })

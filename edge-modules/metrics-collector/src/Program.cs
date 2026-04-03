@@ -8,9 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -77,7 +74,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             }
             finally
             {
-                ((IDisposable)moduleClientWrapper)?.Dispose();
+                if (moduleClientWrapper is IAsyncDisposable asyncDisposable)
+                {
+                    await asyncDisposable.DisposeAsync();
+                }
             }
 
             completed.Set();

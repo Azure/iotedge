@@ -3,12 +3,12 @@ namespace DirectMethodSender
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public abstract class ReporterClientBase : IDisposable
+    public abstract class ReporterClientBase : IAsyncDisposable
     {
         ILogger logger;
 
@@ -17,7 +17,7 @@ namespace DirectMethodSender
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
-        public abstract void Dispose();
+        public abstract ValueTask DisposeAsync();
 
         internal static ReporterClientBase Create(
             ILogger logger,

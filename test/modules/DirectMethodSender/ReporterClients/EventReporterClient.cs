@@ -15,8 +15,8 @@ namespace DirectMethodSender
     {
         readonly ILogger logger;
         readonly TransportType transportType;
-        ModuleClient moduleClient = null;
-        ModuleClient ModuleClient
+        IotHubModuleClient moduleClient = null;
+        IotHubModuleClient ModuleClientInstance
         {
             get
             {
@@ -25,7 +25,7 @@ namespace DirectMethodSender
                     Preconditions.CheckNotNull(this.transportType, nameof(this.transportType));
                     this.moduleClient = ModuleUtil.CreateModuleClientAsync(
                         this.transportType,
-                        new ClientOptions(),
+                        null,
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
                         this.logger).Result;
@@ -45,9 +45,9 @@ namespace DirectMethodSender
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
-        public override void Dispose()
+        public override async ValueTask DisposeAsync()
         {
-            this.moduleClient?.Dispose();
+            if (this.moduleClient != null) await this.moduleClient.DisposeAsync();
         }
 
         internal override async Task ReportStatusAsync(TestResultBase testResult)
@@ -61,7 +61,7 @@ namespace DirectMethodSender
                     // before sending an event.
                     if (shadowReport.Result == HttpStatusCode.OK.ToString())
                     {
-                        await this.ModuleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"Source:{shadowReport.Source} CreatedAt:{shadowReport.CreatedAt}.")));
+                        await this.ModuleClientInstance.SendTelemetryAsync(new TelemetryMessage(Encoding.UTF8.GetBytes($"Source:{shadowReport.Source} CreatedAt:{shadowReport.CreatedAt}.")));
                     }
 
                     break;

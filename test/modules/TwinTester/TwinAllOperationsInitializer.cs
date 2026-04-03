@@ -7,10 +7,8 @@ namespace TwinTester
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -27,39 +25,39 @@ namespace TwinTester
         PeriodicTask periodicValidation;
         PeriodicTask periodicUpdate;
         PeriodicTask periodicStateUpdate;
-        RegistryManager registryManager;
+        IotHubServiceClient serviceClient;
         TwinTestState twinTestState;
 
-        TwinAllOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler resultHandler, TwinEventStorage storage, TwinTestState twinTestState)
+        TwinAllOperationsInitializer(IotHubServiceClient serviceClient, IotHubModuleClient moduleClient, ITwinTestResultHandler resultHandler, TwinEventStorage storage, TwinTestState twinTestState)
         {
-            this.registryManager = registryManager;
+            this.serviceClient = serviceClient;
             this.twinTestState = twinTestState;
             this.reportedPropertyUpdater = new ReportedPropertyUpdater(moduleClient, resultHandler, twinTestState.ReportedPropertyUpdateCounter);
-            this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinTestState);
+            this.desiredPropertyUpdater = new DesiredPropertyUpdater(serviceClient, resultHandler, twinTestState);
             this.desiredPropertyReceiver = new DesiredPropertyReceiver(moduleClient, resultHandler);
-            this.reportedPropertiesValidator = new ReportedPropertiesValidator(registryManager, moduleClient, storage, resultHandler, twinTestState);
-            this.desiredPropertiesValidator = new DesiredPropertiesValidator(registryManager, moduleClient, storage, resultHandler, twinTestState);
+            this.reportedPropertiesValidator = new ReportedPropertiesValidator(serviceClient, moduleClient, storage, resultHandler, twinTestState);
+            this.desiredPropertiesValidator = new DesiredPropertiesValidator(serviceClient, moduleClient, storage, resultHandler, twinTestState);
 
-            moduleClient.SetConnectionStatusChangesHandler((status, reason) =>
+            moduleClient.ConnectionStatusChangeCallback = (connectionStatusInfo) =>
             {
-                Logger.LogInformation($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
-                if (status == ConnectionStatus.Disconnected_Retrying)
+                Logger.LogInformation($"Detected change in connection status:{Environment.NewLine}Changed Status: {connectionStatusInfo.Status} Reason: {connectionStatusInfo.ChangeReason}");
+                if (connectionStatusInfo.Status == ConnectionStatus.DisconnectedRetrying)
                 {
                     this.twinTestState.EdgeHubLastStopped = DateTime.UtcNow;
                 }
-                else if (status == ConnectionStatus.Connected)
+                else if (connectionStatusInfo.Status == ConnectionStatus.Connected)
                 {
                     this.twinTestState.EdgeHubLastStarted = DateTime.UtcNow;
                 }
-            });
+            };
         }
 
-        public static async Task<TwinAllOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler resultHandler, TwinEventStorage storage)
+        public static async Task<TwinAllOperationsInitializer> CreateAsync(IotHubServiceClient serviceClient, IotHubModuleClient moduleClient, ITwinTestResultHandler resultHandler, TwinEventStorage storage)
         {
             try
             {
                 TwinTestState initializedState;
-                Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
+                ClientTwin twin = await serviceClient.Twins.GetAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
                 Dictionary<string, DateTime> reportedPropertyUpdates = await storage.GetAllReportedPropertiesUpdatedAsync();
                 Dictionary<string, DateTime> desiredPropertyUpdates = await storage.GetAllDesiredPropertiesUpdatedAsync();
 
@@ -70,13 +68,14 @@ namespace TwinTester
                     Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
 
                     // reset desired properties
-                    Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, new Twin(), twin.ETag);
+                    ClientTwin desiredPropertyResetTwin = await serviceClient.Twins.UpdateAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, new ClientTwin(), true, CancellationToken.None);
 
-                    await TwinTesterUtil.ResetTwinReportedPropertiesAsync(moduleClient, desiredPropertyResetTwin);
+                    TwinProperties twinProps = await moduleClient.GetTwinPropertiesAsync();
+                    await TwinTesterUtil.ResetTwinReportedPropertiesAsync(moduleClient, twinProps);
 
                     await Task.Delay(TimeSpan.FromSeconds(10)); // give enough time for reported properties reset to reach cloud
-                    twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
-                    initializedState = new TwinTestState(twin.ETag);
+                    twin = await serviceClient.Twins.GetAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
+                    initializedState = new TwinTestState(twin.ETag.ToString());
                 }
                 else
                 {
@@ -84,14 +83,14 @@ namespace TwinTester
                     initializedState = new TwinTestState(
                         GetNewPropertyCounter(reportedPropertyUpdates),
                         GetNewPropertyCounter(desiredPropertyUpdates),
-                        twin.ETag,
+                        twin.ETag.ToString(),
                         DateTime.MinValue,
                         DateTime.MinValue,
                         DateTime.MinValue);
                 }
 
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
-                return new TwinAllOperationsInitializer(registryManager, moduleClient, resultHandler, storage, initializedState);
+                return new TwinAllOperationsInitializer(serviceClient, moduleClient, resultHandler, storage, initializedState);
             }
             catch (Exception e)
             {
@@ -119,9 +118,9 @@ namespace TwinTester
                 try
                 {
                     cts.CancelAfter(stateUpdateTimeout);
-                    await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, cts.Token);
+                    await this.serviceClient.Twins.GetAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, cts.Token);
                 }
-                catch (Exception e) when (e is IotHubCommunicationException || e is OperationCanceledException || e.InnerException is TaskCanceledException)
+                catch (Exception e) when (e is IotHubServiceException || e is OperationCanceledException || e.InnerException is TaskCanceledException)
                 {
                     this.twinTestState.LastNetworkOffline = DateTime.UtcNow;
                 }

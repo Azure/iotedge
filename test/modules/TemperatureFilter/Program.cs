@@ -10,7 +10,6 @@ namespace TemperatureFilter
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -37,9 +36,9 @@ namespace TemperatureFilter
 
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
 
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+            IotHubModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 transportType,
-                new ClientOptions(),
+                null,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 Logger);
@@ -49,8 +48,14 @@ namespace TemperatureFilter
             ModuleConfig moduleConfig = await GetConfigurationAsync(moduleClient);
             Logger.LogInformation($"Using TemperatureThreshold value of {moduleConfig.TemperatureThreshold}");
 
-            var userContext = Tuple.Create(moduleClient, moduleConfig);
-            await moduleClient.SetInputMessageHandlerAsync("input1", PrintAndFilterMessages, userContext);
+            await moduleClient.SetIncomingMessageCallbackAsync(async (IncomingMessage message) =>
+            {
+                if (message.InputName == "input1")
+                {
+                    return await PrintAndFilterMessages(message, moduleClient, moduleConfig);
+                }
+                return MessageAcknowledgement.Complete;
+            });
 
             await cts.Token.WhenCanceled();
             completed.Set();
@@ -65,22 +70,13 @@ namespace TemperatureFilter
         /// and the temperature threshold set via config.
         /// It prints all the incoming messages.
         /// </summary>
-        static async Task<MessageResponse> PrintAndFilterMessages(Message message, object userContext)
+        static async Task<MessageAcknowledgement> PrintAndFilterMessages(IncomingMessage message, IotHubModuleClient moduleClient, ModuleConfig moduleConfig)
         {
             try
             {
                 int counterValue = Interlocked.Increment(ref counter);
 
-                var userContextValues = userContext as Tuple<ModuleClient, ModuleConfig>;
-                if (userContextValues == null)
-                {
-                    throw new InvalidOperationException("UserContext doesn't contain expected values");
-                }
-
-                ModuleClient moduleClient = userContextValues.Item1;
-                ModuleConfig moduleConfig = userContextValues.Item2;
-
-                byte[] messageBytes = message.GetBytes();
+                byte[] messageBytes = message.Payload;
                 string messageString = Encoding.UTF8.GetString(messageBytes);
                 Logger.LogInformation($"Received message: {counterValue}, Body: [{messageString}]");
 
@@ -91,14 +87,14 @@ namespace TemperatureFilter
                     && messageBody.Machine.Temperature > moduleConfig.TemperatureThreshold)
                 {
                     Logger.LogInformation($"Temperature {messageBody.Machine.Temperature} exceeds threshold {moduleConfig.TemperatureThreshold}");
-                    var filteredMessage = new Message(messageBytes);
+                    var filteredMessage = new TelemetryMessage(messageBytes);
                     foreach (KeyValuePair<string, string> prop in message.Properties)
                     {
                         filteredMessage.Properties.Add(prop.Key, prop.Value);
                     }
 
                     filteredMessage.Properties.Add("MessageType", "Alert");
-                    await moduleClient.SendEventAsync("alertOutput", filteredMessage);
+                    await moduleClient.SendMessageToRouteAsync("alertOutput", filteredMessage);
                 }
             }
             catch (Exception e)
@@ -106,19 +102,19 @@ namespace TemperatureFilter
                 Logger.LogError($"Error in PrintAndFilterMessages: {e}");
             }
 
-            return MessageResponse.Completed;
+            return MessageAcknowledgement.Complete;
         }
 
         /// <summary>
         /// Get the configuration for the module (in this case the threshold temperature)s.
         /// </summary>
-        static async Task<ModuleConfig> GetConfigurationAsync(ModuleClient moduleClient)
+        static async Task<ModuleConfig> GetConfigurationAsync(IotHubModuleClient moduleClient)
         {
             // First try to get the config from the Module twin
-            Twin twin = await moduleClient.GetTwinAsync();
-            if (twin.Properties.Desired.Contains(TemperatureThresholdKey))
+            TwinProperties twin = await moduleClient.GetTwinPropertiesAsync();
+            if (twin.Desired.ContainsKey(TemperatureThresholdKey))
             {
-                int tempThreshold = (int)twin.Properties.Desired[TemperatureThresholdKey];
+                int tempThreshold = (int)twin.Desired[TemperatureThresholdKey];
                 return new ModuleConfig(tempThreshold);
             }
             else

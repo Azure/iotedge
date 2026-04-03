@@ -23,9 +23,9 @@ namespace TwinTester
             ITwinTestInitializer twinOperator = null;
             try
             {
-                using (RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString))
+                using (var serviceClient = new IotHubServiceClient(Settings.Current.ServiceClientConnectionString))
                 {
-                    twinOperator = await GetTwinOperatorAsync(registryManager);
+                    twinOperator = await GetTwinOperatorAsync(serviceClient);
                     await twinOperator.StartAsync(cts.Token);
                     await Task.Delay(Settings.Current.TestDuration, cts.Token);
 
@@ -45,30 +45,30 @@ namespace TwinTester
             }
         }
 
-        static async Task<ITwinTestInitializer> GetTwinOperatorAsync(RegistryManager registryManager)
+        static async Task<ITwinTestInitializer> GetTwinOperatorAsync(IotHubServiceClient serviceClient)
         {
             switch (Settings.Current.TwinTestMode)
             {
                 case TwinTestMode.TwinCloudOperations:
-                    return await TwinCloudOperationsInitializer.CreateAsync(registryManager, new TwinEdgeOperationsResultHandler(Settings.Current.ReporterUrl, Settings.Current.ModuleId, Settings.Current.TrackingId));
+                    return await TwinCloudOperationsInitializer.CreateAsync(serviceClient, new TwinEdgeOperationsResultHandler(Settings.Current.ReporterUrl, Settings.Current.ModuleId, Settings.Current.TrackingId));
                 case TwinTestMode.TwinEdgeOperations:
-                    ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                    IotHubModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                         Settings.Current.TransportType,
-                        new ClientOptions(),
+                        null,
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
                         Logger);
-                    return await TwinEdgeOperationsInitializer.CreateAsync(registryManager, moduleClient, new TwinEdgeOperationsResultHandler(Settings.Current.ReporterUrl, Settings.Current.ModuleId, Settings.Current.TrackingId));
+                    return await TwinEdgeOperationsInitializer.CreateAsync(serviceClient, moduleClient, new TwinEdgeOperationsResultHandler(Settings.Current.ReporterUrl, Settings.Current.ModuleId, Settings.Current.TrackingId));
                 default:
-                    return await GetTwinAllOperationsInitializer(registryManager, Settings.Current.ReporterUrl);
+                    return await GetTwinAllOperationsInitializer(serviceClient, Settings.Current.ReporterUrl);
             }
         }
 
-        static async Task<ITwinTestInitializer> GetTwinAllOperationsInitializer(RegistryManager registryManager, Uri reportUrl)
+        static async Task<ITwinTestInitializer> GetTwinAllOperationsInitializer(IotHubServiceClient serviceClient, Uri reportUrl)
         {
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+            IotHubModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 Settings.Current.TransportType,
-                new ClientOptions(),
+                null,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 Logger);
@@ -76,7 +76,7 @@ namespace TwinTester
             TwinEventStorage storage = new TwinEventStorage();
             storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
             var resultHandler = new TwinAllOperationsResultHandler(reportUrl, storage, Settings.Current.ModuleId);
-            return await TwinAllOperationsInitializer.CreateAsync(registryManager, moduleClient, resultHandler, storage);
+            return await TwinAllOperationsInitializer.CreateAsync(serviceClient, moduleClient, resultHandler, storage);
         }
     }
 }

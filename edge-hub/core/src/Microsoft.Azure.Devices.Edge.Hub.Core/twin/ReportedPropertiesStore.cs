@@ -6,10 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     class ReportedPropertiesStore : IReportedPropertiesStore
     {
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             this.syncToCloudTask = this.SyncToCloud();
         }
 
-        public async Task Update(string id, TwinCollection patch)
+        public async Task Update(string id, PropertyCollection patch)
         {
             using (await this.lockProvider.GetLock(id).LockAsync())
             {
@@ -42,8 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                     twinInfo =>
                     {
                         Events.UpdatingReportedPropertiesInStore(id, patch);
-                        TwinCollection updatedReportedProperties = twinInfo.ReportedPropertiesPatch
-                            .Map(reportedProperties => new TwinCollection(JsonEx.Merge(reportedProperties, patch, /*treatNullAsDelete*/ false)))
+                        PropertyCollection updatedReportedProperties = twinInfo.ReportedPropertiesPatch
+                            .Map(reportedProperties => JsonConvert.DeserializeObject<PropertyCollection>(JsonEx.Merge(reportedProperties, patch, /*treatNullAsDelete*/ false)))
                             .GetOrElse(() => patch);
                         return new TwinStoreEntity(twinInfo.Twin, Option.Maybe(updatedReportedProperties));
                     });
@@ -83,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                                         Events.UpdateReportedPropertiesSucceeded(id);
                                         await this.twinStore.Update(
                                             id,
-                                            t => new TwinStoreEntity(t.Twin, Option.None<TwinCollection>()));
+                                            t => new TwinStoreEntity(t.Twin, Option.None<PropertyCollection>()));
                                         twinInfo = await this.twinStore.Get(id);
                                     }
                                     else
@@ -168,12 +169,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 Log.LogDebug((int)EventIds.SyncingReportedPropertiesToCloud, $"Syncing stored reported properties to cloud in {id}");
             }
 
-            public static void UpdatingReportedPropertiesInStore(string id, TwinCollection patch)
+            public static void UpdatingReportedPropertiesInStore(string id, PropertyCollection patch)
             {
                 Log.LogDebug((int)EventIds.UpdatingReportedPropertiesInStore, $"Updating reported properties in store with version {patch.Version} for {id}");
             }
 
-            public static void StoringReportedPropertiesInStore(string id, TwinCollection patch)
+            public static void StoringReportedPropertiesInStore(string id, PropertyCollection patch)
             {
                 Log.LogDebug((int)EventIds.StoringReportedPropertiesInStore, $"Storing reported properties in store for {id} with version {patch.Version}");
             }

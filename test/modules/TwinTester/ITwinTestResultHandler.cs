@@ -2,13 +2,13 @@
 namespace TwinTester
 {
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
 
     interface ITwinTestResultHandler
     {
         Task HandleDesiredPropertyUpdateAsync(string propertyKey, string value);
 
-        Task HandleDesiredPropertyReceivedAsync(TwinCollection properties);
+        Task HandleDesiredPropertyReceivedAsync(PropertyCollection properties);
 
         Task HandleTwinValidationStatusAsync(string status);
 

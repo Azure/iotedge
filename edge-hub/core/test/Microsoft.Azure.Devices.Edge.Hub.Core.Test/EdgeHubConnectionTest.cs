@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
     using Moq;
     using Xunit;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var edgeHubIdentity = Mock.Of<IModuleIdentity>();
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
-            var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<TwinCollection>>();
+            var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<PropertyCollection>>();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentities(It.IsAny<IEnumerable<string>>())).Returns(Task.CompletedTask);
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var edgeHubIdentity = Mock.Of<IModuleIdentity>();
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
-            var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<TwinCollection>>();
+            var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<PropertyCollection>>();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentities(It.IsAny<IEnumerable<string>>())).Returns(Task.CompletedTask);
@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var edgeHubIdentity = Mock.Of<IModuleIdentity>();
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
-            var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<TwinCollection>>();
+            var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<PropertyCollection>>();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentities(It.IsAny<IEnumerable<string>>())).ThrowsAsync(new Exception("Foo"));
@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var edgeHubIdentity = Mock.Of<IModuleIdentity>();
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
-            var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<TwinCollection>>();
+            var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<PropertyCollection>>();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentities(It.IsAny<IEnumerable<string>>())).Returns(Task.CompletedTask);
@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var edgeHubIdentity = Mock.Of<IModuleIdentity>(i => i.Id == "edgeD1/$edgeHub");
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
-            var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
+            var twinCollectionMessageConverter = new PropertyCollectionMessageConverter();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
             var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, versionInfo, deviceScopeIdentitiesCache);

@@ -7,8 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -18,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     [Unit]
     public class CloudConnectionProviderTest
@@ -33,95 +30,64 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         public static IEnumerable<object[]> UpstreamProtocolTransportSettingsData()
         {
+            // Default (None) -> AMQP TCP, no proxy, no heartbeat
             yield return new object[]
             {
                 Option.None<UpstreamProtocol>(),
                 20,
                 Option.None<IWebProxy>(),
-                new ITransportSettings[]
-                {
-                    new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-                    {
-                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
-                        {
-                            Pooling = true,
-                            MaxPoolSize = 20
-                        },
-                        IdleTimeout = TimeSpan.FromSeconds(0)
-                    }
-                },
-                false
+                typeof(IotHubClientAmqpSettings),
+                IotHubClientTransportProtocol.Tcp,
+                false, // expectProxy
+                false  // useServerHeartbeat
             };
 
+            // Amqp -> AMQP TCP, proxy ignored for TCP, heartbeat enabled
             yield return new object[]
             {
                 Option.Some(UpstreamProtocol.Amqp),
                 30,
                 Option.Some(new WebProxy(ProxyUri) as IWebProxy),
-                new ITransportSettings[]
-                {
-                    new AmqpTransportSettings(TransportType.Amqp_Tcp_Only)
-                    {
-                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
-                        {
-                            Pooling = true,
-                            MaxPoolSize = 30
-                        },
-                        Proxy = new WebProxy(ProxyUri),
-                        IdleTimeout = TimeSpan.FromSeconds(60)
-                    }
-                },
-                true
+                typeof(IotHubClientAmqpSettings),
+                IotHubClientTransportProtocol.Tcp,
+                false, // expectProxy (TCP ignores proxy)
+                true   // useServerHeartbeat
             };
 
+            // AmqpWs -> AMQP WebSocket, proxy set
             yield return new object[]
             {
                 Option.Some(UpstreamProtocol.AmqpWs),
                 50,
                 Option.Some(new WebProxy(ProxyUri) as IWebProxy),
-                new ITransportSettings[]
-                {
-                    new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only)
-                    {
-                        AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
-                        {
-                            Pooling = true,
-                            MaxPoolSize = 50
-                        },
-                        Proxy = new WebProxy(ProxyUri)
-                    }
-                },
-                false
+                typeof(IotHubClientAmqpSettings),
+                IotHubClientTransportProtocol.WebSocket,
+                true,  // expectProxy
+                false  // useServerHeartbeat
             };
 
+            // Mqtt -> MQTT TCP, proxy ignored for TCP
             yield return new object[]
             {
                 Option.Some(UpstreamProtocol.Mqtt),
                 60,
                 Option.Some(new WebProxy(ProxyUri) as IWebProxy),
-                new ITransportSettings[]
-                {
-                    new MqttTransportSettings(TransportType.Mqtt_Tcp_Only)
-                    {
-                        Proxy = new WebProxy(ProxyUri)
-                    }
-                },
-                false
+                typeof(IotHubClientMqttSettings),
+                IotHubClientTransportProtocol.Tcp,
+                false, // expectProxy (TCP ignores proxy)
+                false  // useServerHeartbeat
             };
 
+            // MqttWs -> MQTT WebSocket, proxy set
             yield return new object[]
             {
                 Option.Some(UpstreamProtocol.MqttWs),
                 80,
                 Option.Some(new WebProxy(ProxyUri) as IWebProxy),
-                new ITransportSettings[]
-                {
-                    new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only)
-                    {
-                        Proxy = new WebProxy(ProxyUri)
-                    }
-                },
-                true
+                typeof(IotHubClientMqttSettings),
+                IotHubClientTransportProtocol.WebSocket,
+                true,  // expectProxy
+                true   // useServerHeartbeat
             };
         }
 
@@ -181,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceClient.Setup(dc => dc.OpenAsync()).ThrowsAsync(new TimeoutException());
 
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(deviceClient.Object);
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
@@ -607,66 +573,74 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Theory]
         [MemberData(nameof(UpstreamProtocolTransportSettingsData))]
-        public void GetTransportSettingsTest(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, ITransportSettings[] expectedTransportSettingsList, bool useServerHeartbeat)
+        public void GetTransportSettingsTest(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, Type expectedSettingsType, IotHubClientTransportProtocol expectedProtocol, bool expectProxy, bool useServerHeartbeat)
         {
             const string expectedAuthChain = "e3;e2;e1";
-            ITransportSettings[] transportSettingsList = CloudConnectionProvider.GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy, useServerHeartbeat, expectedAuthChain);
+            IotHubClientOptions clientOptions = CloudConnectionProvider.GetClientOptions(upstreamProtocol, connectionPoolSize, proxy, useServerHeartbeat, expectedAuthChain, "");
 
-            Assert.NotNull(transportSettingsList);
-            Assert.Equal(expectedTransportSettingsList.Length, transportSettingsList.Length);
-            for (int i = 0; i < expectedTransportSettingsList.Length; i++)
+            Assert.NotNull(clientOptions);
+            Assert.NotNull(clientOptions.TransportSettings);
+            Assert.IsType(expectedSettingsType, clientOptions.TransportSettings);
+
+            switch (clientOptions.TransportSettings)
             {
-                ITransportSettings expectedTransportSettings = expectedTransportSettingsList[i];
-                ITransportSettings transportSettings = transportSettingsList[i];
-
-                Assert.Equal(expectedTransportSettings.GetType(), transportSettings.GetType());
-                Assert.Equal(expectedTransportSettings.GetTransportType(), transportSettings.GetTransportType());
-
-                // Check authchain via Reflection
-                string authChain = (string)transportSettings.GetType()
-                    .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
-                    .GetValue(transportSettings);
-
-                Assert.Equal(expectedAuthChain, authChain);
-
-                switch (expectedTransportSettings)
+                case IotHubClientAmqpSettings amqpSettings:
                 {
-                    case AmqpTransportSettings _:
+                    Assert.Equal(expectedProtocol, amqpSettings.Protocol);
+
+                    // Verify pool settings
+                    Assert.NotNull(amqpSettings.ConnectionPoolSettings);
+                    Assert.True(amqpSettings.ConnectionPoolSettings.UsePooling);
+                    Assert.Equal(connectionPoolSize, amqpSettings.ConnectionPoolSettings.MaxPoolSize);
+
+                    // Verify proxy
+                    if (expectProxy)
                     {
-                        var expected = (AmqpTransportSettings)expectedTransportSettings;
-                        var actual = (AmqpTransportSettings)transportSettings;
-                        Assert.True(expected.Equals(actual)); // AmqpTransportSettings impls Equals, but doesn't override Object.Equals
-
-                        if (proxy == Option.None<IWebProxy>() || upstreamProtocol.Contains(UpstreamProtocol.Amqp))
-                            {
-                            Assert.Null(actual.Proxy);
-                        }
-                        else
-                        {
-                            Assert.True(actual.Proxy is WebProxy);
-                            Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
-                        }
-
-                        break;
+                        Assert.True(amqpSettings.Proxy is WebProxy);
+                        Assert.Equal(ProxyUri, ((WebProxy)amqpSettings.Proxy).Address.OriginalString);
+                    }
+                    else
+                    {
+                        Assert.Null(amqpSettings.Proxy);
                     }
 
-                    case MqttTransportSettings _:
+                    // Verify heartbeat/idle timeout
+                    if (useServerHeartbeat)
                     {
-                        var expected = (MqttTransportSettings)expectedTransportSettings;
-                        var actual = (MqttTransportSettings)transportSettings;
-
-                        if (proxy == Option.None<IWebProxy>() || upstreamProtocol.Contains(UpstreamProtocol.Mqtt))
-                        {
-                            Assert.Null(actual.Proxy);
-                        }
-                        else
-                        {
-                            Assert.True(actual.Proxy is WebProxy);
-                            Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
-                        }
-
-                        break;
+                        Assert.Equal(TimeSpan.FromSeconds(60), amqpSettings.IdleTimeout);
                     }
+
+                    // Check authchain via Reflection
+                    string authChain = (string)amqpSettings.GetType()
+                        .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .GetValue(amqpSettings);
+                    Assert.Equal(expectedAuthChain, authChain);
+
+                    break;
+                }
+
+                case IotHubClientMqttSettings mqttSettings:
+                {
+                    Assert.Equal(expectedProtocol, mqttSettings.Protocol);
+
+                    // Verify proxy
+                    if (expectProxy)
+                    {
+                        Assert.True(mqttSettings.Proxy is WebProxy);
+                        Assert.Equal(ProxyUri, ((WebProxy)mqttSettings.Proxy).Address.OriginalString);
+                    }
+                    else
+                    {
+                        Assert.Null(mqttSettings.Proxy);
+                    }
+
+                    // Check authchain via Reflection
+                    string authChain = (string)mqttSettings.GetType()
+                        .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .GetValue(mqttSettings);
+                    Assert.Equal(expectedAuthChain, authChain);
+
+                    break;
                 }
             }
         }
@@ -674,7 +648,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static IClientProvider GetMockDeviceClientProvider(bool openAsyncThrows = false)
         {
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(() => GetMockDeviceClient(openAsyncThrows));
             return deviceClientProvider.Object;
         }
@@ -688,7 +662,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Returns(Task.FromResult(true));
             if (openAsyncThrows)
             {
-                deviceClient.Setup(dc => dc.OpenAsync()).ThrowsAsync(new UnauthorizedException());
+                deviceClient.Setup(dc => dc.OpenAsync()).ThrowsAsync(new IotHubClientException("Unauthorized"));
             }
             else
             {

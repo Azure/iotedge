@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Client.Samples
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
 
     class Program
     {
@@ -116,48 +115,43 @@ namespace Microsoft.Azure.Devices.Client.Samples
             return ParseCertificateAndKey(cert, privateKey);
         }
 
-        static ITransportSettings[] GetTransport(string protocol)
+        static IotHubClientOptions GetTransportOptions(string protocol)
         {
-            TransportType transportType = TransportType.Mqtt_Tcp_Only;
-            ITransportSettings[] transportSettings = new ITransportSettings[1];
+            IotHubClientTransportSettings transportSettings;
+
+            X509Certificate2 trustedCACert = GetTrustedCACertFromFile(TrustedCACertPath);
+            RemoteCertificateValidationCallback certificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => CustomCertificateValidator.ValidateCertificate(trustedCACert, (X509Certificate2)certificate, chain, sslPolicyErrors);
 
             if (string.Equals("Mqtt", protocol, StringComparison.OrdinalIgnoreCase))
             {
-                transportType = TransportType.Mqtt_Tcp_Only;
+                var mqttSettings = new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp);
+                mqttSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
+                transportSettings = mqttSettings;
             }
             else if (string.Equals("MqttWs", protocol, StringComparison.OrdinalIgnoreCase))
             {
-                transportType = TransportType.Mqtt_WebSocket_Only;
+                var mqttSettings = new IotHubClientMqttSettings(IotHubClientTransportProtocol.WebSocket);
+                mqttSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
+                transportSettings = mqttSettings;
             }
             else if (string.Equals("Amqp", protocol, StringComparison.OrdinalIgnoreCase))
             {
-                transportType = TransportType.Amqp_Tcp_Only;
+                var amqpSettings = new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp);
+                amqpSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
+                transportSettings = amqpSettings;
             }
             else if (string.Equals("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase))
             {
-                transportType = TransportType.Amqp_WebSocket_Only;
+                var amqpSettings = new IotHubClientAmqpSettings(IotHubClientTransportProtocol.WebSocket);
+                amqpSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
+                transportSettings = amqpSettings;
             }
             else
             {
                 throw new ArgumentException("Invalid protocol");
             }
 
-            X509Certificate2 trustedCACert = GetTrustedCACertFromFile(TrustedCACertPath);
-            RemoteCertificateValidationCallback certificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => CustomCertificateValidator.ValidateCertificate(trustedCACert, (X509Certificate2)certificate, chain, sslPolicyErrors);
-            if (transportType == TransportType.Amqp_Tcp_Only || transportType == TransportType.Amqp_WebSocket_Only)
-            {
-                transportSettings[0] = new AmqpTransportSettings(transportType);
-                AmqpTransportSettings amqpTransportSettings = (AmqpTransportSettings)transportSettings[0];
-                amqpTransportSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
-            }
-            else
-            {
-                transportSettings[0] = new MqttTransportSettings(transportType);
-                MqttTransportSettings mqttTransportSettings = (MqttTransportSettings)transportSettings[0];
-                mqttTransportSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
-            }
-
-            return transportSettings;
+            return new IotHubClientOptions(transportSettings);
         }
 
         static X509Certificate2 AttachPrivateKey(X509Certificate2 certificate, string pemEncodedKey)
@@ -285,7 +279,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
         /// Note: Either set the MESSAGE_COUNT environment variable with the number of
         /// messages to be sent to the IoT Edge runtime or set it in the launchSettings.json.
         /// </summary>
-        static void Main()
+        static async Task Main()
         {
             if (string.IsNullOrEmpty(IothubHostname))
             {
@@ -333,15 +327,16 @@ namespace Microsoft.Azure.Devices.Client.Samples
             var (cert, certChain) = GetClientCertificateAndChainFromFile(DeviceIdentityCertPath, DeviceIdentityPrivateKeyPath);
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                //Windows does not natively support PEM files for TLS connections due to the platform's lack of support for ephemeral keys. 
+                //Windows does not natively support PEM files for TLS connections due to the platform's lack of support for ephemeral keys.
                 //Hence need to convert the certificate to PFX format.
                 cert = new X509Certificate2(cert.Export(X509ContentType.Pfx));
             }
             InstallChainCertificates(certChain);
 
-            ITransportSettings[] transportSettings = GetTransport(ClientTransportType);
-            var auth = new DeviceAuthenticationWithX509Certificate(DownstreamDeviceId, cert);
-            DeviceClient deviceClient = DeviceClient.Create(IothubHostname, IotEdgeGatewayHostname, auth, transportSettings);
+            IotHubClientOptions options = GetTransportOptions(ClientTransportType);
+            options.GatewayHostName = IotEdgeGatewayHostname;
+            var auth = new ClientAuthenticationWithX509Certificate(cert, DownstreamDeviceId);
+            IotHubDeviceClient deviceClient = new IotHubDeviceClient(IothubHostname, auth, options);
 
             if (deviceClient == null)
             {
@@ -349,10 +344,12 @@ namespace Microsoft.Azure.Devices.Client.Samples
             }
             else
             {
-                SendEvents(deviceClient, messageCount).Wait();
+                await SendEvents(deviceClient, messageCount);
             }
 
             Console.WriteLine("Exiting!\n");
+
+            await deviceClient.DisposeAsync();
         }
 
         static void InstallChainCertificates(IEnumerable<X509Certificate2> certificateChain)
@@ -411,7 +408,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
         /// to the IoT Edge runtime. The number of messages to be sent is determined
         /// by environment variable MESSAGE_COUNT.
         /// </summary>
-        static async Task SendEvents(DeviceClient deviceClient, int messageCount)
+        static async Task SendEvents(IotHubDeviceClient deviceClient, int messageCount)
         {
             string dataBuffer;
             Random rnd = new Random();
@@ -422,11 +419,11 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 float temperature = rnd.Next(20, 35);
                 float humidity = rnd.Next(60, 80);
                 dataBuffer = string.Format(new CultureInfo("en-US"), "{{MyFirstDownstreamDevice \"messageId\":{0},\"temperature\":{1},\"humidity\":{2}}}", count, temperature, humidity);
-                Message eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
+                TelemetryMessage eventMessage = new TelemetryMessage(Encoding.UTF8.GetBytes(dataBuffer));
                 eventMessage.Properties.Add("temperatureAlert", (temperature > TEMPERATURE_THRESHOLD) ? "true" : "false");
                 Console.WriteLine("\t{0}> Sending message: {1}, Data: [{2}]", DateTime.Now.ToLocalTime(), count, dataBuffer);
 
-                await deviceClient.SendEventAsync(eventMessage).ConfigureAwait(false);
+                await deviceClient.SendTelemetryAsync(eventMessage).ConfigureAwait(false);
             }
         }
     }

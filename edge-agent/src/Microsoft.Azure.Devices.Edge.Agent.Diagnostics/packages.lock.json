@@ -4,17 +4,12 @@
     "net10.0": {
       "Microsoft.Azure.Devices.Client": {
         "type": "Direct",
-        "requested": "[1.36.10, )",
-        "resolved": "1.36.10",
-        "contentHash": "jzvpHqH/FgyAPvDgQVrpgFhqzbo9FA5k5nqfRRZ6ghTGUsEmtjUGCbzvq9m2tm970G8HBOv7vwqgC7X678JXiw==",
+        "requested": "[2.0.0-rc, )",
+        "resolved": "2.0.0-rc",
+        "contentHash": "S02wM6scqV/b/AwPmQ9to4HzutKKoS4PYj4buZ4Z0ayWe7D/xqVcpiXrG99BpQcyeU+2fWLWmO4IHflZ0W7ajw==",
         "dependencies": {
-          "Azure.Storage.Blobs": "12.19.1",
-          "DotNetty.Codecs.Mqtt": "0.7.6",
-          "DotNetty.Handlers": "0.7.6",
-          "Microsoft.Azure.Amqp": "2.5.12",
-          "Microsoft.Azure.Devices.Shared": "1.27.2",
-          "Newtonsoft.Json": "12.0.3",
-          "System.Configuration.ConfigurationManager": "4.4.1"
+          "MQTTnet": "5.1.0.1559",
+          "Microsoft.Azure.Amqp": "2.6.2"
         }
       },
       "Microsoft.Extensions.Configuration.Binder": {
@@ -136,63 +131,6 @@
           "System.IO.Hashing": "10.0.1"
         }
       },
-      "DotNetty.Buffers": {
-        "type": "Transitive",
-        "resolved": "0.7.6",
-        "contentHash": "JVYypDugRG4m3hbS0drCC79vX93zqjn5w+U4ti/KXjTIzcQ/UVHrCgs7ZgJfWRUQLfgfQB0daYQtE18lKD8pHg==",
-        "dependencies": {
-          "DotNetty.Common": "0.7.6"
-        }
-      },
-      "DotNetty.Codecs": {
-        "type": "Transitive",
-        "resolved": "0.7.6",
-        "contentHash": "XBZy/m3+V8PBUHHHbFKaRBE0+knTCitcE8oKCQn4jZybH25mCZ1vTwj3BRuPYdNpzh74Op32Hj4ZXF+DMx/oAg==",
-        "dependencies": {
-          "DotNetty.Buffers": "0.7.6",
-          "DotNetty.Common": "0.7.6",
-          "DotNetty.Transport": "0.7.6"
-        }
-      },
-      "DotNetty.Codecs.Mqtt": {
-        "type": "Transitive",
-        "resolved": "0.7.6",
-        "contentHash": "jVynN2g/HXPlaT+zZwdJENaB0Aw28iV7ZvttAXy0i1ST7MB3olKxTTy5tq2QuI4z4wFzMHx/+15znq06AcyIAw==",
-        "dependencies": {
-          "DotNetty.Buffers": "0.7.6",
-          "DotNetty.Codecs": "0.7.6",
-          "DotNetty.Common": "0.7.6",
-          "DotNetty.Transport": "0.7.6"
-        }
-      },
-      "DotNetty.Common": {
-        "type": "Transitive",
-        "resolved": "0.7.6",
-        "contentHash": "dmK8Njfh2Y4qnz99lLK0evoc46FPL5WOnHMLlavNZ6zqC5/bKgqGsJFoXbhVPkSYDp58g2euI64dhY0cvOUOZQ==",
-        "dependencies": {
-          "Microsoft.Extensions.Logging": "5.0.0"
-        }
-      },
-      "DotNetty.Handlers": {
-        "type": "Transitive",
-        "resolved": "0.7.6",
-        "contentHash": "6sSMp0Md8DbpyOAV9IjiR30uzaLrxAbJTcwFFpMJM1+EJhvPz6Ywt0RqoV6+lseq6zqBjMq2jbPTKcqPoqNYIA==",
-        "dependencies": {
-          "DotNetty.Buffers": "0.7.6",
-          "DotNetty.Codecs": "0.7.6",
-          "DotNetty.Common": "0.7.6",
-          "DotNetty.Transport": "0.7.6"
-        }
-      },
-      "DotNetty.Transport": {
-        "type": "Transitive",
-        "resolved": "0.7.6",
-        "contentHash": "EVQ5FihFPdWmw7v6l/4iyMepj49vZT11kWQNJ0ApC4KzkdJJ6LM/7NDUgghyxbO0e25nfQRtkGLP5EZAEo7QDA==",
-        "dependencies": {
-          "DotNetty.Buffers": "0.7.6",
-          "DotNetty.Common": "0.7.6"
-        }
-      },
       "Google.Protobuf": {
         "type": "Transitive",
         "resolved": "3.26.1",
@@ -200,16 +138,8 @@
       },
       "Microsoft.Azure.Amqp": {
         "type": "Transitive",
-        "resolved": "2.5.12",
-        "contentHash": "0SlEl+TSQdpjXWf9/37dXWAa0zk6R1EJKmGtGZeKUAH7WEQpJOWMxJ9I43igcBCnTkFwa28CdPnpSCjFZVQlkw=="
-      },
-      "Microsoft.Azure.Devices.Shared": {
-        "type": "Transitive",
-        "resolved": "1.27.2",
-        "contentHash": "nE6JbS1nEwOJmjVLRzOe0Fj757hQDJKmzchDkSSuiIegmmTeYuM5jhz8T3prQBiwEpmN55ScJBiAyRtWdGf1bw==",
-        "dependencies": {
-          "Newtonsoft.Json": "12.0.3"
-        }
+        "resolved": "2.6.2",
+        "contentHash": "6hQqWRiHRd9J6pGBlzQM9LBOWaO8xIsRVYs3olrDGqOkK7v9mgwz9rmrv+49FIbLEOGgkP9IKLnXdsA4Y8IIYw=="
       },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
@@ -297,6 +227,11 @@
         "type": "Transitive",
         "resolved": "6.0.0",
         "contentHash": "hqTM5628jSsQiv+HGpiq3WKBl2c8v1KZfby2J6Pr7pEPlK9waPdgEO6b8A/+/xn/yZ9ulv8HuqK71ONy2tg67A=="
+      },
+      "MQTTnet": {
+        "type": "Transitive",
+        "resolved": "5.1.0.1559",
+        "contentHash": "9mkk0H+76CToIzp9ru5Uj5BuC3P5hQdkhvXM+CLmmTDdZWqajjICCHuUMbDd1yVBt9BWL77Rvzt0A+/PA4WMCA=="
       },
       "Nito.AsyncEx": {
         "type": "Transitive",
@@ -509,7 +444,7 @@
         "type": "Project",
         "dependencies": {
           "Azure.Storage.Blobs": "[12.27.0, )",
-          "Microsoft.Azure.Devices.Client": "[1.36.10, )",
+          "Microsoft.Azure.Devices.Client": "[2.0.0-rc, )",
           "Microsoft.Azure.Devices.Edge.Agent.Core": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"
         }

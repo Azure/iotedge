@@ -1,20 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
     using Newtonsoft.Json;
 
     public class TwinInfo
     {
         [JsonConstructor]
-        public TwinInfo(Shared.Twin twin, TwinCollection reportedPropertiesPatch)
+        public TwinInfo(TwinProperties twin, PropertyCollection reportedPropertiesPatch)
         {
             this.Twin = twin;
             this.ReportedPropertiesPatch = reportedPropertiesPatch;
         }
 
-        public Shared.Twin Twin { get; }
+        public TwinProperties Twin { get; }
 
-        public TwinCollection ReportedPropertiesPatch { get; }
+        public PropertyCollection ReportedPropertiesPatch { get; }
     }
 }

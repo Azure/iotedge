@@ -2,21 +2,21 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
 
     public class PassThroughTwinManager : ITwinManager
     {
         readonly IConnectionManager connectionManager;
-        readonly IMessageConverter<Twin> twinConverter;
+        readonly IMessageConverter<TwinProperties> twinConverter;
 
         public PassThroughTwinManager(IConnectionManager connectionManager, IMessageConverterProvider messageConverterProvider)
         {
             Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            this.twinConverter = messageConverterProvider.Get<Twin>();
+            this.twinConverter = messageConverterProvider.Get<TwinProperties>();
         }
 
         public async Task<IMessage> GetTwinAsync(string id)
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
             IMessage twin = await cloudProxy
                 .Map(c => c.GetTwinAsync())
-                .GetOrElse(() => Task.FromResult(this.twinConverter.ToMessage(new Twin())));
+                .GetOrElse(() => Task.FromResult(this.twinConverter.ToMessage(new TwinProperties())));
             return twin;
         }
 

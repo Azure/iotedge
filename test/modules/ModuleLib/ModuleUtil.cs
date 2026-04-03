@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -17,6 +16,19 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
     using Serilog.Events;
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
+
+    /// <summary>
+    /// Compatibility enum to map legacy TransportType values to V2 SDK transport settings.
+    /// </summary>
+    public enum TransportType
+    {
+        Amqp = 0,
+        Amqp_Tcp_Only = 2,
+        Amqp_WebSocket_Only = 3,
+        Mqtt = 4,
+        Mqtt_Tcp_Only = 6,
+        Mqtt_WebSocket_Only = 7,
+    }
 
     public static class ModuleUtil
     {
@@ -30,9 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
                 TimeSpan.FromSeconds(60),
                 TimeSpan.FromSeconds(4));
 
-        public static async Task<ModuleClient> CreateModuleClientAsync(
+        public static async Task<IotHubModuleClient> CreateModuleClientAsync(
             TransportType transportType,
-            ClientOptions options,
+            IotHubClientOptions options,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy = null,
             RetryStrategy retryStrategy = null,
             ILogger logger = null)
@@ -43,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
                 WriteLog(logger, LogLevel.Error, $"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}");
             };
 
-            ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, options, logger));
+            IotHubModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, options, logger));
             return client;
         }
 
@@ -85,28 +97,36 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             }
         }
 
-        static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ClientOptions options, ILogger logger)
+        /// <summary>
+        /// Maps legacy TransportType enum to V2 SDK IotHubClientOptions.
+        /// If options is null, creates new options with the appropriate transport settings.
+        /// </summary>
+        static async Task<IotHubModuleClient> InitializeModuleClientAsync(TransportType transportType, IotHubClientOptions options, ILogger logger)
         {
-            ITransportSettings[] GetTransportSettings()
+            IotHubClientOptions GetOrCreateOptions()
             {
+                if (options != null)
+                {
+                    return options;
+                }
+
                 switch (transportType)
                 {
                     case TransportType.Mqtt:
                     case TransportType.Mqtt_Tcp_Only:
-                        return new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+                        return new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
                     case TransportType.Mqtt_WebSocket_Only:
-                        return new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only) };
+                        return new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.WebSocket));
                     case TransportType.Amqp_WebSocket_Only:
-                        return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only) };
+                        return new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.WebSocket));
                     default:
-                        return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+                        return new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
                 }
             }
 
-            ITransportSettings[] settings = GetTransportSettings();
-            string modelIdIsPresent = !string.IsNullOrEmpty(options.ModelId) ? $"with modelId {options.ModelId}" : string.Empty;
-            WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}] {modelIdIsPresent}.");
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings, options);
+            IotHubClientOptions clientOptions = GetOrCreateOptions();
+            WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}].");
+            IotHubModuleClient moduleClient = await IotHubModuleClient.CreateFromEnvironmentAsync(clientOptions);
             await moduleClient.OpenAsync();
 
             WriteLog(logger, LogLevel.Information, $"Successfully initialized module client of transport type [{transportType}].");

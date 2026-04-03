@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 {
     using System.ComponentModel;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
 
     public enum Protocol
     {
@@ -15,33 +14,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
     public static class ProtocolExtensions
     {
-        public static TransportType ToTransportType(this Protocol p)
+        public static IotHubClientTransportProtocol ToTransportProtocol(this Protocol p)
         {
             switch (p)
             {
                 case Protocol.Amqp:
-                    return TransportType.Amqp_Tcp_Only;
-                case Protocol.AmqpWs:
-                    return TransportType.Amqp_WebSocket_Only;
                 case Protocol.Mqtt:
-                    return TransportType.Mqtt_Tcp_Only;
+                    return IotHubClientTransportProtocol.Tcp;
+                case Protocol.AmqpWs:
                 case Protocol.MqttWs:
-                    return TransportType.Mqtt_WebSocket_Only;
+                    return IotHubClientTransportProtocol.WebSocket;
                 default:
                     throw new InvalidEnumArgumentException();
             }
         }
 
-        public static ITransportSettings ToTransportSettings(this Protocol p)
+        public static IotHubClientTransportSettings ToTransportSettings(this Protocol p)
         {
             switch (p)
             {
                 case Protocol.Amqp:
                 case Protocol.AmqpWs:
-                    return new AmqpTransportSettings(p.ToTransportType());
+                    return new IotHubClientAmqpSettings(p.ToTransportProtocol());
                 case Protocol.Mqtt:
                 case Protocol.MqttWs:
-                    return new MqttTransportSettings(p.ToTransportType());
+                    return new IotHubClientMqttSettings(p.ToTransportProtocol());
                 default:
                     throw new InvalidEnumArgumentException();
             }

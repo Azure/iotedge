@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         ClientTokenCloudConnection(
             IIdentity identity,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
-            ITransportSettings[] transportSettings,
+            IotHubClientOptions clientOptions,
             IMessageConverterProvider messageConverterProvider,
             IClientProvider clientProvider,
             ICloudListener cloudListener,
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             : base(
                 identity,
                 connectionStatusChangedHandler,
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 clientProvider,
                 cloudListener,
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public static async Task<ClientTokenCloudConnection> Create(
             ITokenCredentials tokenCredentials,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
-            ITransportSettings[] transportSettings,
+            IotHubClientOptions clientOptions,
             IMessageConverterProvider messageConverterProvider,
             IClientProvider clientProvider,
             ICloudListener cloudListener,
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             var cloudConnection = new ClientTokenCloudConnection(
                 tokenCredentials.Identity,
                 connectionStatusChangedHandler,
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 clientProvider,
                 cloudListener,

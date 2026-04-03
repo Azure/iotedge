@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
 {
-    public class AzureMonitorClientWrapper : IDisposable, IModuleClientWrapper
+    public class AzureMonitorClientWrapper : IAsyncDisposable, IModuleClientWrapper
     {
         Option<BasicModuleClientWrapper> inner;
 
@@ -47,20 +47,19 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
             });
         }
 
-        public Task SendMessageAsync(string outputName, Message message)
+        public Task SendMessageAsync(string outputName, TelemetryMessage message)
         {
             throw new Exception("Not expected to send metrics to IoT Hub when upload target is AzureMonitor");
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            this.inner.ForEach((basicModuleClientWrapper) =>
-            {
-                basicModuleClientWrapper.Dispose();
-            });
+            await this.inner.Match(
+                async (basicModuleClientWrapper) =>
+                {
+                    await basicModuleClientWrapper.DisposeAsync();
+                },
+                () => Task.CompletedTask);
         }
     }
 }
-
-
-

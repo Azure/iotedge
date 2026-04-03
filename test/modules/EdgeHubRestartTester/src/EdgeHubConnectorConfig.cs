@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace EdgeHubRestartTester
 {
-    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
 
     class EdgeHubConnectorsConfig

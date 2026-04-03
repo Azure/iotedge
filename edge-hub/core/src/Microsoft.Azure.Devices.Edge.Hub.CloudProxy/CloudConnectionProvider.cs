@@ -7,8 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -109,20 +107,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     authChain = authChainMaybe.OrDefault();
                 }
 
-                // Get the transport settings
-                ITransportSettings[] transportSettings = GetTransportSettings(
+                // Get the transport options
+                IotHubClientOptions clientOptions = GetClientOptions(
                     this.upstreamProtocol,
                     this.connectionPoolSize,
                     this.proxy,
                     this.useServerHeartbeat,
-                    authChain);
+                    authChain,
+                    productInfo);
 
                 if (this.edgeHubIdentity.Id.Equals(clientCredentials.Identity.Id))
                 {
                     ICloudConnection cc = await CloudConnection.Create(
                         clientCredentials.Identity,
                         connectionStatusChangedHandler,
-                        transportSettings,
+                        clientOptions,
                         this.messageConverterProvider,
                         this.clientProvider,
                         cloudListener,
@@ -141,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     ICloudConnection cc = await ClientTokenCloudConnection.Create(
                         clientTokenCredentails,
                         connectionStatusChangedHandler,
-                        transportSettings,
+                        clientOptions,
                         this.messageConverterProvider,
                         this.clientProvider,
                         cloudListener,
@@ -188,13 +187,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     authChain = authChainMaybe.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {identity.Id}"));
                 }
 
-                ITransportSettings[] transportSettings = GetTransportSettings(
-                    this.upstreamProtocol,
-                    this.connectionPoolSize,
-                    this.proxy,
-                    this.useServerHeartbeat,
-                    authChain);
-
                 return await serviceIdentity
                     .Map(
                         async si =>
@@ -203,10 +195,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(identity.Id);
                             string productInfo = connectionMetadata.EdgeProductInfo;
                             Option<string> modelId = connectionMetadata.ModelId;
+
+                            IotHubClientOptions clientOptions = GetClientOptions(
+                                this.upstreamProtocol,
+                                this.connectionPoolSize,
+                                this.proxy,
+                                this.useServerHeartbeat,
+                                authChain,
+                                productInfo);
+
                             ICloudConnection cc = await CloudConnection.Create(
                                 identity,
                                 connectionStatusChangedHandler,
-                                transportSettings,
+                                clientOptions,
                                 this.messageConverterProvider,
                                 this.clientProvider,
                                 cloudListener,
@@ -273,19 +274,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             string productInfo = connectionMetadata.EdgeProductInfo;
             Option<string> modelId = connectionMetadata.ModelId;
 
-            ITransportSettings[] transportSettings = GetTransportSettings(
+            IotHubClientOptions clientOptions = GetClientOptions(
                    this.upstreamProtocol,
                    this.connectionPoolSize,
                    this.proxy,
                    this.useServerHeartbeat,
-                   authChain);
+                   authChain,
+                   productInfo);
 
             try
             {
                 ICloudConnection cc = await CloudConnection.Create(
                                identity,
                                connectionStatusChangedHandler,
-                               transportSettings,
+                               clientOptions,
                                this.messageConverterProvider,
                                this.clientProvider,
                                cloudListener,
@@ -299,7 +301,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Events.SuccessCreatingCloudConnection(identity);
                 return Try.Success(cc);
             }
-            catch (UnauthorizedException ex) when (this.trackDeviceState)
+            catch (IotHubClientException ex) when (this.trackDeviceState && !ex.IsTransient)
             {
                 return await this.TryRecoverCloudConnection(identity, connectionStatusChangedHandler, refreshOutOfDateCache, ex);
             }
@@ -339,46 +341,60 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        static ITransportSettings[] GetAmqpTransportSettings(TransportType type, int connectionPoolSize, Option<IWebProxy> proxy, bool useServerHeartbeat, string authChain)
+        static IotHubClientOptions GetAmqpClientOptions(IotHubClientTransportProtocol protocol, int connectionPoolSize, Option<IWebProxy> proxy, bool useServerHeartbeat, string authChain, string productInfo)
         {
-            var settings = new AmqpTransportSettings(type)
+            var amqpSettings = new IotHubClientAmqpSettings(protocol)
             {
-                AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
+                ConnectionPoolSettings = new AmqpConnectionPoolSettings
                 {
-                    Pooling = true,
-                    MaxPoolSize = (uint)connectionPoolSize
+                    UsePooling = true,
+                    MaxPoolSize = connectionPoolSize
                 }
             };
 
             if (useServerHeartbeat)
             {
-                settings.IdleTimeout = HeartbeatTimeout;
+                amqpSettings.IdleTimeout = HeartbeatTimeout;
             }
 
-            proxy.ForEach(p => settings.Proxy = p);
+            proxy.ForEach(p => amqpSettings.Proxy = p);
+
+            var options = new IotHubClientOptions(amqpSettings);
+
+            if (!string.IsNullOrWhiteSpace(productInfo))
+            {
+                options.AdditionalUserAgentInfo = productInfo;
+            }
 
             // Set the auth chain via Reflection
-            settings.GetType()
+            amqpSettings.GetType()
                     .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
-                    .SetValue(settings, authChain);
+                    ?.SetValue(amqpSettings, authChain);
 
-            return new ITransportSettings[] { settings };
+            return options;
         }
 
-        static ITransportSettings[] GetMqttTransportSettings(TransportType type, Option<IWebProxy> proxy, string authChain)
+        static IotHubClientOptions GetMqttClientOptions(IotHubClientTransportProtocol protocol, Option<IWebProxy> proxy, string authChain, string productInfo)
         {
-            var settings = new MqttTransportSettings(type);
-            proxy.ForEach(p => settings.Proxy = p);
+            var mqttSettings = new IotHubClientMqttSettings(protocol);
+            proxy.ForEach(p => mqttSettings.Proxy = p);
+
+            var options = new IotHubClientOptions(mqttSettings);
+
+            if (!string.IsNullOrWhiteSpace(productInfo))
+            {
+                options.AdditionalUserAgentInfo = productInfo;
+            }
 
             // Set the auth chain via Reflection
-            settings.GetType()
+            mqttSettings.GetType()
                     .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
-                    .SetValue(settings, authChain);
+                    ?.SetValue(mqttSettings, authChain);
 
-            return new ITransportSettings[] { settings };
+            return options;
         }
 
-        internal static ITransportSettings[] GetTransportSettings(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, bool useServerHeartbeat, string authChain)
+        internal static IotHubClientOptions GetClientOptions(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, bool useServerHeartbeat, string authChain, string productInfo)
         {
             return upstreamProtocol
                 .Map(
@@ -387,25 +403,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         switch (up)
                         {
                             case UpstreamProtocol.Amqp:
-                                return GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, Option.None<IWebProxy>(), useServerHeartbeat, authChain);
+                                return GetAmqpClientOptions(IotHubClientTransportProtocol.Tcp, connectionPoolSize, Option.None<IWebProxy>(), useServerHeartbeat, authChain, productInfo);
 
                             case UpstreamProtocol.AmqpWs:
                                 // Only WebSocket protocols can use an HTTP forward proxy
-                                return GetAmqpTransportSettings(TransportType.Amqp_WebSocket_Only, connectionPoolSize, proxy, useServerHeartbeat, authChain);
+                                return GetAmqpClientOptions(IotHubClientTransportProtocol.WebSocket, connectionPoolSize, proxy, useServerHeartbeat, authChain, productInfo);
 
                             case UpstreamProtocol.Mqtt:
-                                return GetMqttTransportSettings(TransportType.Mqtt_Tcp_Only, Option.None<IWebProxy>(), authChain);
+                                return GetMqttClientOptions(IotHubClientTransportProtocol.Tcp, Option.None<IWebProxy>(), authChain, productInfo);
 
                             case UpstreamProtocol.MqttWs:
                                 // Only WebSocket protocols can use an HTTP forward proxy
-                                return GetMqttTransportSettings(TransportType.Mqtt_WebSocket_Only, proxy, authChain);
+                                return GetMqttClientOptions(IotHubClientTransportProtocol.WebSocket, proxy, authChain, productInfo);
 
                             default:
                                 throw new InvalidEnumArgumentException($"Unsupported transport type {up}");
                         }
                     })
                 .GetOrElse(
-                    () => GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, Option.None<IWebProxy>(), useServerHeartbeat, authChain));
+                    () => GetAmqpClientOptions(IotHubClientTransportProtocol.Tcp, connectionPoolSize, Option.None<IWebProxy>(), useServerHeartbeat, authChain, productInfo));
         }
 
         static class Events

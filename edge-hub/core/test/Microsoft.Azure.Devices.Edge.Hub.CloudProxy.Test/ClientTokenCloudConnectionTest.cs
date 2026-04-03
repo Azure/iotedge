@@ -6,14 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Xunit;
     using TransportType = Microsoft.Azure.Devices.Client.TransportType;
@@ -30,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             IClientProvider clientProvider = GetMockDeviceClientProviderWithToken();
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
             ITokenCredentials clientCredentials1 = GetMockClientCredentialsWithToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
                 clientCredentials1,
@@ -64,11 +62,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.SetupSequence(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(GetMockDeviceClient())
-                .Throws(new UnauthorizedException("Unauthorized"));
+                .Throws(new IotHubClientException("Unauthorized"));
 
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
 
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
             ITokenCredentials identity1 = GetMockClientCredentialsWithToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
                 identity1,
@@ -89,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxy1.OrDefault().IsActive);
 
             ITokenCredentials identity2 = GetMockClientCredentialsWithToken();
-            await Assert.ThrowsAsync<UnauthorizedException>(() => cloudConnection.UpdateTokenAsync(identity2));
+            await Assert.ThrowsAsync<IotHubClientException>(() => cloudConnection.UpdateTokenAsync(identity2));
             Assert.True(cloudProxy1.OrDefault().IsActive);
         }
 
@@ -113,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Returns(() => client);
 
             var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
 
             ITokenCredentials clientCredentialsWithNonExpiringToken = GetClientCredentialsWithNonExpiringToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
@@ -164,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var receivedStatus = CloudConnectionStatus.ConnectionEstablished;
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatus = status;
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
 
             ITokenCredentials clientCredentialsWithExpiringToken1 = GetClientCredentialsWithExpiringToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
@@ -234,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var receivedStatuses = new List<CloudConnectionStatus>();
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatuses.Add(status);
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
 
             ITokenCredentials clientCredentialsWithExpiringToken1 = GetClientCredentialsWithExpiringToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
@@ -301,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task CloudConnectionCallbackTest()
         {
             int receivedConnectedStatusCount = 0;
-            ConnectionStatusChangesHandler connectionStatusChangesHandler = (_, __) => { };
+            Action<ConnectionStatusInfo> connectionStatusChangesHandler = (_) => { };
 
             IClient GetMockedDeviceClient()
             {
@@ -311,15 +309,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
                     .Returns(Task.FromResult(true));
 
-                deviceClient.Setup(dc => dc.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
-                    .Callback<ConnectionStatusChangesHandler>(c => connectionStatusChangesHandler = c);
+                deviceClient.Setup(dc => dc.SetConnectionStatusChangedHandler(It.IsAny<Action<ConnectionStatusInfo>>()))
+                    .Callback<Action<ConnectionStatusInfo>>(c => connectionStatusChangesHandler = c);
 
                 deviceClient.Setup(dc => dc.OpenAsync())
                     .Callback(
                         () =>
                         {
                             Assert.NotNull(connectionStatusChangesHandler);
-                            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+                            connectionStatusChangesHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Connected, ConnectionStatusChangeReason.ConnectionOk));
                         })
                     .Returns(Task.CompletedTask);
                 return deviceClient.Object;
@@ -339,7 +337,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 }
             }
 
-            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(TwinCollection)] = Mock.Of<IMessageConverter>() });
+            var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
             ITokenCredentials clientCredentialsWithExpiringToken1 = GetMockClientCredentialsWithToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
                 clientCredentialsWithExpiringToken1,
@@ -361,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxy1.OrDefault().IsActive);
 
             Assert.NotNull(connectionStatusChangesHandler);
-            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            connectionStatusChangesHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Connected, ConnectionStatusChangeReason.ConnectionOk));
             Assert.Equal(2, receivedConnectedStatusCount);
 
             ITokenCredentials clientCredentialsWithExpiringToken2 = GetMockClientCredentialsWithToken();
@@ -370,7 +368,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(cloudProxy2, cloudConnection.CloudProxy.OrDefault());
             Assert.Equal(2, receivedConnectedStatusCount);
 
-            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            connectionStatusChangesHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Connected, ConnectionStatusChangeReason.ConnectionOk));
             Assert.Equal(3, receivedConnectedStatusCount);
         }
 
@@ -379,7 +377,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task UpdateDeviceConnectionTest()
         {
             int receivedConnectedStatusCount = 0;
-            ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
+            Action<ConnectionStatusInfo> connectionStatusChangesHandler = null;
             string hostname = "dummy.azure-devices.net";
             string deviceId = "device1";
 
@@ -408,8 +406,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
                     .Returns(Task.FromResult(true));
 
-                deviceClient.Setup(dc => dc.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
-                    .Callback<ConnectionStatusChangesHandler>(c => connectionStatusChangesHandler = c);
+                deviceClient.Setup(dc => dc.SetConnectionStatusChangedHandler(It.IsAny<Action<ConnectionStatusInfo>>()))
+                    .Callback<Action<ConnectionStatusInfo>>(c => connectionStatusChangesHandler = c);
 
                 deviceClient.Setup(dc => dc.OpenAsync())
                     .Callback(
@@ -417,7 +415,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         {
                             int currentCount = receivedConnectedStatusCount;
                             Assert.NotNull(connectionStatusChangesHandler);
-                            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+                            connectionStatusChangesHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Connected, ConnectionStatusChangeReason.ConnectionOk));
                             Assert.Equal(receivedConnectedStatusCount, currentCount);
                         })
                     .Returns(Task.CompletedTask);

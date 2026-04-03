@@ -25,14 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>())).Returns(Task.CompletedTask);
 
-            var messageConverter = new Mock<IMessageConverter<Message>>();
+            var messageConverter = new Mock<IMessageConverter<TelemetryMessage>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
-                .Returns(new Message());
+                .Returns(new TelemetryMessage(new byte[0]));
 
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
-            messageConverterProvider.Setup(m => m.Get<Message>())
+            messageConverterProvider.Setup(m => m.Get<TelemetryMessage>())
                 .Returns(messageConverter.Object);
 
             var cloudListener = new Mock<ICloudListener>();
@@ -77,14 +77,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>())).Returns(Task.CompletedTask);
 
-            var messageConverter = new Mock<IMessageConverter<Message>>();
+            var messageConverter = new Mock<IMessageConverter<TelemetryMessage>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
-                .Returns(new Message());
+                .Returns(new TelemetryMessage(new byte[0]));
 
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
-            messageConverterProvider.Setup(m => m.Get<Message>())
+            messageConverterProvider.Setup(m => m.Get<TelemetryMessage>())
                 .Returns(messageConverter.Object);
 
             var cloudListener = new Mock<ICloudListener>();
@@ -111,15 +111,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
-            client.Setup(c => c.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<DesiredPropertyUpdateCallback>(), It.IsAny<object>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<Func<PropertyCollection, Task>>())).Returns(Task.CompletedTask);
 
-            var messageConverter = new Mock<IMessageConverter<Message>>();
+            var messageConverter = new Mock<IMessageConverter<TelemetryMessage>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
-                .Returns(new Message());
+                .Returns(new TelemetryMessage(new byte[0]));
 
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
-            messageConverterProvider.Setup(m => m.Get<Message>())
+            messageConverterProvider.Setup(m => m.Get<TelemetryMessage>())
                 .Returns(messageConverter.Object);
 
             var cloudListener = new Mock<ICloudListener>();
@@ -153,15 +153,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback(() => isClientActive = false)
                 .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
-            client.Setup(c => c.SetMethodDefaultHandlerAsync(It.IsAny<MethodCallback>(), It.IsAny<object>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>())).Returns(Task.CompletedTask);
+            client.Setup(c => c.SetDirectMethodCallbackAsync(It.IsAny<Func<Client.DirectMethodRequest, Task<Client.DirectMethodResponse>>>())).Returns(Task.CompletedTask);
 
-            var messageConverter = new Mock<IMessageConverter<Message>>();
+            var messageConverter = new Mock<IMessageConverter<TelemetryMessage>>();
             messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
-                .Returns(new Message());
+                .Returns(new TelemetryMessage(new byte[0]));
 
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
-            messageConverterProvider.Setup(m => m.Get<Message>())
+            messageConverterProvider.Setup(m => m.Get<TelemetryMessage>())
                 .Returns(messageConverter.Object);
 
             var cloudListener = new Mock<ICloudListener>();
@@ -197,14 +197,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
             client.Setup(c => c.ReceiveAsync(It.IsAny<TimeSpan>()))
                 // .Callback<TimeSpan>(t => Task.Yield())
-                .Returns(Task.FromResult<Message>(new Message()));
+                .Returns(Task.FromResult<IncomingMessage>(new IncomingMessage(new byte[0])));
 
-            var messageConverter = new Mock<IMessageConverter<Message>>();
-            messageConverter.Setup(m => m.FromMessage(It.IsAny<IMessage>()))
-                .Returns(new Message());
+            var messageConverter = new Mock<IMessageConverter<IncomingMessage>>();
+            messageConverter.Setup(m => m.ToMessage(It.IsAny<IncomingMessage>()))
+                .Returns(new EdgeMessage(new byte[0], new Dictionary<string, string>(), new Dictionary<string, string>()));
 
             var messageConverterProvider = new Mock<IMessageConverterProvider>();
-            messageConverterProvider.Setup(m => m.Get<Message>())
+            messageConverterProvider.Setup(m => m.Get<IncomingMessage>())
                 .Returns(messageConverter.Object);
 
             var cloudListener = new Mock<ICloudListener>();

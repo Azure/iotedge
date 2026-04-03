@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.31.6" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="2.0.0-rc" />
     <PackageReference Include="Stateless" Version="5.20.1" />
   </ItemGroup>
 

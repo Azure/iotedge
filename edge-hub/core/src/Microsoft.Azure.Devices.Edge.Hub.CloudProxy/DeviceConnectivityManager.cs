@@ -7,13 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Text;
     using System.Threading.Tasks;
     using System.Timers;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Stateless;
@@ -198,8 +198,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             readonly Lazy<IMessage> testMessage = new Lazy<IMessage>(
                 () =>
                 {
-                    string twinCollectionString = JsonConvert.SerializeObject(new TwinCollection());
-                    return new EdgeMessage.Builder(Encoding.UTF8.GetBytes(twinCollectionString)).Build();
+                    string propertyCollectionString = JsonConvert.SerializeObject(new PropertyCollection());
+                    return new EdgeMessage.Builder(Encoding.UTF8.GetBytes(propertyCollectionString)).Build();
                 });
 
             public ConnectivityChecker(

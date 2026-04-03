@@ -10,17 +10,14 @@ namespace IotEdgeQuickstart.Details
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
     using RetryPolicy = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.RetryPolicy;
-    using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
     public class Details
     {
@@ -116,8 +113,6 @@ namespace IotEdgeQuickstart.Details
 
         readonly string eventhubCompatibleEndpointWithEntityPath;
 
-        readonly ServiceClientTransportType serviceClientTransportType;
-
         readonly EventHubClientTransportType eventHubClientTransportType;
 
         readonly string imageTag;
@@ -181,13 +176,11 @@ namespace IotEdgeQuickstart.Details
             {
                 case UpstreamProtocolType.Amqp:
                 case UpstreamProtocolType.Mqtt:
-                    this.serviceClientTransportType = ServiceClientTransportType.Amqp;
                     this.eventHubClientTransportType = EventHubClientTransportType.Amqp;
                     break;
 
                 case UpstreamProtocolType.AmqpWs:
                 case UpstreamProtocolType.MqttWs:
-                    this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
                     this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
                     break;
 
@@ -233,17 +226,15 @@ namespace IotEdgeQuickstart.Details
         protected async Task GetOrCreateEdgeDeviceIdentity()
         {
             Console.WriteLine("Getting or Creating device Identity.");
-            var settings = new HttpTransportSettings();
-            this.proxy.ForEach(p => settings.Proxy = p);
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
+            var csProperties = ParseConnectionString(this.iothubConnectionString);
+            IotHubServiceClient serviceClient = new IotHubServiceClient(this.iothubConnectionString);
 
-            Device device = await rm.GetDeviceAsync(this.deviceId);
+            Device device = await serviceClient.Devices.GetAsync(this.deviceId);
             if (device != null)
             {
-                Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
+                Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{csProperties["HostName"]}'");
                 Console.WriteLine($"Clean up Existing device? {this.cleanUpExistingDeviceOnSuccess}");
-                this.context = new DeviceContext(device, this.iothubConnectionString, rm, this.cleanUpExistingDeviceOnSuccess);
+                this.context = new DeviceContext(device, this.iothubConnectionString, serviceClient, this.cleanUpExistingDeviceOnSuccess);
             }
             else
             {
@@ -251,11 +242,11 @@ namespace IotEdgeQuickstart.Details
                 // ESD will register with DPS to create the device in IoT Hub
                 if (this.dpsAttestation.HasValue)
                 {
-                    this.context = new DeviceContext(this.deviceId, this.iothubConnectionString, rm, this.cleanUpExistingDeviceOnSuccess);
+                    this.context = new DeviceContext(this.deviceId, this.iothubConnectionString, serviceClient, this.cleanUpExistingDeviceOnSuccess);
                 }
                 else
                 {
-                    await this.CreateEdgeDeviceIdentity(rm);
+                    await this.CreateEdgeDeviceIdentity(serviceClient);
                 }
             }
         }
@@ -267,11 +258,10 @@ namespace IotEdgeQuickstart.Details
                 dps => { return new DeviceProvisioningMethod(dps); },
                 () =>
                 {
-                    IotHubConnectionStringBuilder builder =
-                        IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
+                    var csProperties = ParseConnectionString(this.context.IotHubConnectionString);
                     Device device = this.context.Device.Expect(() => new InvalidOperationException("Expected a valid device instance"));
                     string connectionString =
-                        $"HostName={builder.HostName};" +
+                        $"HostName={csProperties["HostName"]};" +
                         $"DeviceId={device.Id};" +
                         $"SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey}";
 
@@ -308,11 +298,7 @@ namespace IotEdgeQuickstart.Details
 
                 try
                 {
-                    var settings = new ServiceClientTransportSettings();
-                    this.proxy.ForEach(p => settings.HttpProxy = p);
-
-                    ServiceClient serviceClient =
-                        ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
+                    IotHubServiceClient serviceClient = new IotHubServiceClient(this.context.IotHubConnectionString);
 
                     while (!cts.IsCancellationRequested)
                     {
@@ -320,10 +306,10 @@ namespace IotEdgeQuickstart.Details
 
                         try
                         {
-                            CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
+                            DirectMethodClientResponse result = await serviceClient.DirectMethods.InvokeAsync(
                                 this.context.DeviceId,
                                 "$edgeAgent",
-                                new CloudToDeviceMethod("ping"),
+                                new DirectMethodServiceRequest("ping"),
                                 cts.Token);
                             if (result.Status == 200)
                             {
@@ -366,7 +352,7 @@ namespace IotEdgeQuickstart.Details
                 async () =>
             {
                 Console.WriteLine("Attempting to apply configuration on device...");
-                await this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.DeviceId, config);
+                await this.context.ServiceClient.Configurations.ApplyConfigurationContentOnDeviceAsync(this.context.DeviceId, config);
             }, new CancellationTokenSource(TimeSpan.FromMinutes(10)).Token);
         }
 
@@ -438,27 +424,28 @@ namespace IotEdgeQuickstart.Details
 
                     var twinTest = JsonConvert.DeserializeObject<TwinTestConfiguration>(twinTestJson);
 
-                    Twin currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.DeviceId, twinTest.ModuleId);
+                    ClientTwin currentTwin = await this.context.ServiceClient.Twins.GetAsync(this.context.DeviceId, twinTest.ModuleId);
 
                     if (twinTest.Properties?.Desired?.Count > 0)
                     {
                         // Build Patch Object.
                         string patch = JsonConvert.SerializeObject(twinTest, Formatting.Indented);
-                        await this.context.RegistryManager.UpdateTwinAsync(this.context.DeviceId, twinTest.ModuleId, patch, currentTwin.ETag);
+                        var patchTwin = JsonConvert.DeserializeObject<ClientTwin>(patch);
+                        await this.context.ServiceClient.Twins.UpdateAsync(this.context.DeviceId, twinTest.ModuleId, patchTwin, true, CancellationToken.None);
                     }
 
                     if (twinTest.Properties?.Reported?.Count > 0)
                     {
                         TimeSpan retryInterval = TimeSpan.FromSeconds(10);
-                        bool IsValid(TwinCollection currentTwinReportedProperty) => twinTest.Properties.Reported.Cast<KeyValuePair<string, object>>().All(p => currentTwinReportedProperty.Cast<KeyValuePair<string, object>>().Contains(p));
+                        bool IsValid(ClientTwinProperties currentTwinReportedProperty) => twinTest.Properties.Reported.All(p => currentTwinReportedProperty.ContainsKey(p.Key));
 
                         using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
                         {
-                            async Task<TwinCollection> Func()
+                            async Task<ClientTwinProperties> Func()
                             {
                                 // Removing reSharper warning for CTS, Code Block will never exit before the delegate code completes because of using.
                                 // ReSharper disable AccessToDisposedClosure
-                                currentTwin = await this.context.RegistryManager.GetTwinAsync(this.context.DeviceId, twinTest.ModuleId, cts.Token);
+                                currentTwin = await this.context.ServiceClient.Twins.GetAsync(this.context.DeviceId, twinTest.ModuleId, cts.Token);
                                 // ReSharper restore AccessToDisposedClosure
                                 return await Task.FromResult(currentTwin.Properties.Reported);
                             }
@@ -494,7 +481,7 @@ namespace IotEdgeQuickstart.Details
 
             config.ModulesContent["$edgeAgent"]["properties.desired"] = desired;
 
-            return this.context.RegistryManager.ApplyConfigurationContentOnDeviceAsync(this.context.DeviceId, config);
+            return this.context.ServiceClient.Configurations.ApplyConfigurationContentOnDeviceAsync(this.context.DeviceId, config);
         }
 
         protected Task StopBootstrapper()
@@ -528,22 +515,22 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-        async Task CreateEdgeDeviceIdentity(RegistryManager rm)
+        async Task CreateEdgeDeviceIdentity(IotHubServiceClient serviceClient)
         {
             var device = new Device(this.deviceId)
             {
-                Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
-                Capabilities = new DeviceCapabilities() { IotEdge = true }
+                Authentication = new AuthenticationMechanism() { Type = ClientAuthenticationType.Sas },
+                Capabilities = new ClientCapabilities() { IsIotEdge = true }
             };
 
             await this.parentEdgeDevice.ForEachAsync(async p =>
             {
-                var parentDevice = await rm.GetDeviceAsync(p);
+                var parentDevice = await serviceClient.Devices.GetAsync(p);
                 device.ParentScopes.Add(parentDevice.Scope);
             });
 
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
+            var csProperties = ParseConnectionString(this.iothubConnectionString);
+            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{csProperties["HostName"]}'");
 
             var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
             var retryPolicy = new RetryPolicy(new TransientNetworkErrorDetectionStrategy(), retryStrategy);
@@ -551,10 +538,10 @@ namespace IotEdgeQuickstart.Details
                 async () =>
             {
                 Console.WriteLine("Attempting to create device identity...");
-                device = await rm.AddDeviceAsync(device);
+                device = await serviceClient.Devices.CreateAsync(device);
             }, new CancellationTokenSource(TimeSpan.FromMinutes(10)).Token);
 
-            this.context = new DeviceContext(device, builder.ToString(), rm, true);
+            this.context = new DeviceContext(device, this.iothubConnectionString, serviceClient, true);
         }
 
         string EdgeAgentImage()
@@ -613,33 +600,39 @@ namespace IotEdgeQuickstart.Details
 
             return (deployJson, new[] { edgeAgentImage, edgeHubImage, tempSensorImage });
         }
+
+        static Dictionary<string, string> ParseConnectionString(string connectionString) =>
+            connectionString.Split(';')
+                .Select(part => part.Split(new[] { '=' }, 2))
+                .Where(parts => parts.Length == 2)
+                .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim());
     }
 
     class TransientNetworkErrorDetectionStrategy : ITransientErrorDetectionStrategy
     {
         public bool IsTransient(Exception ex)
         {
-            return ex is IotHubCommunicationException && ex.Message.Contains("The POST operation timed out");
+            return ex is IotHubServiceException && ex.Message.Contains("The POST operation timed out");
         }
     }
 
     public class DeviceContext
     {
-        public DeviceContext(string deviceId, string iothubConnectionString, RegistryManager rm, bool removeDevice)
+        public DeviceContext(string deviceId, string iothubConnectionString, IotHubServiceClient serviceClient, bool removeDevice)
         {
             this.DeviceId = deviceId;
             this.Device = Option.None<Device>();
             this.IotHubConnectionString = iothubConnectionString;
-            this.RegistryManager = rm;
+            this.ServiceClient = serviceClient;
             this.RemoveDevice = removeDevice;
         }
 
-        public DeviceContext(Device device, string iothubConnectionString, RegistryManager rm, bool removeDevice)
+        public DeviceContext(Device device, string iothubConnectionString, IotHubServiceClient serviceClient, bool removeDevice)
         {
             this.DeviceId = device.Id;
             this.Device = Option.Some(device);
             this.IotHubConnectionString = iothubConnectionString;
-            this.RegistryManager = rm;
+            this.ServiceClient = serviceClient;
             this.RemoveDevice = removeDevice;
         }
 
@@ -649,7 +642,7 @@ namespace IotEdgeQuickstart.Details
 
         public string IotHubConnectionString { get; }
 
-        public RegistryManager RegistryManager { get; }
+        public IotHubServiceClient ServiceClient { get; }
 
         public bool RemoveDevice { get; set; }
 
@@ -658,7 +651,7 @@ namespace IotEdgeQuickstart.Details
             if (this.RemoveDevice)
             {
                 Console.WriteLine($"Trying to remove device from Registry. Device Id: {this.DeviceId}");
-                return this.RegistryManager.RemoveDeviceAsync(this.DeviceId);
+                return this.ServiceClient.Devices.DeleteAsync(this.DeviceId);
             }
 
             return Task.CompletedTask;

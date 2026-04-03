@@ -14,17 +14,10 @@ namespace LeafDeviceTest
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
-    using DeviceClientTransportType = Microsoft.Azure.Devices.Client.TransportType;
     using EventHubClientTransportType = Microsoft.Azure.EventHubs.TransportType;
-    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
-    using Message = Microsoft.Azure.Devices.Client.Message;
-    using ServiceClientTransportType = Microsoft.Azure.Devices.TransportType;
 
     public enum DeviceProtocol
     {
@@ -42,10 +35,9 @@ namespace LeafDeviceTest
         readonly string trustedCACertificateFileName;
         readonly string edgeHostName;
         readonly Option<string> edgeDeviceId;
-        readonly ServiceClientTransportType serviceClientTransportType;
         readonly EventHubClientTransportType eventHubClientTransportType;
-        readonly ITransportSettings[] deviceTransportSettings;
-        readonly AuthenticationType authType = AuthenticationType.None;
+        readonly IotHubClientTransportSettings deviceTransportSettings;
+        readonly ClientAuthenticationType authType = ClientAuthenticationType.None;
         readonly Option<X509Certificate2> clientCertificate;
         readonly Option<IEnumerable<X509Certificate2>> clientCertificateChain;
         readonly Option<List<string>> thumbprints;
@@ -70,7 +62,7 @@ namespace LeafDeviceTest
             this.trustedCACertificateFileName = trustedCACertificateFileName;
             this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
             this.edgeHostName = edgeHostName;
-            if (!edgeDeviceId.IsNullOrWhiteSpace())
+            if (!string.IsNullOrWhiteSpace(edgeDeviceId))
             {
                 this.edgeDeviceId = Option.Some(edgeDeviceId);
             }
@@ -82,28 +74,26 @@ namespace LeafDeviceTest
 
             if (protocol == DeviceProtocol.AmqpWS || protocol == DeviceProtocol.MqttWs)
             {
-                this.serviceClientTransportType = ServiceClientTransportType.Amqp_WebSocket_Only;
                 this.eventHubClientTransportType = EventHubClientTransportType.AmqpWebSockets;
                 if (protocol == DeviceProtocol.MqttWs)
                 {
-                    this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_WebSocket_Only) };
+                    this.deviceTransportSettings = new IotHubClientMqttSettings(IotHubClientTransportProtocol.WebSocket);
                 }
                 else
                 {
-                    this.deviceTransportSettings = new ITransportSettings[] { new AmqpTransportSettings(DeviceClientTransportType.Amqp_WebSocket_Only) };
+                    this.deviceTransportSettings = new IotHubClientAmqpSettings(IotHubClientTransportProtocol.WebSocket);
                 }
             }
             else
             {
-                this.serviceClientTransportType = ServiceClientTransportType.Amqp;
                 this.eventHubClientTransportType = this.proxy.HasValue ? EventHubClientTransportType.AmqpWebSockets : EventHubClientTransportType.Amqp;
                 if (protocol == DeviceProtocol.Mqtt)
                 {
-                    this.deviceTransportSettings = new ITransportSettings[] { new MqttTransportSettings(DeviceClientTransportType.Mqtt_Tcp_Only) };
+                    this.deviceTransportSettings = new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp);
                 }
                 else
                 {
-                    this.deviceTransportSettings = new ITransportSettings[] { new AmqpTransportSettings(DeviceClientTransportType.Amqp_Tcp_Only) };
+                    this.deviceTransportSettings = new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp);
                 }
             }
 
@@ -112,9 +102,8 @@ namespace LeafDeviceTest
                 + $"\t[authType={this.authType}] \n"
                 + $"\t[clientCertificate subject name={this.clientCertificate.Match(c => c.SubjectName.ToString(), () => string.Empty)}] \n"
                 + $"\t[clientCertificateChain count={this.clientCertificateChain.Match(c => c.Count(), () => 0)}] \n"
-                + $"\t[service client transport type={this.serviceClientTransportType}]\n"
                 + $"\t[event hub client transport type={this.eventHubClientTransportType}]\n"
-                + $"\t[device transport type={this.deviceTransportSettings.First().GetTransportType()}]");
+                + $"\t[device transport type={this.deviceTransportSettings.GetType().Name}]");
         }
 
         protected Task InitializeTrustedCertsAsync()
@@ -152,37 +141,39 @@ namespace LeafDeviceTest
 
                 try
                 {
-                    var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-                    DeviceClient deviceClient;
-                    if (this.authType == AuthenticationType.Sas)
+                    var csProperties = ParseConnectionString(this.iothubConnectionString);
+                    IotHubDeviceClient deviceClient;
+                    var options = new IotHubClientOptions(this.deviceTransportSettings);
+                    if (this.authType == ClientAuthenticationType.Sas)
                     {
-                        string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
-                        deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
+                        string leafDeviceConnectionString = $"HostName={csProperties["HostName"]};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+                        deviceClient = new IotHubDeviceClient(leafDeviceConnectionString, options);
                     }
                     else
                     {
-                        var auth = new DeviceAuthenticationWithX509Certificate(this.deviceId, this.clientCertificate.Expect(() => new InvalidOperationException("Missing client certificate")));
-                        deviceClient = DeviceClient.Create(builder.HostName, this.edgeHostName, auth, this.deviceTransportSettings);
+                        var auth = new ClientAuthenticationWithX509Certificate(this.clientCertificate.Expect(() => new InvalidOperationException("Missing client certificate")), this.deviceId);
+                        options.GatewayHostName = this.edgeHostName;
+                        deviceClient = new IotHubDeviceClient(csProperties["HostName"], auth, options);
                     }
 
                     this.context.DeviceClientInstance = Option.Some(deviceClient);
                     Console.WriteLine("Leaf Device client created.");
 
-                    var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
+                    var message = new TelemetryMessage(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
                     Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
 
                     while (!cts.IsCancellationRequested) // Retries are needed as the DeviceClient timeouts are not long enough
                     {
                         try
                         {
-                            await deviceClient.SendEventAsync(message);
+                            await deviceClient.SendTelemetryAsync(message);
                             if (string.IsNullOrWhiteSpace(this.context.Device.Scope))
                             {
                                 throw new InvalidOperationException("Expected to throw exception");
                             }
 
                             Console.WriteLine("Message Sent.");
-                            await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null);
+                            await deviceClient.SetDirectMethodCallbackAsync(DirectMethodHandler);
                             Console.WriteLine("Direct method callback is set.");
                             break;
                         }
@@ -215,46 +206,44 @@ namespace LeafDeviceTest
 
         protected async Task GetOrCreateDeviceIdentityAsync()
         {
-            var settings = new HttpTransportSettings();
-            this.proxy.ForEach(p => settings.Proxy = p);
-            IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
+            var csProperties = ParseConnectionString(this.iothubConnectionString);
+            IotHubServiceClient serviceClient = new IotHubServiceClient(this.iothubConnectionString);
 
             Option<string> edgeScope = await this.edgeDeviceId
-                .Map(id => GetScopeIfExitsAsync(rm, id))
+                .Map(id => GetScopeIfExitsAsync(serviceClient, id))
                 .GetOrElse(() => Task.FromResult<Option<string>>(Option.None<string>()));
 
-            Device device = await rm.GetDeviceAsync(this.deviceId);
+            Device device = await serviceClient.Devices.GetAsync(this.deviceId);
             if (device != null)
             {
-                Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
+                Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{csProperties["HostName"]}'");
 
-                if (this.authType == AuthenticationType.SelfSigned)
+                if (this.authType == ClientAuthenticationType.SelfSigned)
                 {
-                    var thumbprints = this.thumbprints.Expect(() => new InvalidOperationException("Missing thumbprints list"));
-                    if (!thumbprints.Contains(device.Authentication.X509Thumbprint.PrimaryThumbprint) ||
-                        !thumbprints.Contains(device.Authentication.X509Thumbprint.SecondaryThumbprint))
+                    var thumbprintsList = this.thumbprints.Expect(() => new InvalidOperationException("Missing thumbprints list"));
+                    if (!thumbprintsList.Contains(device.Authentication.X509Thumbprint.PrimaryThumbprint) ||
+                        !thumbprintsList.Contains(device.Authentication.X509Thumbprint.SecondaryThumbprint))
                     {
                         // update the thumbprints before attempting to run any tests to ensure consistency
-                        device.Authentication.X509Thumbprint = new X509Thumbprint { PrimaryThumbprint = thumbprints[0], SecondaryThumbprint = thumbprints[1] };
+                        device.Authentication.X509Thumbprint = new X509Thumbprint { PrimaryThumbprint = thumbprintsList[0], SecondaryThumbprint = thumbprintsList[1] };
                     }
                 }
 
                 edgeScope.ForEach(s => device.Scope = s);
-                await rm.UpdateDeviceAsync(device);
+                await serviceClient.Devices.SetAsync(device, true);
 
                 this.context = new DeviceContext
                 {
                     Device = device,
                     IotHubConnectionString = this.iothubConnectionString,
-                    RegistryManager = rm,
+                    ServiceClient = serviceClient,
                     RemoveDevice = false,
                     MessageGuid = Guid.NewGuid().ToString()
                 };
             }
             else
             {
-                await this.CreateDeviceIdentityAsync(rm, edgeScope);
+                await this.CreateDeviceIdentityAsync(serviceClient, edgeScope);
             }
         }
 
@@ -318,19 +307,17 @@ namespace LeafDeviceTest
             if (!this.edgeDeviceId.HasValue)
                 return;
 
-            // User Service SDK to invoke Direct Method on the device.
-            var settings = new ServiceClientTransportSettings();
-            this.proxy.ForEach(p => settings.HttpProxy = p);
-            ServiceClient serviceClient =
-                ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
+            // Use Service SDK to invoke Direct Method on the device.
+            IotHubServiceClient serviceClient = new IotHubServiceClient(this.context.IotHubConnectionString);
 
             // Call a direct method
             TimeSpan testDuration = TimeSpan.FromSeconds(300);
             DateTime endTime = DateTime.UtcNow + testDuration;
 
-            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
+            DirectMethodServiceRequest directMethodRequest = new DirectMethodServiceRequest("DirectMethod");
+            directMethodRequest.SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
 
-            CloudToDeviceMethodResult result = null;
+            DirectMethodClientResponse result = null;
             // To reduce log size and make troubleshooting easier, log last exception only.
             Exception lastException = null;
             bool isRetrying = true;
@@ -342,9 +329,9 @@ namespace LeafDeviceTest
                 {
                     using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
                     {
-                        result = await serviceClient.InvokeDeviceMethodAsync(
+                        result = await serviceClient.DirectMethods.InvokeAsync(
                             this.context.Device.Id,
-                            cloudToDeviceMethod,
+                            directMethodRequest,
                             cts.Token);
 
                         if (result?.Status == 200)
@@ -373,15 +360,15 @@ namespace LeafDeviceTest
             {
                 if (lastException != null)
                 {
-                    Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}: {lastException}'");
+                    Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{directMethodRequest}: {lastException}'");
                 }
 
                 throw new Exception($"Could not invoke Direct Method on Device with result status {result?.Status}.");
             }
 
-            if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal))
+            if (!string.Equals(result.JsonPayload.GetRawText(), "{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal))
             {
-                throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
+                throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.JsonPayload}. Expected: {{\"TestKey\":\"TestValue\"}}");
             }
 
             Console.WriteLine("Direct method test passed.");
@@ -405,7 +392,7 @@ namespace LeafDeviceTest
 
                 if (remove)
                 {
-                    return this.context.RegistryManager.RemoveDeviceAsync(device);
+                    return this.context.ServiceClient.Devices.DeleteAsync(device.Id);
                 }
             }
 
@@ -427,15 +414,17 @@ namespace LeafDeviceTest
             }
         }
 
-        static Task<MethodResponse> DirectMethod(MethodRequest methodRequest, object userContext)
+        static Task<DirectMethodResponse> DirectMethodHandler(DirectMethodRequest methodRequest)
         {
-            Console.WriteLine($"Leaf device received direct method call...Payload Received: {methodRequest.DataAsJson}");
-            return Task.FromResult(new MethodResponse(methodRequest.Data, (int)HttpStatusCode.OK));
+            Console.WriteLine($"Leaf device received direct method call...Payload Received: {System.Text.Encoding.UTF8.GetString(methodRequest.Payload)}");
+            var response = new DirectMethodResponse((int)HttpStatusCode.OK);
+            response.SetPayloadJson(System.Text.Encoding.UTF8.GetString(methodRequest.Payload));
+            return Task.FromResult(response);
         }
 
-        static async Task<Option<string>> GetScopeIfExitsAsync(RegistryManager rm, string deviceId)
+        static async Task<Option<string>> GetScopeIfExitsAsync(IotHubServiceClient serviceClient, string deviceId)
         {
-            Device edgeDevice = await rm.GetDeviceAsync(deviceId);
+            Device edgeDevice = await serviceClient.Devices.GetAsync(deviceId);
             if (edgeDevice == null)
             {
                 return Option.None<string>();
@@ -445,7 +434,7 @@ namespace LeafDeviceTest
             return Option.Some(edgeDevice.Scope);
         }
 
-        static (AuthenticationType,
+        static (ClientAuthenticationType,
             Option<X509Certificate2>,
             Option<IEnumerable<X509Certificate2>>,
             Option<List<string>>) ObtainAuthDetails(
@@ -456,7 +445,7 @@ namespace LeafDeviceTest
                 {
                     (X509Certificate2 clientCert, IEnumerable<X509Certificate2> clientCertChain) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(clientCred.CertificateFilePath, clientCred.PrivateKeyFilePath);
-                    var authType = AuthenticationType.CertificateAuthority;
+                    var authType = ClientAuthenticationType.CertificateAuthority;
                     var thumbprintsOpt = thumbprintCertificatePaths.Map(
                         certificates =>
                         {
@@ -475,7 +464,7 @@ namespace LeafDeviceTest
                                 throw new ArgumentException($"'{certificates[1]}' is not a path to a thumbprint certificate file");
                             }
 
-                            authType = AuthenticationType.SelfSigned;
+                            authType = ClientAuthenticationType.SelfSigned;
                             var rawCerts = new List<string>();
                             foreach (string dc in certificates)
                             {
@@ -489,21 +478,21 @@ namespace LeafDeviceTest
                             }
 
                             var certs = CertificateHelper.GetCertificatesFromPem(rawCerts);
-                            var thumbprints = new List<string>();
+                            var thumbprintList = new List<string>();
                             foreach (var cert in certs)
                             {
-                                thumbprints.Add(cert.Thumbprint.ToUpper(CultureInfo.InvariantCulture));
+                                thumbprintList.Add(cert.Thumbprint.ToUpper(CultureInfo.InvariantCulture));
                             }
 
-                            return thumbprints;
+                            return thumbprintList;
                         });
 
                     return (authType,
                         Option.Some(clientCert),
-                        authType == AuthenticationType.CertificateAuthority ? Option.Some(clientCertChain) : Option.None<IEnumerable<X509Certificate2>>(),
+                        authType == ClientAuthenticationType.CertificateAuthority ? Option.Some(clientCertChain) : Option.None<IEnumerable<X509Certificate2>>(),
                         thumbprintsOpt);
                 }).GetOrElse(
-                (AuthenticationType.Sas,
+                (ClientAuthenticationType.Sas,
                     Option.None<X509Certificate2>(),
                     Option.None<IEnumerable<X509Certificate2>>(),
                     Option.None<List<string>>()));
@@ -514,10 +503,10 @@ namespace LeafDeviceTest
             return X509CertificateLoader.LoadCertificateFromFile(this.trustedCACertificateFileName);
         }
 
-        async Task CreateDeviceIdentityAsync(RegistryManager rm, Option<string> edgeDeviceScope)
+        async Task CreateDeviceIdentityAsync(IotHubServiceClient serviceClient, Option<string> edgeDeviceScope)
         {
             var authMechanism = new AuthenticationMechanism { Type = this.authType };
-            if (this.authType == AuthenticationType.SelfSigned)
+            if (this.authType == ClientAuthenticationType.SelfSigned)
             {
                 authMechanism.X509Thumbprint = this.thumbprints.Map(
                     thList => { return new X509Thumbprint { PrimaryThumbprint = thList[0], SecondaryThumbprint = thList[1] }; }).GetOrElse(new X509Thumbprint());
@@ -526,36 +515,42 @@ namespace LeafDeviceTest
             var device = new Device(this.deviceId)
             {
                 Authentication = authMechanism,
-                Capabilities = new DeviceCapabilities { IotEdge = false },
+                Capabilities = new ClientCapabilities { IsIotEdge = false },
             };
             edgeDeviceScope.ForEach(scope => device.Scope = scope);
 
-            var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
+            var csProperties = ParseConnectionString(this.iothubConnectionString);
+            Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{csProperties["HostName"]}'");
 
-            device = await rm.AddDeviceAsync(device);
+            device = await serviceClient.Devices.CreateAsync(device);
 
             this.context = new DeviceContext
             {
                 Device = device,
-                DeviceClientInstance = Option.None<DeviceClient>(),
+                DeviceClientInstance = Option.None<IotHubDeviceClient>(),
                 IotHubConnectionString = this.iothubConnectionString,
-                RegistryManager = rm,
+                ServiceClient = serviceClient,
                 RemoveDevice = true,
                 MessageGuid = Guid.NewGuid().ToString()
             };
         }
+
+        static Dictionary<string, string> ParseConnectionString(string connectionString) =>
+            connectionString.Split(';')
+                .Select(part => part.Split(new[] { '=' }, 2))
+                .Where(parts => parts.Length == 2)
+                .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim());
     }
 
     public class DeviceContext
     {
         public Device Device { get; set; }
 
-        public Option<DeviceClient> DeviceClientInstance { get; set; }
+        public Option<IotHubDeviceClient> DeviceClientInstance { get; set; }
 
         public string IotHubConnectionString { get; set; }
 
-        public RegistryManager RegistryManager { get; set; }
+        public IotHubServiceClient ServiceClient { get; set; }
 
         public bool RemoveDevice { get; set; }
 

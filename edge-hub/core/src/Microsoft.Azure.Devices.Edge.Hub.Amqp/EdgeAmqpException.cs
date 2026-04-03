@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using System;
-    using Microsoft.Azure.Devices.Common.Exceptions;
 
     public class EdgeAmqpException : Exception
     {

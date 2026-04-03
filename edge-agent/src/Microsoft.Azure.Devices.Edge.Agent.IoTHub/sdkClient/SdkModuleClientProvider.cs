@@ -6,15 +6,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
 
     public class SdkModuleClientProvider : ISdkModuleClientProvider
     {
-        public ISdkModuleClient GetSdkModuleClient(string connectionString, ITransportSettings settings)
+        public ISdkModuleClient GetSdkModuleClient(string connectionString, IotHubClientOptions options)
         {
-            ModuleClient moduleClient = ModuleClient.CreateFromConnectionString(connectionString, new[] { settings });
+            var moduleClient = new IotHubModuleClient(connectionString, options);
             return new WrappingSdkModuleClient(moduleClient);
         }
 
-        public async Task<ISdkModuleClient> GetSdkModuleClient(ITransportSettings settings)
+        public async Task<ISdkModuleClient> GetSdkModuleClient(IotHubClientOptions options)
         {
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(new[] { settings });
+            IotHubModuleClient moduleClient = await IotHubModuleClient.CreateFromEnvironmentAsync(options);
             return new WrappingSdkModuleClient(moduleClient);
         }
     }

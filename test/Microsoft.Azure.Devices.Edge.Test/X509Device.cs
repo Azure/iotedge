@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
-                AuthenticationType.Sas,
+                ClientAuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,

@@ -4,6 +4,7 @@ namespace TestResultCoordinator
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
     using System.Threading.Tasks;
     using Azure.Storage.Blobs;
     using Azure.Storage.Sas;
@@ -150,35 +151,37 @@ namespace TestResultCoordinator
             DateTime uploadLogStartAt = DateTime.UtcNow;
             logger.LogInformation("Send upload logs request to edgeAgent.");
 
-            ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+            IotHubServiceClient serviceClient = new IotHubServiceClient(iotHubConnectionString);
 
-            CloudToDeviceMethod uploadLogRequest =
-                new CloudToDeviceMethod("UploadModuleLogs");
-            uploadLogRequest = logUploadDuration.Match<CloudToDeviceMethod>(
+            DirectMethodServiceRequest uploadLogRequest =
+                new DirectMethodServiceRequest("UploadModuleLogs");
+            logUploadDuration.Match<DirectMethodServiceRequest>(
             (TimeSpan logUploadDuration) =>
             {
                 DateTime logStart = DateTime.UtcNow - logUploadDuration;
-                return uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{\"since\": \"{logStart.ToString("O")}\"}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+                uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{\"since\": \"{logStart.ToString("O")}\"}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+                return uploadLogRequest;
             },
             () =>
             {
-                return uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+                uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+                return uploadLogRequest;
             });
 
-            CloudToDeviceMethodResult uploadLogResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
+            DirectMethodClientResponse uploadLogResponse = await serviceClient.DirectMethods.InvokeAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
 
-            (string status, string correlationId) = GetUploadLogResponseResult(uploadLogResponse.GetPayloadAsJson());
+            (string status, string correlationId) = GetUploadLogResponseResult(uploadLogResponse.JsonPayload.GetRawText());
             logger.LogInformation($"Upload logs response: status={status}, correlationId={correlationId}");
 
             int checkUploadStatusPeriod = 60 * 1000;    // 1 min
             while (!string.Equals(status, UploadLogResponseStatus.Completed.ToString(), StringComparison.OrdinalIgnoreCase))
             {
                 await Task.Delay(checkUploadStatusPeriod);
-                CloudToDeviceMethod getTaskStatusRequest =
-                new CloudToDeviceMethod("GetTaskStatus")
-                    .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"correlationId\": \"{correlationId}\" }}");
-                CloudToDeviceMethodResult getTaskStatusResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", getTaskStatusRequest);
-                (status, _) = GetUploadLogResponseResult(getTaskStatusResponse.GetPayloadAsJson());
+                DirectMethodServiceRequest getTaskStatusRequest =
+                new DirectMethodServiceRequest("GetTaskStatus");
+                getTaskStatusRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"correlationId\": \"{correlationId}\" }}");
+                DirectMethodClientResponse getTaskStatusResponse = await serviceClient.DirectMethods.InvokeAsync(Settings.Current.DeviceId, "$edgeAgent", getTaskStatusRequest);
+                (status, _) = GetUploadLogResponseResult(getTaskStatusResponse.JsonPayload.GetRawText());
             }
 
             // Complete upload log to Azure blob

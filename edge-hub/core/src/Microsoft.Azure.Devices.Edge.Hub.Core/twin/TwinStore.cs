@@ -2,10 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     public class TwinStore : ITwinStore
     {
@@ -16,43 +17,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             this.twinEntityStore = twinEntityStore;
         }
 
-        public async Task<Option<Twin>> Get(string id)
+        public async Task<Option<TwinProperties>> Get(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
             Option<TwinStoreEntity> twinStoreEntity = await this.twinEntityStore.Get(id);
             return twinStoreEntity.FlatMap(t => t.Twin);
         }
 
-        public async Task UpdateReportedProperties(string id, TwinCollection patch)
+        public async Task UpdateReportedProperties(string id, PropertyCollection patch)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
             Preconditions.CheckNotNull(patch, nameof(patch));
             Events.UpdatingReportedProperties(id);
             await this.twinEntityStore.PutOrUpdate(
                 id,
-                new TwinStoreEntity(new Twin { Properties = new TwinProperties { Reported = patch } }),
+                new TwinStoreEntity(new TwinProperties { Reported = patch }),
                 twinInfo =>
                 {
                     twinInfo.Twin
                         .ForEach(
                             twin =>
                             {
-                                TwinProperties twinProperties = twin.Properties ?? new TwinProperties();
-                                TwinCollection reportedProperties = twinProperties.Reported ?? new TwinCollection();
+                                PropertyCollection reportedProperties = twin.Reported ?? new PropertyCollection();
                                 string mergedReportedPropertiesString = JsonEx.Merge(reportedProperties, patch, /* treatNullAsDelete */ true);
-                                twinProperties.Reported = new TwinCollection(mergedReportedPropertiesString);
-                                twin.Properties = twinProperties;
+                                twin.Reported = JsonConvert.DeserializeObject<PropertyCollection>(mergedReportedPropertiesString);
                                 Events.MergedReportedProperties(id);
                             });
                     return twinInfo;
                 });
         }
 
-        public async Task UpdateDesiredProperties(string id, TwinCollection patch)
+        public async Task UpdateDesiredProperties(string id, PropertyCollection patch)
         {
             Events.UpdatingDesiredProperties(id);
             Preconditions.CheckNotNull(patch, nameof(patch));
-            Option<Twin> storedTwin = await this.Get(id);
+            Option<TwinProperties> storedTwin = await this.Get(id);
             if (storedTwin.HasValue)
             {
                 await this.twinEntityStore.Update(
@@ -63,13 +62,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                             .ForEach(
                                 twin =>
                                 {
-                                    TwinProperties twinProperties = twin.Properties ?? new TwinProperties();
-                                    TwinCollection desiredProperties = twinProperties.Desired ?? new TwinCollection();
+                                    PropertyCollection desiredProperties = twin.Desired ?? new PropertyCollection();
                                     if (desiredProperties.Version + 1 == patch.Version)
                                     {
                                         string mergedDesiredPropertiesString = JsonEx.Merge(desiredProperties, patch, /* treatNullAsDelete */ true);
-                                        twinProperties.Desired = new TwinCollection(mergedDesiredPropertiesString);
-                                        twin.Properties = twinProperties;
+                                        twin.Desired = JsonConvert.DeserializeObject<PropertyCollection>(mergedDesiredPropertiesString);
                                         Events.MergedDesiredProperties(id);
                                     }
                                     else
@@ -87,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             }
         }
 
-        public async Task Update(string id, Twin twin)
+        public async Task Update(string id, TwinProperties twin)
         {
             Events.UpdatingTwin(id);
             Preconditions.CheckNotNull(twin, nameof(twin));

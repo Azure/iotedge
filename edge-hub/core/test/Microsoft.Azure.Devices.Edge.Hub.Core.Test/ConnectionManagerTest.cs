@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -794,8 +793,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(GetDeviceClient())
-                .Throws(new UnauthorizedException("connstr2 is invalid!"))
-                .Throws(new UnauthorizedException("connstr2 is invalid!"));
+                .Throws(new IotHubClientException("connstr2 is invalid!"))
+                .Throws(new IotHubClientException("connstr2 is invalid!"));
 
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
@@ -843,7 +842,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Try<ICloudProxy> receivedCloudProxy2 = await connectionManager.CreateCloudConnectionAsync(deviceCredentials2);
             Assert.False(receivedCloudProxy2.Success);
             Assert.IsType<EdgeHubConnectionException>(receivedCloudProxy2.Exception);
-            Assert.IsType<UnauthorizedException>(receivedCloudProxy2.Exception.InnerException);
+            Assert.IsType<IotHubClientException>(receivedCloudProxy2.Exception.InnerException);
             Assert.True(receivedCloudProxy1.Value.IsActive);
             Assert.Equal(deviceProxy, connectionManager.GetDeviceConnection(deviceCredentials2.Identity.Id).OrDefault());
         }

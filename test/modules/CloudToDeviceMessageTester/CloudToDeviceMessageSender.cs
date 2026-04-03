@@ -6,7 +6,6 @@ namespace CloudToDeviceMessageTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -24,7 +23,7 @@ namespace CloudToDeviceMessageTester
         readonly TimeSpan testStartDelay;
         readonly string trackingId;
         long messageCount = 0;
-        ServiceClient serviceClient;
+        IotHubServiceClient serviceClient;
 
         internal CloudToDeviceMessageSender(
             ILogger logger,
@@ -43,7 +42,11 @@ namespace CloudToDeviceMessageTester
             this.testResultReportingClient = Preconditions.CheckNotNull(testResultReportingClient, nameof(testResultReportingClient));
         }
 
-        public void Dispose() => this.serviceClient?.Dispose();
+        public ValueTask DisposeAsync()
+        {
+            this.serviceClient?.Dispose();
+            return default;
+        }
 
         public async Task StartAsync(CancellationToken ct)
         {
@@ -51,8 +54,7 @@ namespace CloudToDeviceMessageTester
             await Task.Delay(this.testStartDelay, ct);
             DateTime testStartAt = DateTime.UtcNow;
 
-            this.serviceClient = ServiceClient.CreateFromConnectionString(this.iotHubConnectionString);
-            await this.serviceClient.OpenAsync();
+            this.serviceClient = new IotHubServiceClient(this.iotHubConnectionString);
 
             Guid batchId = Guid.NewGuid();
             this.logger.LogInformation($"Batch Id={batchId}");
@@ -66,7 +68,7 @@ namespace CloudToDeviceMessageTester
                     await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
                     await Task.Delay(this.messageDelay, ct);
                 }
-                catch (DeviceMaximumQueueDepthExceededException ex)
+                catch (IotHubServiceException ex) when (ex.Message.Contains("DeviceMaximumQueueDepthExceeded"))
                 {
                     this.logger.LogInformation($"Too many messages in IoTHub Queue for Sequence Number: {this.messageCount}, batchId: {batchId}. Error message: {ex.Message}");
                 }
@@ -82,11 +84,11 @@ namespace CloudToDeviceMessageTester
         {
             this.logger.LogInformation($"Sending C2D message to deviceId: {this.deviceId} with Sequence Number: {this.messageCount}, batchId: {batchId}, and trackingId: {trackingId}");
 
-            var message = new Message(Encoding.ASCII.GetBytes("Cloud to device message."));
+            var message = new OutgoingMessage(Encoding.ASCII.GetBytes("Cloud to device message."));
             message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, this.messageCount.ToString());
             message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
             message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
-            await this.serviceClient.SendAsync(this.deviceId, message);
+            await this.serviceClient.Messages.SendAsync(this.deviceId, message);
 
             return new MessageTestResult(this.moduleId + ".send", DateTime.UtcNow)
             {

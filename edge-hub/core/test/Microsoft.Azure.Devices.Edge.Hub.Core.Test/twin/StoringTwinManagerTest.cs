@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
     using Moq;
     using Xunit;
 
@@ -22,39 +22,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Arrange
             string id = "d1";
 
-            var desired1 = new TwinCollection
+            var desired1 = new PropertyCollection
             {
                 ["p1"] = "vp1",
                 ["p3"] = "v3",
                 ["$version"] = 1
             };
 
-            var reported1 = new TwinCollection
+            var reported1 = new PropertyCollection
             {
                 ["p1"] = "vp1",
                 ["p3"] = "v3",
                 ["$version"] = 1
             };
 
-            var twin1 = new Twin
+            var twin1 = new TwinProperties
             {
-                Properties = new TwinProperties
-                {
-                    Desired = desired1,
-                    Reported = reported1
-                }
+                Desired = desired1,
+                Reported = reported1
             };
 
             var cloudSync = new Mock<ICloudSync>();
             cloudSync.SetupSequence(c => c.GetTwin(id))
-                .ReturnsAsync(Option.None<Twin>())
+                .ReturnsAsync(Option.None<TwinProperties>())
                 .ReturnsAsync(Option.Some(twin1))
-                .ReturnsAsync(Option.None<Twin>());
+                .ReturnsAsync(Option.None<TwinProperties>());
 
-            Twin receivedTwin = null;
+            TwinProperties receivedTwin = null;
             var twinStore = new Mock<ITwinStore>();
-            twinStore.Setup(c => c.Update(id, It.IsAny<Twin>()))
-                .Callback<string, Twin>((s, t) => receivedTwin = t)
+            twinStore.Setup(c => c.Update(id, It.IsAny<TwinProperties>()))
+                .Callback<string, TwinProperties>((s, t) => receivedTwin = t)
                 .Returns(Task.CompletedTask);
 
             twinStore.Setup(c => c.Get(id))
@@ -62,8 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             var twinMessageConverter = new TwinMessageConverter();
             var connectionManager = Mock.Of<IConnectionManager>();
-            var twinCollectionConverter = Mock.Of<IMessageConverter<TwinCollection>>();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var twinCollectionConverter = Mock.Of<IMessageConverter<PropertyCollection>>();
+            var reportedPropertiesValidator = Mock.Of<IValidator<PropertyCollection>>();
             var reportedPropertiesStore = Mock.Of<IReportedPropertiesStore>();
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
 
@@ -83,9 +80,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             // Assert
             Assert.NotNull(twinMessage);
-            Twin twin = twinMessageConverter.FromMessage(twinMessage);
+            TwinProperties twin = twinMessageConverter.FromMessage(twinMessage);
             Assert.NotNull(twin);
-            Assert.Equal("{\"deviceId\":null,\"etag\":null,\"version\":null,\"properties\":{\"desired\":{},\"reported\":{}}}", twin.ToJson());
+            Assert.Equal("{}", twin.Desired.GetSerializedString());
+            Assert.Equal("{}", twin.Reported.GetSerializedString());
 
             // Act
             twinMessage = await twinManager.GetTwinAsync(id);
@@ -95,8 +93,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             twin = twinMessageConverter.FromMessage(twinMessage);
             Assert.NotNull(twin);
             Assert.NotNull(receivedTwin);
-            Assert.Equal(receivedTwin.ToJson(), twin.ToJson());
-            Assert.Equal(twin1.ToJson(), twin.ToJson());
+            Assert.Equal(receivedTwin.Desired.GetSerializedString(), twin.Desired.GetSerializedString());
+            Assert.Equal(receivedTwin.Reported.GetSerializedString(), twin.Reported.GetSerializedString());
+            Assert.Equal(twin1.Desired.GetSerializedString(), twin.Desired.GetSerializedString());
+            Assert.Equal(twin1.Reported.GetSerializedString(), twin.Reported.GetSerializedString());
 
             // Act
             twinMessage = await twinManager.GetTwinAsync(id);
@@ -106,8 +106,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             twin = twinMessageConverter.FromMessage(twinMessage);
             Assert.NotNull(twin);
             Assert.NotNull(receivedTwin);
-            Assert.Equal(receivedTwin.ToJson(), twin.ToJson());
-            Assert.Equal(twin1.ToJson(), twin.ToJson());
+            Assert.Equal(receivedTwin.Desired.GetSerializedString(), twin.Desired.GetSerializedString());
+            Assert.Equal(receivedTwin.Reported.GetSerializedString(), twin.Reported.GetSerializedString());
+            Assert.Equal(twin1.Desired.GetSerializedString(), twin.Desired.GetSerializedString());
+            Assert.Equal(twin1.Reported.GetSerializedString(), twin.Reported.GetSerializedString());
         }
 
         [Fact]
@@ -115,30 +117,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
         {
             string id = "d1";
 
-            var reported1 = new TwinCollection
+            var reported1 = new PropertyCollection
             {
                 ["p1"] = "vp1",
                 ["p3"] = "v3"
             };
 
-            TwinCollection receivedTwinPatch = null;
+            PropertyCollection receivedTwinPatch = null;
             var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
-            twinStore.Setup(c => c.UpdateReportedProperties(id, It.IsAny<TwinCollection>()))
-                .Callback<string, TwinCollection>((s, t) => receivedTwinPatch = t)
+            twinStore.Setup(c => c.UpdateReportedProperties(id, It.IsAny<PropertyCollection>()))
+                .Callback<string, PropertyCollection>((s, t) => receivedTwinPatch = t)
                 .Returns(Task.CompletedTask);
 
-            TwinCollection receivedTwinPatch2 = null;
+            PropertyCollection receivedTwinPatch2 = null;
             var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
             reportedPropertiesStore.Setup(r => r.InitSyncToCloud(id));
-            reportedPropertiesStore.Setup(r => r.Update(id, It.IsAny<TwinCollection>()))
-                .Callback<string, TwinCollection>((s, t) => receivedTwinPatch2 = t)
+            reportedPropertiesStore.Setup(r => r.Update(id, It.IsAny<PropertyCollection>()))
+                .Callback<string, PropertyCollection>((s, t) => receivedTwinPatch2 = t)
                 .Returns(Task.CompletedTask);
 
             var cloudSync = Mock.Of<ICloudSync>();
             var twinMessageConverter = new TwinMessageConverter();
             var connectionManager = Mock.Of<IConnectionManager>();
-            var twinCollectionConverter = new TwinCollectionMessageConverter();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var twinCollectionConverter = new PropertyCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<PropertyCollection>>();
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
 
             var twinManager = new StoringTwinManager(
@@ -163,8 +165,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             Assert.NotNull(receivedTwinPatch);
             Assert.NotNull(receivedTwinPatch2);
-            Assert.Equal(reported1.ToJson(), receivedTwinPatch.ToJson());
-            Assert.Equal(reported1.ToJson(), receivedTwinPatch2.ToJson());
+            Assert.Equal(reported1.GetSerializedString(), receivedTwinPatch.GetSerializedString());
+            Assert.Equal(reported1.GetSerializedString(), receivedTwinPatch2.GetSerializedString());
         }
 
         [Fact]
@@ -172,38 +174,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
         {
             string id = "d1";
 
-            var desired0 = new TwinCollection
+            var desired0 = new PropertyCollection
             {
                 ["p0"] = "vp0",
                 ["$version"] = 0
             };
 
-            var reported0 = new TwinCollection
+            var reported0 = new PropertyCollection
             {
                 ["p0"] = "vp0",
                 ["$version"] = 0
             };
 
-            var twinBase = new Twin
+            var twinBase = new TwinProperties
             {
-                Properties = new TwinProperties
-                {
-                    Reported = reported0,
-                    Desired = desired0
-                }
+                Reported = reported0,
+                Desired = desired0
             };
 
-            var desired1 = new TwinCollection
+            var desired1 = new PropertyCollection
             {
                 ["p1"] = "vp1",
                 ["p3"] = "v3",
                 ["$version"] = 1
             };
 
-            TwinCollection receivedTwinPatch = null;
+            PropertyCollection receivedTwinPatch = null;
             var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
-            twinStore.Setup(c => c.UpdateDesiredProperties(id, It.IsAny<TwinCollection>()))
-                .Callback<string, TwinCollection>((s, t) => receivedTwinPatch = t)
+            twinStore.Setup(c => c.UpdateDesiredProperties(id, It.IsAny<PropertyCollection>()))
+                .Callback<string, PropertyCollection>((s, t) => receivedTwinPatch = t)
                 .Returns(Task.CompletedTask);
 
             twinStore.Setup(c => c.Get(id))
@@ -219,8 +218,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             var cloudSync = Mock.Of<ICloudSync>();
             var twinMessageConverter = new TwinMessageConverter();
-            var twinCollectionConverter = new TwinCollectionMessageConverter();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var twinCollectionConverter = new PropertyCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<PropertyCollection>>();
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
 
             var connectionManager = Mock.Of<IConnectionManager>(
@@ -250,9 +249,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             Assert.NotNull(receivedTwinPatch);
             Assert.NotNull(receivedTwinPatchMessage);
-            Assert.Equal(desired1.ToJson(), receivedTwinPatch.ToJson());
-            TwinCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
-            Assert.Equal(desired1.ToJson(), receivedTwinPatch2.ToJson());
+            Assert.Equal(desired1.GetSerializedString(), receivedTwinPatch.GetSerializedString());
+            PropertyCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
+            Assert.Equal(desired1.GetSerializedString(), receivedTwinPatch2.GetSerializedString());
         }
 
         [Fact]
@@ -260,28 +259,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
         {
             string id = "d1";
 
-            var desired0 = new TwinCollection
+            var desired0 = new PropertyCollection
             {
                 ["p0"] = "vp0",
                 ["$version"] = 0
             };
 
-            var reported0 = new TwinCollection
+            var reported0 = new PropertyCollection
             {
                 ["p0"] = "vp0",
                 ["$version"] = 0
             };
 
-            var twinBase = new Twin
+            var twinBase = new TwinProperties
             {
-                Properties = new TwinProperties
-                {
-                    Reported = reported0,
-                    Desired = desired0
-                }
+                Reported = reported0,
+                Desired = desired0
             };
 
-            var desired2 = new TwinCollection
+            var desired2 = new PropertyCollection
             {
                 ["p1"] = "vp1",
                 ["p2"] = "v2",
@@ -289,22 +285,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 ["$version"] = 2
             };
 
-            var reported2 = new TwinCollection
+            var reported2 = new PropertyCollection
             {
                 ["p2"] = "vp2",
                 ["$version"] = 2
             };
 
-            var twin2 = new Twin
+            var twin2 = new TwinProperties
             {
-                Properties = new TwinProperties
-                {
-                    Reported = reported2,
-                    Desired = desired2
-                }
+                Reported = reported2,
+                Desired = desired2
             };
 
-            var desired2Patch = new TwinCollection
+            var desired2Patch = new PropertyCollection
             {
                 ["p1"] = "vp1",
                 ["$version"] = 2
@@ -314,9 +307,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             twinStore.Setup(c => c.Get(id))
                 .ReturnsAsync(Option.Some(twinBase));
 
-            Twin storedTwin = null;
-            twinStore.Setup(c => c.Update(id, It.IsAny<Twin>()))
-                .Callback<string, Twin>((s, t) => storedTwin = t)
+            TwinProperties storedTwin = null;
+            twinStore.Setup(c => c.Update(id, It.IsAny<TwinProperties>()))
+                .Callback<string, TwinProperties>((s, t) => storedTwin = t)
                 .Returns(Task.CompletedTask);
 
             var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
@@ -329,8 +322,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             var cloudSync = Mock.Of<ICloudSync>(c => c.GetTwin(id) == Task.FromResult(Option.Some(twin2)));
             var twinMessageConverter = new TwinMessageConverter();
-            var twinCollectionConverter = new TwinCollectionMessageConverter();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var twinCollectionConverter = new PropertyCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<PropertyCollection>>();
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
 
             var connectionManager = Mock.Of<IConnectionManager>(
@@ -360,9 +353,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             Assert.NotNull(storedTwin);
             Assert.NotNull(receivedTwinPatchMessage);
-            Assert.Equal(twin2.ToJson(), storedTwin.ToJson());
-            TwinCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
-            Assert.Equal("{\"p0\":null,\"$version\":2,\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":\"v3\"}", receivedTwinPatch2.ToJson());
+            Assert.Equal(twin2.Desired.GetSerializedString(), storedTwin.Desired.GetSerializedString());
+            Assert.Equal(twin2.Reported.GetSerializedString(), storedTwin.Reported.GetSerializedString());
+            PropertyCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
+            Assert.Equal("{\"p0\":null,\"$version\":2,\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":\"v3\"}", receivedTwinPatch2.GetSerializedString());
         }
 
         [Fact]
@@ -371,28 +365,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             string id = "d1";
             var identity = Mock.Of<IIdentity>(i => i.Id == id);
 
-            var desired0 = new TwinCollection
+            var desired0 = new PropertyCollection
             {
                 ["p0"] = "vp0",
                 ["$version"] = 0
             };
 
-            var reported0 = new TwinCollection
+            var reported0 = new PropertyCollection
             {
                 ["p0"] = "vp0",
                 ["$version"] = 0
             };
 
-            var twinBase = new Twin
+            var twinBase = new TwinProperties
             {
-                Properties = new TwinProperties
-                {
-                    Reported = reported0,
-                    Desired = desired0
-                }
+                Reported = reported0,
+                Desired = desired0
             };
 
-            var desired2 = new TwinCollection
+            var desired2 = new PropertyCollection
             {
                 ["p1"] = "vp1",
                 ["p2"] = "v2",
@@ -400,28 +391,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 ["$version"] = 2
             };
 
-            var reported2 = new TwinCollection
+            var reported2 = new PropertyCollection
             {
                 ["p2"] = "vp2",
                 ["$version"] = 2
             };
 
-            var twin2 = new Twin
+            var twin2 = new TwinProperties
             {
-                Properties = new TwinProperties
-                {
-                    Reported = reported2,
-                    Desired = desired2
-                }
+                Reported = reported2,
+                Desired = desired2
             };
 
             var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
             twinStore.Setup(c => c.Get(id))
                 .ReturnsAsync(Option.Some(twinBase));
 
-            Twin storedTwin = null;
-            twinStore.Setup(c => c.Update(id, It.IsAny<Twin>()))
-                .Callback<string, Twin>((s, t) => storedTwin = t)
+            TwinProperties storedTwin = null;
+            twinStore.Setup(c => c.Update(id, It.IsAny<TwinProperties>()))
+                .Callback<string, TwinProperties>((s, t) => storedTwin = t)
                 .Returns(Task.CompletedTask);
 
             var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
@@ -438,8 +426,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             cloudSync.Setup(c => c.GetTwin(id))
                 .ReturnsAsync(Option.Some(twin2));
             var twinMessageConverter = new TwinMessageConverter();
-            var twinCollectionConverter = new TwinCollectionMessageConverter();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var twinCollectionConverter = new PropertyCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<PropertyCollection>>();
 
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
@@ -473,9 +461,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             Assert.NotNull(storedTwin);
             Assert.NotNull(receivedTwinPatchMessage);
-            Assert.Equal(twin2.ToJson(), storedTwin.ToJson());
-            TwinCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
-            Assert.Equal("{\"p0\":null,\"$version\":2,\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":\"v3\"}", receivedTwinPatch2.ToJson());
+            Assert.Equal(twin2.Desired.GetSerializedString(), storedTwin.Desired.GetSerializedString());
+            Assert.Equal(twin2.Reported.GetSerializedString(), storedTwin.Reported.GetSerializedString());
+            PropertyCollection receivedTwinPatch2 = twinCollectionConverter.FromMessage(receivedTwinPatchMessage);
+            Assert.Equal("{\"p0\":null,\"$version\":2,\"p1\":\"vp1\",\"p2\":\"v2\",\"p3\":\"v3\"}", receivedTwinPatch2.GetSerializedString());
         }
 
         [Fact]
@@ -484,55 +473,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             string id = "d1";
             var identity = Mock.Of<IIdentity>(i => i.Id == id);
 
-            var desired0 = new TwinCollection
+            var desired0 = new PropertyCollection
             {
                 ["p0"] = "vp0",
                 ["$version"] = 0
             };
 
-            var reported0 = new TwinCollection
+            var reported0 = new PropertyCollection
             {
                 ["p0"] = "vp0",
                 ["$version"] = 0
             };
 
-            var twinBase = new Twin
+            var twinBase = new TwinProperties
             {
-                Properties = new TwinProperties
-                {
-                    Reported = reported0,
-                    Desired = desired0
-                }
+                Reported = reported0,
+                Desired = desired0
             };
 
-            var desired2 = new TwinCollection
+            var desired2 = new PropertyCollection
             {
                 ["p0"] = "vp0",
                 ["$version"] = 0
             };
 
-            var reported2 = new TwinCollection
+            var reported2 = new PropertyCollection
             {
                 ["p2"] = "vp2",
                 ["$version"] = 2
             };
 
-            var twin2 = new Twin
+            var twin2 = new TwinProperties
             {
-                Properties = new TwinProperties
-                {
-                    Reported = reported2,
-                    Desired = desired2
-                }
+                Reported = reported2,
+                Desired = desired2
             };
 
             var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
             twinStore.Setup(c => c.Get(id))
                 .ReturnsAsync(Option.Some(twinBase));
 
-            Twin storedTwin = null;
-            twinStore.Setup(c => c.Update(id, It.IsAny<Twin>()))
-                .Callback<string, Twin>((s, t) => storedTwin = t)
+            TwinProperties storedTwin = null;
+            twinStore.Setup(c => c.Update(id, It.IsAny<TwinProperties>()))
+                .Callback<string, TwinProperties>((s, t) => storedTwin = t)
                 .Returns(Task.CompletedTask);
 
             var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
@@ -549,8 +532,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             cloudSync.Setup(c => c.GetTwin(id))
                 .ReturnsAsync(Option.Some(twin2));
             var twinMessageConverter = new TwinMessageConverter();
-            var twinCollectionConverter = new TwinCollectionMessageConverter();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var twinCollectionConverter = new PropertyCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<PropertyCollection>>();
 
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
@@ -583,7 +566,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             Assert.NotNull(storedTwin);
             Assert.Null(receivedTwinPatchMessage);
-            Assert.Equal(twin2.ToJson(), storedTwin.ToJson());
+            Assert.Equal(twin2.Desired.GetSerializedString(), storedTwin.Desired.GetSerializedString());
+            Assert.Equal(twin2.Reported.GetSerializedString(), storedTwin.Reported.GetSerializedString());
         }
 
         [Fact]
@@ -594,7 +578,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
             twinStore.Setup(c => c.Get(id))
-                .ReturnsAsync(Option.None<Twin>());
+                .ReturnsAsync(Option.None<TwinProperties>());
 
             var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
             reportedPropertiesStore.Setup(r => r.SyncToCloud(id))
@@ -603,8 +587,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             var deviceProxy = new Mock<IDeviceProxy>(MockBehavior.Strict);
             var cloudSync = new Mock<ICloudSync>(MockBehavior.Strict);
             var twinMessageConverter = new TwinMessageConverter();
-            var twinCollectionConverter = new TwinCollectionMessageConverter();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var twinCollectionConverter = new PropertyCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<PropertyCollection>>();
 
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
@@ -642,7 +626,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             string id = "d1";
             var identity = Mock.Of<IIdentity>(i => i.Id == id);
 
-            var desired2 = new TwinCollection
+            var desired2 = new PropertyCollection
             {
                 ["p1"] = "vp1",
                 ["p2"] = "v2",
@@ -650,28 +634,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 ["$version"] = 2
             };
 
-            var reported2 = new TwinCollection
+            var reported2 = new PropertyCollection
             {
                 ["p2"] = "vp2",
                 ["$version"] = 2
             };
 
-            var twin2 = new Twin
+            var twin2 = new TwinProperties
             {
-                Properties = new TwinProperties
-                {
-                    Reported = reported2,
-                    Desired = desired2
-                }
+                Reported = reported2,
+                Desired = desired2
             };
 
             var twinStore = new Mock<ITwinStore>(MockBehavior.Strict);
             twinStore.Setup(c => c.Get(id))
                 .ReturnsAsync(Option.Some(twin2));
 
-            Twin storedTwin = null;
-            twinStore.Setup(c => c.Update(id, It.IsAny<Twin>()))
-                .Callback<string, Twin>((s, t) => storedTwin = t)
+            TwinProperties storedTwin = null;
+            twinStore.Setup(c => c.Update(id, It.IsAny<TwinProperties>()))
+                .Callback<string, TwinProperties>((s, t) => storedTwin = t)
                 .Returns(Task.CompletedTask);
 
             var reportedPropertiesStore = new Mock<IReportedPropertiesStore>(MockBehavior.Strict);
@@ -684,8 +665,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             cloudSync.Setup(c => c.GetTwin(id))
                 .ReturnsAsync(Option.Some(twin2));
             var twinMessageConverter = new TwinMessageConverter();
-            var twinCollectionConverter = new TwinCollectionMessageConverter();
-            var reportedPropertiesValidator = Mock.Of<IValidator<TwinCollection>>();
+            var twinCollectionConverter = new PropertyCollectionMessageConverter();
+            var reportedPropertiesValidator = Mock.Of<IValidator<PropertyCollection>>();
 
             var connectionManager = Mock.Of<IConnectionManager>(
                 c =>
@@ -711,9 +692,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             // Assert
             Assert.NotNull(getTwinMessage);
-            Twin getTwin = twinMessageConverter.FromMessage(getTwinMessage);
+            TwinProperties getTwin = twinMessageConverter.FromMessage(getTwinMessage);
             Assert.NotNull(getTwin);
-            Assert.Equal(twin2.ToJson(), getTwin.ToJson());
+            Assert.Equal(twin2.Desired.GetSerializedString(), getTwin.Desired.GetSerializedString());
+            Assert.Equal(twin2.Reported.GetSerializedString(), getTwin.Reported.GetSerializedString());
 
             // Act
             deviceConnectivityManager.Raise(d => d.DeviceConnected += null, this, new EventArgs());
@@ -726,7 +708,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             cloudSync.Verify(c => c.GetTwin(id), Times.AtMostOnce);
 
             Assert.NotNull(storedTwin);
-            Assert.Equal(twin2.ToJson(), storedTwin.ToJson());
+            Assert.Equal(twin2.Desired.GetSerializedString(), storedTwin.Desired.GetSerializedString());
+            Assert.Equal(twin2.Reported.GetSerializedString(), storedTwin.Reported.GetSerializedString());
         }
     }
 }

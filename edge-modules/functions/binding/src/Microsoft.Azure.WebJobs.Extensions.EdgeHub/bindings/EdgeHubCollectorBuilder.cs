@@ -3,9 +3,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using Microsoft.Azure.Devices.Client;
 
-    class EdgeHubCollectorBuilder : IConverter<EdgeHubAttribute, IAsyncCollector<Message>>
+    class EdgeHubCollectorBuilder : IConverter<EdgeHubAttribute, IAsyncCollector<TelemetryMessage>>
     {
-        public IAsyncCollector<Message> Convert(EdgeHubAttribute attribute)
+        public IAsyncCollector<TelemetryMessage> Convert(EdgeHubAttribute attribute)
         {
             return new EdgeHubAsyncCollector(attribute);
         }

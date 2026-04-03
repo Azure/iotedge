@@ -335,3 +335,4 @@ prime/
 
 # used by the C# Dev Kit (VS Code extension)
 .mono/
+.github/copilot-instructions.md

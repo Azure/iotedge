@@ -20,7 +20,7 @@ namespace LoadGen
         {
             Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
 
-            ModuleClient moduleClient = null;
+            IotHubModuleClient moduleClient = null;
 
             try
             {
@@ -29,11 +29,9 @@ namespace LoadGen
                 Guid batchId = Guid.NewGuid();
                 Logger.LogInformation($"Batch Id={batchId}");
 
-                ClientOptions options = new ClientOptions();
-                Settings.Current.ModelId.ForEach(m => options.ModelId = m);
                 moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
-                    options,
+                    null,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
@@ -69,7 +67,7 @@ namespace LoadGen
             {
                 Logger.LogInformation("Closing connection to Edge Hub.");
                 moduleClient?.CloseAsync();
-                moduleClient?.Dispose();
+                await (moduleClient?.DisposeAsync() ?? default);
             }
 
             Logger.LogInformation("Load Gen complete. Exiting.");

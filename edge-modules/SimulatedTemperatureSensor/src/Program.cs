@@ -8,11 +8,9 @@ namespace SimulatedTemperatureSensor
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -41,6 +39,8 @@ namespace SimulatedTemperatureSensor
         static bool sendData = true;
 
         static ILogger logger = null;
+        static IotHubModuleClient staticModuleClient = null;
+
         public enum ControlCommandEnum
         {
             Reset = 0,
@@ -77,40 +77,49 @@ namespace SimulatedTemperatureSensor
                 + $"messages, at an interval of {messageDelay.TotalSeconds} seconds.\n"
                 + $"To change this, set the environment variable {MessageCountConfigKey} to the number of messages that should be sent (set it to -1 to send unlimited messages).");
 
-            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
+            string clientTransportType = configuration.GetValue("ClientTransportType", "Amqp_Tcp_Only");
 
-            ModuleClient moduleClient = await CreateModuleClientAsync(
-                transportType,
+            IotHubModuleClient moduleClient = await CreateModuleClientAsync(
+                clientTransportType,
                 DefaultTimeoutErrorDetectionStrategy,
                 DefaultTransientRetryStrategy);
             await moduleClient.OpenAsync();
-            await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
+
+            // In v2 SDK, SetDirectMethodCallbackAsync registers a single callback for all methods.
+            // We filter by method name inside the callback.
+            await moduleClient.SetDirectMethodCallbackAsync(DirectMethodCallback);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), logger);
 
-            Twin currentTwinProperties = await moduleClient.GetTwinAsync();
-            if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
+            TwinProperties currentTwinProperties = await moduleClient.GetTwinPropertiesAsync();
+            if (currentTwinProperties.Desired.ContainsKey(SendIntervalConfigKey))
             {
-                messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Properties.Desired[SendIntervalConfigKey]);
+                messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Desired[SendIntervalConfigKey]);
             }
 
-            if (currentTwinProperties.Properties.Desired.Contains(SendDataConfigKey))
+            if (currentTwinProperties.Desired.ContainsKey(SendDataConfigKey))
             {
-                sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
+                sendData = (bool)currentTwinProperties.Desired[SendDataConfigKey];
                 if (!sendData)
                 {
                     logger.LogInformation("Sending data disabled. Change twin configuration to start sending again.");
                 }
             }
 
-            ModuleClient userContext = moduleClient;
-            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
-            await moduleClient.SetInputMessageHandlerAsync("control", ControlMessageHandle, userContext);
+            staticModuleClient = moduleClient;
+
+            // In v2 SDK, SetDesiredPropertyUpdateCallbackAsync takes Func<PropertyCollection, Task> (no userContext)
+            await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated);
+
+            // In v2 SDK, SetIncomingMessageCallbackAsync registers a single callback for all incoming messages.
+            // We filter by InputName inside the callback.
+            await moduleClient.SetIncomingMessageCallbackAsync(IncomingMessageCallback);
+
             await SendEvents(moduleClient, messageCount, simulatorParameters, cts);
             await cts.Token.WhenCanceled();
 
-            await moduleClient?.CloseAsync();
-            moduleClient?.Dispose();
+            await moduleClient.CloseAsync();
+            await moduleClient.DisposeAsync();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             logger.LogInformation("SimulatedTemperatureSensor Main() finished.");
@@ -127,14 +136,30 @@ namespace SimulatedTemperatureSensor
 
         static bool SendUnlimitedMessages(int maximumNumberOfMessages) => maximumNumberOfMessages < 0;
 
+        static Task<DirectMethodResponse> DirectMethodCallback(DirectMethodRequest methodRequest)
+        {
+            if (string.Equals(methodRequest.MethodName, "reset", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Received direct method call to reset temperature sensor...");
+                Reset.Set(true);
+            }
+
+            var response = new DirectMethodResponse((int)HttpStatusCode.OK);
+            return Task.FromResult(response);
+        }
+
         // Control Message expected to be:
         // {
         //     "command" : "reset"
         // }
-        static Task<MessageResponse> ControlMessageHandle(Message message, object userContext)
+        static Task<MessageAcknowledgement> IncomingMessageCallback(IncomingMessage message)
         {
-            byte[] messageBytes = message.GetBytes();
-            string messageString = Encoding.UTF8.GetString(messageBytes);
+            if (!string.Equals(message.InputName, "control", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(MessageAcknowledgement.Complete);
+            }
+
+            string messageString = Encoding.UTF8.GetString(message.Payload);
 
             Console.WriteLine($"Received message Body: [{messageString}]");
 
@@ -166,15 +191,7 @@ namespace SimulatedTemperatureSensor
                 Console.WriteLine($"Error: Failed to deserialize control command with exception: [{ex}]");
             }
 
-            return Task.FromResult(MessageResponse.Completed);
-        }
-
-        static Task<MethodResponse> ResetMethod(MethodRequest methodRequest, object userContext)
-        {
-            Console.WriteLine("Received direct method call to reset temperature sensor...");
-            Reset.Set(true);
-            var response = new MethodResponse((int)HttpStatusCode.OK);
-            return Task.FromResult(response);
+            return Task.FromResult(MessageAcknowledgement.Complete);
         }
 
         /// <summary>
@@ -188,7 +205,7 @@ namespace SimulatedTemperatureSensor
         ///                Method for resetting the data stream.
         /// </summary>
         static async Task SendEvents(
-            ModuleClient moduleClient,
+            IotHubModuleClient moduleClient,
             int messageCount,
             SimulatorParameters sim,
             CancellationTokenSource cts)
@@ -232,7 +249,7 @@ namespace SimulatedTemperatureSensor
                     };
 
                     string dataBuffer = JsonConvert.SerializeObject(tempData);
-                    var eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
+                    var eventMessage = new TelemetryMessage(Encoding.UTF8.GetBytes(dataBuffer));
                     eventMessage.ContentEncoding = "utf-8";
                     eventMessage.ContentType = "application/json";
                     eventMessage.Properties.Add("sequenceNumber", count.ToString());
@@ -240,7 +257,7 @@ namespace SimulatedTemperatureSensor
                     logger.LogInformation($"Sending message: {count}, Body: [{dataBuffer}]");
                     try
                     {
-                        await moduleClient.SendEventAsync("temperatureOutput", eventMessage, cts.Token);
+                        await moduleClient.SendMessageToRouteAsync("temperatureOutput", eventMessage, cts.Token);
                     }
                     catch (OperationCanceledException)
                     {
@@ -268,15 +285,15 @@ namespace SimulatedTemperatureSensor
             }
         }
 
-        static async Task OnDesiredPropertiesUpdated(TwinCollection desiredPropertiesPatch, object userContext)
+        static async Task OnDesiredPropertiesUpdated(PropertyCollection desiredPropertiesPatch)
         {
             // At this point just update the configure configuration.
-            if (desiredPropertiesPatch.Contains(SendIntervalConfigKey))
+            if (desiredPropertiesPatch.ContainsKey(SendIntervalConfigKey))
             {
                 messageDelay = TimeSpan.FromSeconds((int)desiredPropertiesPatch[SendIntervalConfigKey]);
             }
 
-            if (desiredPropertiesPatch.Contains(SendDataConfigKey))
+            if (desiredPropertiesPatch.ContainsKey(SendDataConfigKey))
             {
                 bool desiredSendDataValue = (bool)desiredPropertiesPatch[SendDataConfigKey];
                 if (desiredSendDataValue != sendData && !desiredSendDataValue)
@@ -287,41 +304,42 @@ namespace SimulatedTemperatureSensor
                 sendData = desiredSendDataValue;
             }
 
-            var moduleClient = (ModuleClient)userContext;
-            var patch = new TwinCollection($"{{ \"SendData\":{sendData.ToString().ToLower()}, \"SendInterval\": {messageDelay.TotalSeconds}}}");
-            await moduleClient.UpdateReportedPropertiesAsync(patch); // Just report back last desired property.
+            var patch = new PropertyCollection();
+            patch.Add("SendData", sendData);
+            patch.Add("SendInterval", messageDelay.TotalSeconds);
+            await staticModuleClient.UpdateReportedPropertiesAsync(patch); // Just report back last desired property.
         }
 
-        static async Task<ModuleClient> CreateModuleClientAsync(
-            TransportType transportType,
+        static async Task<IotHubModuleClient> CreateModuleClientAsync(
+            string transportType,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy = null,
             RetryStrategy retryStrategy = null)
         {
             var retryPolicy = new RetryPolicy(transientErrorDetectionStrategy, retryStrategy);
             retryPolicy.Retrying += (_, args) => { logger.LogError($"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}"); };
 
-            ModuleClient client = await retryPolicy.ExecuteAsync(
+            IotHubModuleClient client = await retryPolicy.ExecuteAsync(
                 async () =>
                 {
-                    ITransportSettings[] GetTransportSettings()
+                    IotHubClientOptions GetClientOptions()
                     {
                         switch (transportType)
                         {
-                            case TransportType.Mqtt:
-                            case TransportType.Mqtt_Tcp_Only:
-                                return new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
-                            case TransportType.Mqtt_WebSocket_Only:
-                                return new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only) };
-                            case TransportType.Amqp_WebSocket_Only:
-                                return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only) };
+                            case "Mqtt":
+                            case "Mqtt_Tcp_Only":
+                                return new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp));
+                            case "Mqtt_WebSocket_Only":
+                                return new IotHubClientOptions(new IotHubClientMqttSettings(IotHubClientTransportProtocol.WebSocket));
+                            case "Amqp_WebSocket_Only":
+                                return new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.WebSocket));
                             default:
-                                return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+                                return new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
                         }
                     }
 
-                    ITransportSettings[] settings = GetTransportSettings();
+                    IotHubClientOptions options = GetClientOptions();
                     logger.LogInformation($"Trying to initialize module client using transport type [{transportType}].");
-                    ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+                    IotHubModuleClient moduleClient = await IotHubModuleClient.CreateFromEnvironmentAsync(options);
                     await moduleClient.OpenAsync();
 
                     logger.LogInformation($"Successfully initialized module client of transport type [{transportType}].");

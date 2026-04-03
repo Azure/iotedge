@@ -6,24 +6,22 @@ namespace TwinTester
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
     class ReportedPropertiesValidator : ITwinPropertiesValidator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(ReportedPropertiesValidator));
-        readonly RegistryManager registryManager;
+        readonly IotHubServiceClient serviceClient;
         readonly TwinTestState twinTestState;
-        readonly ModuleClient moduleClient;
+        readonly IotHubModuleClient moduleClient;
         readonly TwinEventStorage storage;
         readonly ITwinTestResultHandler reporter;
         HashSet<string> reportedPropertyKeysFailedToReceiveWithinThreshold = new HashSet<string>();
 
-        public ReportedPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler reporter, TwinTestState twinTestState)
+        public ReportedPropertiesValidator(IotHubServiceClient serviceClient, IotHubModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler reporter, TwinTestState twinTestState)
         {
-            this.registryManager = registryManager;
+            this.serviceClient = serviceClient;
             this.moduleClient = moduleClient;
             this.storage = storage;
             this.reporter = reporter;
@@ -32,36 +30,35 @@ namespace TwinTester
 
         public async Task ValidateAsync()
         {
-            Twin receivedTwin;
+            ClientTwin receivedTwin;
             try
             {
-                receivedTwin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
-                this.twinTestState.TwinETag = receivedTwin.ETag;
+                receivedTwin = await this.serviceClient.Twins.GetAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
+                this.twinTestState.TwinETag = receivedTwin.ETag.ToString();
             }
             catch (Exception e)
             {
-                if (e is IotHubCommunicationException || e is OperationCanceledException) // This is the transient exception case for microsoft.azure.devices.client.deviceclient version 1.21.2
+                if (e is IotHubServiceException || e is OperationCanceledException) // Transient exception case
                 {
-                    Logger.LogError(e, "Failed call to registry manager get twin due to transient error.");
+                    Logger.LogError(e, "Failed call to service client get twin due to transient error.");
                 }
                 else
                 {
-                    Logger.LogError(e, "Failed call to registry manager get twin due to non-transient error.");
+                    Logger.LogError(e, "Failed call to service client get twin due to non-transient error.");
                 }
 
                 return;
             }
 
-            TwinCollection propertiesToRemove = await this.ValidatePropertiesFromTwinAsync(receivedTwin);
+            PropertyCollection propertiesToRemove = await this.ValidatePropertiesFromTwinAsync(receivedTwin);
             await this.RemovePropertiesFromStorage(propertiesToRemove);
             await this.RemovePropertiesFromTwin(propertiesToRemove);
         }
 
-        async Task RemovePropertiesFromStorage(TwinCollection propertiesToRemove)
+        async Task RemovePropertiesFromStorage(PropertyCollection propertiesToRemove)
         {
-            foreach (dynamic pair in propertiesToRemove)
+            foreach (KeyValuePair<string, object> property in propertiesToRemove)
             {
-                KeyValuePair<string, object> property = (KeyValuePair<string, object>)pair;
                 try
                 {
                     await this.storage.RemoveReportedPropertyUpdateAsync(property.Key);
@@ -73,7 +70,7 @@ namespace TwinTester
             }
         }
 
-        async Task RemovePropertiesFromTwin(TwinCollection propertiesToRemove)
+        async Task RemovePropertiesFromTwin(PropertyCollection propertiesToRemove)
         {
             try
             {
@@ -85,16 +82,16 @@ namespace TwinTester
             }
         }
 
-        async Task<TwinCollection> ValidatePropertiesFromTwinAsync(Twin receivedTwin)
+        async Task<PropertyCollection> ValidatePropertiesFromTwinAsync(ClientTwin receivedTwin)
         {
-            TwinCollection propertyUpdatesFromTwin = receivedTwin.Properties.Reported;
+            ClientTwinProperties propertyUpdatesFromTwin = receivedTwin.Properties.Reported;
             Dictionary<string, DateTime> reportedPropertiesUpdated = await this.storage.GetAllReportedPropertiesUpdatedAsync();
-            TwinCollection propertiesToRemove = new TwinCollection();
+            PropertyCollection propertiesToRemove = new PropertyCollection();
 
             foreach (KeyValuePair<string, DateTime> reportedPropertyUpdate in reportedPropertiesUpdated)
             {
                 string status;
-                if (propertyUpdatesFromTwin.Contains(reportedPropertyUpdate.Key))
+                if (propertyUpdatesFromTwin.ContainsKey(reportedPropertyUpdate.Key))
                 {
                     if (this.reportedPropertyKeysFailedToReceiveWithinThreshold.Contains(reportedPropertyUpdate.Key))
                     {

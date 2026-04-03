@@ -2,23 +2,24 @@
 namespace TwinTester
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
     class DesiredPropertyUpdater : ITwinOperation
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertyUpdater));
-        readonly RegistryManager registryManager;
+        readonly IotHubServiceClient serviceClient;
         readonly ITwinTestResultHandler resultHandler;
         readonly TwinTestState twinTestState;
         int desiredPropertyUpdateCounter;
 
-        public DesiredPropertyUpdater(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinTestState twinTestState)
+        public DesiredPropertyUpdater(IotHubServiceClient serviceClient, ITwinTestResultHandler resultHandler, TwinTestState twinTestState)
         {
-            this.registryManager = registryManager;
+            this.serviceClient = serviceClient;
             this.resultHandler = resultHandler;
             this.twinTestState = twinTestState;
             this.desiredPropertyUpdateCounter = twinTestState.DesiredPropertyUpdateCounter;
@@ -30,13 +31,12 @@ namespace TwinTester
             {
                 string desiredPropertyUpdateValue = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update can be any character
 
-                var desiredProperties = new TwinProperties();
+                var patch = new ClientTwin();
                 string propertyKey = this.desiredPropertyUpdateCounter.ToString();
-                desiredProperties.Desired[propertyKey] = desiredPropertyUpdateValue;
-                Twin patch = new Twin(desiredProperties);
+                patch.Properties.Desired[propertyKey] = desiredPropertyUpdateValue;
 
-                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, patch, this.twinTestState.TwinETag);
-                this.twinTestState.TwinETag = newTwin.ETag;
+                ClientTwin newTwin = await this.serviceClient.Twins.UpdateAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, patch, false, CancellationToken.None);
+                this.twinTestState.TwinETag = newTwin.ETag.ToString();
 
                 Logger.LogInformation($"Desired property updated {propertyKey}");
 

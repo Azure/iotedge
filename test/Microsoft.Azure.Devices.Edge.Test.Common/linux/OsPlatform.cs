@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return CaCertificates.CopyTo(deviceId, scriptPath, destPath);
         }
 
-        public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
+        public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, IotHubClientTransportSettings transportSettings) =>
             this.InstallTrustedCertificates(certs, StoreName.Root);
 
         public Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token)

@@ -6,8 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
 
     public interface ISdkModuleClientProvider
     {
-        ISdkModuleClient GetSdkModuleClient(string connectionString, ITransportSettings settings);
+        ISdkModuleClient GetSdkModuleClient(string connectionString, IotHubClientOptions options);
 
-        Task<ISdkModuleClient> GetSdkModuleClient(ITransportSettings settings);
+        Task<ISdkModuleClient> GetSdkModuleClient(IotHubClientOptions options);
     }
 }

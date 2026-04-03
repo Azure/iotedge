@@ -7,10 +7,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -28,11 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         readonly ITwinManager twinManager;
         readonly string id;
         readonly EdgeHubConfigParser configParser;
-        readonly Core.IMessageConverter<TwinCollection> twinCollectionMessageConverter;
-        readonly Core.IMessageConverter<Twin> twinMessageConverter;
+        readonly Core.IMessageConverter<PropertyCollection> twinCollectionMessageConverter;
+        readonly Core.IMessageConverter<TwinProperties> twinMessageConverter;
         readonly VersionInfo versionInfo;
         readonly EdgeHubConnection edgeHubConnection;
-        Option<TwinCollection> lastDesiredProperties;
+        Option<PropertyCollection> lastDesiredProperties;
         Option<X509Certificate2> manifestTrustBundle;
 
         public TwinConfigSource(
@@ -40,8 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             string id,
             VersionInfo versionInfo,
             ITwinManager twinManager,
-            Core.IMessageConverter<Twin> messageConverter,
-            Core.IMessageConverter<TwinCollection> twinCollectionMessageConverter,
+            Core.IMessageConverter<TwinProperties> messageConverter,
+            Core.IMessageConverter<PropertyCollection> twinCollectionMessageConverter,
             EdgeHubConfigParser configParser,
             Option<X509Certificate2> manifestTrustBundle)
         {
@@ -67,11 +67,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 var config = twinMessage.FlatMap(
                     (message) =>
                     {
-                        Twin twin = this.twinMessageConverter.FromMessage(message);
+                        TwinProperties twin = this.twinMessageConverter.FromMessage(message);
 
-                        if (twin.Properties.Desired.Count > 0)
+                        if (twin.Desired.Count > 0)
                         {
-                            return Option.Some(this.configParser.GetEdgeHubConfig(twin.Properties.Desired.ToJson()));
+                            return Option.Some(this.configParser.GetEdgeHubConfig(twin.Desired.GetSerializedString()));
                         }
                         else
                         {
@@ -103,20 +103,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             try
             {
                 Core.IMessage message = await this.twinManager.GetTwinAsync(this.id);
-                Twin twin = this.twinMessageConverter.FromMessage(message);
-                TwinCollection desiredProperties = twin.Properties.Desired;
+                TwinProperties twin = this.twinMessageConverter.FromMessage(message);
+                PropertyCollection desiredProperties = twin.Desired;
                 Events.LogDesiredPropertiesAfterFullTwin(desiredProperties);
 
                 this.lastDesiredProperties = Option.Some(desiredProperties);
                 try
                 {
-                    edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(twin.Properties.Desired.ToJson()));
-                    await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
+                    edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(twin.Desired.GetSerializedString()));
+                    await this.UpdateReportedProperties(twin.Desired.Version, new LastDesiredStatus(200, string.Empty));
                     Events.GetConfigSuccess();
                 }
                 catch (Exception ex)
                 {
-                    await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(400, $"Error while parsing desired properties - {ex.Message}"));
+                    await this.UpdateReportedProperties(twin.Desired.Version, new LastDesiredStatus(400, $"Error while parsing desired properties - {ex.Message}"));
                     throw;
                 }
             }
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             try
             {
-                TwinCollection patch = this.twinCollectionMessageConverter.FromMessage(desiredPropertiesUpdate);
+                PropertyCollection patch = this.twinCollectionMessageConverter.FromMessage(desiredPropertiesUpdate);
                 using (await this.configLock.LockAsync())
                 {
                     Option<EdgeHubConfig> edgeHubConfig = await this.lastDesiredProperties
@@ -154,17 +154,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         }
 
         // This method updates local state and should be called only after acquiring edgeHubConfigLock
-        async Task<Option<EdgeHubConfig>> PatchDesiredProperties(TwinCollection baseline, TwinCollection patch)
+        async Task<Option<EdgeHubConfig>> PatchDesiredProperties(PropertyCollection baseline, PropertyCollection patch)
         {
             LastDesiredStatus lastDesiredStatus;
             Option<EdgeHubConfig> edgeHubConfig;
             try
             {
                 string desiredPropertiesJson = JsonEx.Merge(baseline, patch, true);
-                var desiredProperties = new TwinCollection(desiredPropertiesJson);
+                var desiredProperties = JsonConvert.DeserializeObject<PropertyCollection>(desiredPropertiesJson);
                 Events.LogDesiredPropertiesAfterPatch(desiredProperties);
 
-                this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
+                this.lastDesiredProperties = Option.Some(JsonConvert.DeserializeObject<PropertyCollection>(desiredPropertiesJson));
                 edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(desiredPropertiesJson));
                 lastDesiredStatus = new LastDesiredStatus(200, string.Empty);
                 Events.PatchConfigSuccess();
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             try
             {
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, desiredVersion, desiredStatus);
-                var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
+                var twinCollection = JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 Core.IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
                 return this.twinManager.UpdateReportedPropertiesAsync(this.id, reportedPropertiesMessage);
             }
@@ -264,12 +264,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     Invariant($"Failed to get local config"));
             }
 
-            internal static void LogDesiredPropertiesAfterPatch(TwinCollection twinCollection)
+            internal static void LogDesiredPropertiesAfterPatch(PropertyCollection twinCollection)
             {
                 Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterPatch, $"Obtained desired properties after apply patch: {twinCollection}");
             }
 
-            internal static void LogDesiredPropertiesAfterFullTwin(TwinCollection twinCollection)
+            internal static void LogDesiredPropertiesAfterFullTwin(PropertyCollection twinCollection)
             {
                 Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterFullTwin, $"Obtained desired properites after processing full twin: {twinCollection}");
             }

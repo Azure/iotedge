@@ -2,11 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 {
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
 
     interface IReportedPropertiesStore
     {
-        Task Update(string id, TwinCollection patch);
+        Task Update(string id, PropertyCollection patch);
 
         void InitSyncToCloud(string id);
 

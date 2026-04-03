@@ -29,11 +29,11 @@ namespace EdgeHubRestartTester
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            ServiceClient iotHubServiceClient = null;
-            List<ModuleClient> moduleClients = new List<ModuleClient>();
+            IotHubServiceClient iotHubServiceClient = null;
+            List<IotHubModuleClient> moduleClients = new List<IotHubModuleClient>();
             try
             {
-                iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.IoTHubConnectionString);
+                iotHubServiceClient = new IotHubServiceClient(Settings.Current.IoTHubConnectionString);
 
                 List<IEdgeHubConnectorTest> edgeHubConnectorTests = new List<IEdgeHubConnectorTest>();
 
@@ -41,14 +41,12 @@ namespace EdgeHubRestartTester
                 {
                     if (eachConfig.MessageOutputEndpoint != null)
                     {
-                        ModuleClient msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
+                        IotHubModuleClient msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
                             eachConfig.TransportType,
-                            new ClientOptions(),
+                            null,
                             ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                             ModuleUtil.DefaultTransientRetryStrategy,
                             Logger);
-
-                        msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
 
                         moduleClients.Add(msgModuleClient);
                         edgeHubConnectorTests.Add(
@@ -61,9 +59,9 @@ namespace EdgeHubRestartTester
 
                     if (eachConfig.DirectMethodTargetModuleId != null)
                     {
-                        ModuleClient dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
+                        IotHubModuleClient dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
                             eachConfig.TransportType,
-                            new ClientOptions(),
+                            null,
                             ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                             ModuleUtil.DefaultTransientRetryStrategy,
                             Logger);
@@ -116,11 +114,11 @@ namespace EdgeHubRestartTester
             }
             finally
             {
-                iotHubServiceClient?.Dispose();
+                if (iotHubServiceClient != null) iotHubServiceClient.Dispose();
 
-                foreach (ModuleClient client in moduleClients)
+                foreach (IotHubModuleClient client in moduleClients)
                 {
-                    client.Dispose();
+                    await client.DisposeAsync();
                 }
             }
 
@@ -132,12 +130,12 @@ namespace EdgeHubRestartTester
         }
 
         static async Task<DateTime> RestartEdgeHubAsync(
-            ServiceClient iotHubServiceClient,
+            IotHubServiceClient iotHubServiceClient,
             CancellationToken cancellationToken)
         {
             DateTime startAttemptTime = DateTime.UtcNow;
 
-            CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
+            var c2dMethod = new DirectMethodServiceRequest("RestartModule");
             string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
             string payload = string.Format(payloadSchema, "edgeHub");
             Logger.LogInformation("RestartModule Method Payload: {0}", payload);
@@ -148,10 +146,10 @@ namespace EdgeHubRestartTester
                 try
                 {
                     // TODO: Introduce the offline scenario to use docker command.
-                    CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
+                    DirectMethodClientResponse response = await iotHubServiceClient.DirectMethods.InvokeAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
                     if ((HttpStatusCode)response.Status != HttpStatusCode.OK)
                     {
-                        Logger.LogError($"Calling EdgeHub restart failed with status code {response.Status} : {response.GetPayloadAsJson()}.");
+                        Logger.LogError($"Calling EdgeHub restart failed with status code {response.Status} : {response.JsonPayload}.");
                     }
                     else
                     {

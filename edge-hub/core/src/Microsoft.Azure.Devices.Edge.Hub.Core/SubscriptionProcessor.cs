@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Linq;
     using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
-    using Microsoft.Azure.Devices.Client.Exceptions;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -248,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             static readonly ISet<Type> NonTransientExceptions = new HashSet<Type>
             {
                 typeof(ArgumentException),
-                typeof(UnauthorizedException)
+                typeof(IotHubClientException)
             };
 
             public bool IsTransient(Exception ex) => !NonTransientExceptions.Contains(ex.GetType());

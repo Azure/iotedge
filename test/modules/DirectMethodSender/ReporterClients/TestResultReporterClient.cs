@@ -23,10 +23,11 @@ namespace DirectMethodSender
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
-        public override void Dispose()
+        public override ValueTask DisposeAsync()
         {
-            // Intentionall left blank
-            // C# genereated from swagger.yaml automatically call Dispose()
+            // Intentionally left blank
+            // C# generated from swagger.yaml automatically call Dispose()
+            return default;
         }
 
         internal override async Task ReportStatusAsync(TestResultBase testResult)

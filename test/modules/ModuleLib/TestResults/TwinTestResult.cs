@@ -2,8 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 {
     using System;
+    using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
-    using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
 
     public class TwinTestResult : TestResultBase
@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 
         public string TrackingId { get; set; }
 
-        public TwinCollection Properties { get; set; }
+        public ClientTwinProperties Properties { get; set; }
 
         public string ErrorMessage { get; set; }
 

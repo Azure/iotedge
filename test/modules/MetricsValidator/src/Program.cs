@@ -37,15 +37,15 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
-                var transportType = configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+                var transportType = configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Edge.ModuleUtil.TransportType.Mqtt);
 
                 Logger.LogInformation("Make Client");
-                using (ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                IotHubModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     transportType,
-                    new ClientOptions(),
+                    null,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger))
+                    Logger);
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
                     Logger.LogInformation("Open Async");
@@ -54,52 +54,60 @@ namespace MetricsValidator
                     SemaphoreSlim directMethodProcessingLock = new SemaphoreSlim(1, 1);
 
                     Logger.LogInformation("Set method handler");
-                    await moduleClient.SetMethodHandlerAsync(
-                        "ValidateMetrics",
-                        async (MethodRequest methodRequest, object _) =>
+                    await moduleClient.SetDirectMethodCallbackAsync(
+                        async (DirectMethodRequest methodRequest) =>
                         {
-                            Logger.LogInformation("Received method call to validate metrics");
-                            try
+                            if (methodRequest.MethodName == "ValidateMetrics")
                             {
-                                await directMethodProcessingLock.WaitAsync();
-
-                                // Delay to give buffer between potentially repeated direct method calls
-                                await Task.Delay(TimeSpan.FromSeconds(5));
-
-                                Logger.LogInformation("Starting metrics validation");
-
-                                TestReporter testReporter = new TestReporter("Metrics Validation");
-                                List<TestBase> tests = new List<TestBase>
+                                Logger.LogInformation("Received method call to validate metrics");
+                                try
                                 {
-                                    new ValidateMessages(testReporter, scraper, moduleClient, transportType),
-                                    new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
-                                    // new ValidateHostRanges(testReporter, scraper, moduleClient),
-                                };
+                                    await directMethodProcessingLock.WaitAsync();
 
-                                using (testReporter.MeasureDuration())
-                                {
-                                    await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
+                                    // Delay to give buffer between potentially repeated direct method calls
+                                    await Task.Delay(TimeSpan.FromSeconds(5));
+
+                                    Logger.LogInformation("Starting metrics validation");
+
+                                    TestReporter testReporter = new TestReporter("Metrics Validation");
+                                    List<TestBase> tests = new List<TestBase>
+                                    {
+                                        new ValidateMessages(testReporter, scraper, moduleClient, transportType),
+                                        new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
+                                        // new ValidateHostRanges(testReporter, scraper, moduleClient),
+                                    };
+
+                                    using (testReporter.MeasureDuration())
+                                    {
+                                        await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
+                                    }
+
+                                    var result = new DirectMethodResponse((int)HttpStatusCode.OK)
+                                    {
+                                        Payload = Encoding.UTF8.GetBytes(testReporter.ReportResults())
+                                    };
+
+                                    Logger.LogInformation($"Finished validating metrics. Result size: {result.Payload.Length}");
+
+                                    return result;
                                 }
-
-                                var result = new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
-
-                                Logger.LogInformation($"Finished validating metrics. Result size: {result.Result.Length}");
-
-                                return result;
+                                finally
+                                {
+                                    directMethodProcessingLock.Release();
+                                }
                             }
-                            finally
-                            {
-                                directMethodProcessingLock.Release();
-                            }
-                        },
-                        null);
 
-                    moduleClient.SetConnectionStatusChangesHandler((status, reason)
-                        => Logger.LogWarning($"Module to Edge Hub connection changed Status: {status} Reason: {reason}"));
+                            return new DirectMethodResponse((int)HttpStatusCode.NotFound);
+                        });
+
+                    moduleClient.ConnectionStatusChangeCallback = (ConnectionStatusInfo connectionStatusInfo)
+                        => Logger.LogWarning($"Module to Edge Hub connection changed Status: {connectionStatusInfo.Status} Reason: {connectionStatusInfo.ChangeReason}");
 
                     Logger.LogInformation("Ready to validate metrics");
                     await cts.Token.WhenCanceled();
                 }
+
+                await moduleClient.DisposeAsync();
 
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));

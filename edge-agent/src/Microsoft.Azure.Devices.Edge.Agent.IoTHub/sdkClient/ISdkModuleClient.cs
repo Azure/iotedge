@@ -1,35 +1,31 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Shared;
 
     public interface ISdkModuleClient
     {
         Task OpenAsync();
 
-        void SetConnectionStatusChangesHandler(ConnectionStatusChangesHandler statusChangesHandler);
+        void SetConnectionStatusChangesHandler(Action<ConnectionStatusInfo> statusChangesHandler);
 
-        void SetOperationTimeoutInMilliseconds(uint operationTimeoutInMilliseconds);
+        Task SetDesiredPropertyUpdateCallbackAsync(Func<PropertyCollection, Task> onDesiredPropertyChanged);
 
-        void SetProductInfo(string productInfo);
+        Task SetMethodHandlerAsync(string methodName, Func<DirectMethodRequest, Task<DirectMethodResponse>> callback);
 
-        Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged);
+        Task SetDefaultMethodHandlerAsync(Func<DirectMethodRequest, Task<DirectMethodResponse>> callback);
 
-        Task SetMethodHandlerAsync(string methodName, MethodCallback callback);
+        Task<TwinProperties> GetTwinAsync();
 
-        Task SetDefaultMethodHandlerAsync(MethodCallback callback);
+        Task UpdateReportedPropertiesAsync(PropertyCollection reportedProperties);
 
-        Task<Twin> GetTwinAsync();
+        //// Task SendEventBatchAsync(IEnumerable<TelemetryMessage> messages);
 
-        Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
-
-        //// Task SendEventBatchAsync(IEnumerable<Message> messages);
-
-        Task SendEventAsync(Message message);
+        Task SendEventAsync(TelemetryMessage message);
 
         ////Task<Client.DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken);
 

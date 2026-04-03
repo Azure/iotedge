@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 {
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Amqp.Encoding;
-    using Microsoft.Azure.Devices.Common.Exceptions;
 
     public static class AmqpErrorMapper
     {

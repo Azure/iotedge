@@ -6,31 +6,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Shared;
 
-    public interface IClient : IDisposable
+    public interface IClient : IAsyncDisposable, IDisposable
     {
         bool IsActive { get; }
 
-        Task<Twin> GetTwinAsync();
+        Task<TwinProperties> GetTwinPropertiesAsync();
 
-        Task SendEventAsync(Message message);
+        Task SendTelemetryAsync(TelemetryMessage message);
 
-        Task SendEventBatchAsync(IEnumerable<Message> messages);
+        Task SendTelemetryAsync(IEnumerable<TelemetryMessage> messages);
 
-        Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
+        Task UpdateReportedPropertiesAsync(PropertyCollection reportedProperties);
 
         Task CompleteAsync(string messageId);
 
         Task AbandonAsync(string messageId);
 
-        Task SetMethodDefaultHandlerAsync(MethodCallback methodHandler, object userContext);
+        Task SetDirectMethodCallbackAsync(Func<Client.DirectMethodRequest, Task<Client.DirectMethodResponse>> methodHandler);
 
-        Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyUpdates1, object userContext);
+        Task SetDesiredPropertyUpdateCallbackAsync(Func<PropertyCollection, Task> onDesiredPropertyUpdates);
 
-        void SetOperationTimeoutInMilliseconds(uint defaultOperationTimeoutMilliseconds);
-
-        void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler);
+        void SetConnectionStatusChangedHandler(Action<ConnectionStatusInfo> handler);
 
         void SetProductInfo(string productInfo);
 
@@ -40,6 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         Task RejectAsync(string messageId);
 
-        Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout);
+        Task<IncomingMessage> ReceiveAsync(TimeSpan receiveMessageTimeout);
     }
 }

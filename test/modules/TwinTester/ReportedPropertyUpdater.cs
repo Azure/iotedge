@@ -3,20 +3,18 @@ namespace TwinTester
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
     class ReportedPropertyUpdater : ITwinOperation
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(ReportedPropertyUpdater));
-        readonly ModuleClient moduleClient;
+        readonly IotHubModuleClient moduleClient;
         readonly ITwinTestResultHandler reporter;
         int reportedPropertyUpdateCounter;
 
-        public ReportedPropertyUpdater(ModuleClient moduleClient, ITwinTestResultHandler reporter, int reportedPropertyUpdateCounter)
+        public ReportedPropertyUpdater(IotHubModuleClient moduleClient, ITwinTestResultHandler reporter, int reportedPropertyUpdateCounter)
         {
             this.moduleClient = moduleClient;
             this.reporter = reporter;
@@ -28,7 +26,7 @@ namespace TwinTester
             try
             {
                 string reportedPropertyUpdateValue = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update can to be any number
-                var twin = new TwinCollection();
+                var twin = new PropertyCollection();
                 twin[this.reportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdateValue;
 
                 await this.moduleClient.UpdateReportedPropertiesAsync(twin);

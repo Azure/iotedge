@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
     public class ModuleClient : IModuleClient
@@ -40,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public UpstreamProtocol UpstreamProtocol { get; }
 
-        public async Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged)
+        public async Task SetDesiredPropertyUpdateCallbackAsync(Func<PropertyCollection, Task> onDesiredPropertyChanged)
         {
             try
             {
@@ -54,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task SetMethodHandlerAsync(string methodName, MethodCallback callback)
+        public async Task SetMethodHandlerAsync(string methodName, Func<DirectMethodRequest, Task<DirectMethodResponse>> callback)
         {
             try
             {
@@ -68,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task SetDefaultMethodHandlerAsync(MethodCallback callback)
+        public async Task SetDefaultMethodHandlerAsync(Func<DirectMethodRequest, Task<DirectMethodResponse>> callback)
         {
             try
             {
@@ -82,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task<Twin> GetTwinAsync()
+        public async Task<TwinProperties> GetTwinAsync()
         {
             try
             {
@@ -96,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
+        public async Task UpdateReportedPropertiesAsync(PropertyCollection reportedProperties)
         {
             try
             {
@@ -110,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        //// public async Task SendEventBatchAsync(IEnumerable<Message> messages)
+        //// public async Task SendEventBatchAsync(IEnumerable<TelemetryMessage> messages)
         //// {
         ////    try
         ////    {
@@ -124,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         ////    }
         //// }
 
-        public async Task SendEventAsync(Message message)
+        public async Task SendEventAsync(TelemetryMessage message)
         {
             try
             {

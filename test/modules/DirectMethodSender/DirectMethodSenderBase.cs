@@ -6,11 +6,12 @@ namespace DirectMethodSender
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Common.Exceptions;
+    using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    abstract class DirectMethodSenderBase : IDisposable
+    abstract class DirectMethodSenderBase : IAsyncDisposable
     {
         readonly ILogger logger;
         readonly string deviceId;
@@ -27,7 +28,7 @@ namespace DirectMethodSender
             this.targetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
         }
 
-        public abstract void Dispose();
+        public abstract ValueTask DisposeAsync();
 
         public async Task<Tuple<HttpStatusCode, ulong>> InvokeDirectMethodAsync(string methodName, CancellationTokenSource cts)
         {
@@ -53,7 +54,7 @@ namespace DirectMethodSender
                 logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
                 return new Tuple<HttpStatusCode, ulong>((HttpStatusCode)resultStatus, this.directMethodCount);
             }
-            catch (DeviceNotFoundException e)
+            catch (IotHubServiceException e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 logger.LogInformation(e, $"DeviceNotFound exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
@@ -63,12 +64,12 @@ namespace DirectMethodSender
                 logger.LogInformation(e, $"Resource exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.ServiceUnavailable, this.directMethodCount);
             }
-            catch (UnauthorizedException e)
+            catch (IotHubServiceException e) when (e.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
                 logger.LogInformation(e, $"Unauthorized exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.Unauthorized, this.directMethodCount);
             }
-            catch (Exception e) when (e is System.Net.Http.HttpRequestException || e is IotHubException || e is IotHubCommunicationException)
+            catch (Exception e) when (e is System.Net.Http.HttpRequestException || e is IotHubServiceException || e is IotHubClientException)
             {
                 logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.FailedDependency, this.directMethodCount);
@@ -105,7 +106,7 @@ namespace DirectMethodSender
                     resultStatus = await this.InvokeDeviceMethodAsync(deviceId, targetModuleId, methodName, directMethodCount, CancellationToken.None);
                     break;
                 }
-                catch (IotHubCommunicationException e) when (e.IsTransient)
+                catch (IotHubClientException e) when (e.IsTransient)
                 {
                     logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {directMethodCount}. Retry: {transientRetryCount}");
                     resultStatus = (int)HttpStatusCode.RequestTimeout;

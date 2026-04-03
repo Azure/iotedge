@@ -20,14 +20,14 @@ namespace MetricsValidator
 
         protected TestReporter testReporter;
         protected IMetricsScraper scraper;
-        protected ModuleClient moduleClient;
+        protected IotHubModuleClient moduleClient;
 
         protected string TestName
         {
             get { return this.GetType().ToString().Split('.').Last(); }
         }
 
-        public TestBase(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
+        public TestBase(TestReporter testReporter, IMetricsScraper scraper, IotHubModuleClient moduleClient)
         {
             log.LogInformation($"Making test {this.TestName}");
             this.testReporter = testReporter.MakeSubcategory(this.TestName);

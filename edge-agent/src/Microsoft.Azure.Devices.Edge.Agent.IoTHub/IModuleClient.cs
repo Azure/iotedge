@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Shared;
 
     public interface IModuleClient
     {
@@ -16,19 +15,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         UpstreamProtocol UpstreamProtocol { get; }
 
-        Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged);
+        Task SetDesiredPropertyUpdateCallbackAsync(Func<PropertyCollection, Task> onDesiredPropertyChanged);
 
-        Task SetMethodHandlerAsync(string methodName, MethodCallback callback);
+        Task SetMethodHandlerAsync(string methodName, Func<DirectMethodRequest, Task<DirectMethodResponse>> callback);
 
-        Task SetDefaultMethodHandlerAsync(MethodCallback callback);
+        Task SetDefaultMethodHandlerAsync(Func<DirectMethodRequest, Task<DirectMethodResponse>> callback);
 
-        Task<Twin> GetTwinAsync();
+        Task<TwinProperties> GetTwinAsync();
 
-        Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
+        Task UpdateReportedPropertiesAsync(PropertyCollection reportedProperties);
 
-        //// Task SendEventBatchAsync(IEnumerable<Message> messages);
+        //// Task SendEventBatchAsync(IEnumerable<TelemetryMessage> messages);
 
-        Task SendEventAsync(Message message);
+        Task SendEventAsync(TelemetryMessage message);
 
         ////Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken);
 

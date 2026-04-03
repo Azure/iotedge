@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
 {
-    public class IotMessageModuleClientWrapper : IDisposable, IModuleClientWrapper
+    public class IotMessageModuleClientWrapper : IAsyncDisposable, IModuleClientWrapper
     {
         BasicModuleClientWrapper inner;
         CancellationTokenSource cancellationTokenSource;
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
             }
         }
 
-        public async Task SendMessageAsync(string outputName, Message message)
+        public async Task SendMessageAsync(string outputName, TelemetryMessage message)
         {
             try
             {
@@ -49,12 +49,9 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
             }
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            this.inner.Dispose();
+            await this.inner.DisposeAsync();
         }
     }
 }
-
-
-

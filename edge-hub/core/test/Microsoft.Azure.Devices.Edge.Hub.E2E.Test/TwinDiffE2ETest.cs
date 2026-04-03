@@ -2,11 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
 
@@ -24,24 +25,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 transportSettings,
                 async (deviceClient, deviceName, registryManager) =>
                 {
-                    var twinPatch = new Twin();
-                    twinPatch.Properties.Desired = new TwinCollection
+                    var twinPatch = new ClientTwin();
+                    twinPatch.Properties.Desired = new PropertyCollection
                     {
                         ["101"] = "value"
                     };
 
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+                    (PropertyCollection, PropertyCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
 
-                    twinPatch.Properties.Desired = new TwinCollection
+                    twinPatch.Properties.Desired = new PropertyCollection
                     {
                         ["101"] = "value",
-                        ["101-new"] = new TwinCollection
+                        ["101-new"] = new PropertyCollection
                         {
                             ["object"] = "value"
                         }
@@ -51,9 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
                 });
         }
 
@@ -65,21 +66,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 transportSettings,
                 async (deviceClient, deviceName, registryManager) =>
                 {
-                    var twinPatch = new Twin();
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    var twinPatch = new ClientTwin();
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
                         ["102"] = "value"
                     };
 
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+                    (PropertyCollection, PropertyCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
 
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
                         ["102"] = "overwritten value"
                     };
@@ -88,9 +89,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
                 });
         }
 
@@ -102,14 +103,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 transportSettings,
                 async (deviceClient, deviceName, registryManager) =>
                 {
-                    var twinPatch = new Twin();
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    var twinPatch = new ClientTwin();
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
-                        ["103"] = new TwinCollection()
+                        ["103"] = new PropertyCollection()
                         {
-                            ["object"] = new TwinCollection()
+                            ["object"] = new PropertyCollection()
                             {
-                                ["object"] = new TwinCollection()
+                                ["object"] = new PropertyCollection()
                                 {
                                     ["103"] = "value"
                                 }
@@ -117,21 +118,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         }
                     };
 
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+                    (PropertyCollection, PropertyCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
 
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
-                        ["103"] = new TwinCollection()
+                        ["103"] = new PropertyCollection()
                         {
-                            ["object"] = new TwinCollection()
+                            ["object"] = new PropertyCollection()
                             {
-                                ["object"] = new TwinCollection()
+                                ["object"] = new PropertyCollection()
                                 {
                                     ["103"] = "value",
                                 }
@@ -143,9 +144,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
                 });
         }
 
@@ -157,14 +158,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 transportSettings,
                 async (deviceClient, deviceName, registryManager) =>
                 {
-                    var twinPatch = new Twin();
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    var twinPatch = new ClientTwin();
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
-                        ["104"] = new TwinCollection()
+                        ["104"] = new PropertyCollection()
                         {
-                            ["object"] = new TwinCollection()
+                            ["object"] = new PropertyCollection()
                             {
-                                ["object"] = new TwinCollection()
+                                ["object"] = new PropertyCollection()
                                 {
                                     ["104"] = "value"
                                 }
@@ -172,21 +173,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         }
                     };
 
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+                    (PropertyCollection, PropertyCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
 
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
-                        ["104"] = new TwinCollection()
+                        ["104"] = new PropertyCollection()
                         {
-                            ["object"] = new TwinCollection()
+                            ["object"] = new PropertyCollection()
                             {
-                                ["object"] = new TwinCollection()
+                                ["object"] = new PropertyCollection()
                                 {
                                     ["104"] = null,
                                 }
@@ -198,9 +199,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
                 });
         }
 
@@ -212,14 +213,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 transportSettings,
                 async (deviceClient, deviceName, registryManager) =>
                 {
-                    var twinPatch = new Twin();
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    var twinPatch = new ClientTwin();
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
-                        ["105"] = new TwinCollection()
+                        ["105"] = new PropertyCollection()
                         {
-                            ["object"] = new TwinCollection()
+                            ["object"] = new PropertyCollection()
                             {
-                                ["object"] = new TwinCollection()
+                                ["object"] = new PropertyCollection()
                                 {
                                     ["105"] = "value"
                                 }
@@ -227,21 +228,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         }
                     };
 
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+                    (PropertyCollection, PropertyCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
 
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
-                        ["105"] = new TwinCollection()
+                        ["105"] = new PropertyCollection()
                         {
-                            ["object"] = new TwinCollection()
+                            ["object"] = new PropertyCollection()
                             {
-                                ["object"] = new TwinCollection()
+                                ["object"] = new PropertyCollection()
                                 {
                                     ["105"] = "value",
                                     ["nonexistant"] = null
@@ -254,9 +255,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
                 });
         }
 
@@ -268,27 +269,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 transportSettings,
                 async (deviceClient, deviceName, registryManager) =>
                 {
-                    var twinPatch = new Twin();
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    var twinPatch = new ClientTwin();
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
                         ["106"] = "value"
                     };
 
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+                    (PropertyCollection, PropertyCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
 
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
-                        ["106"] = new TwinCollection()
+                        ["106"] = new PropertyCollection()
                         {
-                            ["object"] = new TwinCollection()
+                            ["object"] = new PropertyCollection()
                             {
-                                ["object"] = new TwinCollection()
+                                ["object"] = new PropertyCollection()
                                 {
                                     ["106"] = "value"
                                 }
@@ -300,9 +301,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
                 });
         }
 
@@ -314,14 +315,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 transportSettings,
                 async (deviceClient, deviceName, registryManager) =>
                 {
-                    var twinPatch = new Twin();
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    var twinPatch = new ClientTwin();
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
-                        ["107"] = new TwinCollection()
+                        ["107"] = new PropertyCollection()
                         {
-                            ["object"] = new TwinCollection()
+                            ["object"] = new PropertyCollection()
                             {
-                                ["object"] = new TwinCollection()
+                                ["object"] = new PropertyCollection()
                                 {
                                     ["107"] = "value"
                                 }
@@ -329,15 +330,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         }
                     };
 
-                    (TwinCollection, TwinCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
+                    (PropertyCollection, PropertyCollection) results = await this.TestTwinUpdate(deviceClient, deviceName, registryManager, twinPatch);
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
 
-                    twinPatch.Properties.Desired = new TwinCollection()
+                    twinPatch.Properties.Desired = new PropertyCollection()
                     {
                         ["107"] = "value"
                     };
@@ -346,23 +347,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                     Assert.True(
                         JToken.DeepEquals(
-                            JToken.Parse(results.Item1.ToJson()),
-                            JToken.Parse(results.Item2.ToJson())),
-                        $"result.Item1={results.Item1.ToJson()}, result.Item2={results.Item2.ToJson()}");
+                            JToken.Parse(results.Item1.GetSerializedString()),
+                            JToken.Parse(results.Item2.GetSerializedString())),
+                        $"result.Item1={results.Item1.GetSerializedString()}, result.Item2={results.Item2.GetSerializedString()}");
                 });
         }
 
-        static async Task<(DeviceClient, string)> InitializeDeviceClient(RegistryManager rm, string iotHubConnectionString, ITransportSettings[] settings)
+        static async Task<(IotHubDeviceClient, string)> InitializeDeviceClient(IotHubServiceClient rm, string iotHubConnectionString, ITransportSettings[] settings)
         {
-            DeviceClient deviceClient = null;
+            IotHubDeviceClient deviceClient = null;
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
-            var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
+            var edgeDevice = await rm.Devices.GetAsync(edgeDeviceId);
             (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
             for (int i = 0; i < 3; i++)
             {
                 try
                 {
-                    deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
+                    deviceClient = IotHubDeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
                     await deviceClient.OpenAsync();
                     break;
                 }
@@ -381,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 try
                 {
-                    var device = await rm.GetDeviceAsync(deviceName);
+                    var device = await rm.Devices.GetAsync(deviceName);
                     if (device.ConnectionState != DeviceConnectionState.Connected)
                         throw new Exception("Device not connected to cloud");
                     break;
@@ -400,11 +401,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return (deviceClient, deviceName);
         }
 
-        async Task RunTestCase(ITransportSettings[] transportSettings, Func<DeviceClient, string, RegistryManager, Task> testCase)
+        async Task RunTestCase(ITransportSettings[] transportSettings, Func<IotHubDeviceClient, string, IotHubServiceClient, Task> testCase)
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            (DeviceClient deviceClient, string deviceName) = await InitializeDeviceClient(rm, iotHubConnectionString, transportSettings);
+            IotHubServiceClient rm = new IotHubServiceClient(iotHubConnectionString);
+            (IotHubDeviceClient deviceClient, string deviceName) = await InitializeDeviceClient(rm, iotHubConnectionString, transportSettings);
             try
             {
                 await testCase(deviceClient, deviceName, rm);
@@ -413,20 +414,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 await deviceClient.CloseAsync();
                 await RegistryManagerHelper.RemoveDevice(deviceName, rm);
-                await rm.CloseAsync();
+                rm.Dispose();
             }
         }
 
-        async Task<(TwinCollection, TwinCollection)> TestTwinUpdate(
-            DeviceClient deviceClient,
+        async Task<(PropertyCollection, PropertyCollection)> TestTwinUpdate(
+            IotHubDeviceClient deviceClient,
             string deviceName,
-            RegistryManager rm,
-            Twin twinPatch)
+            IotHubServiceClient rm,
+            ClientTwin twinPatch)
         {
-            var receivedDesiredProperties = new TwinCollection();
+            var receivedDesiredProperties = new PropertyCollection();
             bool desiredPropertiesUpdateCallbackTriggered = false;
 
-            Task DesiredPropertiesUpdateCallback(TwinCollection desiredproperties, object usercontext)
+            Task DesiredPropertiesUpdateCallback(PropertyCollection desiredproperties, object usercontext)
             {
                 receivedDesiredProperties = desiredproperties;
                 desiredPropertiesUpdateCallbackTriggered = true;
@@ -436,14 +437,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await deviceClient.SetDesiredPropertyUpdateCallbackAsync(DesiredPropertiesUpdateCallback, null);
 
             // fetch the newly minted twin
-            Twin originalCloudTwin = await deviceClient.GetTwinAsync();
-            Twin rmTwin = await rm.GetTwinAsync(deviceName);
+            TwinProperties originalCloudTwin = await deviceClient.GetTwinAsync();
+            ClientTwin rmTwin = await rm.Twins.GetAsync(deviceName);
 
             // updated twin in the cloud with the patch
-            await rm.UpdateTwinAsync(deviceName, twinPatch, rmTwin.ETag);
+            await rm.Twins.UpdateAsync(deviceName, twinPatch, true, CancellationToken.None);
 
             // Get the updated twin
-            Twin updatedCloudTwin = await deviceClient.GetTwinAsync();
+            TwinProperties updatedCloudTwin = await deviceClient.GetTwinAsync();
 
             // replicate the patch operation locally
             var delayTask = Task.Delay(TimeSpan.FromSeconds(60));
@@ -452,10 +453,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await Task.Delay(TimeSpan.FromMilliseconds(500));
             }
 
-            string mergedJson = JsonEx.Merge(originalCloudTwin.Properties.Desired, receivedDesiredProperties, true);
-            var localMergedTwinProperties = new TwinCollection(mergedJson);
+            string mergedJson = JsonEx.Merge(originalCloudTwin.Desired, receivedDesiredProperties, true);
+            var localMergedTwinProperties = JsonConvert.DeserializeObject<PropertyCollection>(mergedJson);
 
-            return (localMergedTwinProperties, updatedCloudTwin.Properties.Desired);
+            return (localMergedTwinProperties, updatedCloudTwin.Desired);
         }
     }
 }

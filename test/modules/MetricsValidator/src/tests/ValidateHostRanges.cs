@@ -15,7 +15,7 @@ namespace MetricsValidator.Tests
 
     public class ValidateHostRanges : TestBase
     {
-        public ValidateHostRanges(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
+        public ValidateHostRanges(TestReporter testReporter, IMetricsScraper scraper, IotHubModuleClient moduleClient)
             : base(testReporter, scraper, moduleClient)
         {
         }

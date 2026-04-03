@@ -7,20 +7,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
 
     public interface IEdgeAgentConnection : IDisposable
     {
-        Option<TwinCollection> ReportedProperties { get; }
+        Option<PropertyCollection> ReportedProperties { get; }
 
         IModuleConnection ModuleConnection { get; }
 
         Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync();
 
-        Task<bool> UpdateReportedPropertiesAsync(TwinCollection patch);
+        Task<bool> UpdateReportedPropertiesAsync(PropertyCollection patch);
 
-        //// Task SendEventBatchAsync(IEnumerable<Message> messages);
+        //// Task SendEventBatchAsync(IEnumerable<TelemetryMessage> messages);
 
-        Task SendEventAsync(Message message);
+        Task SendEventAsync(TelemetryMessage message);
     }
 }

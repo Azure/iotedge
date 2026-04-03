@@ -7,8 +7,8 @@ namespace EdgeHubRestartTester
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -123,8 +123,8 @@ namespace EdgeHubRestartTester
         {
             if (!this.isConnectorConfigReady)
             {
-                RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
-                Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
+                var serviceClient = new IotHubServiceClient(this.IoTHubConnectionString);
+                ClientTwin moduleTwin = await serviceClient.Twins.GetAsync(this.DeviceId, this.ModuleId);
                 string connectorConfigJson = moduleTwin.Properties.Desired["edgeHubConnectorConfig"].ToString();
 
                 JObject edgeHubConnectorConfig = JObject.Parse(connectorConfigJson);

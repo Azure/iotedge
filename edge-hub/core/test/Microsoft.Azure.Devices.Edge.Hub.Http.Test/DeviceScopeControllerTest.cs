@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;

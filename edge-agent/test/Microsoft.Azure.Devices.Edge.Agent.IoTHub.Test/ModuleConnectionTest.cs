@@ -18,8 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task CreateAndInitTest()
         {
             // Arrange
-            ConnectionStatusChangesHandler connectionStatusChangesHandler = (status, reason) => { };
-            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = (properties, context) => Task.CompletedTask;
+            Action<ConnectionStatusInfo> connectionStatusChangesHandler = (info) => { };
+            Func<PropertyCollection, Task> desiredPropertyUpdateCallback = (properties) => Task.CompletedTask;
 
             var moduleClient = new Mock<IModuleClient>();
             moduleClient.Setup(m => m.IsActive).Returns(true);
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(resultModuleClientOption.HasValue);
             Assert.Equal(moduleClient.Object, resultModuleClientOption.OrDefault());
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Once);
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Once);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
 
             // Act
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(resultModuleClient);
             Assert.Equal(moduleClient.Object, resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Once);
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Once);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
         }
 
@@ -57,8 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task CreateAndCloseTest()
         {
             // Arrange
-            ConnectionStatusChangesHandler connectionStatusChangesHandler = (status, reason) => { };
-            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = (properties, context) => Task.CompletedTask;
+            Action<ConnectionStatusInfo> connectionStatusChangesHandler = (info) => { };
+            Func<PropertyCollection, Task> desiredPropertyUpdateCallback = (properties) => Task.CompletedTask;
 
             Task<IModuleClient> GetModuleClient() => Task.FromResult(Mock.Of<IModuleClient>(m => m.IsActive));
             var moduleClientProvider = new Mock<IModuleClientProvider>();
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(optionResultModuleClient.HasValue);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Once);
             Mock<IModuleClient> moduleClient = Mock.Get(resultModuleClient);
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Once);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
 
             // Act - Set the client to not active and try to get a Get a module client
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(optionResultModuleClient.HasValue);
             moduleClient = Mock.Get(resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(2));
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Once);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
 
             // Act - Set the client to not active and raise the client closed event
@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(optionResultModuleClient.HasValue);
             moduleClient = Mock.Get(resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(3));
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Once);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
 
             // Act
@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(resultModuleClient);
             moduleClient = Mock.Get(resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(3));
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Once);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
         }
 
@@ -130,8 +130,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task SubscriptionsDisabledTest()
         {
             // Arrange
-            ConnectionStatusChangesHandler connectionStatusChangesHandler = (status, reason) => { };
-            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = (properties, context) => Task.CompletedTask;
+            Action<ConnectionStatusInfo> connectionStatusChangesHandler = (info) => { };
+            Func<PropertyCollection, Task> desiredPropertyUpdateCallback = (properties) => Task.CompletedTask;
 
             Task<IModuleClient> GetModuleClient() => Task.FromResult(Mock.Of<IModuleClient>(m => m.IsActive));
             var moduleClientProvider = new Mock<IModuleClientProvider>();
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(optionResultModuleClient.HasValue);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Once);
             Mock<IModuleClient> moduleClient = Mock.Get(resultModuleClient);
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Never);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Never);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Never);
 
             // Act - Set the client to not active and try to get a Get a module client
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.True(optionResultModuleClient.HasValue);
             moduleClient = Mock.Get(resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(2));
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Never);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Never);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Never);
 
             // Act - Set the client to not active and raise the client closed event
@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.False(optionResultModuleClient.HasValue);
             moduleClient = Mock.Get(resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(2));
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Never);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Never);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Never);
 
             // Act
@@ -198,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(resultModuleClient);
             moduleClient = Mock.Get(resultModuleClient);
             moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(3));
-            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Never);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>()), Times.Never);
             moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Never);
 
             // Act
@@ -212,13 +212,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task FailingInitClosesModuleClient()
         {
             // Arrange
-            ConnectionStatusChangesHandler connectionStatusChangesHandler = (status, reason) => { };
-            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = (properties, context) => Task.CompletedTask;
+            Action<ConnectionStatusInfo> connectionStatusChangesHandler = (info) => { };
+            Func<PropertyCollection, Task> desiredPropertyUpdateCallback = (properties) => Task.CompletedTask;
 
             var milestone = new SemaphoreSlim(0, 1);
 
             var moduleClient = new Mock<IModuleClient>();
-            moduleClient.Setup(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>())).Callback(() => milestone.Release()).Throws<TimeoutException>();
+            moduleClient.Setup(m => m.SetDefaultMethodHandlerAsync(It.IsAny<Func<DirectMethodRequest, Task<DirectMethodResponse>>>())).Callback(() => milestone.Release()).Throws<TimeoutException>();
 
             var moduleClientProvider = new Mock<IModuleClientProvider>();
             moduleClientProvider.Setup(m => m.Create(connectionStatusChangesHandler)).ReturnsAsync(moduleClient.Object);

@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
     using Newtonsoft.Json;
     using Xunit;
 
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
         [Fact]
         public void RoundtripReportedPropertiesPatchTest()
         {
-            var reportedProperties = new TwinCollection();
+            var reportedProperties = new PropertyCollection();
             reportedProperties["P1"] = "v1";
             reportedProperties["P2"] = "v2";
 
@@ -54,32 +54,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
         [Fact]
         public void RoundtripTwinTest()
         {
-            var reportedProperties = new TwinCollection();
+            var reportedProperties = new PropertyCollection();
             reportedProperties["P1"] = "v1";
-            var desiredProperties = new TwinCollection();
+            var desiredProperties = new PropertyCollection();
             desiredProperties["P2"] = "v2";
-            var twin = new Twin(new TwinProperties { Desired = desiredProperties, Reported = reportedProperties });
+            var twin = new TwinProperties { Desired = desiredProperties, Reported = reportedProperties };
             var twinStoreEntity = new TwinStoreEntity(twin);
             string json = JsonConvert.SerializeObject(twinStoreEntity);
             var deserializedObject = JsonConvert.DeserializeObject<TwinStoreEntity>(json);
 
             Assert.False(deserializedObject.ReportedPropertiesPatch.HasValue);
             Assert.True(deserializedObject.Twin.HasValue);
-            Assert.Equal("v1", (string)deserializedObject.Twin.OrDefault().Properties.Reported["P1"]);
-            Assert.Equal("v2", (string)deserializedObject.Twin.OrDefault().Properties.Desired["P2"]);
+            Assert.Equal("v1", (string)deserializedObject.Twin.OrDefault().Reported["P1"]);
+            Assert.Equal("v2", (string)deserializedObject.Twin.OrDefault().Desired["P2"]);
         }
 
         [Fact]
         public void BackwardCompatTest()
         {
             // Arrange
-            var twinReportedProperties = new TwinCollection();
+            var twinReportedProperties = new PropertyCollection();
             twinReportedProperties["P1"] = "v1";
-            var twinDesiredProperties = new TwinCollection();
+            var twinDesiredProperties = new PropertyCollection();
             twinDesiredProperties["P2"] = "v2";
-            var twin = new Twin(new TwinProperties { Desired = twinDesiredProperties, Reported = twinReportedProperties });
+            var twin = new TwinProperties { Desired = twinDesiredProperties, Reported = twinReportedProperties };
 
-            var reportedProperties = new TwinCollection();
+            var reportedProperties = new PropertyCollection();
             reportedProperties["r1"] = "rv1";
 
             // Act
@@ -90,8 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             Assert.NotNull(twinStoreEntity1);
             Assert.True(twinStoreEntity1.Twin.HasValue);
-            Assert.Equal("v1", (string)twinStoreEntity1.Twin.OrDefault().Properties.Reported["P1"]);
-            Assert.Equal("v2", (string)twinStoreEntity1.Twin.OrDefault().Properties.Desired["P2"]);
+            Assert.Equal("v1", (string)twinStoreEntity1.Twin.OrDefault().Reported["P1"]);
+            Assert.Equal("v2", (string)twinStoreEntity1.Twin.OrDefault().Desired["P2"]);
             Assert.True(twinStoreEntity1.ReportedPropertiesPatch.HasValue);
             Assert.Equal("rv1", (string)twinStoreEntity1.ReportedPropertiesPatch.OrDefault()["r1"]);
 
@@ -103,8 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             // Assert
             Assert.NotNull(twinStoreEntity2);
             Assert.True(twinStoreEntity2.Twin.HasValue);
-            Assert.Equal("v1", (string)twinStoreEntity2.Twin.OrDefault().Properties.Reported["P1"]);
-            Assert.Equal("v2", (string)twinStoreEntity2.Twin.OrDefault().Properties.Desired["P2"]);
+            Assert.Equal("v1", (string)twinStoreEntity2.Twin.OrDefault().Reported["P1"]);
+            Assert.Equal("v2", (string)twinStoreEntity2.Twin.OrDefault().Desired["P2"]);
             Assert.False(twinStoreEntity2.ReportedPropertiesPatch.HasValue);
 
             // Act

@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Threading.Tasks;
     using DotNetty.Transport.Channels;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -23,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             int connectionStatusChangedHandlerCount = 0;
 
-            void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+            void ConnectionStatusChangedHandler(ConnectionStatusInfo statusInfo)
             {
                 Interlocked.Increment(ref connectionStatusChangedHandlerCount);
             }
@@ -60,20 +59,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Theory]
         [InlineData(typeof(ConnectTimeoutException), typeof(TimeoutException), true)]
         [InlineData(typeof(TimeoutException), typeof(TimeoutException), true)]
-        [InlineData(typeof(IotHubException), typeof(IotHubException), false)]
+        [InlineData(typeof(IotHubClientException), typeof(IotHubClientException), false)]
         [InlineData(typeof(InvalidOperationException), typeof(InvalidOperationException), false)]
         public async Task TestExceptionTest(Type thrownException, Type expectedException, bool isTimeout)
         {
             // Arrange
             var client = new Mock<IClient>();
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
+            client.Setup(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>())).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
             var deviceConnectivityManager = new Mock<IDeviceConnectivityManager>();
             deviceConnectivityManager.Setup(d => d.CallTimedOut()).Returns(Task.CompletedTask);
             var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager.Object, Mock.Of<IIdentity>(i => i.Id == "d1"));
-            var message = new Message();
+            var message = new TelemetryMessage(new byte[0]);
 
             // Act / Assert
-            await Assert.ThrowsAsync(expectedException, () => connectivityAwareClient.SendEventAsync(message));
+            await Assert.ThrowsAsync(expectedException, () => connectivityAwareClient.SendTelemetryAsync(message));
             if (isTimeout)
             {
                 deviceConnectivityManager.Verify(d => d.CallTimedOut(), Times.Once);
@@ -87,20 +86,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Theory]
         [InlineData(typeof(ConnectTimeoutException), typeof(TimeoutException))]
         [InlineData(typeof(TimeoutException), typeof(TimeoutException))]
-        [InlineData(typeof(IotHubException), typeof(IotHubException))]
+        [InlineData(typeof(IotHubClientException), typeof(IotHubClientException))]
         [InlineData(typeof(InvalidOperationException), typeof(InvalidOperationException))]
         public async Task TestExceptionInSetDesiredPropertyUpdateCallbackTest(Type thrownException, Type expectedException)
         {
             // Arrange
             var client = new Mock<IClient>();
-            client.Setup(c => c.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<DesiredPropertyUpdateCallback>(), It.IsAny<object>())).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
+            client.Setup(c => c.SetDesiredPropertyUpdateCallbackAsync(It.IsAny<Func<PropertyCollection, Task>>())).ThrowsAsync(Activator.CreateInstance(thrownException, "msg str") as Exception);
             var deviceConnectivityManager = new Mock<IDeviceConnectivityManager>();
             deviceConnectivityManager.Setup(d => d.CallTimedOut());
             var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager.Object, Mock.Of<IIdentity>(i => i.Id == "d1"));
-            DesiredPropertyUpdateCallback callback = (_, __) => Task.CompletedTask;
+            Func<PropertyCollection, Task> callback = (_) => Task.CompletedTask;
 
             // Act / Assert
-            await Assert.ThrowsAsync(expectedException, () => connectivityAwareClient.SetDesiredPropertyUpdateCallbackAsync(callback, null));
+            await Assert.ThrowsAsync(expectedException, () => connectivityAwareClient.SetDesiredPropertyUpdateCallbackAsync(callback));
             deviceConnectivityManager.Verify(d => d.CallTimedOut(), Times.Never);
         }
 
@@ -110,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Arrange
             int connectionStatusChangedHandlerCount = 0;
 
-            void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+            void ConnectionStatusChangedHandler(ConnectionStatusInfo statusInfo)
             {
                 Interlocked.Increment(ref connectionStatusChangedHandlerCount);
             }
@@ -143,18 +142,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task ConnectivityChangeTest()
         {
             // Arrange
-            var receivedConnectionStatuses = new List<ConnectionStatus>();
-            var receivedChangeReasons = new List<ConnectionStatusChangeReason>();
+            var receivedStatuses = new List<ConnectionStatusInfo>();
 
-            void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+            void ConnectionStatusChangedHandler(ConnectionStatusInfo statusInfo)
             {
-                receivedConnectionStatuses.Add(status);
-                receivedChangeReasons.Add(reason);
+                receivedStatuses.Add(statusInfo);
             }
 
             var deviceConnectivityManager = new DeviceConnectivityManager();
             var client = Mock.Of<IClient>();
-            Mock.Get(client).SetupSequence(c => c.SendEventAsync(It.IsAny<Message>()))
+            Mock.Get(client).SetupSequence(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>()))
                 .Returns(Task.CompletedTask)
                 .Throws(new TimeoutException());
             var connectivityAwareClient = new ConnectivityAwareClient(client, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1"));
@@ -162,44 +159,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await connectivityAwareClient.OpenAsync();
 
             // Act
-            await connectivityAwareClient.SendEventAsync(new Message());
+            await connectivityAwareClient.SendTelemetryAsync(new TelemetryMessage(new byte[0]));
 
             // Assert
-            Assert.Single(receivedConnectionStatuses);
-            Assert.Equal(ConnectionStatus.Connected, receivedConnectionStatuses[0]);
-            Assert.Equal(ConnectionStatusChangeReason.Connection_Ok, receivedChangeReasons[0]);
+            Assert.Single(receivedStatuses);
+            Assert.Equal(ConnectionStatus.Connected, receivedStatuses[0].Status);
+            Assert.Equal(ConnectionStatusChangeReason.ConnectionOk, receivedStatuses[0].ChangeReason);
 
             // Act
-            await Assert.ThrowsAsync<TimeoutException>(async () => await connectivityAwareClient.SendEventAsync(new Message()));
+            await Assert.ThrowsAsync<TimeoutException>(async () => await connectivityAwareClient.SendTelemetryAsync(new TelemetryMessage(new byte[0])));
 
             // Assert
-            Assert.Single(receivedConnectionStatuses);
-            Assert.Equal(ConnectionStatus.Connected, receivedConnectionStatuses[0]);
-            Assert.Equal(ConnectionStatusChangeReason.Connection_Ok, receivedChangeReasons[0]);
+            Assert.Single(receivedStatuses);
+            Assert.Equal(ConnectionStatus.Connected, receivedStatuses[0].Status);
+            Assert.Equal(ConnectionStatusChangeReason.ConnectionOk, receivedStatuses[0].ChangeReason);
 
             // Act
             deviceConnectivityManager.InvokeDeviceConnected();
 
             // Assert
-            Assert.Single(receivedConnectionStatuses);
-            Assert.Equal(ConnectionStatus.Connected, receivedConnectionStatuses[0]);
-            Assert.Equal(ConnectionStatusChangeReason.Connection_Ok, receivedChangeReasons[0]);
+            Assert.Single(receivedStatuses);
+            Assert.Equal(ConnectionStatus.Connected, receivedStatuses[0].Status);
+            Assert.Equal(ConnectionStatusChangeReason.ConnectionOk, receivedStatuses[0].ChangeReason);
 
             // Act
             deviceConnectivityManager.InvokeDeviceDisconnected();
 
             // Assert
-            Assert.Equal(2, receivedConnectionStatuses.Count);
-            Assert.Equal(ConnectionStatus.Disconnected, receivedConnectionStatuses[1]);
-            Assert.Equal(ConnectionStatusChangeReason.No_Network, receivedChangeReasons[1]);
+            Assert.Equal(2, receivedStatuses.Count);
+            Assert.Equal(ConnectionStatus.Disconnected, receivedStatuses[1].Status);
+            Assert.Equal(ConnectionStatusChangeReason.CommunicationError, receivedStatuses[1].ChangeReason);
 
             // Act
             deviceConnectivityManager.InvokeDeviceDisconnected();
 
             // Assert
-            Assert.Equal(2, receivedConnectionStatuses.Count);
-            Assert.Equal(ConnectionStatus.Disconnected, receivedConnectionStatuses[1]);
-            Assert.Equal(ConnectionStatusChangeReason.No_Network, receivedChangeReasons[1]);
+            Assert.Equal(2, receivedStatuses.Count);
+            Assert.Equal(ConnectionStatus.Disconnected, receivedStatuses[1].Status);
+            Assert.Equal(ConnectionStatusChangeReason.CommunicationError, receivedStatuses[1].ChangeReason);
 
             // Act
             await connectivityAwareClient.CloseAsync();
@@ -207,9 +204,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceConnectivityManager.InvokeDeviceDisconnected();
 
             // Assert
-            Assert.Equal(2, receivedConnectionStatuses.Count);
-            Assert.Equal(ConnectionStatus.Disconnected, receivedConnectionStatuses[1]);
-            Assert.Equal(ConnectionStatusChangeReason.No_Network, receivedChangeReasons[1]);
+            Assert.Equal(2, receivedStatuses.Count);
+            Assert.Equal(ConnectionStatus.Disconnected, receivedStatuses[1].Status);
+            Assert.Equal(ConnectionStatusChangeReason.CommunicationError, receivedStatuses[1].ChangeReason);
         }
 
         [Fact]
@@ -219,9 +216,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             int connectedStatusChangedHandlerCount = 0;
             int disconnectedStatusChangedHandlerCount = 0;
 
-            void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+            void ConnectionStatusChangedHandler(ConnectionStatusInfo statusInfo)
             {
-                if (status == ConnectionStatus.Connected)
+                if (statusInfo.Status == ConnectionStatus.Connected)
                 {
                     Interlocked.Increment(ref connectedStatusChangedHandlerCount);
                 }
@@ -232,10 +229,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             }
 
             var deviceConnectivityManager = new DeviceConnectivityManager();
-            ConnectionStatusChangesHandler innerClientHandler = null;
+            Action<ConnectionStatusInfo> innerClientHandler = null;
             var client = new Mock<IClient>();
-            client.Setup(c => c.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
-                .Callback<ConnectionStatusChangesHandler>(c => innerClientHandler = c);
+            client.Setup(c => c.SetConnectionStatusChangedHandler(It.IsAny<Action<ConnectionStatusInfo>>()))
+                .Callback<Action<ConnectionStatusInfo>>(c => innerClientHandler = c);
 
             var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1"));
             connectivityAwareClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
@@ -247,14 +244,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.NotNull(innerClientHandler);
 
             // Act
-            innerClientHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            innerClientHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Connected, ConnectionStatusChangeReason.ConnectionOk));
 
             // Assert
             Assert.Equal(1, connectedStatusChangedHandlerCount);
             Assert.Equal(0, disconnectedStatusChangedHandlerCount);
 
             // Act
-            innerClientHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            innerClientHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Connected, ConnectionStatusChangeReason.ConnectionOk));
             deviceConnectivityManager.InvokeDeviceConnected();
 
             // Assert
@@ -262,21 +259,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(0, disconnectedStatusChangedHandlerCount);
 
             // Act
-            innerClientHandler.Invoke(ConnectionStatus.Disconnected_Retrying, ConnectionStatusChangeReason.Communication_Error);
+            innerClientHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.DisconnectedRetrying, ConnectionStatusChangeReason.CommunicationError));
 
             // Assert
             Assert.Equal(1, connectedStatusChangedHandlerCount);
             Assert.Equal(0, disconnectedStatusChangedHandlerCount);
 
             // Act
-            innerClientHandler.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Communication_Error);
+            innerClientHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.CommunicationError));
 
             // Assert
             Assert.Equal(1, connectedStatusChangedHandlerCount);
             Assert.Equal(0, disconnectedStatusChangedHandlerCount);
 
             // Act
-            innerClientHandler.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Communication_Error);
+            innerClientHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.CommunicationError));
             deviceConnectivityManager.InvokeDeviceDisconnected();
 
             // Assert
@@ -291,9 +288,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             int connectedStatusChangedHandlerCount = 0;
             int disconnectedStatusChangedHandlerCount = 0;
 
-            void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+            void ConnectionStatusChangedHandler(ConnectionStatusInfo statusInfo)
             {
-                if (status == ConnectionStatus.Connected)
+                if (statusInfo.Status == ConnectionStatus.Connected)
                 {
                     Interlocked.Increment(ref connectedStatusChangedHandlerCount);
                 }
@@ -304,10 +301,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             }
 
             var deviceConnectivityManager = new DeviceConnectivityManager();
-            ConnectionStatusChangesHandler innerClientHandler = null;
+            Action<ConnectionStatusInfo> innerClientHandler = null;
             var client = new Mock<IClient>();
-            client.Setup(c => c.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
-                .Callback<ConnectionStatusChangesHandler>(c => innerClientHandler = c);
+            client.Setup(c => c.SetConnectionStatusChangedHandler(It.IsAny<Action<ConnectionStatusInfo>>()))
+                .Callback<Action<ConnectionStatusInfo>>(c => innerClientHandler = c);
 
             var connectivityAwareClient = new ConnectivityAwareClient(client.Object, deviceConnectivityManager, Mock.Of<IIdentity>(i => i.Id == "d1"));
             connectivityAwareClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
@@ -326,7 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(0, disconnectedStatusChangedHandlerCount);
 
             // Act
-            innerClientHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            innerClientHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Connected, ConnectionStatusChangeReason.ConnectionOk));
 
             // Assert
             Assert.Equal(1, connectedStatusChangedHandlerCount);
@@ -340,7 +337,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(1, disconnectedStatusChangedHandlerCount);
 
             // Act
-            innerClientHandler.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Communication_Error);
+            innerClientHandler.Invoke(new ConnectionStatusInfo(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.CommunicationError));
 
             // Assert
             Assert.Equal(1, connectedStatusChangedHandlerCount);

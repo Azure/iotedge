@@ -21,12 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
     using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
-    using Message = Microsoft.Azure.Devices.Client.Message;
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
@@ -47,15 +45,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var messageConverterProvider = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>()
                 {
-                    { typeof(Message), new DeviceClientMessageConverter() },
-                    { typeof(Twin), twinMessageConverter },
-                    { typeof(TwinCollection), twinCollectionMessageConverter }
+                    { typeof(TelemetryMessage), new DeviceClientMessageConverter() },
+                    { typeof(TwinProperties), twinMessageConverter },
+                    { typeof(PropertyCollection), twinCollectionMessageConverter }
                 });
 
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            await registryManager.OpenAsync();
+            IotHubServiceClient registryManager = new IotHubServiceClient(iotHubConnectionString);
 
             string iothubHostName = iotHubConnectionStringBuilder.HostName;
             var identityProvider = new IdentityProvider(iothubHostName);
@@ -329,15 +326,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
-        async Task<EdgeHubConnection.ReportedProperties> GetReportedProperties(RegistryManager registryManager, string edgeHubId)
+        async Task<EdgeHubConnection.ReportedProperties> GetReportedProperties(IotHubServiceClient registryManager, string edgeHubId)
         {
-            Twin twin = await registryManager.GetTwinAsync(edgeHubId, EdgeHubModuleId);
-            string reportedPropertiesJson = twin.Properties.Reported.ToJson();
+            ClientTwin twin = await registryManager.Twins.GetAsync(edgeHubId, EdgeHubModuleId);
+            string reportedPropertiesJson = twin.Properties.Reported.GetSerializedString();
             var reportedProperties = JsonConvert.DeserializeObject<EdgeHubConnection.ReportedProperties>(reportedPropertiesJson);
             return reportedProperties;
         }
 
-        async Task SetDesiredProperties(RegistryManager registryManager, string edgeDeviceId)
+        async Task SetDesiredProperties(IotHubServiceClient registryManager, string edgeDeviceId)
         {
             var desiredProperties = new
             {
@@ -370,10 +367,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            await registryManager.ApplyConfigurationContentOnDeviceAsync(edgeDeviceId, cc);
+            await registryManager.Configurations.ApplyOnEdgeDeviceAsync(edgeDeviceId, cc);
         }
 
-        async Task UpdateDesiredProperties(RegistryManager registryManager, string edgeDeviceId)
+        async Task UpdateDesiredProperties(IotHubServiceClient registryManager, string edgeDeviceId)
         {
             var desiredProperties = new
             {
@@ -406,7 +403,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            await registryManager.ApplyConfigurationContentOnDeviceAsync(edgeDeviceId, cc);
+            await registryManager.Configurations.ApplyOnEdgeDeviceAsync(edgeDeviceId, cc);
         }
     }
 }

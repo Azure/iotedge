@@ -11,7 +11,7 @@ namespace LoadGen
     {
         public DefaultMessageSender(
             ILogger logger,
-            ModuleClient moduleClient,
+            IotHubModuleClient moduleClient,
             Guid batchId,
             string trackingId)
             : base(logger, moduleClient, batchId, trackingId)

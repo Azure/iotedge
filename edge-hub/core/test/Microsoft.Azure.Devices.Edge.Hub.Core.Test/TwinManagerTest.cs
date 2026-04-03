@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
     using Moq;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -23,13 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     public class TwinManagerTest
     {
         readonly Option<IEntityStore<string, TwinInfo>> twinStore;
-        readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
-        readonly IMessageConverter<Shared.Twin> twinMessageConverter;
+        readonly IMessageConverter<PropertyCollection> twinCollectionMessageConverter;
+        readonly IMessageConverter<TwinProperties> twinMessageConverter;
 
         public TwinManagerTest()
         {
             this.twinStore = Option.Some(new StoreProvider(new InMemoryDbStoreProvider()).GetEntityStore<string, TwinInfo>("default"));
-            this.twinCollectionMessageConverter = new TwinCollectionMessageConverter();
+            this.twinCollectionMessageConverter = new PropertyCollectionMessageConverter();
             this.twinMessageConverter = new TwinMessageConverter();
         }
 
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetTwinWhenCloudOnlineTwinNotStoredSuccess()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockProxy = new Mock<ICloudProxy>();
@@ -119,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetTwinWhenCloudOfflineSuccess()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockProxy = new Mock<ICloudProxy>();
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetTwinPassthroughWhenTwinNotStoredSuccess()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockProxy = new Mock<ICloudProxy>();
@@ -185,8 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task UpdateDesiredPropertiesWhenTwinStoredVersionPlus1Success()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
-            twin.Properties.Desired = new TwinCollection()
+            var twin = new TwinProperties();
+            twin.Desired = new PropertyCollection()
             {
                 ["name"] = "original",
                 ["$version"] = 32
@@ -213,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string deviceId = "device4";
             await twinManager.GetTwinAsync(deviceId);
 
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -233,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 () => Task.FromResult<TwinInfo>(null));
 
             // Assert
-            Assert.Equal(patched.Twin.Properties.Desired.ToJson(), collection.ToJson());
+            Assert.Equal(patched.Twin.Desired.GetSerializedString(), collection.GetSerializedString());
             Assert.True(receivedCallback);
         }
 
@@ -241,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task UpdateDesiredPropertiesWhenTwinNotStoredVersionPlus1Success()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             bool getTwinCalled = false;
@@ -263,7 +263,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
             string deviceId = "device5";
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 1
@@ -287,7 +287,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(getTwinCalled);
             Assert.True(storeHit);
-            Assert.Equal(updated.Twin.Properties.Desired, collection);
+            Assert.Equal(updated.Twin.Desired, collection);
             Assert.True(receivedCallback);
         }
 
@@ -295,7 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task UpdateDesiredPropertiesPassthroughSuccess()
         {
             // Arrange
-            var received = new TwinCollection();
+            var received = new PropertyCollection();
 
             var mockDeviceProxy = new Mock<IDeviceProxy>();
             Option<IDeviceProxy> deviceProxy = Option.Some(mockDeviceProxy.Object);
@@ -307,7 +307,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetDeviceConnection(It.IsAny<string>())).Returns(deviceProxy);
 
             string deviceId = "device6";
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -339,7 +339,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
 
             string deviceId = "device7";
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -360,8 +360,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task UpdateReportedPropertiesWhenCloudOnlineTwinNotStoredSuccess()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
-            twin.Properties.Reported = new TwinCollection()
+            var twin = new TwinProperties();
+            twin.Reported = new PropertyCollection()
             {
                 ["name"] = "oldvalue",
                 ["$version"] = 32
@@ -380,7 +380,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
 
             string deviceId = "device8";
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -447,13 +447,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(storeMiss);
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Properties.Reported.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Reported.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(collection.GetSerializedString())));
 
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(new TwinCollection().ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(new PropertyCollection().GetSerializedString())));
         }
 
         [Fact]
@@ -470,13 +470,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
 
             string deviceId = "device9";
-            var collection1 = new TwinCollection
+            var collection1 = new PropertyCollection
             {
                 ["name"] = "value"
             };
             IMessage collectionMessage1 = this.twinCollectionMessageConverter.ToMessage(collection1);
 
-            var collection2 = new TwinCollection
+            var collection2 = new PropertyCollection
             {
                 ["name2"] = "value2"
             };
@@ -527,8 +527,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Null(cached1.Twin);
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(cached1.ReportedPropertiesPatch.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(collection1.ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(cached1.ReportedPropertiesPatch.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(collection1.GetSerializedString())));
 
             // Act
             await twinManager.UpdateReportedPropertiesAsync(deviceId, collectionMessage2);
@@ -552,16 +552,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(cached2.Twin);
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(cached2.ReportedPropertiesPatch.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(collection2.ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(cached2.ReportedPropertiesPatch.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(collection2.GetSerializedString())));
         }
 
         [Fact]
         public async Task UpdateReportedPropertiesWhenCloudOfflineTwinStoredSuccess()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
-            twin.Properties.Reported = new TwinCollection()
+            var twin = new TwinProperties();
+            twin.Reported = new PropertyCollection()
             {
                 ["name"] = "oldvalue"
             };
@@ -575,7 +575,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
 
             string deviceId = "device10";
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value"
             };
@@ -629,12 +629,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
 
-            var patch = new TwinCollection()
+            var patch = new PropertyCollection()
             {
                 ["name"] = null,
                 ["newname"] = "value"
             };
-            var merged = new TwinCollection()
+            var merged = new PropertyCollection()
             {
                 ["newname"] = "value"
             };
@@ -655,20 +655,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 () => Task.FromResult<TwinInfo>(null));
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Properties.Reported.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(merged.ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(retrieved.Twin.Reported.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(merged.GetSerializedString())));
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(patch.ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(retrieved.ReportedPropertiesPatch.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(patch.GetSerializedString())));
         }
 
         [Fact]
         public async Task UpdateReportedPropertiesWhenCloudOfflineMalformedPropertiesThrows()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
-            twin.Properties.Reported = new TwinCollection()
+            var twin = new TwinProperties();
+            twin.Reported = new PropertyCollection()
             {
                 ["name"] = "oldvalue",
                 ["$version"] = 32
@@ -683,7 +683,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
 
             string deviceId = "device11";
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -738,7 +738,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
 
-            var patch = new TwinCollection()
+            var patch = new PropertyCollection()
             {
                 ["name"] = null,
                 ["malformed"] = 4503599627370496,
@@ -753,8 +753,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task UpdateReportedPropertiesWhenCloudOfflineTooLargeCollectionThrows()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
-            twin.Properties.Reported = new TwinCollection()
+            var twin = new TwinProperties();
+            twin.Reported = new PropertyCollection()
             {
                 ["name"] = "oldvalue",
                 ["$version"] = 32
@@ -769,7 +769,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
 
             string deviceId = "device12";
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value",
                 ["large"] = new byte[4 * 1024],
@@ -825,7 +825,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Throws(new Exception("Not interested"));
             mockProxy.Setup(t => t.GetTwinAsync()).Throws(new Exception("Not interested"));
 
-            var patch = new TwinCollection()
+            var patch = new PropertyCollection()
             {
                 ["name"] = null,
                 ["large"] = new byte[5 * 1024],
@@ -849,7 +849,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
 
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -881,7 +881,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             string deviceId = "device14";
 
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "value",
                 ["$version"] = 33
@@ -896,7 +896,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetTwinDoesNotOverwriteSavedReportedPropertiesSuccess()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockProxy = new Mock<ICloudProxy>();
@@ -949,7 +949,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             mockProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Throws(new Exception("Not interested"));
 
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "newvalue"
             };
@@ -972,12 +972,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert - verify that the patch and the twin were updated
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(cached.Twin.Properties.Reported.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(cached.Twin.Reported.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(collection.GetSerializedString())));
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(collection.GetSerializedString())));
 
             // Act - get twin so that the local twin gets updated
             await twinManager.GetTwinAsync(deviceId);
@@ -994,15 +994,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(collection.ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(cached.ReportedPropertiesPatch.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(collection.GetSerializedString())));
         }
 
         [Fact]
         public async Task GetTwinWhenStorePutFailsReturnsLastKnownSuccess()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockProxy = new Mock<ICloudProxy>();
@@ -1054,7 +1054,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task UpdateReportedPropertiesWhenStoreThrowsFailure()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockProxy = new Mock<ICloudProxy>();
@@ -1065,7 +1065,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionManager.Setup(t => t.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(cloudProxy));
 
             var mockTwinStore = new Mock<IEntityStore<string, TwinInfo>>();
-            mockTwinStore.Setup(t => t.Get(It.IsAny<string>())).ReturnsAsync(Option.Some(new TwinInfo(twin, new TwinCollection())));
+            mockTwinStore.Setup(t => t.Get(It.IsAny<string>())).ReturnsAsync(Option.Some(new TwinInfo(twin, new PropertyCollection())));
             mockTwinStore.Setup(t => t.Update(It.IsAny<string>(), It.IsAny<Func<TwinInfo, TwinInfo>>()))
                 .Throws(new InvalidOperationException("Out of space"));
 
@@ -1074,7 +1074,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, twinStoreValue);
 
             string deviceId = "device17";
-            var collection = new TwinCollection()
+            var collection = new PropertyCollection()
             {
                 ["name"] = "newvalue",
                 ["$version"] = 33
@@ -1088,8 +1088,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task GetTwinRejectsLowerVersionTwinsSuccess()
         {
             // Arrange - setup twin with version
-            var twin = new Shared.Twin("d1") { Version = 1 };
-            twin.Version = 32;
+            var twin = new TwinProperties();
+            twin.Desired = new PropertyCollection { ["$version"] = 32 };
+            twin.Reported = new PropertyCollection { ["$version"] = 32 };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockProxy = new Mock<ICloudProxy>();
@@ -1105,7 +1106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Act - call get twin to cache twin
             IMessage received = await twinManager.GetTwinAsync(deviceId);
-            Shared.Twin cached = null;
+            TwinProperties cached = null;
             await twinManager.ExecuteOnTwinStoreResultAsync(
                 deviceId,
                 t =>
@@ -1116,11 +1117,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches what we setup
-            Assert.Equal(cached.Version, twin.Version);
-            Assert.Equal(this.twinMessageConverter.FromMessage(received).Version, twin.Version);
+            Assert.Equal(cached.Desired.Version, twin.Desired.Version);
+            Assert.Equal(this.twinMessageConverter.FromMessage(received).Desired.Version, twin.Desired.Version);
 
             // Arrange - setup twin with lower than original version
-            twin.Version = 30;
+            twin.Desired = new PropertyCollection { ["$version"] = 30 };
+            twin.Reported = new PropertyCollection { ["$version"] = 30 };
             twinMessage = this.twinMessageConverter.ToMessage(twin);
             mockProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
 
@@ -1138,16 +1140,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches original version
-            Assert.Equal(32, cached.Version);
-            Assert.Equal(32, this.twinMessageConverter.FromMessage(received).Version);
+            Assert.Equal(32, cached.Desired.Version);
+            Assert.Equal(32, this.twinMessageConverter.FromMessage(received).Desired.Version);
         }
 
         [Fact]
         public async Task GetTwinDoesNotGeneratesDesiredPropertyUpdateIfNotSusbribedSuccess()
         {
             // Arrange - setup twin with version
-            var twin = new Shared.Twin("d1") { Version = 1 };
-            twin.Properties.Desired = new TwinCollection { ["$version"] = "32" };
+            var twin = new TwinProperties();
+            twin.Desired = new PropertyCollection { ["$version"] = "32" };
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockCloudProxy = new Mock<ICloudProxy>();
@@ -1170,7 +1172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Act - call get twin to cache twin
             IMessage received = await twinManager.GetTwinAsync(deviceId);
-            Shared.Twin cached = null;
+            TwinProperties cached = null;
             await twinManager.ExecuteOnTwinStoreResultAsync(
                 deviceId,
                 t =>
@@ -1181,11 +1183,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches what we setup
-            Assert.Equal(cached.Properties.Desired.Version, twin.Properties.Desired.Version);
-            Assert.Equal(this.twinMessageConverter.FromMessage(received).Version, twin.Version);
+            Assert.Equal(cached.Desired.Version, twin.Desired.Version);
+            Assert.Equal(this.twinMessageConverter.FromMessage(received).Desired.Version, twin.Desired.Version);
 
             // Arrange - setup twin with higher than original version
-            twin.Properties.Desired = new TwinCollection { ["$version"] = "33" };
+            twin.Desired = new PropertyCollection { ["$version"] = "33" };
             twinMessage = this.twinMessageConverter.ToMessage(twin);
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
 
@@ -1203,8 +1205,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify version of twin matches new version and device not subsribed
-            Assert.Equal(33, cached.Properties.Desired.Version);
-            Assert.Equal(33, twinInfo.Twin.Properties.Desired.Version);
+            Assert.Equal(33, cached.Desired.Version);
+            Assert.Equal(33, twinInfo.Twin.Desired.Version);
 
             // Assert - verify desired property update callback was not generated (device was not subscribed to updates)
             Assert.False(receivedCallback);
@@ -1215,9 +1217,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             // Arrange - make a twin with a version
             string deviceId = "device20";
-            var twin = new Shared.Twin(deviceId);
-            twin.Version = 32;
-            twin.Properties.Desired = new TwinCollection
+            var twin = new TwinProperties();
+            twin.Desired = new PropertyCollection
             {
                 ["value"] = "old",
                 ["$version"] = 32
@@ -1228,7 +1229,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some(mockCloudProxy.Object);
 
-            var receivedPatch = new TwinCollection();
+            var receivedPatch = new PropertyCollection();
             var mockDeviceProxy = new Mock<IDeviceProxy>();
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
                 .Callback<IMessage>(m => receivedPatch = this.twinCollectionMessageConverter.FromMessage(m))
@@ -1251,7 +1252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Act - cache a twin
             await twinManager.GetTwinAsync(deviceId);
 
-            Shared.Twin cached = null;
+            TwinProperties cached = null;
             await twinManager.ExecuteOnTwinStoreResultAsync(
                 deviceId,
                 t =>
@@ -1262,17 +1263,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify that twin is cached
-            Assert.Equal(32, cached.Properties.Desired.Version);
-            Assert.Equal(32, cached.Version);
+            Assert.Equal(32, cached.Desired.Version);
 
             // Arrange - make a patch with original version - 1. setup get twin to return a twin with higher version
-            var desired = new TwinCollection()
+            var desired = new PropertyCollection()
             {
                 ["$version"] = 30
             };
             IMessage twinCollectionMessage = this.twinCollectionMessageConverter.ToMessage(desired);
-            twin.Version = 33;
-            twin.Properties.Desired = new TwinCollection()
+            twin.Desired = new PropertyCollection()
             {
                 ["value"] = "latest",
                 ["$version"] = 33
@@ -1286,15 +1285,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert - verify that get twin cached the latest twin and called the desired property update callback
             Assert.True(
                 JToken.DeepEquals(
-                    JsonConvert.DeserializeObject<JToken>(receivedPatch.ToJson()),
-                    JsonConvert.DeserializeObject<JToken>(twin.Properties.Desired.ToJson())));
+                    JsonConvert.DeserializeObject<JToken>(receivedPatch.GetSerializedString()),
+                    JsonConvert.DeserializeObject<JToken>(twin.Desired.GetSerializedString())));
         }
 
         [Fact]
         public async Task ConnectionReestablishedReportedPropertiesSyncSuccess()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockCloudProxy = new Mock<ICloudProxy>();
@@ -1306,7 +1305,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
-            var reported = new TwinCollection()
+            var reported = new PropertyCollection()
             {
                 ["value"] = "first"
             };
@@ -1334,10 +1333,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Assert - verify cloud was called and twin manager has collective patch
             Assert.True(callbackReceived);
-            Assert.Equal(cached.ReportedPropertiesPatch.ToJson(), reported.ToJson());
+            Assert.Equal(cached.ReportedPropertiesPatch.GetSerializedString(), reported.GetSerializedString());
 
             // Arrange - setup another patch
-            reported = new TwinCollection()
+            reported = new PropertyCollection()
             {
                 ["value"] = "second"
             };
@@ -1360,10 +1359,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert - verify that twin manager did not attempt to call cloud because there is already
             // a patch
             Assert.False(callbackReceived);
-            Assert.Equal(cached.ReportedPropertiesPatch.ToJson(), reported.ToJson());
+            Assert.Equal(cached.ReportedPropertiesPatch.GetSerializedString(), reported.GetSerializedString());
 
             // Arrange - make cloud online
-            var onlineReported = new TwinCollection();
+            var onlineReported = new PropertyCollection();
             callbackReceived = false;
             mockCloudProxy.Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<IMessage>()))
                 .Callback<IMessage>(
@@ -1395,8 +1394,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 () => Task.FromResult<TwinInfo>(null));
 
             // Assert - verify that cloud proxy got the collective patch and that the collective patch is cleared
-            Assert.Equal(onlineReported.ToJson(), reported.ToJson());
-            Assert.Equal(cached.ReportedPropertiesPatch, new TwinCollection());
+            Assert.Equal(onlineReported.GetSerializedString(), reported.GetSerializedString());
+            Assert.Equal(cached.ReportedPropertiesPatch, new PropertyCollection());
         }
 
         [Fact]
@@ -1404,14 +1403,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             // Arrange
             string deviceId = "device22";
-            var twin = new Shared.Twin(deviceId);
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockCloudProxy = new Mock<ICloudProxy>();
             mockCloudProxy.Setup(t => t.GetTwinAsync()).Returns(Task.FromResult(twinMessage));
             Option<ICloudProxy> cloudProxy = Option.Some(mockCloudProxy.Object);
 
-            var receivedPatch = new TwinCollection();
+            var receivedPatch = new PropertyCollection();
             bool callbackReceived = false;
             var mockDeviceProxy = new Mock<IDeviceProxy>();
             mockDeviceProxy.Setup(t => t.OnDesiredPropertyUpdates(It.IsAny<IMessage>()))
@@ -1437,7 +1436,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var twinManager = new TwinManager(connectionManager.Object, this.twinCollectionMessageConverter, this.twinMessageConverter, this.twinStore);
 
-            var desired = new TwinCollection()
+            var desired = new PropertyCollection()
             {
                 ["$version"] = 30
             };
@@ -1451,9 +1450,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Arrange
             var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);
 
-            twin = new Shared.Twin();
-            twin.Version = 33;
-            twin.Properties.Desired = new TwinCollection()
+            twin = new TwinProperties();
+            twin.Desired = new PropertyCollection()
             {
                 ["value"] = "something",
                 ["$version"] = 31
@@ -1474,7 +1472,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             }
 
             // Assert - get twin was called and desired property callback was generated
-            Assert.Equal(receivedPatch.ToJson(), twin.Properties.Desired.ToJson());
+            Assert.Equal(receivedPatch.GetSerializedString(), twin.Desired.GetSerializedString());
             Assert.True(getTwinCalled);
         }
 
@@ -1482,7 +1480,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public async Task ConnectionReestablishedDoesNotSyncReportedPropertiesWhenEmptySuccess()
         {
             // Arrange
-            var twin = new Shared.Twin("d1") { Version = 1 };
+            var twin = new TwinProperties();
             IMessage twinMessage = this.twinMessageConverter.ToMessage(twin);
 
             var mockCloudProxy = new Mock<ICloudProxy>();

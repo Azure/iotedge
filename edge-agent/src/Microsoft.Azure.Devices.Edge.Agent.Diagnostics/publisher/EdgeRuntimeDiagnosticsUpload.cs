@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             Preconditions.CheckNotNull(metrics, nameof(metrics));
 
             // ToArray is used at the end to ensure the batching process is only run once.
-            Message[] messagesToSend = this.BatchAndBuildMessages(metrics.ToArray()).ToArray();
+            TelemetryMessage[] messagesToSend = this.BatchAndBuildMessages(metrics.ToArray()).ToArray();
             try
             {
                 await Task.WhenAll(messagesToSend.Select(this.edgeAgentConnection.SendEventAsync));
@@ -46,11 +46,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             return true;
         }
 
-        IEnumerable<Message> BatchAndBuildMessages(ArraySegment<Metric> metrics)
+        IEnumerable<TelemetryMessage> BatchAndBuildMessages(ArraySegment<Metric> metrics)
         {
             if (!metrics.Any())
             {
-                return Enumerable.Empty<Message>();
+                return Enumerable.Empty<TelemetryMessage>();
             }
 
             byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
@@ -63,13 +63,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             }
             else
             {
-                return new Message[] { this.BuildMessage(data) };
+                return new TelemetryMessage[] { this.BuildMessage(data) };
             }
         }
 
-        Message BuildMessage(byte[] data)
+        TelemetryMessage BuildMessage(byte[] data)
         {
-            Message message = new Message(data);
+            var message = new TelemetryMessage(data);
             message.ContentType = "application/x-azureiot-edgeruntimediagnostics";
 
             return message;

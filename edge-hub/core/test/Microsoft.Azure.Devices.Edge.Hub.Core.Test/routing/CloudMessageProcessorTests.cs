@@ -422,7 +422,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudProxy = ThrowingCloudProxy
                                 .Create()
                                 .WithBatchSize(batchSize)
-                                .WithReportErrorInBatch(ThrowingCloudProxy.Throw<Client.Exceptions.IotHubException>())
+                                .WithReportErrorInBatch(ThrowingCloudProxy.Throw<Client.IotHubException>())
                                 .WithReportSuccessfulBatch(2)
                                 .Build();
 
@@ -484,7 +484,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                                 .Create()
                                 .WithBatchSize(batchSize)
                                 .WithReportErrorInBatch(ThrowingCloudProxy.Throw<Exception>())
-                                .WithReportErrorInBatch(ThrowingCloudProxy.Throw<Client.Exceptions.IotHubException>())
+                                .WithReportErrorInBatch(ThrowingCloudProxy.Throw<Client.IotHubException>())
                                 .WithReportSuccessfulBatch()
                                 .Build();
 
@@ -523,7 +523,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                                 .Create()
                                 .WithBatchSize(batchSize)
                                 .WithReportSuccessfulBatch()
-                                .WithReportErrorInBatch(ThrowingCloudProxy.Throw<Client.Exceptions.IotHubException>())
+                                .WithReportErrorInBatch(ThrowingCloudProxy.Throw<Client.IotHubException>())
                                 .WithReportSuccessfulBatch()
                                 .Build();
 

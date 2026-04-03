@@ -11,13 +11,14 @@ namespace MetricsValidator.Tests
     using MetricsValidator.Util;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class ValidateMessages : TestBase
     {
         TransportType transportType;
 
-        public ValidateMessages(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient, TransportType transportType)
+        public ValidateMessages(TestReporter testReporter, IMetricsScraper scraper, IotHubModuleClient moduleClient, TransportType transportType)
             : base(testReporter, scraper, moduleClient)
         {
             this.transportType = transportType;
@@ -46,9 +47,16 @@ namespace MetricsValidator.Tests
                 const string output = "ToSelf";
 
                 // Setup reciever
-                TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
-                tcs.SetResult(MessageResponse.Completed);
-                await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
+                TaskCompletionSource<MessageAcknowledgement> tcs = new TaskCompletionSource<MessageAcknowledgement>();
+                tcs.SetResult(MessageAcknowledgement.Complete);
+                await this.moduleClient.SetIncomingMessageCallbackAsync(async (IncomingMessage incomingMessage) =>
+                {
+                    if (incomingMessage.InputName == input)
+                    {
+                        return await tcs.Task;
+                    }
+                    return MessageAcknowledgement.Complete;
+                });
 
                 // This will assert the queue clears
                 async Task WaitForQueueToClear(string name)
@@ -77,11 +85,11 @@ namespace MetricsValidator.Tests
 
                 async Task FillAndEmptyQueue(int n)
                 {
-                    tcs = new TaskCompletionSource<MessageResponse>();
+                    tcs = new TaskCompletionSource<MessageAcknowledgement>();
                     await this.SendMessages(n, cancellationToken, endpoint: output);
                     reporter.Assert($"Empty Queue Test: Queue increases to {n}", n, await this.GetQueueLength(cancellationToken, input));
 
-                    tcs.SetResult(MessageResponse.Completed);
+                    tcs.SetResult(MessageAcknowledgement.Complete);
                     await WaitForQueueToClear($"Queue empties from {n}");
                 }
 
@@ -90,11 +98,11 @@ namespace MetricsValidator.Tests
 
                 async Task FillAndAbandon(int n)
                 {
-                    tcs = new TaskCompletionSource<MessageResponse>();
+                    tcs = new TaskCompletionSource<MessageAcknowledgement>();
                     await this.SendMessages(n, cancellationToken, endpoint: output);
                     reporter.Assert($"Abandon Queue Test: Queue increases to {n}", n, await this.GetQueueLength(cancellationToken, input));
 
-                    tcs.SetResult(MessageResponse.Abandoned);
+                    tcs.SetResult(MessageAcknowledgement.Abandon);
                     await WaitForQueueToClear($"Queue is empty when abandoned from {n}");
                 }
 
@@ -107,11 +115,11 @@ namespace MetricsValidator.Tests
 
                 async Task FillAndEmptyBatch(int n, int m)
                 {
-                    tcs = new TaskCompletionSource<MessageResponse>();
+                    tcs = new TaskCompletionSource<MessageAcknowledgement>();
                     await this.SendMessageBatches(n, m, cancellationToken, endpoint: output);
                     reporter.Assert($"Empty Queue Test: Queue increases to {n * m} for {n} batches of {m}", n * m, await this.GetQueueLength(cancellationToken, input));
 
-                    tcs.SetResult(MessageResponse.Completed);
+                    tcs.SetResult(MessageAcknowledgement.Complete);
                     await WaitForQueueToClear($"Queue empties from {n * m} for {n} batches of {m}");
                 }
 
@@ -255,13 +263,14 @@ namespace MetricsValidator.Tests
 
         Task SendMessages(int n, CancellationToken cancellationToken, string endpoint, int messageSize = 10)
         {
-            var messagesToSend = Enumerable.Range(1, n).Select(i => new Message(new byte[messageSize]));
-            return Task.WhenAll(messagesToSend.Select(m => this.moduleClient.SendEventAsync(endpoint, m, cancellationToken)));
+            var messagesToSend = Enumerable.Range(1, n).Select(i => new TelemetryMessage(new byte[messageSize]));
+            return Task.WhenAll(messagesToSend.Select(m => this.moduleClient.SendMessageToRouteAsync(endpoint, m)));
         }
 
         Task SendMessageBatches(int n, int m, CancellationToken cancellationToken, string endpoint, int messageSize = 10)
         {
-            return Task.WhenAll(Enumerable.Range(1, n).Select(i => this.moduleClient.SendEventBatchAsync(endpoint, Enumerable.Range(1, m).Select(j => new Message(new byte[messageSize])), cancellationToken)));
+            return Task.WhenAll(Enumerable.Range(1, n).Select(i =>
+                Task.WhenAll(Enumerable.Range(1, m).Select(j => this.moduleClient.SendMessageToRouteAsync(endpoint, new TelemetryMessage(new byte[messageSize]))))));
         }
     }
 }

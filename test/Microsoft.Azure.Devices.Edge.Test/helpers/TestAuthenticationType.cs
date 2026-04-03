@@ -15,18 +15,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public static class TestAuthenticationTypeExtensions
     {
-        public static AuthenticationType ToAuthenticationType(this TestAuthenticationType authType)
+        public static ClientAuthenticationType ToAuthenticationType(this TestAuthenticationType authType)
         {
             switch (authType)
             {
                 case TestAuthenticationType.SasInScope:
                 case TestAuthenticationType.SasOutOfScope:
-                    return AuthenticationType.Sas;
+                    return ClientAuthenticationType.Sas;
                 case TestAuthenticationType.CertificateAuthority:
-                    return AuthenticationType.CertificateAuthority;
+                    return ClientAuthenticationType.CertificateAuthority;
                 case TestAuthenticationType.SelfSignedPrimary:
                 case TestAuthenticationType.SelfSignedSecondary:
-                    return AuthenticationType.SelfSigned;
+                    return ClientAuthenticationType.SelfSigned;
                 default:
                     throw new InvalidEnumArgumentException();
             }

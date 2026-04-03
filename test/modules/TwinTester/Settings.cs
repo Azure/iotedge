@@ -4,7 +4,7 @@ namespace TwinTester
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;

@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
 
                                 var receivedTrackingId = (string)data.Properties["trackingId"];
-                                if (!receivedTrackingId.IsNullOrWhiteSpace() && receivedTrackingId.Equals(trackingId))
+                                if (!string.IsNullOrWhiteSpace(receivedTrackingId) && receivedTrackingId.Equals(trackingId))
                                 {
                                     messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
                                     {
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 }
                                 else
                                 {
-                                    var message = receivedTrackingId.IsNullOrWhiteSpace() ? "EMPTY" : receivedTrackingId;
+                                    var message = string.IsNullOrWhiteSpace(receivedTrackingId) ? "EMPTY" : receivedTrackingId;
                                     Log.Verbose($"Message contains incorrect tracking id: {message}. Ignoring.");
                                 }
                             }
@@ -295,11 +295,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private async Task ToggleConnectivity(bool connectivityOn, string moduleName, CancellationToken token) =>
             await Profiler.Run(
                 async () =>
+                {
+                    var method = new DirectMethodServiceRequest("toggleConnectivity") { ConnectTimeoutInSeconds = 20, ResponseTimeoutInSeconds = 20 };
+                    method.SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}");
                     await this.IotHub.InvokeMethodAsync(
                         this.runtime.DeviceId,
                         moduleName,
-                        new CloudToDeviceMethod("toggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
-                        token),
+                        method,
+                        token);
+                },
                 "Toggled connectivity to {Connectivity}",
                 connectivityOn ? "on" : "off");
 
@@ -309,9 +313,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             do
             {
                 await Task.Delay(TimeSpan.FromSeconds(5));
-                var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(60)), token);
+                var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, moduleName, new DirectMethodServiceRequest("IsFinished") { ResponseTimeoutInSeconds = 120, ConnectTimeoutInSeconds = 60 }, token);
                 Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
-                testStatus = JsonConvert.DeserializeObject<PriorityQueueTestStatus>(result.GetPayloadAsJson());
+                testStatus = JsonConvert.DeserializeObject<PriorityQueueTestStatus>(result.JsonPayload.GetRawText());
             }
             while (!testStatus.IsFinished);
             return testStatus;

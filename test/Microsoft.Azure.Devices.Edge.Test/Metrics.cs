@@ -81,14 +81,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var result = await this.IotHub.InvokeMethodAsync(
                 this.runtime.DeviceId,
                 Metrics.ValidatorModuleName,
-                new CloudToDeviceMethod(
-                    "ValidateMetrics",
-                    TimeSpan.FromSeconds(120),
-                    TimeSpan.FromSeconds(60)),
+                new DirectMethodServiceRequest("ValidateMetrics") { ResponseTimeoutInSeconds = 120, ConnectTimeoutInSeconds = 60 },
                 token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
-            string body = result.GetPayloadAsJson();
+            string body = result.JsonPayload.GetRawText();
             Report report = JsonConvert.DeserializeObject<Report>(body, new JsonSerializerSettings() { DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate });
             Assert.Zero(report.Failed, report.ToString());
         }

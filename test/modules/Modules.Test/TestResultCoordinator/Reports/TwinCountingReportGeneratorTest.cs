@@ -349,7 +349,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             foreach (string value in resultValues)
             {
-                var tc = new Microsoft.Azure.Devices.Shared.TwinCollection();
+                var tc = new Microsoft.Azure.Devices.ClientTwinProperties();
                 var values = value.Split(";");
                 foreach (var item in values)
                 {

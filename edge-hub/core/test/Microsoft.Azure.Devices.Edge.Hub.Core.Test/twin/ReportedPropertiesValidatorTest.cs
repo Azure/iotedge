@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
     using Newtonsoft.Json;
     using Xunit;
 
@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     level1 = new
                     {
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     ok = "ok",
                     level = new
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     level = new
                     {
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     level1 = new
                     {
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                     {
                         ok = "ok",
                         level1 = new
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     array = new[] { 0, 1, 2 }
                 })),
@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     tooBig = longString
                 })),
@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     ok = "ok",
                     level1 = new
@@ -208,28 +208,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection("{ \"ok\":\"good\", \"level1\": { \"field1\": null } }"),
+                JsonConvert.DeserializeObject<PropertyCollection>("{ \"ok\":\"good\", \"level1\": { \"field1\": null } }"),
                 null,
                 string.Empty
             };
 
             yield return new object[]
             {
-                new TwinCollection("{ \"o#k\":\"good\", \"level1\": { \"field1\": null } }"),
+                JsonConvert.DeserializeObject<PropertyCollection>("{ \"o#k\":\"good\", \"level1\": { \"field1\": null } }"),
                 typeof(InvalidOperationException),
                 "Property name o#k contains invalid character '#'"
             };
 
             yield return new object[]
            {
-                new TwinCollection($"{{ \"{longString} \":\"good\", \"level1\":{{ \"field1\": null }} }}"),
+                JsonConvert.DeserializeObject<PropertyCollection>($"{{ \"{longString} \":\"good\", \"level1\":{{ \"field1\": null }} }}"),
                 typeof(InvalidOperationException),
                 "Length of property name **********.. exceeds maximum length of 1024"
            };
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     LargeByteArray = new byte[3000],
                     LargeByteArray2 = new byte[3000],
@@ -247,14 +247,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection("{ \"ok\": [\"good\"], \"ok2\": [], \"level1\": [{ \"field1\": null }] }"),
+                JsonConvert.DeserializeObject<PropertyCollection>("{ \"ok\": [\"good\"], \"ok2\": [], \"level1\": [{ \"field1\": null }] }"),
                 typeof(InvalidOperationException),
                 "Property field1 of an object in an array cannot be 'null'"
             };
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     ok = "ok",
                     complex = new
@@ -279,7 +279,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     ok = "ok",
                     array = new string[] { "foo", null, "boo" }
@@ -290,7 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     ok = "ok",
                     complex = new
@@ -313,7 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     ok = "ok",
                     complex = new
@@ -332,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new
+                JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(new
                 {
                     ok = "ok",
                     complex = new
@@ -356,7 +356,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
         [Unit]
         [Theory]
         [MemberData(nameof(GetTwinCollections))]
-        public void ValidateReportedPropertiesTest(TwinCollection twinCollection, Type expectedExceptionType, string expectedExceptionMessage)
+        public void ValidateReportedPropertiesTest(PropertyCollection twinCollection, Type expectedExceptionType, string expectedExceptionMessage)
         {
             // Arrange
             var reportedPropertiesValidator = new ReportedPropertiesValidator();

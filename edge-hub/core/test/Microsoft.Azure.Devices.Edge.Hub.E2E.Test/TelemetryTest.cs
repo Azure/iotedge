@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        async Task SendTelemetryTest(ITransportSettings[] transportSettings)
+        async Task SendTelemetryTest(IotHubClientOptions clientOptions)
         {
             int messagesCount = 10;
             TestModule sender = null;
@@ -22,12 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
 
             try
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", clientOptions);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", clientOptions);
 
                 await receiver.SetupReceiveMessageHandler();
 
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
 
                 if (sender != null)
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        async Task SendOneTelemetryMessageTest(ITransportSettings[] transportSettings)
+        async Task SendOneTelemetryMessageTest(IotHubClientOptions clientOptions)
         {
             int messagesCount = 1;
             TestModule sender = null;
@@ -73,12 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
 
             try
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", clientOptions);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", clientOptions);
 
                 await receiver.SetupReceiveMessageHandler();
 
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
 
                 if (sender != null)
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        async Task SendTelemetryMultipleInputsTest(ITransportSettings[] transportSettings)
+        async Task SendTelemetryMultipleInputsTest(IotHubClientOptions clientOptions)
         {
             int messagesCount = 30;
             TestModule sender = null;
@@ -124,12 +124,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
 
             try
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender11", transportSettings);
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver11", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender11", clientOptions);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver11", clientOptions);
 
                 await receiver.SetupReceiveMessageHandler("input1");
                 await receiver.SetupReceiveMessageHandler("input2");
@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
 
                 if (sender != null)
@@ -172,23 +172,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        async Task SendLargeMessageHandleExceptionTest(ITransportSettings[] transportSettings)
+        async Task SendLargeMessageHandleExceptionTest(IotHubClientOptions clientOptions)
         {
             TestModule sender = null;
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
 
             try
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", clientOptions);
 
                 Exception ex = null;
                 try
                 {
                     // create a large message
-                    var message = new Message(new byte[400 * 1000]);
+                    var message = new TelemetryMessage(new byte[400 * 1000]);
                     await sender.SendMessageAsync("output1", message);
                 }
                 catch (Exception e)
@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
             }
 
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        async Task SendTelemetryWithDelayedReceiverTest(ITransportSettings[] transportSettings)
+        async Task SendTelemetryWithDelayedReceiverTest(IotHubClientOptions clientOptions)
         {
             int messagesCount = 10;
             TestModule sender = null;
@@ -220,15 +220,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
 
             try
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", clientOptions);
                 int sentMessagesCount = await sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
                 Assert.Equal(messagesCount, sentMessagesCount);
 
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", clientOptions);
                 await receiver.SetupReceiveMessageHandler();
 
                 await Task.Delay(TimeSpan.FromSeconds(60));
@@ -240,7 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
 
                 if (sender != null)

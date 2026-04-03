@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Xunit;
 
@@ -32,9 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var messageConverterProvider = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>()
                 {
-                    { typeof(Message), new DeviceClientMessageConverter() },
-                    { typeof(Shared.Twin), twinMessageConverter },
-                    { typeof(TwinCollection), twinCollectionMessageConverter }
+                    { typeof(TelemetryMessage), new DeviceClientMessageConverter() },
+                    { typeof(IncomingMessage), new DeviceClientMessageConverter() },
+                    { typeof(TwinProperties), twinMessageConverter },
+                    { typeof(PropertyCollection), twinCollectionMessageConverter }
                 });
 
             var edgeHubTokenProvider = new Mock<ITokenProvider>();
@@ -139,9 +139,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var messageConverterProvider = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>()
                 {
-                    { typeof(Message), new DeviceClientMessageConverter() },
-                    { typeof(Shared.Twin), twinMessageConverter },
-                    { typeof(TwinCollection), twinCollectionMessageConverter }
+                    { typeof(TelemetryMessage), new DeviceClientMessageConverter() },
+                    { typeof(IncomingMessage), new DeviceClientMessageConverter() },
+                    { typeof(TwinProperties), twinMessageConverter },
+                    { typeof(PropertyCollection), twinCollectionMessageConverter }
                 });
 
             var edgeHubTokenProvider = new Mock<ITokenProvider>();
@@ -230,9 +231,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var messageConverterProvider = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>
                 {
-                    { typeof(Message), new DeviceClientMessageConverter() },
-                    { typeof(Shared.Twin), twinMessageConverter },
-                    { typeof(TwinCollection), twinCollectionMessageConverter }
+                    { typeof(TelemetryMessage), new DeviceClientMessageConverter() },
+                    { typeof(IncomingMessage), new DeviceClientMessageConverter() },
+                    { typeof(TwinProperties), twinMessageConverter },
+                    { typeof(PropertyCollection), twinCollectionMessageConverter }
                 });
 
             var edgeHubTokenProvider = new Mock<ITokenProvider>();
@@ -379,13 +381,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         class ClientWatcher
         {
-            readonly List<Message> receivedMessages = new List<Message>();
+            readonly List<TelemetryMessage> receivedMessages = new List<TelemetryMessage>();
             readonly List<string> receivedProductInfos = new List<string>();
 
             int getTwinCount;
             int openAsyncCount;
 
-            public IEnumerable<Message> ReceivedMessages => this.receivedMessages;
+            public IEnumerable<TelemetryMessage> ReceivedMessages => this.receivedMessages;
 
             public IEnumerable<string> ReceivedProductInfos => this.receivedProductInfos;
 
@@ -397,7 +399,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             public void IncrementOpenAsyncCount() => Interlocked.Increment(ref this.openAsyncCount);
 
-            public void AddReceivedMessage(Message message)
+            public void AddReceivedMessage(TelemetryMessage message)
             {
                 lock (this.receivedMessages)
                 {
@@ -405,7 +407,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 }
             }
 
-            public void AddReceivedMessages(IEnumerable<Message> messages)
+            public void AddReceivedMessages(IEnumerable<TelemetryMessage> messages)
             {
                 lock (this.receivedMessages)
                 {
@@ -441,43 +443,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             public void Dispose() => throw new NotImplementedException();
 
-            public async Task<Shared.Twin> GetTwinAsync()
+            public ValueTask DisposeAsync() => throw new NotImplementedException();
+
+            public async Task<TwinProperties> GetTwinPropertiesAsync()
             {
                 this.UpdateOperationCounter();
                 this.clientWatcher.IncrementGetTwinCount();
                 await Task.Delay(TimeSpan.FromMilliseconds(100 + this.random.Next(50)));
-                return new Shared.Twin();
+                return new TwinProperties();
             }
 
-            public async Task SendEventAsync(Message message)
+            public async Task SendTelemetryAsync(TelemetryMessage message)
             {
                 this.UpdateOperationCounter();
                 await Task.Delay(TimeSpan.FromMilliseconds(100 + this.random.Next(50)));
                 this.clientWatcher.AddReceivedMessage(message);
             }
 
-            public async Task SendEventBatchAsync(IEnumerable<Message> messages)
+            public async Task SendTelemetryAsync(IEnumerable<TelemetryMessage> messages)
             {
                 this.UpdateOperationCounter();
                 await Task.Delay(TimeSpan.FromMilliseconds(50 + this.random.Next(50)));
                 this.clientWatcher.AddReceivedMessages(messages);
             }
 
-            public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties) => throw new NotImplementedException();
+            public Task UpdateReportedPropertiesAsync(PropertyCollection reportedProperties) => throw new NotImplementedException();
 
             public Task CompleteAsync(string messageId) => throw new NotImplementedException();
 
             public Task AbandonAsync(string messageId) => throw new NotImplementedException();
 
-            public Task SetMethodDefaultHandlerAsync(MethodCallback methodHandler, object userContext) => Task.CompletedTask;
+            public Task SetDirectMethodCallbackAsync(Func<Client.DirectMethodRequest, Task<Client.DirectMethodResponse>> methodHandler) => Task.CompletedTask;
 
-            public Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyUpdates1, object userContext) => Task.CompletedTask;
+            public Task SetDesiredPropertyUpdateCallbackAsync(Func<PropertyCollection, Task> onDesiredPropertyUpdates) => Task.CompletedTask;
 
-            public void SetOperationTimeoutInMilliseconds(uint defaultOperationTimeoutMilliseconds)
-            {
-            }
-
-            public void SetConnectionStatusChangedHandler(ConnectionStatusChangesHandler handler)
+            public void SetConnectionStatusChangedHandler(Action<ConnectionStatusInfo> handler)
             {
             }
 
@@ -514,7 +514,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             public Task RejectAsync(string messageId) => throw new NotImplementedException();
 
-            public Task<Message> ReceiveAsync(TimeSpan receiveMessageTimeout) => throw new NotImplementedException();
+            public Task<IncomingMessage> ReceiveAsync(TimeSpan receiveMessageTimeout) => throw new NotImplementedException();
 
             void UpdateOperationCounter()
             {

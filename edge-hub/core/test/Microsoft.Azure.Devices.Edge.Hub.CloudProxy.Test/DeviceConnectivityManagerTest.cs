@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Xunit;
 
@@ -25,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "d1/m1");
             var deviceConnectivityManager = new DeviceConnectivityManager(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3), edgeHubIdentity);
             var client = new Mock<IClient>();
-            client.SetupSequence(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+            client.SetupSequence(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
                 .Returns(Task.CompletedTask)
                 .Throws<TimeoutException>()
                 .Throws<TimeoutException>()
@@ -59,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceConnectivityManager = new DeviceConnectivityManager(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3), edgeHubIdentity);
 
             var client = new Mock<IClient>();
-            client.SetupSequence(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+            client.SetupSequence(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
                 .Returns(Task.CompletedTask)
                 .Throws<TimeoutException>()
                 .Returns(Task.CompletedTask)
@@ -92,34 +91,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             int connectedCallbackCount = 0;
             int disconnectedCallbackCount = 0;
 
-            void ConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+            void ConnectionStatusChangedHandler(ConnectionStatusInfo statusInfo)
             {
-                if (status == ConnectionStatus.Connected && reason == ConnectionStatusChangeReason.Connection_Ok)
+                if (statusInfo.Status == ConnectionStatus.Connected && statusInfo.ChangeReason == ConnectionStatusChangeReason.ConnectionOk)
                 {
                     Interlocked.Increment(ref connectedCallbackCount);
                 }
-                else if (status == ConnectionStatus.Disconnected && reason == ConnectionStatusChangeReason.No_Network)
+                else if (statusInfo.Status == ConnectionStatus.Disconnected && statusInfo.ChangeReason == ConnectionStatusChangeReason.CommunicationError)
                 {
                     Interlocked.Increment(ref disconnectedCallbackCount);
                 }
             }
 
             var device1UnderlyingClient = new Mock<IClient>();
-            device1UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>()))
+            device1UnderlyingClient.Setup(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>()))
                 .Returns(Task.CompletedTask);
             device1UnderlyingClient.Setup(d => d.OpenAsync()).Returns(Task.CompletedTask);
             var device1Client = new ConnectivityAwareClient(device1UnderlyingClient.Object, deviceConnectivityManager, deviceIdentity);
             device1Client.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
 
             var device2UnderlyingClient = new Mock<IClient>();
-            device2UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>()))
+            device2UnderlyingClient.Setup(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>()))
                 .Throws<TimeoutException>();
             device2UnderlyingClient.Setup(d => d.OpenAsync()).Returns(Task.CompletedTask);
             var device2Client = new ConnectivityAwareClient(device2UnderlyingClient.Object, deviceConnectivityManager, deviceIdentity);
             device2Client.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
 
             var edgeHubUnderlyingClient = new Mock<IClient>();
-            edgeHubUnderlyingClient.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+            edgeHubUnderlyingClient.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()))
                 .Throws<TimeoutException>();
             edgeHubUnderlyingClient.Setup(d => d.OpenAsync()).Returns(Task.CompletedTask);
             IClient edgeHubClient = new ConnectivityAwareClient(edgeHubUnderlyingClient.Object, deviceConnectivityManager, deviceIdentity);
@@ -143,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 {
                     while (!cts.IsCancellationRequested)
                     {
-                        await device1Client.SendEventAsync(new Message());
+                        await device1Client.SendTelemetryAsync(new TelemetryMessage(new byte[0]));
                         if (!cts.IsCancellationRequested)
                         {
                             await Task.Delay(TimeSpan.FromSeconds(1));
@@ -155,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Assert
             Assert.True(connected);
-            edgeHubUnderlyingClient.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Never);
+            edgeHubUnderlyingClient.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()), Times.Never);
             Assert.Equal(3, connectedCallbackCount);
             Assert.Equal(0, disconnectedCallbackCount);
 
@@ -170,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     {
                         try
                         {
-                            await device2Client.SendEventAsync(new Message());
+                            await device2Client.SendTelemetryAsync(new TelemetryMessage(new byte[0]));
                         }
                         catch (TimeoutException)
                         {
@@ -187,18 +186,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Assert
             Assert.False(connected);
-            edgeHubUnderlyingClient.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
+            edgeHubUnderlyingClient.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()), Times.Once);
             Assert.Equal(3, connectedCallbackCount);
             Assert.Equal(3, disconnectedCallbackCount);
 
             cts2.Cancel();
             await t2;
 
-            await device1Client.SendEventAsync(new Message());
+            await device1Client.SendTelemetryAsync(new TelemetryMessage(new byte[0]));
 
             // Assert
             Assert.True(connected);
-            edgeHubUnderlyingClient.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
+            edgeHubUnderlyingClient.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<PropertyCollection>()), Times.Once);
             Assert.Equal(6, connectedCallbackCount);
             Assert.Equal(3, disconnectedCallbackCount);
         }

@@ -4,19 +4,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
     using Xunit;
 
     [Unit]
-    public class TwinCollectionMessageConverterTest
+    public class PropertyCollectionMessageConverterTest
     {
-        public static IEnumerable<object[]> GetTwinCollectionData()
+        public static IEnumerable<object[]> GetPropertyCollectionData()
         {
             yield return new object[]
             {
-                new TwinCollection(),
+                new PropertyCollection(),
                 @"
                 {
                 }"
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             yield return new object[]
             {
-                new TwinCollection()
+                new PropertyCollection()
                 {
                     ["name"] = "value",
                     ["$version"] = 33
@@ -38,15 +38,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             yield return new object[]
             {
-                new TwinCollection()
+                new PropertyCollection()
                 {
-                    ["one"] = new TwinCollection()
+                    ["one"] = new PropertyCollection()
                     {
                         ["level"] = 1,
-                        ["two"] = new TwinCollection()
+                        ["two"] = new PropertyCollection()
                         {
                             ["level"] = 2,
-                            ["three"] = new TwinCollection()
+                            ["three"] = new PropertyCollection()
                             {
                                 ["level"] = 3
                             }
@@ -71,8 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Theory]
-        [MemberData(nameof(GetTwinCollectionData))]
-        public void ConvertsTwinCollectionsToMqttMessages(TwinCollection collection, string expectedJson)
+        [MemberData(nameof(GetPropertyCollectionData))]
+        public void ConvertsPropertyCollectionsToMqttMessages(PropertyCollection collection, string expectedJson)
         {
             EdgeMessage expectedMessage = new EdgeMessage.Builder(expectedJson.ToBody())
                 .SetSystemProperties(
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         [SystemProperties.Version] = collection.Version.ToString()
                     })
                 .Build();
-            IMessage actualMessage = new TwinCollectionMessageConverter().ToMessage(collection);
+            IMessage actualMessage = new PropertyCollectionMessageConverter().ToMessage(collection);
             Assert.Equal(expectedMessage.Body, actualMessage.Body);
             Assert.Equal(expectedMessage.Properties, actualMessage.Properties);
             Assert.Equal(expectedMessage.SystemProperties.Keys, actualMessage.SystemProperties.Keys);
@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Fact]
         public void ConvertedMessageHasAnEnqueuedTimeProperty()
         {
-            IMessage actualMessage = new TwinCollectionMessageConverter().ToMessage(new TwinCollection());
+            IMessage actualMessage = new PropertyCollectionMessageConverter().ToMessage(new PropertyCollection());
             Assert.InRange(
                 DateTime.Parse(actualMessage.SystemProperties[SystemProperties.EnqueuedTime], null, DateTimeStyles.RoundtripKind),
                 DateTime.UtcNow.Subtract(new TimeSpan(0, 1, 0)),

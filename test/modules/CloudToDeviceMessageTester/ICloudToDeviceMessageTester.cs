@@ -5,7 +5,7 @@ namespace CloudToDeviceMessageTester
     using System.Threading;
     using System.Threading.Tasks;
 
-    interface ICloudToDeviceMessageTester : IDisposable
+    interface ICloudToDeviceMessageTester : IAsyncDisposable
     {
         Task StartAsync(CancellationToken ct);
     }

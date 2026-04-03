@@ -15,7 +15,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
         readonly SemaphoreSlim asyncLock = new SemaphoreSlim(1, 1);
-        ModuleClient client;
+        IotHubModuleClient client;
 
         // Private constructor to ensure single instance
         ModuleClientCache()
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
         public static ModuleClientCache Instance { get; } = new ModuleClientCache();
 
-        public async Task<ModuleClient> GetOrCreateAsync()
+        public async Task<IotHubModuleClient> GetOrCreateAsync()
         {
             await this.asyncLock.WaitAsync();
             try
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                     var retryPolicy = new RetryPolicy(TimeoutErrorDetectionStrategy, TransientRetryStrategy);
                     retryPolicy.Retrying += (_, args) =>
                     {
-                        Console.WriteLine($"Creating ModuleClient failed with exception {args.LastException}");
+                        Console.WriteLine($"Creating IotHubModuleClient failed with exception {args.LastException}");
                         if (args.CurrentRetryCount < RetryCount)
                         {
                             Console.WriteLine("Retrying...");
@@ -51,11 +51,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
             }
         }
 
-        async Task<ModuleClient> CreateModuleClient()
+        async Task<IotHubModuleClient> CreateModuleClient()
         {
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(TransportType.Amqp_Tcp_Only);
+            var options = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp))
+            {
+                AdditionalProductInfo = "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
+            };
+            IotHubModuleClient moduleClient = await IotHubModuleClient.CreateFromEnvironmentAsync(options);
 
-            moduleClient.ProductInfo = "Microsoft.Azure.WebJobs.Extensions.EdgeHub";
             return moduleClient;
         }
     }

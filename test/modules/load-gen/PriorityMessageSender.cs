@@ -22,7 +22,7 @@ namespace LoadGen
 
         public PriorityMessageSender(
             ILogger logger,
-            ModuleClient moduleClient,
+            IotHubModuleClient moduleClient,
             Guid batchId,
             string trackingId)
             : base(logger, moduleClient, batchId, trackingId)
@@ -125,16 +125,20 @@ namespace LoadGen
 
         private async Task SetIsFinishedDirectMethodAsync()
         {
-            await this.Client.SetMethodHandlerAsync(
-                "IsFinished",
-                async (MethodRequest methodRequest, object _) => await Task.FromResult(this.IsFinished()),
-                null);
+            await this.Client.SetDirectMethodCallbackAsync(async (DirectMethodRequest methodRequest) =>
+            {
+                if (methodRequest.MethodName == "IsFinished")
+                {
+                    return this.IsFinished();
+                }
+                return new DirectMethodResponse((int)HttpStatusCode.NotFound);
+            });
         }
 
-        private MethodResponse IsFinished()
+        private DirectMethodResponse IsFinished()
         {
             string response = JsonConvert.SerializeObject(new PriorityQueueTestStatus(this.isFinished, this.resultsSent));
-            return new MethodResponse(Encoding.UTF8.GetBytes(response), (int)HttpStatusCode.OK);
+            return new DirectMethodResponse((int)HttpStatusCode.OK) { Payload = Encoding.UTF8.GetBytes(response) };
         }
     }
 }

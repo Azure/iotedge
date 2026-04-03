@@ -15,12 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     public class IotHubMetricsUpload : IMetricsPublisher
     {
         const string IdentifierPropertyName = "MessageIdentifier";
-        readonly ModuleClient moduleClient;
+        readonly IotHubModuleClient moduleClient;
 
         readonly string identifier;
         static readonly ILogger Log = Logger.Factory.CreateLogger<LogAnalyticsUpload>();
 
-        public IotHubMetricsUpload(ModuleClient moduleClient, string identifier)
+        public IotHubMetricsUpload(IotHubModuleClient moduleClient, string identifier)
         {
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
             this.identifier = identifier;
@@ -32,10 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             {
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
                 byte[] metricsData = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metrics));
-                Message metricsMessage = new Message(metricsData);
+                var metricsMessage = new TelemetryMessage(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = this.identifier;
 
-                await this.moduleClient.SendEventAsync(metricsMessage);
+                await this.moduleClient.SendTelemetryAsync(metricsMessage);
 
                 Log.LogInformation("Successfully sent metrics to Event Hub via IoT Hub");
                 return true;

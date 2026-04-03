@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
         /// Note: Either set the MESSAGE_COUNT environment variable with the number of
         /// messages to be sent to the IoT Edge runtime or set it in the launchSettings.json.
         /// </summary>
-        static void Main()
+        static async Task Main()
         {
             InstallCACert();
 
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
             }
 
             Console.WriteLine("Creating device client from connection string\n");
-            DeviceClient deviceClient = DeviceClient.CreateFromConnectionString(DeviceConnectionString);
+            IotHubDeviceClient deviceClient = new IotHubDeviceClient(DeviceConnectionString);
 
             if (deviceClient == null)
             {
@@ -57,10 +57,12 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
             }
             else
             {
-                SendEvents(deviceClient, messageCount).Wait();
+                await SendEvents(deviceClient, messageCount);
             }
 
             Console.WriteLine("Exiting!\n");
+
+            await deviceClient.DisposeAsync();
         }
 
         /// <summary>
@@ -104,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
         /// to the IoT Edge runtime. The number of messages to be sent is determined
         /// by environment variable MESSAGE_COUNT.
         /// </summary>
-        static async Task SendEvents(DeviceClient deviceClient, int messageCount)
+        static async Task SendEvents(IotHubDeviceClient deviceClient, int messageCount)
         {
             Random rnd = new Random();
             Console.WriteLine("Edge downstream device attempting to send {0} messages to Edge Hub...\n", messageCount);
@@ -114,11 +116,11 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
                 float temperature = rnd.Next(20, 35);
                 float humidity = rnd.Next(60, 80);
                 string dataBuffer = string.Format(new CultureInfo("en-US"), "{{MyFirstDownstreamDevice \"messageId\":{0},\"temperature\":{1},\"humidity\":{2}}}", count, temperature, humidity);
-                Message eventMessage = new Message(Encoding.UTF8.GetBytes(dataBuffer));
+                TelemetryMessage eventMessage = new TelemetryMessage(Encoding.UTF8.GetBytes(dataBuffer));
                 eventMessage.Properties.Add("temperatureAlert", (temperature > TemperatureThreshold) ? "true" : "false");
                 Console.WriteLine("\t{0}> Sending message: {1}, Data: [{2}]", DateTime.Now.ToLocalTime(), count, dataBuffer);
 
-                await deviceClient.SendEventAsync(eventMessage).ConfigureAwait(false);
+                await deviceClient.SendTelemetryAsync(eventMessage).ConfigureAwait(false);
             }
         }
     }

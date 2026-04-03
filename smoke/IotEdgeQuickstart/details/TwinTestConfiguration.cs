@@ -1,8 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace IotEdgeQuickstart.Details
 {
-    using Microsoft.Azure.Devices.Shared;
+    using System.Collections.Generic;
+    using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Newtonsoft.Json;
+
+    public class TwinTestProperties
+    {
+        [JsonProperty(PropertyName = "desired")]
+        public PropertyCollection Desired { get; set; }
+
+        [JsonProperty(PropertyName = "reported")]
+        public PropertyCollection Reported { get; set; }
+    }
 
     public class TwinTestConfiguration
     {
@@ -10,6 +21,6 @@ namespace IotEdgeQuickstart.Details
         public string ModuleId { get; set; }
 
         [JsonProperty(PropertyName = "properties")]
-        public TwinProperties Properties { get; set; }
+        public TwinTestProperties Properties { get; set; }
     }
 }

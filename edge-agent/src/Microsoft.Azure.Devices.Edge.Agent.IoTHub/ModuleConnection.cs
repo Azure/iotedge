@@ -16,8 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly IModuleClientProvider moduleClientProvider;
         readonly AsyncLock stateLock = new AsyncLock();
         readonly IRequestManager requestManager;
-        readonly ConnectionStatusChangesHandler connectionStatusChangesHandler;
-        readonly DesiredPropertyUpdateCallback desiredPropertyUpdateCallback;
+        readonly Action<ConnectionStatusInfo> connectionStatusChangesHandler;
+        readonly Func<PropertyCollection, Task> desiredPropertyUpdateCallback;
         readonly bool enableSubscriptions;
 
         Option<IModuleClient> moduleClient;
@@ -25,8 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public ModuleConnection(
             IModuleClientProvider moduleClientProvider,
             IRequestManager requestManager,
-            ConnectionStatusChangesHandler connectionStatusChangesHandler,
-            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback,
+            Action<ConnectionStatusInfo> connectionStatusChangesHandler,
+            Func<PropertyCollection, Task> desiredPropertyUpdateCallback,
             bool enableSubscriptions)
         {
             this.moduleClientProvider = Preconditions.CheckNotNull(moduleClientProvider, nameof(moduleClientProvider));
@@ -51,13 +51,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public Option<IModuleClient> GetModuleClient() => this.moduleClient.Filter(m => m.IsActive);
 
-        async Task<MethodResponse> MethodCallback(MethodRequest methodRequest, object _)
+        async Task<DirectMethodResponse> MethodCallback(DirectMethodRequest methodRequest)
         {
             Events.ReceivedMethodCallback(methodRequest);
-            (int responseStatus, Option<string> responsePayload) = await this.requestManager.ProcessRequest(methodRequest.Name, methodRequest.DataAsJson);
-            return responsePayload
-                .Map(r => new MethodResponse(Encoding.UTF8.GetBytes(r), responseStatus))
-                .GetOrElse(() => new MethodResponse(responseStatus));
+            string payloadJson = methodRequest.Payload != null ? System.Text.Encoding.UTF8.GetString(methodRequest.Payload) : null;
+            (int responseStatus, Option<string> responsePayload) = await this.requestManager.ProcessRequest(methodRequest.MethodName, payloadJson);
+            var response = new DirectMethodResponse((int)responseStatus);
+            responsePayload.ForEach(r => response.SetPayloadJson(r));
+            return response;
         }
 
         async Task<IModuleClient> InitModuleClient()
@@ -186,9 +187,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogInformation((int)EventIds.InitializedNewModuleClient, $"Initialized new module client with subscriptions {subscriptionsState}");
             }
 
-            public static void ReceivedMethodCallback(MethodRequest methodRequest)
+            public static void ReceivedMethodCallback(DirectMethodRequest methodRequest)
             {
-                Log.LogInformation((int)EventIds.ReceivedMethodCallback, $"Received direct method call - {methodRequest?.Name ?? string.Empty}");
+                Log.LogInformation((int)EventIds.ReceivedMethodCallback, $"Received direct method call - {methodRequest?.MethodName ?? string.Empty}");
             }
 
             public static void DisposingModuleConnection()

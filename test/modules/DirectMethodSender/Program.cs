@@ -68,8 +68,8 @@ namespace DirectMethodSender
             finally
             {
                 // Implicit CloseAsync()
-                directMethodClient?.Dispose();
-                reportClient?.Dispose();
+                if (directMethodClient != null) await directMethodClient.DisposeAsync();
+                if (reportClient != null) await reportClient.DisposeAsync();
             }
 
             completed.Set();
@@ -96,7 +96,6 @@ namespace DirectMethodSender
                     // Implicit OpenAsync()
                     directMethodClient = await DirectMethodCloudSender.CreateAsync(
                             Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
-                            (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
                             Logger);
                     break;
 

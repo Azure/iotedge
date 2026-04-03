@@ -8,19 +8,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
     using Moq;
     using Newtonsoft.Json.Linq;
     using Xunit;
+    using ClientTwinProperties = Microsoft.Azure.Devices.Client.TwinProperties;
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test")]
@@ -167,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             await cloudProxy.SetupDesiredPropertyUpdatesAsync();
 
-            var desired = new TwinCollection()
+            var desired = new ClientTwinProperties()
             {
                 ["desiredPropertyTest"] = Guid.NewGuid().ToString()
             };
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await update.Task;
             await cloudProxy.RemoveDesiredPropertyUpdatesAsync();
 
-            IMessage expected = new EdgeMessage.Builder(Encoding.UTF8.GetBytes(desired.ToJson())).Build();
+            IMessage expected = new EdgeMessage.Builder(Encoding.UTF8.GetBytes(desired.GetSerializedString())).Build();
             expected.SystemProperties[SystemProperties.EnqueuedTime] = string.Empty;
             expected.SystemProperties[SystemProperties.Version] = desired.Version.ToString();
             IMessage actual = update.Task.Result;
@@ -230,15 +230,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task TestHandleNonRecoverableExceptions(Type exceptionType)
         {
             // Arrange
-            var messageConverter = Mock.Of<IMessageConverter<Message>>(m => m.FromMessage(It.IsAny<IMessage>()) == new Message());
-            var messageConverterProvider = Mock.Of<IMessageConverterProvider>(m => m.Get<Message>() == messageConverter);
+            var messageConverter = Mock.Of<IMessageConverter<TelemetryMessage>>(m => m.FromMessage(It.IsAny<IMessage>()) == new TelemetryMessage(new byte[0]));
+            var messageConverterProvider = Mock.Of<IMessageConverterProvider>(m => m.Get<TelemetryMessage>() == messageConverter);
             string clientId = "d1";
             var cloudListener = Mock.Of<ICloudListener>();
             TimeSpan idleTimeout = TimeSpan.FromSeconds(60);
             TimeSpan cloudConnectionHangingTimeout = TimeSpan.FromSeconds(50);
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
             var client = new Mock<IClient>(MockBehavior.Strict);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync((Exception)Activator.CreateInstance(exceptionType, "dummy message"));
+            client.Setup(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>())).ThrowsAsync((Exception)Activator.CreateInstance(exceptionType, "dummy message"));
             client.Setup(c => c.CloseAsync()).Returns(Task.CompletedTask);
             var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false, cloudConnectionHangingTimeout);
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
@@ -255,23 +255,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             var symbol = new Amqp.Encoding.AmqpSymbol("com.microsoft:iot-hub-not-found-error");
-            var failOverException = new IotHubException(new Amqp.AmqpException(symbol, $"(condition='{symbol}')"));
+            var failOverException = new IotHubClientException("failover", new Amqp.AmqpException(symbol, $"(condition='{symbol}')"));
 
-            var messageConverter = Mock.Of<IMessageConverter<Message>>(m => m.FromMessage(It.IsAny<IMessage>()) == new Message());
-            var messageConverterProvider = Mock.Of<IMessageConverterProvider>(m => m.Get<Message>() == messageConverter);
+            var messageConverter = Mock.Of<IMessageConverter<TelemetryMessage>>(m => m.FromMessage(It.IsAny<IMessage>()) == new TelemetryMessage(new byte[0]));
+            var messageConverterProvider = Mock.Of<IMessageConverterProvider>(m => m.Get<TelemetryMessage>() == messageConverter);
             string clientId = "d1";
             var cloudListener = Mock.Of<ICloudListener>();
             TimeSpan idleTimeout = TimeSpan.FromSeconds(60);
             TimeSpan cloudConnectionHangingTimeout = TimeSpan.FromSeconds(50);
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
             var client = new Mock<IClient>(MockBehavior.Strict);
-            client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync(failOverException);
+            client.Setup(c => c.SendTelemetryAsync(It.IsAny<TelemetryMessage>())).ThrowsAsync(failOverException);
             client.Setup(c => c.CloseAsync()).Returns(Task.CompletedTask);
             var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false, cloudConnectionHangingTimeout);
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
 
             // Act
-            await Assert.ThrowsAsync<IotHubException>(() => cloudProxy.SendMessageAsync(message));
+            await Assert.ThrowsAsync<IotHubClientException>(() => cloudProxy.SendMessageAsync(message));
 
             // Assert.
             client.VerifyAll();
@@ -322,13 +322,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(messagesFound);
         }
 
-        static async Task UpdateDesiredProperty(string deviceId, TwinCollection desired)
+        static async Task UpdateDesiredProperty(string deviceId, ClientTwinProperties desired)
         {
             string connectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(connectionString);
-            Twin twin = await registryManager.GetTwinAsync(deviceId);
+            var serviceClient = new IotHubServiceClient(connectionString);
+            ClientTwin twin = await serviceClient.Twins.GetAsync(deviceId);
             twin.Properties.Desired = desired;
-            twin = await registryManager.UpdateTwinAsync(deviceId, twin, twin.ETag);
+            twin = await serviceClient.Twins.UpdateAsync(deviceId, twin, true, CancellationToken.None);
             desired["$version"] = twin.Properties.Desired.Version;
         }
 
@@ -342,12 +342,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string deviceId = ConnectionStringHelper.GetDeviceId(deviceConnectionString);
             string iotHubHostName = ConnectionStringHelper.GetHostName(deviceConnectionString);
             string sasKey = ConnectionStringHelper.GetSharedAccessKey(deviceConnectionString);
+            var deviceClientMessageConverter = new DeviceClientMessageConverter();
             var converters = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>()
                 {
-                    { typeof(Message), new DeviceClientMessageConverter() },
-                    { typeof(Twin), new TwinMessageConverter() },
-                    { typeof(TwinCollection), new TwinCollectionMessageConverter() }
+                    { typeof(TelemetryMessage), deviceClientMessageConverter },
+                    { typeof(IncomingMessage), deviceClientMessageConverter },
+                    { typeof(TwinProperties), new TwinMessageConverter() },
+                    { typeof(PropertyCollection), new TwinCollectionMessageConverter() }
                 });
 
             var credentialsCache = Mock.Of<ICredentialsCache>();

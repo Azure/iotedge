@@ -8,16 +8,14 @@ namespace LeafDeviceTest
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Microsoft.Azure.Devices.Common;
 
     // NOTE: this class is copied from Azure IoT C# SDK
     class CustomCertificateValidator
     {
         readonly IEnumerable<X509Certificate2> certs;
-        readonly ITransportSettings[] transportSettings;
+        readonly IotHubClientTransportSettings transportSettings;
 
-        CustomCertificateValidator(IList<X509Certificate2> certs, ITransportSettings[] transportSettings)
+        CustomCertificateValidator(IList<X509Certificate2> certs, IotHubClientTransportSettings transportSettings)
         {
             this.certs = certs;
             this.transportSettings = transportSettings;
@@ -25,7 +23,7 @@ namespace LeafDeviceTest
 
         public static CustomCertificateValidator Create(
             IList<X509Certificate2> certs,
-            ITransportSettings[] transportSettings)
+            IotHubClientTransportSettings transportSettings)
         {
             var instance = new CustomCertificateValidator(certs, transportSettings);
             instance.SetupCertificateValidation();
@@ -36,39 +34,24 @@ namespace LeafDeviceTest
         {
             Debug.WriteLine("CustomCertificateValidator.SetupCertificateValidation()");
 
-            foreach (ITransportSettings transportSetting in this.transportSettings)
+            switch (this.transportSettings)
             {
-                switch (transportSetting.GetTransportType())
-                {
-                    case TransportType.Amqp_WebSocket_Only:
-                    case TransportType.Amqp_Tcp_Only:
-                        if (transportSetting is AmqpTransportSettings amqpTransportSettings)
-                        {
-                            if (amqpTransportSettings.RemoteCertificateValidationCallback == null)
-                            {
-                                amqpTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => ValidateCertificate(this.certs.First(), certificate, chain, sslPolicyErrors);
-                            }
-                        }
+                case IotHubClientAmqpSettings amqpTransportSettings:
+                    if (amqpTransportSettings.RemoteCertificateValidationCallback == null)
+                    {
+                        amqpTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => ValidateCertificate(this.certs.First(), certificate, chain, sslPolicyErrors);
+                    }
 
-                        break;
-                    case TransportType.Http1:
-                        // InvokeMethodAsync is over HTTP even when transportSettings set a different protocol
-                        // So set the callback in HttpClientHandler for InvokeMethodAsync
-                        break;
-                    case TransportType.Mqtt_WebSocket_Only:
-                    case TransportType.Mqtt_Tcp_Only:
-                        if (transportSetting is MqttTransportSettings mqttTransportSettings)
-                        {
-                            if (mqttTransportSettings.RemoteCertificateValidationCallback == null)
-                            {
-                                mqttTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => ValidateCertificate(this.certs.First(), certificate, chain, sslPolicyErrors);
-                            }
-                        }
+                    break;
+                case IotHubClientMqttSettings mqttTransportSettings:
+                    if (mqttTransportSettings.RemoteCertificateValidationCallback == null)
+                    {
+                        mqttTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => ValidateCertificate(this.certs.First(), certificate, chain, sslPolicyErrors);
+                    }
 
-                        break;
-                    default:
-                        throw new InvalidOperationException("Unsupported Transport Type {0}".FormatInvariant(transportSetting.GetTransportType()));
-                }
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unsupported Transport Settings type {this.transportSettings.GetType().Name}");
             }
         }
 

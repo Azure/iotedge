@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [TestPriority(Constants.TestPriority.StressTest.SingleSenderSingleReceiverTest)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task SingleSenderSingleReceiverTest(ITransportSettings[] transportSettings)
+        public async Task SingleSenderSingleReceiverTest(IotHubClientOptions clientOptions)
         {
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_SingleSender"], out int messagesCount);
             TestModule sender = null;
@@ -27,12 +27,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
 
             try
             {
-                sender = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", false, transportSettings);
-                receiver = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", true, transportSettings);
+                sender = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", false, clientOptions);
+                receiver = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", true, clientOptions);
 
                 Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
 
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
 
                 if (sender != null)
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [TestPriority(Constants.TestPriority.StressTest.MultipleSendersSingleReceiverTest)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task MultipleSendersSingleReceiverTest(ITransportSettings[] transportSettings)
+        public async Task MultipleSendersSingleReceiverTest(IotHubClientOptions clientOptions)
         {
             int.TryParse(ConfigHelper.TestConfig["StressTest_MessagesCount_MultipleSenders"], out int messagesCount);
             TestModule sender1 = null;
@@ -78,13 +78,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
 
             try
             {
-                sender1 = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "senderA", false, transportSettings);
-                sender2 = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "senderB", false, transportSettings);
-                receiver = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiverA", true, transportSettings);
+                sender1 = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "senderA", false, clientOptions);
+                sender2 = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "senderB", false, clientOptions);
+                receiver = await this.GetModule(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiverA", true, clientOptions);
 
                 Task<int> task1 = sender1.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(8));
                 Task<int> task2 = sender2.SendMessagesByCountAsync("output1", messagesCount, messagesCount, TimeSpan.FromMinutes(8));
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
 
                 if (sender1 != null)
@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [TestPriority(Constants.TestPriority.StressTest.MultipleSendersMultipleReceivers_Count_Test)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task MultipleSendersMultipleReceivers_Count_Test(ITransportSettings[] transportSettings)
+        public async Task MultipleSendersMultipleReceivers_Count_Test(IotHubClientOptions clientOptions)
         {
             // The modules limit is because ProtocolGatewayFixture currently uses a fixed EdgeDevice
             // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice
@@ -139,12 +139,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
 
             try
             {
-                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", ModulesCount, false, transportSettings);
-                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", ModulesCount, true, transportSettings);
+                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", ModulesCount, false, clientOptions);
+                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", ModulesCount, true, clientOptions);
 
                 TimeSpan timeout = TimeSpan.FromMinutes(2);
                 IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesByCountAsync("output1", 0, messagesCount, timeout));
@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
 
                 if (senders != null)
@@ -175,8 +175,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await Task.WhenAll(receivers.Select(r => r.Disconnect()));
                 }
-
-                await (rm?.CloseAsync() ?? Task.CompletedTask);
             }
 
             // wait for the connection to be closed on the Edge side
@@ -186,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [TestPriority(Constants.TestPriority.StressTest.MultipleSendersMultipleReceivers_Duration_Test)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task MultipleSendersMultipleReceivers_Duration_Test(ITransportSettings[] transportSettings)
+        public async Task MultipleSendersMultipleReceivers_Duration_Test(IotHubClientOptions clientOptions)
         {
             // The modules limit is because ProtocolGatewayFixture currently uses a fixed EdgeDevice
             // Need to figure out a way to create ProtocolGatewayFixture with configurable EdgeDevice
@@ -196,12 +194,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
 
             try
             {
-                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", ModulesCount, false, transportSettings);
-                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", ModulesCount, true, transportSettings);
+                senders = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender", ModulesCount, false, clientOptions);
+                receivers = await this.GetModules(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver", ModulesCount, true, clientOptions);
 
                 TimeSpan sendDuration = TimeSpan.FromMinutes(2);
                 IEnumerable<Task<int>> tasks = senders.Select(s => s.SendMessagesForDurationAsync("output1", sendDuration));
@@ -219,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
 
                 if (senders != null)
@@ -231,31 +229,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await Task.WhenAll(receivers.Select(r => r.Disconnect()));
                 }
-
-                await (rm?.CloseAsync() ?? Task.CompletedTask);
             }
 
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        async Task<List<TestModule>> GetModules(RegistryManager rm, string hostName, string deviceId, string moduleNamePrefix, int count, bool isReceiver, ITransportSettings[] transportSettings)
+        async Task<List<TestModule>> GetModules(IotHubServiceClient rm, string hostName, string deviceId, string moduleNamePrefix, int count, bool isReceiver, IotHubClientOptions clientOptions)
         {
             var modules = new List<TestModule>();
             for (int i = 1; i <= count; i++)
             {
                 string moduleId = moduleNamePrefix + i.ToString();
-                TestModule module = await this.GetModule(rm, hostName, deviceId, moduleId, isReceiver, transportSettings);
+                TestModule module = await this.GetModule(rm, hostName, deviceId, moduleId, isReceiver, clientOptions);
                 modules.Add(module);
             }
 
             return modules;
         }
 
-        async Task<TestModule> GetModule(RegistryManager rm, string hostName, string deviceId, string moduleId, bool isReceiver, ITransportSettings[] transportSettings)
+        async Task<TestModule> GetModule(IotHubServiceClient rm, string hostName, string deviceId, string moduleId, bool isReceiver, IotHubClientOptions clientOptions)
         {
             string connStr = await RegistryManagerHelper.GetOrCreateModule(rm, hostName, deviceId, moduleId);
-            TestModule module = await TestModule.CreateAndConnect(connStr, transportSettings);
+            TestModule module = await TestModule.CreateAndConnect(connStr, clientOptions);
             if (isReceiver)
             {
                 await module.SetupReceiveMessageHandler();

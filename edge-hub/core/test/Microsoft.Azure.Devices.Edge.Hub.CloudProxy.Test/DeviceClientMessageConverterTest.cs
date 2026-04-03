@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [MemberData(nameof(GetInvalidMessages))]
         public void TestErrorCases(IMessage inputMessage, Type exceptionType)
         {
-            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
+            IMessageConverter<TelemetryMessage> messageConverter = new DeviceClientMessageConverter();
             Assert.Throws(exceptionType, () => messageConverter.FromMessage(inputMessage));
         }
 
@@ -69,11 +69,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IDictionary<string, string> properties,
             IDictionary<string, string> systemProperties)
         {
-            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
+            IMessageConverter<TelemetryMessage> messageConverter = new DeviceClientMessageConverter();
             IMessage inputMessage = new EdgeMessage(messageBytes, properties, systemProperties);
-            Message proxyMessage = messageConverter.FromMessage(inputMessage);
+            TelemetryMessage proxyMessage = messageConverter.FromMessage(inputMessage);
 
-            Assert.Equal(inputMessage.Body, proxyMessage.GetBytes());
+            Assert.Equal(inputMessage.Body, proxyMessage.Payload);
             foreach (KeyValuePair<string, string> property in properties)
             {
                 Assert.True(proxyMessage.Properties.ContainsKey(property.Key));
@@ -91,11 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(
                 systemProperties.ContainsKey(SystemProperties.MsgCorrelationId) ? systemProperties[SystemProperties.MsgCorrelationId] : null,
                 proxyMessage.CorrelationId);
-
-            Assert.Equal(DateTime.MinValue, proxyMessage.ExpiryTimeUtc);
-            Assert.Equal(DateTime.MinValue, proxyMessage.EnqueuedTimeUtc);
-            Assert.True(proxyMessage.SequenceNumber == 0);
-            Assert.Null(proxyMessage.To);
         }
 
         [Theory]
@@ -106,8 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IDictionary<string, string> properties,
             IDictionary<string, string> systemProperties)
         {
-            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
-            var inputMessage = new Message(messageBytes);
+            IMessageConverter<IncomingMessage> messageConverter = new DeviceClientMessageConverter();
+            var inputMessage = new IncomingMessage(messageBytes);
             IMessage mqttMessage = messageConverter.ToMessage(inputMessage);
 
             Assert.Equal(messageBytes, mqttMessage.Body);
@@ -144,18 +139,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     m.Properties == properties &&
                     m.SystemProperties == systemProperties);
 
-            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
-            Message clientMessage = messageConverter.FromMessage(message);
+            IMessageConverter<TelemetryMessage> messageConverter = new DeviceClientMessageConverter();
+            TelemetryMessage clientMessage = messageConverter.FromMessage(message);
 
             Assert.NotNull(clientMessage);
-            Assert.Equal(clientMessage.GetBytes(), message.Body);
+            Assert.Equal(clientMessage.Payload, message.Body);
             Assert.Equal("Bar", clientMessage.Properties["Foo"]);
             Assert.Equal("Value2", clientMessage.Properties["Prop2"]);
 
             Assert.Equal("utf-8", clientMessage.ContentEncoding);
             Assert.Equal("application/json", clientMessage.ContentType);
             Assert.Equal("schema1", clientMessage.MessageSchema);
-            Assert.Equal("foo", clientMessage.To);
             Assert.Equal("1234", clientMessage.CorrelationId);
             Assert.Equal("m1", clientMessage.MessageId);
             Assert.Equal(creationTime, clientMessage.CreationTimeUtc.ToString("o"));
@@ -170,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var creationTime = new DateTime(2018, 01, 01, 0, 0, 0, DateTimeKind.Utc);
 
             var body = new byte[] { 1, 2, 3 };
-            var clientMessage = new Message(body);
+            var clientMessage = new IncomingMessage(body);
             clientMessage.Properties["Foo"] = "Bar";
             clientMessage.Properties["Prop2"] = "Value2";
 
@@ -184,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             clientMessage.CreationTimeUtc = creationTime;
             clientMessage.ComponentName = "Test Component";
 
-            IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
+            IMessageConverter<IncomingMessage> messageConverter = new DeviceClientMessageConverter();
             IMessage message = messageConverter.ToMessage(clientMessage);
 
             Assert.NotNull(message);

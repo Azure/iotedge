@@ -4,11 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
     using System;
     using System.Text;
     using JetBrains.Annotations;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json.Linq;
 
-    public class ReportedPropertiesValidator : IValidator<TwinCollection>
+    public class ReportedPropertiesValidator : IValidator<PropertyCollection>
     {
         const int TwinPropertyMaxDepth = 10; // taken from IoTHub
         const int TwinPropertyValueMaxLength = 4096; // bytes. taken from IoTHub
@@ -17,11 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         const long TwinPropertyMinSafeValue = -4503599627370496; // -2^52. taken from IoTHub
         const int TwinPropertyDocMaxLength = 32 * 1024; // 32KB. taken from IoTHub
 
-        public void Validate(TwinCollection reportedProperties)
+        public void Validate(PropertyCollection reportedProperties)
         {
             Preconditions.CheckNotNull(reportedProperties, nameof(reportedProperties));
 
-            JToken reportedPropertiesJToken = JToken.Parse(reportedProperties.ToJson());
+            JToken reportedPropertiesJToken = JToken.Parse(reportedProperties.GetSerializedString());
             ValidateTwinCollectionSize(reportedProperties);
             // root level has no property name.
             ValidateToken(string.Empty, reportedPropertiesJToken, 0, false);
@@ -154,9 +154,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             }
         }
 
-        static void ValidateTwinCollectionSize(TwinCollection collection)
+        static void ValidateTwinCollectionSize(PropertyCollection collection)
         {
-            long size = Encoding.UTF8.GetByteCount(collection.ToJson());
+            long size = Encoding.UTF8.GetByteCount(collection.GetSerializedString());
             if (size > TwinPropertyDocMaxLength)
             {
                 throw new InvalidOperationException($"Twin properties size {size} exceeds maximum {TwinPropertyDocMaxLength}");

@@ -8,17 +8,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class DeviceClientMessageConverter : IMessageConverter<Message>
+    /// <summary>
+    /// Converts between internal IMessage and SDK v2 TelemetryMessage (outgoing) / IncomingMessage (incoming).
+    /// Implements IMessageConverter for both TelemetryMessage and IncomingMessage.
+    /// </summary>
+    public class DeviceClientMessageConverter : IMessageConverter<TelemetryMessage>, IMessageConverter<IncomingMessage>
     {
         // Same Value as IotHub
         static readonly TimeSpan ClockSkewAdjustment = TimeSpan.FromSeconds(30);
 
-        public Message FromMessage(IMessage inputMessage)
+        public TelemetryMessage FromMessage(IMessage inputMessage)
         {
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             Preconditions.CheckArgument(inputMessage.Body != null, "IMessage.Body should not be null");
 
-            var message = new Message(inputMessage.Body);
+            var message = new TelemetryMessage(inputMessage.Body);
 
             if (inputMessage.Properties != null)
             {
@@ -55,11 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     message.ContentEncoding = contentEncoding;
                 }
 
-                if (inputMessage.SystemProperties.TryGetNonEmptyValue(SystemProperties.To, out string to))
-                {
-                    message.To = to;
-                }
-
                 if (inputMessage.SystemProperties.TryGetNonEmptyValue(SystemProperties.CreationTime, out string creationTime))
                 {
                     message.CreationTimeUtc = DateTime.ParseExact(creationTime, "o", CultureInfo.InvariantCulture);
@@ -85,9 +84,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return message;
         }
 
-        public IMessage ToMessage(Message sourceMessage)
+        IMessage IMessageConverter<TelemetryMessage>.ToMessage(TelemetryMessage sourceMessage)
         {
-            EdgeMessage message = new EdgeMessage.Builder(sourceMessage.GetBytes())
+            // TelemetryMessage is outgoing only; this direction is not typically used.
+            throw new NotSupportedException("Converting TelemetryMessage to IMessage is not supported. Use IncomingMessage converter instead.");
+        }
+
+        public IMessage ToMessage(IncomingMessage sourceMessage)
+        {
+            EdgeMessage message = new EdgeMessage.Builder(sourceMessage.Payload)
                 .SetProperties(sourceMessage.Properties)
                 .Build();
 
@@ -121,6 +126,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
 
             return message;
+        }
+
+        IncomingMessage IMessageConverter<IncomingMessage>.FromMessage(IMessage message)
+        {
+            // IncomingMessage is receive-only; this direction is not typically used.
+            throw new NotSupportedException("Converting IMessage to IncomingMessage is not supported. Use TelemetryMessage converter instead.");
         }
     }
 }

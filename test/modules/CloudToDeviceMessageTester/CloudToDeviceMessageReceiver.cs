@@ -7,8 +7,8 @@ namespace CloudToDeviceMessageTester
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -32,7 +32,7 @@ namespace CloudToDeviceMessageTester
         readonly string workloadClientApiVersion = "2019-01-30";
         readonly string moduleGenerationId;
         readonly string iotHubHostName;
-        DeviceClient deviceClient;
+        IotHubDeviceClient deviceClient;
 
         internal CloudToDeviceMessageReceiver(
             ILogger logger,
@@ -54,9 +54,12 @@ namespace CloudToDeviceMessageTester
             this.testResultReportingClient = Preconditions.CheckNotNull(testResultReportingClient, nameof(testResultReportingClient));
         }
 
-        public void Dispose() => this.deviceClient?.Dispose();
+        public async ValueTask DisposeAsync()
+        {
+            if (this.deviceClient != null) await this.deviceClient.DisposeAsync();
+        }
 
-        internal async Task ReportTestResult(Message message)
+        internal async Task ReportTestResult(IncomingMessage message)
         {
             string trackingId = message.Properties[TestConstants.Message.TrackingIdPropertyName];
             string batchId = message.Properties[TestConstants.Message.BatchIdPropertyName];
@@ -74,19 +77,21 @@ namespace CloudToDeviceMessageTester
         {
             // TODO: You cannot install certificate on Windows by script - we need to implement certificate verification callback handler.
             IEnumerable<X509Certificate2> certs = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(this.workloadUri), this.apiVersion, this.workloadClientApiVersion, this.moduleId, this.moduleGenerationId);
-            ITransportSettings transportSettings = ((Protocol)Enum.Parse(typeof(Protocol), this.transportType.ToString())).ToTransportSettings();
-            OsPlatform.Current.InstallCaCertificates(certs, transportSettings);
-            Microsoft.Azure.Devices.RegistryManager registryManager = null;
+            // TODO: Update for v2 SDK - ITransportSettings not available in v2
+            // ITransportSettings transportSettings = ((Protocol)Enum.Parse(typeof(Protocol), this.transportType.ToString())).ToTransportSettings();
+            // OsPlatform.Current.InstallCaCertificates(certs, transportSettings);
+            IotHubServiceClient serviceClient = null;
 
             try
             {
-                registryManager = Microsoft.Azure.Devices.RegistryManager.CreateFromConnectionString(this.iotHubConnectionString);
-                var edgeDevice = await registryManager.GetDeviceAsync(this.edgeDeviceId);
-                var leafDevice = new Microsoft.Azure.Devices.Device(this.deviceId);
+                serviceClient = new IotHubServiceClient(this.iotHubConnectionString);
+                var edgeDevice = await serviceClient.Devices.GetAsync(this.edgeDeviceId);
+                var leafDevice = new Device(this.deviceId);
                 leafDevice.Scope = edgeDevice.Scope;
-                Microsoft.Azure.Devices.Device device = await registryManager.AddDeviceAsync(leafDevice, ct);
+                Device device = await serviceClient.Devices.CreateAsync(leafDevice, ct);
                 string deviceConnectionString = $"HostName={this.iotHubHostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
-                this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings });
+                var clientOptions = new IotHubClientOptions(new IotHubClientAmqpSettings());
+                this.deviceClient = new IotHubDeviceClient(deviceConnectionString, clientOptions);
 
                 var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
                 var retryPolicy = new RetryPolicy(new FailingConnectionErrorDetectionStrategy(), retryStrategy);
@@ -104,46 +109,46 @@ namespace CloudToDeviceMessageTester
                     }
                 }, ct);
 
-                while (!ct.IsCancellationRequested)
+                // TODO: Update for v2 SDK - polling ReceiveMessageAsync replaced with callback pattern
+                this.logger.LogInformation("Ready to receive messages via callback");
+                await this.deviceClient.SetIncomingMessageCallbackAsync(async (IncomingMessage message) =>
                 {
-                    this.logger.LogInformation("Ready to receive message");
                     try
                     {
-                        Message message = await this.deviceClient.ReceiveAsync();
-
                         if (message == null)
                         {
                             this.logger.LogWarning("Received message is null");
-                            continue;
+                            return MessageAcknowledgement.Complete;
                         }
 
                         if (!message.Properties.ContainsKey(TestConstants.Message.SequenceNumberPropertyName) ||
                             !message.Properties.ContainsKey(TestConstants.Message.BatchIdPropertyName) ||
                             !message.Properties.ContainsKey(TestConstants.Message.TrackingIdPropertyName))
                         {
-                            string messageBody = new StreamReader(message.BodyStream).ReadToEnd();
                             string propertyKeys = string.Join(",", message.Properties.Keys);
-                            this.logger.LogWarning($"Received message doesn't contain required key. property keys: {propertyKeys}, message body: {messageBody}, lock token: {message.LockToken}.");
-                            continue;
+                            this.logger.LogWarning($"Received message doesn't contain required key. property keys: {propertyKeys}.");
+                            return MessageAcknowledgement.Complete;
                         }
 
                         this.logger.LogInformation($"Message received. " +
                             $"Sequence Number: {message.Properties[TestConstants.Message.SequenceNumberPropertyName]}, " +
                             $"batchId: {message.Properties[TestConstants.Message.BatchIdPropertyName]}, " +
-                            $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}, " +
-                            $"LockToken: {message.LockToken}.");
+                            $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}.");
                         await this.ReportTestResult(message);
-                        await this.deviceClient.CompleteAsync(message);
                     }
                     catch (Exception ex)
                     {
                         this.logger.LogError(ex, "Error occurred while receiving message.");
                     }
-                }
+
+                    return MessageAcknowledgement.Complete;
+                });
+
+                await Task.Delay(Timeout.Infinite, ct);
             }
             finally
             {
-                registryManager?.Dispose();
+                if (serviceClient != null) serviceClient.Dispose();
             }
         }
     }

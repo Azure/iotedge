@@ -19,13 +19,13 @@ namespace EdgeHubRestartTester
         readonly ILogger logger;
         readonly string messageOutputEndpoint;
         long messageCount = 0;
-        ModuleClient msgModuleClient = null;
+        IotHubModuleClient msgModuleClient = null;
         TestResultReportingClient reportClient = null;
 
         public MessageEdgeHubConnectorTest(
             Guid batchId,
             ILogger logger,
-            ModuleClient msgModuleClient,
+            IotHubModuleClient msgModuleClient,
             string messageOutputEndpoint)
         {
             this.batchId = batchId;
@@ -86,7 +86,7 @@ namespace EdgeHubRestartTester
 
             while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
             {
-                Message message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { data = DateTime.UtcNow.ToString() })));
+                var message = new TelemetryMessage(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { data = DateTime.UtcNow.ToString() })));
                 message.Properties.Add("sequenceNumber", this.messageCount.ToString());
                 message.Properties.Add("batchId", batchId.ToString());
                 message.Properties.Add("trackingId", trackingId);
@@ -94,7 +94,7 @@ namespace EdgeHubRestartTester
                 try
                 {
                     // Sending the result via edgeHub
-                    await this.msgModuleClient.SendEventAsync(msgOutputEndpoint, message);
+                    await this.msgModuleClient.SendMessageToRouteAsync(msgOutputEndpoint, message);
                     this.logger.LogInformation($"[SendMessageAsync] Send Message with count {this.messageCount}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }

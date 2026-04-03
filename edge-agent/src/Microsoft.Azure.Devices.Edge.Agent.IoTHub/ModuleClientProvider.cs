@@ -9,19 +9,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
-    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
-    using TransportType = Client.TransportType;
 
     public class ModuleClientProvider : IModuleClientProvider
     {
-        const uint ModuleClientTimeoutMilliseconds = 30000; // ms
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
 
         static readonly RetryStrategy TransientRetryStrategy =
@@ -87,31 +83,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.useServerHeartbeat = useServerHeartbeat;
         }
 
-        public async Task<IModuleClient> Create(ConnectionStatusChangesHandler statusChangedHandler)
+        public async Task<IModuleClient> Create(Action<ConnectionStatusInfo> statusChangedHandler)
         {
             (ISdkModuleClient sdkModuleClient, UpstreamProtocol protocol) = await this.CreateSdkModuleClientWithRetry(statusChangedHandler);
             IModuleClient moduleClient = new ModuleClient(sdkModuleClient, this.idleTimeout, this.closeOnIdleTimeout, protocol);
             return moduleClient;
         }
 
-        static ITransportSettings GetTransportSettings(UpstreamProtocol protocol, Option<IWebProxy> proxy, bool useServerHeartbeat)
+        static IotHubClientOptions GetClientOptions(UpstreamProtocol protocol, Option<IWebProxy> proxy, bool useServerHeartbeat)
         {
+            IotHubClientTransportSettings transportSettings;
+
             switch (protocol)
             {
                 case UpstreamProtocol.Amqp:
                     {
-                        var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                        var settings = new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp);
                         if (useServerHeartbeat)
                         {
                             settings.IdleTimeout = HeartbeatTimeout;
                         }
 
-                        return settings;
+                        transportSettings = settings;
+                        break;
                     }
 
                 case UpstreamProtocol.AmqpWs:
                     {
-                        var settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                        var settings = new IotHubClientAmqpSettings(IotHubClientTransportProtocol.WebSocket);
                         if (useServerHeartbeat)
                         {
                             settings.IdleTimeout = HeartbeatTimeout;
@@ -119,22 +118,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
                         // Only WebSocket protocols can use an HTTP forward proxy
                         proxy.ForEach(p => settings.Proxy = p);
-                        return settings;
+                        transportSettings = settings;
+                        break;
                     }
 
                 case UpstreamProtocol.Mqtt:
                     {
-                        var settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-                        return settings;
+                        var settings = new IotHubClientMqttSettings(IotHubClientTransportProtocol.Tcp);
+                        transportSettings = settings;
+                        break;
                     }
 
                 case UpstreamProtocol.MqttWs:
                     {
-                        var settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+                        var settings = new IotHubClientMqttSettings(IotHubClientTransportProtocol.WebSocket);
 
                         // Only WebSocket protocols can use an HTTP forward proxy
                         proxy.ForEach(p => settings.Proxy = p);
-                        return settings;
+                        transportSettings = settings;
+                        break;
                     }
 
                 default:
@@ -142,6 +144,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         throw new InvalidEnumArgumentException();
                     }
             }
+
+            return new IotHubClientOptions(transportSettings);
         }
 
         static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry)
@@ -151,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return transientRetryPolicy.ExecuteAsync(func);
         }
 
-        async Task<(ISdkModuleClient sdkModuleClient, UpstreamProtocol upstreamProtocol)> CreateSdkModuleClientWithRetry(ConnectionStatusChangesHandler statusChangedHandler)
+        async Task<(ISdkModuleClient sdkModuleClient, UpstreamProtocol upstreamProtocol)> CreateSdkModuleClientWithRetry(Action<ConnectionStatusInfo> statusChangedHandler)
         {
             try
             {
@@ -169,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        Task<(ISdkModuleClient sdkModuleClient, UpstreamProtocol upstreamProtocol)> CreateSdkModuleClient(ConnectionStatusChangesHandler statusChangedHandler)
+        Task<(ISdkModuleClient sdkModuleClient, UpstreamProtocol upstreamProtocol)> CreateSdkModuleClient(Action<ConnectionStatusInfo> statusChangedHandler)
             => this.upstreamProtocol
                 .Map(async u =>
                 {
@@ -205,15 +209,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         return result.Value;
                     });
 
-        async Task<ISdkModuleClient> CreateAndOpenSdkModuleClient(UpstreamProtocol upstreamProtocol, ConnectionStatusChangesHandler statusChangedHandler)
+        async Task<ISdkModuleClient> CreateAndOpenSdkModuleClient(UpstreamProtocol upstreamProtocol, Action<ConnectionStatusInfo> statusChangedHandler)
         {
-            ITransportSettings settings = GetTransportSettings(upstreamProtocol, this.proxy, this.useServerHeartbeat);
-            Events.AttemptingConnectionWithTransport(settings.GetTransportType());
-
-            ISdkModuleClient moduleClient = await this.connectionString
-                .Map(cs => Task.FromResult(this.sdkModuleClientProvider.GetSdkModuleClient(cs, settings)))
-                .GetOrElse(this.sdkModuleClientProvider.GetSdkModuleClient(settings));
-
             string productInfo = await this.runtimeInfoProviderTask
                 .Map(async providerTask =>
                 {
@@ -222,15 +219,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     return $"{this.baseProductInfo} ({systemInfo.ToQueryString()})";
                 })
                 .GetOrElse(Task.FromResult(this.baseProductInfo));
-            moduleClient.SetProductInfo(productInfo);
 
-            // note: it's important to set the status-changed handler and
-            // timeout value *before* we open a connection to the hub
-            moduleClient.SetOperationTimeoutInMilliseconds(ModuleClientTimeoutMilliseconds);
+            IotHubClientOptions options = GetClientOptions(upstreamProtocol, this.proxy, this.useServerHeartbeat);
+            options.AdditionalUserAgentInfo = productInfo;
+            Events.AttemptingConnectionWithTransport(upstreamProtocol);
+
+            ISdkModuleClient moduleClient = await this.connectionString
+                .Map(cs => Task.FromResult(this.sdkModuleClientProvider.GetSdkModuleClient(cs, options)))
+                .GetOrElse(this.sdkModuleClientProvider.GetSdkModuleClient(options));
+
+            // note: it's important to set the status-changed handler
+            // *before* we open a connection to the hub
             moduleClient.SetConnectionStatusChangesHandler(statusChangedHandler);
             await moduleClient.OpenAsync();
 
-            Events.ConnectedWithTransport(settings.GetTransportType());
+            Events.ConnectedWithTransport(upstreamProtocol);
             return moduleClient;
         }
 
@@ -239,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             static readonly ISet<Type> NonTransientExceptions = new HashSet<Type>
             {
                 typeof(ArgumentException),
-                typeof(UnauthorizedException)
+                typeof(IotHubClientException)
             };
 
             public bool IsTransient(Exception ex) => !NonTransientExceptions.Contains(ex.GetType());
@@ -260,14 +263,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 DeviceClientSetupFailed
             }
 
-            public static void AttemptingConnectionWithTransport(TransportType transport)
+            public static void AttemptingConnectionWithTransport(UpstreamProtocol protocol)
             {
-                Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {transport.ToString()}...");
+                Log.LogInformation((int)EventIds.AttemptingConnect, $"Edge agent attempting to connect to IoT Hub via {protocol.ToString()}...");
             }
 
-            public static void ConnectedWithTransport(TransportType transport)
+            public static void ConnectedWithTransport(UpstreamProtocol protocol)
             {
-                Log.LogInformation((int)EventIds.Connected, $"Edge agent connected to IoT Hub via {transport.ToString()}.");
+                Log.LogInformation((int)EventIds.Connected, $"Edge agent connected to IoT Hub via {protocol.ToString()}.");
             }
 
             public static void DeviceClientCreated()

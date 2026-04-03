@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-    using Microsoft.Azure.Devices.Shared;
+    using Microsoft.Azure.Devices.Client;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
@@ -463,7 +463,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessageStore messageStore = new MessageStore(storeProvider, CheckpointStore.Create(storeProvider), TimeSpan.MaxValue, false, 1800);
             IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(1, TimeSpan.FromMilliseconds(10)), messageStore);
             Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, routerConfig, endpointExecutorFactory);
-            ITwinManager twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
+            ITwinManager twinManager = new TwinManager(connectionManager, new PropertyCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
             var invokeMethodHandler = Mock.Of<IInvokeMethodHandler>();
             var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
             IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, Constants.EdgeHubModuleId, invokeMethodHandler, subscriptionProcessor, Mock.Of<IDeviceScopeIdentitiesCache>());
@@ -499,7 +499,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
         static IMessage GetReportedPropertiesMessage()
         {
-            var twinCollection = new TwinCollection();
+            var twinCollection = new PropertyCollection();
             twinCollection["Status"] = "running";
             twinCollection["ElapsedTime"] = "0.5";
             byte[] messageBody = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(twinCollection));

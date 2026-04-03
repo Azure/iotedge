@@ -7,12 +7,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
 {
-    public class BasicModuleClientWrapper : IDisposable, IModuleClientWrapper
+    public class BasicModuleClientWrapper : IAsyncDisposable, IModuleClientWrapper
     {
-        ModuleClient inner;
+        IotHubModuleClient inner;
         SemaphoreSlim moduleClientLock;
 
-        public BasicModuleClientWrapper(ModuleClient moduleClient, SemaphoreSlim moduleClientLock)
+        public BasicModuleClientWrapper(IotHubModuleClient moduleClient, SemaphoreSlim moduleClientLock)
         {
             this.inner = moduleClient;
             this.moduleClientLock = Preconditions.CheckNotNull(moduleClientLock);
@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
         public static async Task<BasicModuleClientWrapper> BuildModuleClientWrapperAsync()
         {
             SemaphoreSlim moduleClientLock = new SemaphoreSlim(1, 1);
-            ModuleClient moduleClient = await InitializeModuleClientAsync();
+            IotHubModuleClient moduleClient = await InitializeModuleClientAsync();
             return new BasicModuleClientWrapper(moduleClient, moduleClientLock);
         }
 
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
 
             try
             {
-                this.inner.Dispose();
+                await this.inner.DisposeAsync();
                 this.inner = await InitializeModuleClientAsync();
                 LoggerUtil.Writer.LogInformation("Closed and re-established connection to IoT Hub");
             }
@@ -45,13 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
             this.moduleClientLock.Release();
         }
 
-        public async Task SendMessageAsync(string outputName, Message message)
+        public async Task SendMessageAsync(string outputName, TelemetryMessage message)
         {
             await this.moduleClientLock.WaitAsync();
 
             try
             {
-                await this.inner.SendEventAsync(outputName, message);
+                await this.inner.SendMessageToRouteAsync(outputName, message);
                 LoggerUtil.Writer.LogInformation("Successfully sent metrics via IoT message");
             }
             catch (Exception)
@@ -63,25 +63,25 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.ModuleClientWrapper
             this.moduleClientLock.Release();
         }
 
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            this.inner.Dispose();
+            await this.inner.DisposeAsync();
             this.moduleClientLock.Dispose();
         }
 
-        static async Task<ModuleClient> InitializeModuleClientAsync()
+        static async Task<IotHubModuleClient> InitializeModuleClientAsync()
         {
-            TransportType transportType = TransportType.Amqp_Tcp_Only;
-            LoggerUtil.Writer.LogInformation($"Trying to initialize module client using transport type [{transportType}]");
+            LoggerUtil.Writer.LogInformation("Trying to initialize module client using transport type [Amqp_Tcp_Only]");
 
-            ITransportSettings[] settings = new ITransportSettings[] { new AmqpTransportSettings(transportType) };
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
-            moduleClient.ProductInfo = Constants.ProductInfo;
+            var options = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp))
+            {
+                AdditionalUserAgentInfo = Constants.ProductInfo
+            };
+            IotHubModuleClient moduleClient = await IotHubModuleClient.CreateFromEnvironmentAsync(options);
 
             await moduleClient.OpenAsync();
-            LoggerUtil.Writer.LogInformation($"Successfully initialized module client using transport type [{transportType}]");
+            LoggerUtil.Writer.LogInformation("Successfully initialized module client using transport type [Amqp_Tcp_Only]");
             return moduleClient;
         }
     }
 }
-

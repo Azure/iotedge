@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                     metricsData = Compression.CompressToGzip(metricsData);
                 }
 
-                Message metricsMessage = new Message(metricsData);
+                TelemetryMessage metricsMessage = new TelemetryMessage(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
 
                 await this.ModuleClientWrapper.SendMessageAsync("metricOutput", metricsMessage);

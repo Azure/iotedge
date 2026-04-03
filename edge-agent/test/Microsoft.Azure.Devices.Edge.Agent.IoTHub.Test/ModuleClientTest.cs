@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task CloseOnInactivityGetsResetTest()
         {
             // Arrange
-            MethodCallback testMethodCallback = (request, context) => Task.FromResult(new MethodResponse(200));
+            Func<DirectMethodRequest, Task<DirectMethodResponse>> testMethodCallback = (request) => Task.FromResult(new DirectMethodResponse(200));
 
             var sdkModuleClient = new Mock<ISdkModuleClient>(MockBehavior.Strict);
             sdkModuleClient.Setup(s => s.CloseAsync())
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task HandleExceptionsTest(Type exception)
         {
             // Arrange
-            MethodCallback testMethodCallback = (request, context) => Task.FromResult(new MethodResponse(200));
+            Func<DirectMethodRequest, Task<DirectMethodResponse>> testMethodCallback = (request) => Task.FromResult(new DirectMethodResponse(200));
 
             var sdkModuleClient = new Mock<ISdkModuleClient>(MockBehavior.Strict);
             sdkModuleClient.Setup(s => s.CloseAsync())

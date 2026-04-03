@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
 {
     using System;
-    using System.IO;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -26,33 +25,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub.Config
 
             var bindingProvider = new EdgeHubTriggerBindingProvider();
             var rule = context.AddBindingRule<EdgeHubTriggerAttribute>();
-            rule.AddConverter<Message, string>(ConvertMessageToString);
-            rule.AddConverter<Message, byte[]>(ConvertMessageToBytes);
-            rule.BindToTrigger<Message>(bindingProvider);
+            rule.AddConverter<IncomingMessage, string>(ConvertIncomingMessageToString);
+            rule.AddConverter<IncomingMessage, byte[]>(ConvertIncomingMessageToBytes);
+            rule.BindToTrigger<IncomingMessage>(bindingProvider);
 
             var rule2 = context.AddBindingRule<EdgeHubAttribute>();
-            rule2.BindToCollector<Message>(typeof(EdgeHubCollectorBuilder));
-            rule2.AddConverter<string, Message>(ConvertStringToMessage);
-            rule2.AddConverter<byte[], Message>(ConvertBytesToMessage);
-            rule2.AddOpenConverter<OpenType.Poco, Message>(this.ConvertPocoToMessage);
+            rule2.BindToCollector<TelemetryMessage>(typeof(EdgeHubCollectorBuilder));
+            rule2.AddConverter<string, TelemetryMessage>(ConvertStringToMessage);
+            rule2.AddConverter<byte[], TelemetryMessage>(ConvertBytesToMessage);
+            rule2.AddOpenConverter<OpenType.Poco, TelemetryMessage>(this.ConvertPocoToMessage);
         }
 
-        static Message ConvertBytesToMessage(byte[] msgBytes) => new Message(msgBytes);
+        static TelemetryMessage ConvertBytesToMessage(byte[] msgBytes) => new TelemetryMessage(msgBytes);
 
-        static Message ConvertStringToMessage(string msg) => ConvertBytesToMessage(Encoding.UTF8.GetBytes(msg));
+        static TelemetryMessage ConvertStringToMessage(string msg) => ConvertBytesToMessage(Encoding.UTF8.GetBytes(msg));
 
-        static byte[] ConvertMessageToBytes(Message msg)
-        {
-            using (MemoryStream ms = new MemoryStream())
-            {
-                msg.BodyStream.CopyTo(ms);
-                byte[] bytes = ms.ToArray();
-                msg.BodyStream.Position = 0;
-                return bytes;
-            }
-        }
+        static byte[] ConvertIncomingMessageToBytes(IncomingMessage msg) => msg.Payload;
 
-        static string ConvertMessageToString(Message msg) => Encoding.UTF8.GetString(ConvertMessageToBytes(msg));
+        static string ConvertIncomingMessageToString(IncomingMessage msg) => Encoding.UTF8.GetString(msg.Payload);
 
         Task<object> ConvertPocoToMessage(object src, Attribute attribute, ValueBindingContext context) => Task.FromResult<object>(ConvertStringToMessage(JsonConvert.SerializeObject(src)));
     }

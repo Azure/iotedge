@@ -11,11 +11,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     {
         MessageHandler handler;
 
-        public delegate Task MessageHandler(Message message, object userContext);
+        public delegate Task MessageHandler(IncomingMessage message);
 
-        public Task TriggerMessage(Message message, object userContext)
+        public Task TriggerMessage(IncomingMessage message)
         {
-            return this.handler?.Invoke(message, userContext) ?? Task.CompletedTask;
+            return this.handler?.Invoke(message) ?? Task.CompletedTask;
         }
 
         public void UnsetEventDefaultHandler()

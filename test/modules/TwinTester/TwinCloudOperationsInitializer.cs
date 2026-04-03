@@ -7,7 +7,6 @@ namespace TwinTester
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -17,22 +16,22 @@ namespace TwinTester
         readonly DesiredPropertyUpdater desiredPropertyUpdater;
         PeriodicTask periodicUpdate;
 
-        TwinCloudOperationsInitializer(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinTestState twinTestState)
+        TwinCloudOperationsInitializer(IotHubServiceClient serviceClient, ITwinTestResultHandler resultHandler, TwinTestState twinTestState)
         {
-            this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinTestState);
+            this.desiredPropertyUpdater = new DesiredPropertyUpdater(serviceClient, resultHandler, twinTestState);
         }
 
-        public static async Task<TwinCloudOperationsInitializer> CreateAsync(RegistryManager registryManager, ITwinTestResultHandler resultHandler)
+        public static async Task<TwinCloudOperationsInitializer> CreateAsync(IotHubServiceClient serviceClient, ITwinTestResultHandler resultHandler)
         {
             try
             {
                 TwinTestState initializedState;
-                Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
+                ClientTwin twin = await serviceClient.Twins.GetAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
 
-                initializedState = new TwinTestState(twin.ETag);
+                initializedState = new TwinTestState(twin.ETag.ToString());
 
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
-                return new TwinCloudOperationsInitializer(registryManager, resultHandler, initializedState);
+                return new TwinCloudOperationsInitializer(serviceClient, resultHandler, initializedState);
             }
             catch (Exception e)
             {

@@ -3,6 +3,7 @@ namespace DirectMethodReceiver
 {
     using System;
     using System.Net;
+    using System.Text;
     using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -13,12 +14,12 @@ namespace DirectMethodReceiver
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json.Linq;
 
-    class DirectMethodReceiver : IDisposable
+    class DirectMethodReceiver : IAsyncDisposable
     {
         Guid batchId;
         IConfiguration configuration;
         ILogger logger;
-        ModuleClient moduleClient;
+        IotHubModuleClient moduleClient;
         Option<TestResultReportingClient> testResultReportingClient;
         Option<string> trackingId;
 
@@ -40,14 +41,17 @@ namespace DirectMethodReceiver
             this.trackingId = testReportCoordinatorUrl.HasValue ? Option.Some<string>(this.configuration.GetValue<string>("trackingId")) : Option.None<string>();
         }
 
-        public void Dispose() => this.moduleClient?.Dispose();
+        public async ValueTask DisposeAsync()
+        {
+            if (this.moduleClient != null) await this.moduleClient.DisposeAsync();
+        }
 
-        async Task<MethodResponse> HelloWorldMethodAsync(MethodRequest methodRequest, object userContext)
+        async Task<DirectMethodResponse> HelloWorldMethodAsync(DirectMethodRequest methodRequest, object userContext)
         {
             try
             {
-                this.logger.LogInformation($"Received direct method call: {methodRequest.DataAsJson}");
-                JToken payload = JToken.Parse(methodRequest.DataAsJson);
+                this.logger.LogInformation($"Received direct method call: {Encoding.UTF8.GetString(methodRequest.Payload)}");
+                JToken payload = JToken.Parse(Encoding.UTF8.GetString(methodRequest.Payload));
                 // Send the report to Test Result Coordinator
                 await this.ReportTestResult(payload["DirectMethodCount"].ToString());
             }
@@ -56,7 +60,7 @@ namespace DirectMethodReceiver
                 this.logger.LogError(ex, $"Exception thrown from {nameof(this.HelloWorldMethodAsync)} method");
             }
 
-            return new MethodResponse((int)HttpStatusCode.OK);
+            return new DirectMethodResponse((int)HttpStatusCode.OK);
         }
 
         public async Task ReportTestResult(string directMethodCount)
@@ -80,13 +84,20 @@ namespace DirectMethodReceiver
         {
             this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 this.configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
-                new ClientOptions(),
+                null,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 this.logger);
 
             await this.moduleClient.OpenAsync();
-            await this.moduleClient.SetMethodHandlerAsync("HelloWorldMethod", this.HelloWorldMethodAsync, null);
+            await this.moduleClient.SetDirectMethodCallbackAsync(async (DirectMethodRequest request) =>
+            {
+                if (request.MethodName == "HelloWorldMethod")
+                {
+                    return await this.HelloWorldMethodAsync(request, null);
+                }
+                return new DirectMethodResponse((int)HttpStatusCode.NotFound);
+            });
         }
     }
 }

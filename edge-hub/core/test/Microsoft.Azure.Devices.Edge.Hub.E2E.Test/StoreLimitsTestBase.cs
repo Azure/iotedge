@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
@@ -37,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             ConfigHelper.TestConfig["Routes"] = null;
         }
 
-        static readonly ITransportSettings[] StoreLimitTestTransportSettings = TestSettings.AmqpTransportSettings;
+        static readonly IotHubClientOptions StoreLimitTestClientOptions = TestSettings.AmqpClientOptions;
 
         /// <summary>
         /// This has been created to override the default routes passed by the test `DependencyManager` to the
@@ -58,12 +57,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            IotHubServiceClient rm = new IotHubServiceClient(edgeDeviceConnectionString);
             Guid guid = Guid.NewGuid();
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(10));
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1forstorelimits", StoreLimitTestTransportSettings, 0);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1forstorelimits", StoreLimitTestClientOptions, 0);
 
                 // Send messages to ensure that the max storage size limit is reached.
                 int sentMessagesCount = 0;
@@ -82,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 if (rm != null)
                 {
-                    await rm.CloseAsync();
+                    rm.Dispose();
                 }
 
                 if (sender != null)

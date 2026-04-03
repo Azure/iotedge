@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using System;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
 
     public static class EdgeHubScopeResultHelpers
     {

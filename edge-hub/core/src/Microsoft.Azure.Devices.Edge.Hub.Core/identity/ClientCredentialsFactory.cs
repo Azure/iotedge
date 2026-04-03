@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
+    using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Security.Cryptography.X509Certificates;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
@@ -45,8 +46,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         public IClientCredentials GetWithConnectionString(string connectionString)
         {
             Preconditions.CheckNonWhiteSpace(connectionString, nameof(connectionString));
-            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(connectionString);
-            IIdentity identity = this.identityProvider.Create(iotHubConnectionStringBuilder.DeviceId, iotHubConnectionStringBuilder.ModuleId);
+            var parts = connectionString.Split(';')
+                .Select(part => part.Split(new[] { '=' }, 2))
+                .Where(part => part.Length == 2)
+                .ToDictionary(part => part[0].Trim(), part => part[1].Trim(), StringComparer.OrdinalIgnoreCase);
+            string deviceId = parts.ContainsKey("DeviceId") ? parts["DeviceId"] : throw new ArgumentException("Connection string missing DeviceId");
+            string moduleId = parts.ContainsKey("ModuleId") ? parts["ModuleId"] : null;
+            IIdentity identity = this.identityProvider.Create(deviceId, moduleId);
             return new SharedKeyCredentials(identity, connectionString, this.callerProductInfo, Option.None<string>(), Option.None<string>());
         }
 

@@ -61,11 +61,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string deviceId,
             NestedEdgeConfig nestedEdgeConfig,
             IotHub iotHub,
-            AuthenticationType authType,
+            ClientAuthenticationType authType,
             X509Thumbprint x509Thumbprint,
             CancellationToken token)
         {
-            if (authType == AuthenticationType.SelfSigned && x509Thumbprint == null)
+            if (authType == ClientAuthenticationType.SelfSigned && x509Thumbprint == null)
             {
                 throw new ArgumentException("A device created with self-signed mechanism must provide an x509 thumbprint.");
             }
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     });
                 }
 
-                if (!device.Capabilities.IotEdge)
+                if (!device.Capabilities.IsIotEdge)
                 {
                     throw new InvalidOperationException($"Device '{device.Id}' exists, but is not an edge device");
                 }
@@ -119,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string deviceId,
             NestedEdgeConfig nestedEdgeConfig,
             IotHub iotHub,
-            AuthenticationType authType,
+            ClientAuthenticationType authType,
             X509Thumbprint x509Thumbprint,
             CancellationToken token)
         {

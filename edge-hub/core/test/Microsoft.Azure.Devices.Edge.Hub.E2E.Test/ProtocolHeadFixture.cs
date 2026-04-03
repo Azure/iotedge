@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         // AmqpTransportSettings, so that Device SDK caches it and uses it thereafter
         static async Task ConnectToIotHub(string connectionString)
         {
-            DeviceClient dc = DeviceClient.CreateFromConnectionString(connectionString, TestSettings.AmqpTransportSettings);
+            IotHubDeviceClient dc = IotHubDeviceClient.CreateFromConnectionString(connectionString, TestSettings.AmqpClientOptions);
             await dc.OpenAsync();
             await dc.CloseAsync();
         }
@@ -82,12 +82,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(edgeDeviceConnectionString);
             string iothub = ConnectionStringHelper.GetHostName(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            var edgeHubModule = await rm.GetModuleAsync(edgeDeviceId, "$edgeHub");
-            if (edgeHubModule.Authentication.Type == AuthenticationType.None)
+            IotHubServiceClient rm = new IotHubServiceClient(iotHubConnectionString);
+            var edgeHubModule = await rm.Modules.GetAsync(edgeDeviceId, "$edgeHub");
+            if (edgeHubModule.Authentication.Type == ClientAuthenticationType.None)
             {
-                edgeHubModule.Authentication.Type = AuthenticationType.Sas;
-                edgeHubModule = await rm.UpdateModuleAsync(edgeHubModule);
+                edgeHubModule.Authentication.Type = ClientAuthenticationType.Sas;
+                edgeHubModule = await rm.Modules.UpdateAsync(edgeHubModule);
             }
 
             ConfigHelper.TestConfig[EdgeHubConstants.ConfigKey.IotHubConnectionString] = $"HostName={iothub};DeviceId={edgeDeviceId};ModuleId=$edgeHub;SharedAccessKey={edgeHubModule.Authentication.SymmetricKey.PrimaryKey}";

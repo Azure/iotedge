@@ -4,7 +4,6 @@ namespace NetworkController
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;

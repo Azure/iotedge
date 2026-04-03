@@ -2,17 +2,17 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using Serilog;
-    using DeviceTransportType = Microsoft.Azure.Devices.TransportType;
     using EventHubTransportType = Microsoft.Azure.EventHubs.TransportType;
     using RetryPolicy = Util.TransientFaultHandling.RetryPolicy;
 
@@ -20,8 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         readonly string eventHubEndpoint;
         readonly string iotHubConnectionString;
-        readonly Lazy<RegistryManager> registryManager;
-        readonly Lazy<ServiceClient> serviceClient;
+        readonly Lazy<IotHubServiceClient> serviceClient;
         readonly Lazy<EventHubClient> eventHubClient;
         static readonly TimeSpan eventHubRequestDuration = TimeSpan.FromSeconds(20);
 
@@ -31,26 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.iotHubConnectionString = iotHubConnectionString;
             Option<IWebProxy> proxy = proxyUri.Map(p => new WebProxy(p) as IWebProxy);
 
-            this.registryManager = new Lazy<RegistryManager>(
-                () =>
-                {
-                    var settings = new HttpTransportSettings();
-                    proxy.ForEach(p => settings.Proxy = p);
-                    return RegistryManager.CreateFromConnectionString(
-                        this.iotHubConnectionString,
-                        settings);
-                });
-
-            this.serviceClient = new Lazy<ServiceClient>(
-                () =>
-                {
-                    var settings = new ServiceClientTransportSettings();
-                    proxy.ForEach(p => settings.HttpProxy = p);
-                    return ServiceClient.CreateFromConnectionString(
-                        this.iotHubConnectionString,
-                        DeviceTransportType.Amqp_WebSocket_Only,
-                        settings);
-                });
+            this.serviceClient = new Lazy<IotHubServiceClient>(
+                () => new IotHubServiceClient(this.iotHubConnectionString));
 
             this.eventHubClient = new Lazy<EventHubClient>(
                 () =>
@@ -66,26 +47,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         public string Hostname =>
-            IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
+            ParseConnectionString(this.iotHubConnectionString)["HostName"];
 
         public string EntityPath =>
             new EventHubsConnectionStringBuilder(this.eventHubEndpoint).EntityPath;
 
-        RegistryManager RegistryManager => this.registryManager.Value;
-
-        ServiceClient ServiceClient => this.serviceClient.Value;
+        IotHubServiceClient ServiceClient => this.serviceClient.Value;
 
         EventHubClient EventHubClient => this.eventHubClient.Value;
 
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>
-            this.RegistryManager.GetDeviceAsync(deviceId, token);
+            this.ServiceClient.Devices.GetAsync(deviceId, token);
 
         public async Task<Device> CreateDeviceIdentityAsync(Device device, CancellationToken token)
         {
-            return await this.RegistryManager.AddDeviceAsync(device, token);
+            return await this.ServiceClient.Devices.CreateAsync(device, token);
         }
 
-        public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
+        public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, ClientAuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
         {
             Device edge = await parentDeviceId.Match(
             async p =>
@@ -100,9 +79,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         Type = authType,
                         X509Thumbprint = x509Thumbprint
                     },
-                    Capabilities = new DeviceCapabilities()
+                    Capabilities = new ClientCapabilities()
                     {
-                        IotEdge = true
+                        IsIotEdge = true
                     }
                 };
                 result.ParentScopes.Add(parentDeviceScope);
@@ -117,9 +96,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         Type = authType,
                         X509Thumbprint = x509Thumbprint
                     },
-                    Capabilities = new DeviceCapabilities()
+                    Capabilities = new ClientCapabilities()
                     {
-                        IotEdge = true
+                        IsIotEdge = true
                     }
                 });
             });
@@ -128,21 +107,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
-            this.RegistryManager.RemoveDeviceAsync(device.Id);
+            this.ServiceClient.Devices.DeleteAsync(device.Id);
 
         public Task DeployDeviceConfigurationAsync(
             string deviceId,
             ConfigurationContent config,
-            CancellationToken token) => this.RegistryManager.ApplyConfigurationContentOnDeviceAsync(deviceId, config, token);
+            CancellationToken token) => this.ServiceClient.Configurations.ApplyConfigurationContentOnDeviceAsync(deviceId, config, token);
 
-        public Task<Twin> GetTwinAsync(
+        public Task<ClientTwin> GetTwinAsync(
             string deviceId,
             Option<string> moduleId,
             CancellationToken token)
         {
             return moduleId.Match(
-                m => this.RegistryManager.GetTwinAsync(deviceId, m, token),
-                () => this.RegistryManager.GetTwinAsync(deviceId, token));
+                m => this.ServiceClient.Twins.GetAsync(deviceId, m, token),
+                () => this.ServiceClient.Twins.GetAsync(deviceId, token));
         }
 
         public async Task UpdateTwinAsync(
@@ -151,41 +130,45 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             object twinPatch,
             CancellationToken token)
         {
-            Twin twin = await this.GetTwinAsync(deviceId, Option.Some(moduleId), token);
-            string patch = JsonConvert.SerializeObject(twinPatch);
-            await this.RegistryManager.UpdateTwinAsync(
+            ClientTwin twin = await this.GetTwinAsync(deviceId, Option.Some(moduleId), token);
+            ClientTwin patch = new ClientTwin();
+            foreach (var prop in JObject.FromObject(twinPatch).Properties())
+            {
+                patch.Properties.Desired[prop.Name] = prop.Value;
+            }
+            await this.ServiceClient.Twins.UpdateAsync(
                 deviceId,
                 moduleId,
                 patch,
-                twin.ETag,
+                true,
                 token);
         }
 
-        public Task<CloudToDeviceMethodResult> InvokeMethodAsync(
+        public Task<DirectMethodClientResponse> InvokeMethodAsync(
             string deviceId,
-            CloudToDeviceMethod method,
+            DirectMethodServiceRequest method,
             CancellationToken token)
         {
             return Retry.Do(
-                () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, method, token),
+                () => this.ServiceClient.DirectMethods.InvokeAsync(deviceId, method, token),
                 result => result.Status == 200,
-                e => !(e is DeviceNotFoundException) || ((DeviceNotFoundException)e).IsTransient,
+                e => !(e is IotHubServiceException),
                 TimeSpan.FromSeconds(5),
                 token);
         }
 
-        public Task<CloudToDeviceMethodResult> InvokeMethodAsync(
+        public Task<DirectMethodClientResponse> InvokeMethodAsync(
             string deviceId,
             string moduleId,
-            CloudToDeviceMethod method,
+            DirectMethodServiceRequest method,
             CancellationToken token)
         {
             return Retry.Do(
-                () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token),
+                () => this.ServiceClient.DirectMethods.InvokeAsync(deviceId, moduleId, method, token),
                 result =>
                 {
                     Log.Verbose($"Method '{method.MethodName}' on '{deviceId}/{moduleId}' returned: " +
-                        $"{result.Status}\n{result.GetPayloadAsJson()}");
+                        $"{result.Status}\n{result.JsonPayload}");
 
                     // No Need to retry when server returns Bad Request.
                     return result.Status == 200 || result.Status == 400;
@@ -250,15 +233,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public async Task UpdateEdgeEnableStatus(string deviceId, bool enabled)
         {
-            var edge = await this.RegistryManager.GetDeviceAsync(deviceId);
+            var edge = await this.ServiceClient.Devices.GetAsync(deviceId);
 
-            if (!edge.Capabilities.IotEdge)
+            if (!edge.Capabilities.IsIotEdge)
             {
                 throw new ArgumentException($"{deviceId} is not an Edge device!");
             }
 
-            edge.Status = enabled ? DeviceStatus.Enabled : DeviceStatus.Disabled;
-            var updated = await this.RegistryManager.UpdateDeviceAsync(edge);
+            edge.Status = enabled ? ClientStatus.Enabled : ClientStatus.Disabled;
+            var updated = await this.ServiceClient.Devices.SetAsync(edge);
             Log.Verbose($"Updated enabled status for {deviceId}, enabled: {enabled}");
             Log.Verbose($"{updated.Id}, enabled: {updated.Status}");
         }
@@ -267,5 +250,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             public bool IsTransient(Exception ex) => ex is TaskCanceledException || ex is TimeoutException;
         }
+
+        static Dictionary<string, string> ParseConnectionString(string connectionString) =>
+            connectionString.Split(';')
+                .Select(part => part.Split(new[] { '=' }, 2))
+                .Where(parts => parts.Length == 2)
+                .ToDictionary(parts => parts[0].Trim(), parts => parts[1].Trim());
     }
 }

@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using static System.FormattableString;
@@ -25,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly IIdentity edgeHubIdentity;
         readonly ITwinManager twinManager;
-        readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
+        readonly IMessageConverter<PropertyCollection> twinCollectionMessageConverter;
         readonly VersionInfo versionInfo;
         readonly RouteFactory routeFactory;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
@@ -35,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IIdentity edgeHubIdentity,
             ITwinManager twinManager,
             RouteFactory routeFactory,
-            IMessageConverter<TwinCollection> twinCollectionMessageConverter,
+            IMessageConverter<PropertyCollection> twinCollectionMessageConverter,
             VersionInfo versionInfo,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
@@ -53,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ITwinManager twinManager,
             IConnectionManager connectionManager,
             RouteFactory routeFactory,
-            IMessageConverter<TwinCollection> twinCollectionMessageConverter,
+            IMessageConverter<PropertyCollection> twinCollectionMessageConverter,
             VersionInfo versionInfo,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
@@ -193,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     [TwinManager.EncodeTwinKey(client.Id)] = GetDeviceConnectionStatus()
                 };
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, connectedDevices);
-                var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
+                var twinCollection = JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
                 return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, reportedPropertiesMessage);
             }
@@ -209,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             try
             {
                 var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, null);
-                var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
+                var twinCollection = JsonConvert.DeserializeObject<PropertyCollection>(JsonConvert.SerializeObject(edgeHubReportedProperties));
                 IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
                 return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, reportedPropertiesMessage);
             }
