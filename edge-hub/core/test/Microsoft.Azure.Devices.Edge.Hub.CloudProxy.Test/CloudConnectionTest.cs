@@ -24,12 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IClientProvider clientProvider = GetMockDeviceClientProviderWithKey();
             var tokenProvider = Mock.Of<ITokenProvider>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var clientOptions = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
             CloudConnection cloudConnection = await CloudConnection.Create(
                 identity,
                 (_, __) => { },
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 clientProvider,
                 Mock.Of<ICloudListener>(),
@@ -57,18 +57,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceClient.Setup(dc => dc.OpenAsync()).ThrowsAsync(new TimeoutException());
 
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(deviceClient.Object);
 
             var tokenProvider = Mock.Of<ITokenProvider>();
             var identity = Mock.Of<IIdentity>(i => i.Id == "d1");
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var clientOptions = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
             await Assert.ThrowsAsync<TimeoutException>(
                 () => CloudConnection.Create(
                     identity,
                     (_, __) => { },
-                    transportSettings,
+                    clientOptions,
                     messageConverterProvider,
                     deviceClientProvider.Object,
                     Mock.Of<ICloudListener>(),
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static IClientProvider GetMockDeviceClientProviderWithKey()
         {
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(GetMockDeviceClient);
             return deviceClientProvider.Object;
         }

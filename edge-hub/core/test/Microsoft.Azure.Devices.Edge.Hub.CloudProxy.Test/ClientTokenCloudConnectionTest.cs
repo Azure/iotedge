@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     [Unit]
     public class ClientTokenCloudConnectionTest
@@ -27,13 +26,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task GetCloudConnectionForIdentityWithTokenTest()
         {
             IClientProvider clientProvider = GetMockDeviceClientProviderWithToken();
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var clientOptions = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
             ITokenCredentials clientCredentials1 = GetMockClientCredentialsWithToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
                 clientCredentials1,
                 (_, __) => { },
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 clientProvider,
                 Mock.Of<ICloudListener>(),
@@ -60,18 +59,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task UpdateInvalidIdentityWithTokenTest()
         {
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(GetMockDeviceClient())
                 .Throws(new IotHubClientException("Unauthorized"));
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var clientOptions = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
 
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
             ITokenCredentials identity1 = GetMockClientCredentialsWithToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
                 identity1,
                 (_, __) => { },
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 deviceClientProvider.Object,
                 Mock.Of<ICloudListener>(),
@@ -107,17 +106,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             IClient client = GetMockDeviceClient();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(() => client);
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var clientOptions = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
             var messageConverterProvider = new MessageConverterProvider(new Dictionary<Type, IMessageConverter> { [typeof(PropertyCollection)] = Mock.Of<IMessageConverter>() });
 
             ITokenCredentials clientCredentialsWithNonExpiringToken = GetClientCredentialsWithNonExpiringToken();
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
                 clientCredentialsWithNonExpiringToken,
                 (_, __) => { },
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 deviceClientProvider.Object,
                 Mock.Of<ICloudListener>(),
@@ -158,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ITokenProvider tokenProvider = null;
             IClientProvider clientProvider = GetMockDeviceClientProviderWithToken((s, a, t, m) => tokenProvider = a);
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var clientOptions = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
 
             var receivedStatus = CloudConnectionStatus.ConnectionEstablished;
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatus = status;
@@ -168,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
                 clientCredentialsWithExpiringToken1,
                 ConnectionStatusHandler,
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 clientProvider,
                 Mock.Of<ICloudListener>(),
@@ -228,7 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ITokenProvider tokenProvider = null;
             IClientProvider clientProvider = GetMockDeviceClientProviderWithToken((s, a, t, m) => tokenProvider = a);
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var clientOptions = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
 
             var receivedStatuses = new List<CloudConnectionStatus>();
             void ConnectionStatusHandler(string id, CloudConnectionStatus status) => receivedStatuses.Add(status);
@@ -238,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
                 clientCredentialsWithExpiringToken1,
                 ConnectionStatusHandler,
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 clientProvider,
                 Mock.Of<ICloudListener>(),
@@ -324,10 +323,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             }
 
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(() => GetMockedDeviceClient());
 
-            var transportSettings = new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var clientOptions = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp));
 
             void ConnectionStatusHandler(string id, CloudConnectionStatus status)
             {
@@ -342,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
                 clientCredentialsWithExpiringToken1,
                 ConnectionStatusHandler,
-                transportSettings,
+                clientOptions,
                 messageConverterProvider,
                 deviceClientProvider.Object,
                 Mock.Of<ICloudListener>(),
@@ -424,8 +423,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             ITokenProvider tokenProvider = null;
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
-                .Callback<IIdentity, ITokenProvider, ITransportSettings[], Option<string>>((s, a, t, m) => tokenProvider = a)
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
+                .Callback<IIdentity, ITokenProvider, IotHubClientOptions, Option<string>>((s, a, t, m) => tokenProvider = a)
                 .Returns(GetMockedDeviceClient);
 
             var metadataStore = new Mock<IMetadataStore>();
@@ -493,11 +492,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(tokenGetter.Result, clientCredentials3.Token);
         }
 
-        static IClientProvider GetMockDeviceClientProviderWithToken(Action<IIdentity, ITokenProvider, ITransportSettings[], Option<string>> callback = null)
+        static IClientProvider GetMockDeviceClientProviderWithToken(Action<IIdentity, ITokenProvider, IotHubClientOptions, Option<string>> callback = null)
         {
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
-                .Callback<IIdentity, ITokenProvider, ITransportSettings[], Option<string>>((c, p, t, m) => callback?.Invoke(c, p, t, m))
+            deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
+                .Callback<IIdentity, ITokenProvider, IotHubClientOptions, Option<string>>((c, p, t, m) => callback?.Invoke(c, p, t, m))
                 .Returns(() => GetMockDeviceClient());
             return deviceClientProvider.Object;
         }

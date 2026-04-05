@@ -19,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task AddPropertySuccess(ITransportSettings[] transportSettings)
+        public async Task AddPropertySuccess(IotHubClientOptions options)
         {
             await this.RunTestCase(
-                transportSettings,
+                options,
                 async (deviceClient, deviceName, registryManager) =>
                 {
                     var twinPatch = new ClientTwin();
@@ -60,10 +60,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task OverwritePropertySuccess(ITransportSettings[] transportSettings)
+        public async Task OverwritePropertySuccess(IotHubClientOptions options)
         {
             await this.RunTestCase(
-                transportSettings,
+                options,
                 async (deviceClient, deviceName, registryManager) =>
                 {
                     var twinPatch = new ClientTwin();
@@ -97,10 +97,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task UnchangedPropertySuccess(ITransportSettings[] transportSettings)
+        public async Task UnchangedPropertySuccess(IotHubClientOptions options)
         {
             await this.RunTestCase(
-                transportSettings,
+                options,
                 async (deviceClient, deviceName, registryManager) =>
                 {
                     var twinPatch = new ClientTwin();
@@ -152,10 +152,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task RemovePropertySuccess(ITransportSettings[] transportSettings)
+        public async Task RemovePropertySuccess(IotHubClientOptions options)
         {
             await this.RunTestCase(
-                transportSettings,
+                options,
                 async (deviceClient, deviceName, registryManager) =>
                 {
                     var twinPatch = new ClientTwin();
@@ -207,10 +207,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task NonexistantRemovePropertySuccess(ITransportSettings[] transportSettings)
+        public async Task NonexistantRemovePropertySuccess(IotHubClientOptions options)
         {
             await this.RunTestCase(
-                transportSettings,
+                options,
                 async (deviceClient, deviceName, registryManager) =>
                 {
                     var twinPatch = new ClientTwin();
@@ -263,10 +263,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task OverwriteValueWithObjectSuccess(ITransportSettings[] transportSettings)
+        public async Task OverwriteValueWithObjectSuccess(IotHubClientOptions options)
         {
             await this.RunTestCase(
-                transportSettings,
+                options,
                 async (deviceClient, deviceName, registryManager) =>
                 {
                     var twinPatch = new ClientTwin();
@@ -309,10 +309,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
-        public async Task OverwriteObjectWithValueSuccess(ITransportSettings[] transportSettings)
+        public async Task OverwriteObjectWithValueSuccess(IotHubClientOptions options)
         {
             await this.RunTestCase(
-                transportSettings,
+                options,
                 async (deviceClient, deviceName, registryManager) =>
                 {
                     var twinPatch = new ClientTwin();
@@ -353,7 +353,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
         }
 
-        static async Task<(IotHubDeviceClient, string)> InitializeDeviceClient(IotHubServiceClient rm, string iotHubConnectionString, ITransportSettings[] settings)
+        static async Task<(IotHubDeviceClient, string)> InitializeDeviceClient(IotHubServiceClient rm, string iotHubConnectionString, IotHubClientOptions options)
         {
             IotHubDeviceClient deviceClient = null;
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
@@ -363,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 try
                 {
-                    deviceClient = IotHubDeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
+                    deviceClient = new IotHubDeviceClient(deviceConnectionString, options);
                     await deviceClient.OpenAsync();
                     break;
                 }
@@ -401,11 +401,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return (deviceClient, deviceName);
         }
 
-        async Task RunTestCase(ITransportSettings[] transportSettings, Func<IotHubDeviceClient, string, IotHubServiceClient, Task> testCase)
+        async Task RunTestCase(IotHubClientOptions options, Func<IotHubDeviceClient, string, IotHubServiceClient, Task> testCase)
         {
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubServiceClient rm = new IotHubServiceClient(iotHubConnectionString);
-            (IotHubDeviceClient deviceClient, string deviceName) = await InitializeDeviceClient(rm, iotHubConnectionString, transportSettings);
+            (IotHubDeviceClient deviceClient, string deviceName) = await InitializeDeviceClient(rm, iotHubConnectionString, options);
             try
             {
                 await testCase(deviceClient, deviceName, rm);
@@ -427,24 +427,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var receivedDesiredProperties = new PropertyCollection();
             bool desiredPropertiesUpdateCallbackTriggered = false;
 
-            Task DesiredPropertiesUpdateCallback(PropertyCollection desiredproperties, object usercontext)
+            Task DesiredPropertiesUpdateCallback(PropertyCollection desiredproperties)
             {
                 receivedDesiredProperties = desiredproperties;
                 desiredPropertiesUpdateCallbackTriggered = true;
                 return Task.CompletedTask;
             }
 
-            await deviceClient.SetDesiredPropertyUpdateCallbackAsync(DesiredPropertiesUpdateCallback, null);
+            await deviceClient.SetDesiredPropertyUpdateCallbackAsync(DesiredPropertiesUpdateCallback);
 
             // fetch the newly minted twin
-            TwinProperties originalCloudTwin = await deviceClient.GetTwinAsync();
+            TwinProperties originalCloudTwin = await deviceClient.GetTwinPropertiesAsync();
             ClientTwin rmTwin = await rm.Twins.GetAsync(deviceName);
 
             // updated twin in the cloud with the patch
             await rm.Twins.UpdateAsync(deviceName, twinPatch, true, CancellationToken.None);
 
             // Get the updated twin
-            TwinProperties updatedCloudTwin = await deviceClient.GetTwinAsync();
+            TwinProperties updatedCloudTwin = await deviceClient.GetTwinPropertiesAsync();
 
             // replicate the patch operation locally
             var delayTask = Task.Delay(TimeSpan.FromSeconds(60));

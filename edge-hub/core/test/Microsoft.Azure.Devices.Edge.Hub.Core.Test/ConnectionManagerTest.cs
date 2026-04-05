@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
 
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
 
@@ -211,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
 
@@ -261,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
 
@@ -320,7 +320,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
 
@@ -469,7 +469,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client);
 
             var metadataStore = new Mock<IMetadataStore>();
@@ -584,7 +584,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
             var metadataStore = new Mock<IMetadataStore>();
@@ -725,8 +725,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ITokenProvider receivedTokenProvider = null;
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
-                .Callback<IIdentity, ITokenProvider, ITransportSettings[], Option<string>>((i, s, t, m) => receivedTokenProvider = s)
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
+                .Callback<IIdentity, ITokenProvider, IotHubClientOptions, Option<string>>((i, s, t, m) => receivedTokenProvider = s)
                 .Returns(GetDeviceClient);
 
             var metadataStore = new Mock<IMetadataStore>();
@@ -791,7 +791,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(GetDeviceClient())
                 .Throws(new IotHubClientException("connstr2 is invalid!"))
                 .Throws(new IotHubClientException("connstr2 is invalid!"));
@@ -1000,7 +1000,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
             var metadataStore = new Mock<IMetadataStore>();
@@ -1180,7 +1180,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
 
@@ -1246,7 +1246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client2 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
+            deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
 
@@ -1323,7 +1323,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IClient client1 = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
-            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>())).Returns(client1);
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<IotHubClientOptions>(), Option.None<string>())).Returns(client1);
 
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);

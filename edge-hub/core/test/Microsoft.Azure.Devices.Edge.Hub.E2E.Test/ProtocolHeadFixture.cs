@@ -54,12 +54,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public bool IsClosed { get; private set; }
 
-        // Device SDK caches the AmqpTransportSettings that are set the first time and ignores
+        // Device SDK caches the IotHubClientOptions that are set the first time and ignores
         // all the settings used thereafter from that process. So set up a dummy connection using the test
-        // AmqpTransportSettings, so that Device SDK caches it and uses it thereafter
+        // IotHubClientOptions, so that Device SDK caches it and uses it thereafter
         static async Task ConnectToIotHub(string connectionString)
         {
-            IotHubDeviceClient dc = IotHubDeviceClient.CreateFromConnectionString(connectionString, TestSettings.AmqpClientOptions);
+            IotHubDeviceClient dc = new IotHubDeviceClient(connectionString, TestSettings.AmqpClientOptions);
             await dc.OpenAsync();
             await dc.CloseAsync();
         }
