@@ -8,12 +8,6 @@
         "resolved": "8.0.1",
         "contentHash": "heVQl5tKYnnIDYlR1QMVGueYH6iriZTcZB6AjDczQNwZzxkjDIt9C84Pt4cCiZYrbo7jkZOYGWbs6Lo9wAtVLg=="
       },
-      "JetBrains.Annotations": {
-        "type": "Direct",
-        "requested": "[2025.2.4, )",
-        "resolved": "2025.2.4",
-        "contentHash": "TwbgxAkXxY+vNEhNVx/QXjJ4vqxmepOjsgRvvImQPbHkHMMb4W+ahL3laMsxXKtNT7iMy+E1B3xkqao2hf1n3A=="
-      },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
         "requested": "[18.3.0, )",
@@ -155,6 +149,74 @@
           "System.Diagnostics.EventLog": "6.0.0"
         }
       },
+      "DotNetty.Buffers": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "MjxoFMdKsSJ5CLKTFHTKYoFUZUvC6VHGx71vPLSflmR/X4dSm57/hVxhsQY3YU6aASeRjqgNiCHn4II+UNOIWQ==",
+        "dependencies": {
+          "DotNetty.Common": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Codecs": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "gLAVaII7A4er3ZwUJIAZpynDLsxNr7Acw61OoCDfzIAkcB2L6OJ9jPnKy8YtrtTnJXm0lNod5+7aRJTmaBbT0Q==",
+        "dependencies": {
+          "DotNetty.Buffers": "0.6.0",
+          "DotNetty.Common": "0.6.0",
+          "DotNetty.Transport": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Codecs.Mqtt": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "EzZtHRxdLXE9ASFkcNvbO7CiVp7ldsAEx7gLEP62uo6CxlHn8yYPU7fiPJ4gZHGZFznHevwTD05WhAjEMgBEIw==",
+        "dependencies": {
+          "DotNetty.Buffers": "0.6.0",
+          "DotNetty.Codecs": "0.6.0",
+          "DotNetty.Common": "0.6.0",
+          "DotNetty.Transport": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Common": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "aVD0bWoaH+Ou0wOTFzYEs3hrzsckUEkbdweVgwHsk7q0OTPgmPD/QkGxjNqjZ9diUyeGvHzYn7mFQGG5cgbYUA==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging": "1.1.1",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Handlers": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "LXj49DSk/PzC5r7MkXKpYit4t5DsUNpEw1m899SoV2gGVs9WooYUVyjOhKwyqBUPie4QgkYc6tsgAHNJUmDhbA==",
+        "dependencies": {
+          "DotNetty.Buffers": "0.6.0",
+          "DotNetty.Codecs": "0.6.0",
+          "DotNetty.Common": "0.6.0",
+          "DotNetty.Transport": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Transport": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "HLYcbZfLDIVPhtr+x3nv2vvxBxKONWXeP/B1LaXvPeSfdvlOtvoxB0tuv92SaOdqq9NUCjAP59Nn9xofRrt8mA==",
+        "dependencies": {
+          "DotNetty.Buffers": "0.6.0",
+          "DotNetty.Common": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "JetBrains.Annotations": {
+        "type": "Transitive",
+        "resolved": "2025.2.4",
+        "contentHash": "TwbgxAkXxY+vNEhNVx/QXjJ4vqxmepOjsgRvvImQPbHkHMMb4W+ahL3laMsxXKtNT7iMy+E1B3xkqao2hf1n3A=="
+      },
       "Microsoft.Azure.Amqp": {
         "type": "Transitive",
         "resolved": "2.6.2",
@@ -176,6 +238,18 @@
         "dependencies": {
           "MQTTnet": "5.1.0.1559",
           "Microsoft.Azure.Amqp": "2.6.2"
+        }
+      },
+      "Microsoft.Azure.Devices.ProtocolGateway.Core": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "HuP8GwdZhVNdDCguxhDr/JU4Cw6j80iHM7l5zXp3qMP0OBxFH4aDEFINUJpZ9FbqFSdYQeI63e1s8r5BdZ37/g==",
+        "dependencies": {
+          "DotNetty.Codecs.Mqtt": "0.6.0",
+          "DotNetty.Handlers": "0.6.0",
+          "Microsoft.Extensions.Configuration": "1.1.1",
+          "Microsoft.Extensions.Configuration.Json": "1.1.1",
+          "NETStandard.Library": "1.6.1"
         }
       },
       "Microsoft.Azure.KeyVault": {
@@ -677,6 +751,28 @@
           "Microsoft.Azure.Devices.Edge.Storage": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
           "Microsoft.Azure.Devices.Routing.Core": "[1.0.0, )"
+        }
+      },
+      "microsoft.azure.devices.edge.hub.core.test": {
+        "type": "Project",
+        "dependencies": {
+          "JetBrains.Annotations": "[2025.2.4, )",
+          "Microsoft.Azure.Devices.Edge.Hub.CloudProxy": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Hub.Core": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Util.Test.Common": "[1.0.0, )",
+          "Microsoft.NET.Test.Sdk": "[18.3.0, )",
+          "Moq": "[4.20.72, )",
+          "xunit": "[2.9.3, )"
+        }
+      },
+      "microsoft.azure.devices.edge.hub.mqtt": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Azure.Devices.Edge.Hub.Core": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
+          "Microsoft.Azure.Devices.ProtocolGateway.Core": "[2.0.1, )",
+          "Microsoft.Extensions.Configuration.Binder": "[10.0.5, )"
         }
       },
       "microsoft.azure.devices.edge.storage": {

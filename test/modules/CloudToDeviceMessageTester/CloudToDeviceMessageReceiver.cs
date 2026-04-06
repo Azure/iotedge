@@ -56,7 +56,10 @@ namespace CloudToDeviceMessageTester
 
         public async ValueTask DisposeAsync()
         {
-            if (this.deviceClient != null) await this.deviceClient.DisposeAsync();
+            if (this.deviceClient != null)
+            {
+                await this.deviceClient.DisposeAsync();
+            }
         }
 
         internal async Task ReportTestResult(IncomingMessage message)
@@ -148,7 +151,10 @@ namespace CloudToDeviceMessageTester
             }
             finally
             {
-                if (serviceClient != null) serviceClient.Dispose();
+                if (serviceClient != null)
+                {
+                    serviceClient.Dispose();
+                }
             }
         }
     }

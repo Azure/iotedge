@@ -55,6 +55,7 @@ namespace MetricsValidator.Tests
                     {
                         return await tcs.Task;
                     }
+
                     return MessageAcknowledgement.Complete;
                 });
 

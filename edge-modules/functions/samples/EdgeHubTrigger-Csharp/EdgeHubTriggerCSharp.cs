@@ -14,11 +14,11 @@ namespace Functions.Samples
     {
         [FunctionName("EdgeHubTrigger-CSharp")]
         public static async Task FilterMessageAndSendMessage(
-            [EdgeHubTrigger("input1")] Message messageReceived,
-            [EdgeHub(OutputName = "output1")] IAsyncCollector<Message> output)
+            [EdgeHubTrigger("input1")] IncomingMessage messageReceived,
+            [EdgeHub(OutputName = "output1")] IAsyncCollector<TelemetryMessage> output)
         {
             const int defaultTemperatureThreshold = 19;
-            byte[] messageBytes = messageReceived.GetBytes();
+            byte[] messageBytes = messageReceived.Payload;
             var messageString = Encoding.UTF8.GetString(messageBytes);
 
             // Get message body, containing the Temperature data
@@ -26,7 +26,7 @@ namespace Functions.Samples
 
             if (messageBody != null && messageBody.Machine.Temperature > defaultTemperatureThreshold)
             {
-                var filteredMessage = new Message(messageBytes);
+                var filteredMessage = new TelemetryMessage(messageBytes);
                 foreach (KeyValuePair<string, string> prop in messageReceived.Properties)
                 {
                     filteredMessage.Properties.Add(prop.Key, prop.Value);

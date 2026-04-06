@@ -8,12 +8,6 @@
         "resolved": "8.0.1",
         "contentHash": "heVQl5tKYnnIDYlR1QMVGueYH6iriZTcZB6AjDczQNwZzxkjDIt9C84Pt4cCiZYrbo7jkZOYGWbs6Lo9wAtVLg=="
       },
-      "JetBrains.Annotations": {
-        "type": "Direct",
-        "requested": "[2025.2.4, )",
-        "resolved": "2025.2.4",
-        "contentHash": "TwbgxAkXxY+vNEhNVx/QXjJ4vqxmepOjsgRvvImQPbHkHMMb4W+ahL3laMsxXKtNT7iMy+E1B3xkqao2hf1n3A=="
-      },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
         "requested": "[18.3.0, )",
@@ -22,15 +16,6 @@
         "dependencies": {
           "Microsoft.CodeCoverage": "18.3.0",
           "Microsoft.TestPlatform.TestHost": "18.3.0"
-        }
-      },
-      "Moq": {
-        "type": "Direct",
-        "requested": "[4.20.72, )",
-        "resolved": "4.20.72",
-        "contentHash": "EA55cjyNn8eTNWrgrdZJH5QLFp2L43oxl1tlkoYUKIE9pRwL784OWiTXeCV5ApS+AMYEAlt7Fo03A2XfouvHmQ==",
-        "dependencies": {
-          "Castle.Core": "5.1.1"
         }
       },
       "StyleCop.Analyzers": {
@@ -138,6 +123,20 @@
           "protobuf-net": "2.4.0"
         }
       },
+      "Autofac": {
+        "type": "Transitive",
+        "resolved": "9.1.0",
+        "contentHash": "onT/BcnnfWcQNXiuC7R/0h8ALQzRdsAI20gpB7nfrudXpFMXdVZKz1umdtHXDwjc/bmWEsrCBAxck3+Arnk15g=="
+      },
+      "Autofac.Extensions.DependencyInjection": {
+        "type": "Transitive",
+        "resolved": "11.0.0",
+        "contentHash": "/FSrJyYEsptkV9O3L95dTAoGO6XGSQFDENWHFcHxW0oQIEvW56Mgr01qO53EIEIDDvMFqszBU+uIm9fzGARLPQ==",
+        "dependencies": {
+          "Autofac": "9.1.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.4"
+        }
+      },
       "Azure.Core": {
         "type": "Transitive",
         "resolved": "1.31.0",
@@ -147,18 +146,104 @@
           "System.Memory.Data": "1.0.2"
         }
       },
-      "Castle.Core": {
+      "DotNetty.Buffers": {
         "type": "Transitive",
-        "resolved": "5.1.1",
-        "contentHash": "rpYtIczkzGpf+EkZgDr9CClTdemhsrwA/W5hMoPjLkRFnXzH44zDLoovXeKtmxb1ykXK9aJVODSpiJml8CTw2g==",
+        "resolved": "0.6.0",
+        "contentHash": "MjxoFMdKsSJ5CLKTFHTKYoFUZUvC6VHGx71vPLSflmR/X4dSm57/hVxhsQY3YU6aASeRjqgNiCHn4II+UNOIWQ==",
         "dependencies": {
-          "System.Diagnostics.EventLog": "6.0.0"
+          "DotNetty.Common": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Codecs": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "gLAVaII7A4er3ZwUJIAZpynDLsxNr7Acw61OoCDfzIAkcB2L6OJ9jPnKy8YtrtTnJXm0lNod5+7aRJTmaBbT0Q==",
+        "dependencies": {
+          "DotNetty.Buffers": "0.6.0",
+          "DotNetty.Common": "0.6.0",
+          "DotNetty.Transport": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Codecs.Mqtt": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "EzZtHRxdLXE9ASFkcNvbO7CiVp7ldsAEx7gLEP62uo6CxlHn8yYPU7fiPJ4gZHGZFznHevwTD05WhAjEMgBEIw==",
+        "dependencies": {
+          "DotNetty.Buffers": "0.6.0",
+          "DotNetty.Codecs": "0.6.0",
+          "DotNetty.Common": "0.6.0",
+          "DotNetty.Transport": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Common": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "aVD0bWoaH+Ou0wOTFzYEs3hrzsckUEkbdweVgwHsk7q0OTPgmPD/QkGxjNqjZ9diUyeGvHzYn7mFQGG5cgbYUA==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging": "1.1.1",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Handlers": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "LXj49DSk/PzC5r7MkXKpYit4t5DsUNpEw1m899SoV2gGVs9WooYUVyjOhKwyqBUPie4QgkYc6tsgAHNJUmDhbA==",
+        "dependencies": {
+          "DotNetty.Buffers": "0.6.0",
+          "DotNetty.Codecs": "0.6.0",
+          "DotNetty.Common": "0.6.0",
+          "DotNetty.Transport": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "DotNetty.Transport": {
+        "type": "Transitive",
+        "resolved": "0.6.0",
+        "contentHash": "HLYcbZfLDIVPhtr+x3nv2vvxBxKONWXeP/B1LaXvPeSfdvlOtvoxB0tuv92SaOdqq9NUCjAP59Nn9xofRrt8mA==",
+        "dependencies": {
+          "DotNetty.Buffers": "0.6.0",
+          "DotNetty.Common": "0.6.0",
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "JetBrains.Annotations": {
+        "type": "Transitive",
+        "resolved": "2025.2.4",
+        "contentHash": "TwbgxAkXxY+vNEhNVx/QXjJ4vqxmepOjsgRvvImQPbHkHMMb4W+ahL3laMsxXKtNT7iMy+E1B3xkqao2hf1n3A=="
+      },
+      "Microsoft.AspNetCore.Authentication.Certificate": {
+        "type": "Transitive",
+        "resolved": "10.0.5",
+        "contentHash": "Hto536YCXE/bB0W1HiVZQ3cCo7LSbb6cJgyDRiI3k/HAbHy+2yv3V0XHiODvu7r5NSXbjANuH68TRLLg9MoTBg==",
+        "dependencies": {
+          "Microsoft.Extensions.Caching.Memory": "10.0.5"
+        }
+      },
+      "Microsoft.AspNetCore.JsonPatch": {
+        "type": "Transitive",
+        "resolved": "10.0.5",
+        "contentHash": "ODGomRlmt8/mFAqVyD9MgE4fXNkO6qDNeKuvmqNDuKjOL2UOkh/wJK0gEXS5VcViHFs+uQKOXD5xoTg1/ouKtA==",
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.3"
+        }
+      },
+      "Microsoft.AspNetCore.Mvc.NewtonsoftJson": {
+        "type": "Transitive",
+        "resolved": "10.0.5",
+        "contentHash": "WFwm63h4YhVOfEvTeieUGRKUz8nYKSd6mXC1vfqqr7ZW+b8mQBkaxMeAOvA2YFjjgRCKgVC72jhmxjLEDFwC4A==",
+        "dependencies": {
+          "Microsoft.AspNetCore.JsonPatch": "10.0.5",
+          "Newtonsoft.Json": "13.0.3",
+          "Newtonsoft.Json.Bson": "1.0.2"
         }
       },
       "Microsoft.Azure.Amqp": {
         "type": "Transitive",
-        "resolved": "2.6.2",
-        "contentHash": "6hQqWRiHRd9J6pGBlzQM9LBOWaO8xIsRVYs3olrDGqOkK7v9mgwz9rmrv+49FIbLEOGgkP9IKLnXdsA4Y8IIYw=="
+        "resolved": "2.7.2",
+        "contentHash": "XsDLJl+LU2IpaSkQ+vH6Gxr9JX/IgKntmyafw+fAxtPDGbfg+cuBRV0cDqsNNOrTXYjLgjNdYxbkX6P2YHGxzg=="
       },
       "Microsoft.Azure.Devices": {
         "type": "Transitive",
@@ -176,6 +261,18 @@
         "dependencies": {
           "MQTTnet": "5.1.0.1559",
           "Microsoft.Azure.Amqp": "2.6.2"
+        }
+      },
+      "Microsoft.Azure.Devices.ProtocolGateway.Core": {
+        "type": "Transitive",
+        "resolved": "2.0.1",
+        "contentHash": "HuP8GwdZhVNdDCguxhDr/JU4Cw6j80iHM7l5zXp3qMP0OBxFH4aDEFINUJpZ9FbqFSdYQeI63e1s8r5BdZ37/g==",
+        "dependencies": {
+          "DotNetty.Codecs.Mqtt": "0.6.0",
+          "DotNetty.Handlers": "0.6.0",
+          "Microsoft.Extensions.Configuration": "1.1.1",
+          "Microsoft.Extensions.Configuration.Json": "1.1.1",
+          "NETStandard.Library": "1.6.1"
         }
       },
       "Microsoft.Azure.KeyVault": {
@@ -208,6 +305,26 @@
         "type": "Transitive",
         "resolved": "18.3.0",
         "contentHash": "23BNy/vziREC20Wwhb50K7+kZe0m07KlLWDQv4qjJ9tt3QjpDpDIqJFrhYHmMEo9xDkuSp55U/8h4bMF7MiB+g=="
+      },
+      "Microsoft.Extensions.Caching.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.0.5",
+        "contentHash": "k/QDdQ94/0Shi0KfU+e12m73jfQo+3JpErTtgpZfsCIqkvdEEO0XIx6R+iTbN55rNPaNhOqNY4/sB+jZ8XxVPw==",
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "10.0.5"
+        }
+      },
+      "Microsoft.Extensions.Caching.Memory": {
+        "type": "Transitive",
+        "resolved": "10.0.5",
+        "contentHash": "jUEXmkBUPdOS/MP9areK/sbKhdklq9+tEhvwfxGalZVnmyLUO5rrheNNutUBtvbZ7J8ECkG7/r2KXi/IFC06cA==",
+        "dependencies": {
+          "Microsoft.Extensions.Caching.Abstractions": "10.0.5",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.5",
+          "Microsoft.Extensions.Options": "10.0.5",
+          "Microsoft.Extensions.Primitives": "10.0.5"
+        }
       },
       "Microsoft.Extensions.Configuration": {
         "type": "Transitive",
@@ -474,6 +591,14 @@
         "resolved": "13.0.4",
         "contentHash": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A=="
       },
+      "Newtonsoft.Json.Bson": {
+        "type": "Transitive",
+        "resolved": "1.0.2",
+        "contentHash": "QYFyxhaABwmq3p/21VrZNYvCg3DaEoN/wUuw5nmfAf0X3HLjgupwhkEWdgfb9nvGAUIv3osmZoD3kKl4jxEmYQ==",
+        "dependencies": {
+          "Newtonsoft.Json": "12.0.1"
+        }
+      },
       "Nito.AsyncEx": {
         "type": "Transitive",
         "resolved": "5.1.2",
@@ -555,6 +680,14 @@
           "Microsoft.Extensions.ObjectPool": "7.0.0"
         }
       },
+      "prometheus-net.AspNetCore": {
+        "type": "Transitive",
+        "resolved": "8.2.1",
+        "contentHash": "/4TfTvbwIDqpaKTiWvEsjUywiHYF9zZvGZF5sK15avoDsUO/WPQbKsF8TiMaesuphdFQPK2z52P0zk6j26V0rQ==",
+        "dependencies": {
+          "prometheus-net": "8.2.1"
+        }
+      },
       "protobuf-net": {
         "type": "Transitive",
         "resolved": "3.2.56",
@@ -567,6 +700,22 @@
         "type": "Transitive",
         "resolved": "3.2.56",
         "contentHash": "d6QOukTpDzs7zZv9tPnBZMtvHDNeHJQXUhMx54g4urUQsXK3oo9U70H9HvklYq7hlQ4A7AHJl7EVEqyCXXIl8Q=="
+      },
+      "RocksDbNative": {
+        "type": "Transitive",
+        "resolved": "6.2.2",
+        "contentHash": "iukDhYJ812wtAyUCIBHjAkl7Euafrbp2JIEEvx58GNcg08WTEYRqZlFhD6KNJFw0iSr6a5LDDmTFK+K1P+tGkw==",
+        "dependencies": {
+          "NETStandard.Library": "1.6.1"
+        }
+      },
+      "RocksDbSharp": {
+        "type": "Transitive",
+        "resolved": "6.2.2",
+        "contentHash": "eQg2Pr8tASAwAVzFa2/p5+G9AtnzY7EooH9/66Wb/VZ/l6ThFhlDvKWMJrBdjt/INTtidq/INDSiIGywmK+qoQ==",
+        "dependencies": {
+          "NETStandard.Library": "1.6.1"
+        }
       },
       "Serilog": {
         "type": "Transitive",
@@ -599,11 +748,6 @@
         "type": "Transitive",
         "resolved": "1.2.0.164",
         "contentHash": "3WJ5JvRP9QjdrwspeLFjwD2AZw2CcDmYLQ7x8oofxvOzXvboZdFlPsSV8h56hLyK0lnMFvtpb48nxz7oQ4RgCQ=="
-      },
-      "System.Diagnostics.EventLog": {
-        "type": "Transitive",
-        "resolved": "6.0.0",
-        "contentHash": "lcyUiXTsETK2ALsZrX+nWuHSIQeazhqPphLfaRxzdGaG93+0kELqpgEHtwWOlQe7+jSFnKwaCAgL4kjeZCQJnw=="
       },
       "System.Memory.Data": {
         "type": "Transitive",
@@ -659,6 +803,15 @@
           "es6numberserializer": "[1.0.0, )"
         }
       },
+      "microsoft.azure.devices.edge.hub.amqp": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Azure.Amqp": "[2.7.2, )",
+          "Microsoft.Azure.Devices": "[2.0.0-rc, )",
+          "Microsoft.Azure.Devices.Edge.Hub.Core": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"
+        }
+      },
       "microsoft.azure.devices.edge.hub.cloudproxy": {
         "type": "Project",
         "dependencies": {
@@ -679,11 +832,53 @@
           "Microsoft.Azure.Devices.Routing.Core": "[1.0.0, )"
         }
       },
+      "microsoft.azure.devices.edge.hub.http": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Azure.Devices": "[2.0.0-rc, )",
+          "Microsoft.Azure.Devices.Edge.Hub.Core": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"
+        }
+      },
+      "microsoft.azure.devices.edge.hub.mqtt": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Azure.Devices.Edge.Hub.Core": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
+          "Microsoft.Azure.Devices.ProtocolGateway.Core": "[2.0.1, )",
+          "Microsoft.Extensions.Configuration.Binder": "[10.0.5, )"
+        }
+      },
+      "microsoft.azure.devices.edge.hub.service": {
+        "type": "Project",
+        "dependencies": {
+          "Autofac": "[9.1.0, )",
+          "Autofac.Extensions.DependencyInjection": "[11.0.0, )",
+          "Microsoft.AspNetCore.Authentication.Certificate": "[10.0.5, )",
+          "Microsoft.AspNetCore.Mvc.NewtonsoftJson": "[10.0.5, )",
+          "Microsoft.Azure.Devices.Edge.Hub.Amqp": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Hub.CloudProxy": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Hub.Core": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Hub.Http": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Hub.Mqtt": "[1.0.0, )",
+          "Microsoft.Azure.Devices.Edge.Storage.RocksDb": "[1.0.0, )",
+          "prometheus-net": "[8.2.1, )",
+          "prometheus-net.AspNetCore": "[8.2.1, )"
+        }
+      },
       "microsoft.azure.devices.edge.storage": {
         "type": "Project",
         "dependencies": {
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
           "protobuf-net": "[3.2.56, )"
+        }
+      },
+      "microsoft.azure.devices.edge.storage.rocksdb": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Azure.Devices.Edge.Storage": "[1.0.0, )",
+          "RocksDbNative": "[6.2.2, )",
+          "RocksDbSharp": "[6.2.2, )"
         }
       },
       "microsoft.azure.devices.edge.util": {

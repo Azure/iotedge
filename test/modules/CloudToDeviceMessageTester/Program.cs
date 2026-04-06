@@ -52,7 +52,10 @@ namespace CloudToDeviceMessageTester
             finally
             {
                 // Implicit CloseAsync()
-                if (cloudToDeviceMessageTester != null) await cloudToDeviceMessageTester.DisposeAsync();
+                if (cloudToDeviceMessageTester != null)
+                {
+                    await cloudToDeviceMessageTester.DisposeAsync();
+                }
             }
 
             await cts.Token.WhenCanceled();

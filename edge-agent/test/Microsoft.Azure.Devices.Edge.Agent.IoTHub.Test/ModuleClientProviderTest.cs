@@ -71,7 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // TODO: Update for v2 SDK - transport settings are now encapsulated in IotHubClientOptions
             // and the specific transport type (IotHubClientAmqpSettings/IotHubClientMqttSettings) is not
             // directly accessible for type-checking. Proxy verification on transport settings is skipped.
-
             sdkModuleClient.Verify(s => s.OpenAsync(), Times.Once);
         }
 
@@ -188,7 +187,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // TODO: Update for v2 SDK - transport settings are now encapsulated in IotHubClientOptions
             // and the specific transport type (IotHubClientAmqpSettings/IotHubClientMqttSettings) is not
             // directly accessible for type-checking. Proxy verification on transport settings is skipped.
-
             sdkModuleClient.Verify(s => s.OpenAsync(), Times.Once);
         }
 

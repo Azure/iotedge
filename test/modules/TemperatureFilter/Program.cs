@@ -54,6 +54,7 @@ namespace TemperatureFilter
                 {
                     return await PrintAndFilterMessages(message, moduleClient, moduleConfig);
                 }
+
                 return MessageAcknowledgement.Complete;
             });
 

@@ -41,6 +41,16 @@
           "Microsoft.Extensions.Configuration.Abstractions": "10.0.5"
         }
       },
+      "Microsoft.Extensions.Configuration.CommandLine": {
+        "type": "Direct",
+        "requested": "[10.0.5, )",
+        "resolved": "10.0.5",
+        "contentHash": "or9fOLopMUTJOQVJ3bou4aD6PwvsiKf4kZC4EE5sRRKSkmh+wfk/LekJXRjAX88X+1JA9zHjDo+5fiQ7z3MY/A==",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration": "10.0.5",
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.5"
+        }
+      },
       "Microsoft.Extensions.Configuration.EnvironmentVariables": {
         "type": "Direct",
         "requested": "[10.0.5, )",
@@ -75,6 +85,12 @@
           "Microsoft.Extensions.Configuration.FileExtensions": "10.0.5",
           "Microsoft.Extensions.FileProviders.Abstractions": "10.0.5"
         }
+      },
+      "ProxyLib": {
+        "type": "Direct",
+        "requested": "[1.0.2, )",
+        "resolved": "1.0.2",
+        "contentHash": "v3BDMXj/pIwy4ylTD6qFQ0z1fgGBSqWsvLKsZw+SU7WgcTZxFDqgRARooJlpjuqQ5HKGzj/UDMiOtf4yXHEe7g=="
       },
       "StyleCop.Analyzers": {
         "type": "Direct",

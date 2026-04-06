@@ -2,17 +2,17 @@
   "version": 1,
   "dependencies": {
     "net10.0": {
+      "Autofac": {
+        "type": "Direct",
+        "requested": "[9.1.0, )",
+        "resolved": "9.1.0",
+        "contentHash": "onT/BcnnfWcQNXiuC7R/0h8ALQzRdsAI20gpB7nfrudXpFMXdVZKz1umdtHXDwjc/bmWEsrCBAxck3+Arnk15g=="
+      },
       "coverlet.collector": {
         "type": "Direct",
         "requested": "[8.0.1, )",
         "resolved": "8.0.1",
         "contentHash": "heVQl5tKYnnIDYlR1QMVGueYH6iriZTcZB6AjDczQNwZzxkjDIt9C84Pt4cCiZYrbo7jkZOYGWbs6Lo9wAtVLg=="
-      },
-      "JetBrains.Annotations": {
-        "type": "Direct",
-        "requested": "[2025.2.4, )",
-        "resolved": "2025.2.4",
-        "contentHash": "TwbgxAkXxY+vNEhNVx/QXjJ4vqxmepOjsgRvvImQPbHkHMMb4W+ahL3laMsxXKtNT7iMy+E1B3xkqao2hf1n3A=="
       },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
@@ -138,44 +138,12 @@
           "protobuf-net": "2.4.0"
         }
       },
-      "Azure.Core": {
-        "type": "Transitive",
-        "resolved": "1.31.0",
-        "contentHash": "YZlzaVS4XpPPIob934+UFfxvxMWe05PG3FDfwAXZz+MY+ShDJCjMokfrfh18F7VDW5tG0iMbPVjigeL6crGCiQ==",
-        "dependencies": {
-          "Microsoft.Bcl.AsyncInterfaces": "1.1.1",
-          "System.Memory.Data": "1.0.2"
-        }
-      },
       "Castle.Core": {
         "type": "Transitive",
         "resolved": "5.1.1",
         "contentHash": "rpYtIczkzGpf+EkZgDr9CClTdemhsrwA/W5hMoPjLkRFnXzH44zDLoovXeKtmxb1ykXK9aJVODSpiJml8CTw2g==",
         "dependencies": {
           "System.Diagnostics.EventLog": "6.0.0"
-        }
-      },
-      "Microsoft.Azure.Amqp": {
-        "type": "Transitive",
-        "resolved": "2.6.2",
-        "contentHash": "6hQqWRiHRd9J6pGBlzQM9LBOWaO8xIsRVYs3olrDGqOkK7v9mgwz9rmrv+49FIbLEOGgkP9IKLnXdsA4Y8IIYw=="
-      },
-      "Microsoft.Azure.Devices": {
-        "type": "Transitive",
-        "resolved": "2.0.0-rc",
-        "contentHash": "zV8NsT47erV26kFKws0hvZuWe975C/rbHMvjNcfOnl0MH5WeaJWPnn0Baag4PeCfEPw5zh8ikxFGRxRD6xztYQ==",
-        "dependencies": {
-          "Azure.Core": "1.31.0",
-          "Microsoft.Azure.Amqp": "2.6.2"
-        }
-      },
-      "Microsoft.Azure.Devices.Client": {
-        "type": "Transitive",
-        "resolved": "2.0.0-rc",
-        "contentHash": "S02wM6scqV/b/AwPmQ9to4HzutKKoS4PYj4buZ4Z0ayWe7D/xqVcpiXrG99BpQcyeU+2fWLWmO4IHflZ0W7ajw==",
-        "dependencies": {
-          "MQTTnet": "5.1.0.1559",
-          "Microsoft.Azure.Amqp": "2.6.2"
         }
       },
       "Microsoft.Azure.KeyVault": {
@@ -201,8 +169,8 @@
       },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
-        "resolved": "1.1.1",
-        "contentHash": "yuvf07qFWFqtK3P/MRkEKLhn5r2UbSpVueRziSqj0yJQIKFwG1pq9mOayK3zE5qZCTs0CbrwL9M6R8VwqyGy2w=="
+        "resolved": "1.0.0",
+        "contentHash": "K63Y4hORbBcKLWH5wnKgzyn7TOfYzevIEwIedQHBIkmkEBA9SCqgvom+XTuE+fAFGvINGkhFItaZ2dvMGdT5iw=="
       },
       "Microsoft.CodeCoverage": {
         "type": "Transitive",
@@ -421,8 +389,8 @@
       },
       "Microsoft.NETCore.Platforms": {
         "type": "Transitive",
-        "resolved": "1.1.0",
-        "contentHash": "kz0PEW2lhqygehI/d6XsPCQzD7ff7gUJaVGPVETX611eadGsA3A877GdSlU0LRVMCTH/+P3o2iDTak+S08V2+A=="
+        "resolved": "2.1.0",
+        "contentHash": "ok+RPAtESz/9MUXeIEz6Lv5XAGQsaNmEYXMsgVALj4D7kqC8gveKWXWXbufLySR2fWrwZf8smyN5RmHu0e4BHA=="
       },
       "Microsoft.Rest.ClientRuntime": {
         "type": "Transitive",
@@ -455,11 +423,6 @@
           "Microsoft.TestPlatform.ObjectModel": "18.3.0",
           "Newtonsoft.Json": "13.0.3"
         }
-      },
-      "MQTTnet": {
-        "type": "Transitive",
-        "resolved": "5.1.0.1559",
-        "contentHash": "9mkk0H+76CToIzp9ru5Uj5BuC3P5hQdkhvXM+CLmmTDdZWqajjICCHuUMbDd1yVBt9BWL77Rvzt0A+/PA4WMCA=="
       },
       "NETStandard.Library": {
         "type": "Transitive",
@@ -557,16 +520,11 @@
       },
       "protobuf-net": {
         "type": "Transitive",
-        "resolved": "3.2.56",
-        "contentHash": "4IPJeTYAMNewlN8MDaFkcmR/9hLhJeo9eARnTh104zh7mf+vXT2gu5MUfUnkSQU+CH578Q6vcdU7LQDQPG6eaw==",
+        "resolved": "2.4.0",
+        "contentHash": "j37MD1p1s9NdX8P5+IaY2J9p2382xiL1VP3mxYu0g+G/kf2YM2grFa1jJPO+0WDJNl1XhNPO0Q5yBEcbX77hBQ==",
         "dependencies": {
-          "protobuf-net.Core": "3.2.56"
+          "System.ServiceModel.Primitives": "4.5.3"
         }
-      },
-      "protobuf-net.Core": {
-        "type": "Transitive",
-        "resolved": "3.2.56",
-        "contentHash": "d6QOukTpDzs7zZv9tPnBZMtvHDNeHJQXUhMx54g4urUQsXK3oo9U70H9HvklYq7hlQ4A7AHJl7EVEqyCXXIl8Q=="
       },
       "Serilog": {
         "type": "Transitive",
@@ -590,11 +548,6 @@
           "Serilog": "4.0.0"
         }
       },
-      "Stateless": {
-        "type": "Transitive",
-        "resolved": "5.20.1",
-        "contentHash": "jQeuXgIeXEjFAImajavoxvJNcevO+zyK+9ICGzy0LRe/e1tP4vJUnO4Yrg6rP601wYRnulQs59mQH73TbIZzNg=="
-      },
       "StyleCop.Analyzers.Unstable": {
         "type": "Transitive",
         "resolved": "1.2.0.164",
@@ -605,10 +558,21 @@
         "resolved": "6.0.0",
         "contentHash": "lcyUiXTsETK2ALsZrX+nWuHSIQeazhqPphLfaRxzdGaG93+0kELqpgEHtwWOlQe7+jSFnKwaCAgL4kjeZCQJnw=="
       },
-      "System.Memory.Data": {
+      "System.Private.ServiceModel": {
         "type": "Transitive",
-        "resolved": "1.0.2",
-        "contentHash": "JGkzeqgBsiZwKJZ1IxPNsDFZDhUvuEdX8L8BDC8N3KOj+6zMcNU28CNN59TpZE/VJYy9cP+5M+sbxtWJx3/xtw=="
+        "resolved": "4.5.3",
+        "contentHash": "ancrQgJagx+yC4SZbuE+eShiEAUIF0E1d21TRSoy1C/rTwafAVcBr/fKibkq5TQzyy9uNil2tx2/iaUxsy0S9g==",
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "2.1.0"
+        }
+      },
+      "System.ServiceModel.Primitives": {
+        "type": "Transitive",
+        "resolved": "4.5.3",
+        "contentHash": "Wc9Hgg4Cmqi416zvEgq2sW1YYCGuhwWzspDclJWlFZqY6EGhFUPZU+kVpl5z9kAgrSOQP7/Uiik+PtSQtmq+5A==",
+        "dependencies": {
+          "System.Private.ServiceModel": "4.5.3"
+        }
       },
       "xunit.abstractions": {
         "type": "Transitive",
@@ -657,33 +621,6 @@
         "type": "Project",
         "dependencies": {
           "es6numberserializer": "[1.0.0, )"
-        }
-      },
-      "microsoft.azure.devices.edge.hub.cloudproxy": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.Azure.Devices": "[2.0.0-rc, )",
-          "Microsoft.Azure.Devices.Edge.Hub.Core": "[1.0.0, )",
-          "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
-          "Stateless": "[5.20.1, )"
-        }
-      },
-      "microsoft.azure.devices.edge.hub.core": {
-        "type": "Project",
-        "dependencies": {
-          "App.Metrics": "[4.3.0, )",
-          "JetBrains.Annotations": "[2025.2.4, )",
-          "Microsoft.Azure.Devices.Client": "[2.0.0-rc, )",
-          "Microsoft.Azure.Devices.Edge.Storage": "[1.0.0, )",
-          "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
-          "Microsoft.Azure.Devices.Routing.Core": "[1.0.0, )"
-        }
-      },
-      "microsoft.azure.devices.edge.storage": {
-        "type": "Project",
-        "dependencies": {
-          "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
-          "protobuf-net": "[3.2.56, )"
         }
       },
       "microsoft.azure.devices.edge.util": {

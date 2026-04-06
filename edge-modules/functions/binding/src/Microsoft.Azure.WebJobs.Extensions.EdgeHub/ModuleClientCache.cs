@@ -55,7 +55,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         {
             var options = new IotHubClientOptions(new IotHubClientAmqpSettings(IotHubClientTransportProtocol.Tcp))
             {
-                AdditionalProductInfo = "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
+                AdditionalUserAgentInfo = "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
             };
             IotHubModuleClient moduleClient = await IotHubModuleClient.CreateFromEnvironmentAsync(options);
 

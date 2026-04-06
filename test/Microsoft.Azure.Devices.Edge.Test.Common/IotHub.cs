@@ -136,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 patch.Properties.Desired[prop.Name] = prop.Value;
             }
+
             await this.ServiceClient.Twins.UpdateAsync(
                 deviceId,
                 moduleId,

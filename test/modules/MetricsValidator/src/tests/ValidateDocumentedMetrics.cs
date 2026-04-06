@@ -139,6 +139,7 @@ namespace MetricsValidator.Tests
                 {
                     return new DirectMethodResponse(200);
                 }
+
                 return new DirectMethodResponse(404);
             });
             await this.moduleClient.InvokeMethodAsync(deviceId, Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new EdgeModuleDirectMethodRequest(methodName), cancellationToken);

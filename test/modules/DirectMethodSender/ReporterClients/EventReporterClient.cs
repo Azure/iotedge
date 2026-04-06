@@ -47,7 +47,10 @@ namespace DirectMethodSender
 
         public override async ValueTask DisposeAsync()
         {
-            if (this.moduleClient != null) await this.moduleClient.DisposeAsync();
+            if (this.moduleClient != null)
+            {
+                await this.moduleClient.DisposeAsync();
+            }
         }
 
         internal override async Task ReportStatusAsync(TestResultBase testResult)

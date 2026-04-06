@@ -3,8 +3,8 @@ namespace DirectMethodReceiver
 {
     using System;
     using System.Net;
-    using System.Text;
     using System.Reflection;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -43,7 +43,10 @@ namespace DirectMethodReceiver
 
         public async ValueTask DisposeAsync()
         {
-            if (this.moduleClient != null) await this.moduleClient.DisposeAsync();
+            if (this.moduleClient != null)
+            {
+                await this.moduleClient.DisposeAsync();
+            }
         }
 
         async Task<DirectMethodResponse> HelloWorldMethodAsync(DirectMethodRequest methodRequest, object userContext)
@@ -96,6 +99,7 @@ namespace DirectMethodReceiver
                 {
                     return await this.HelloWorldMethodAsync(request, null);
                 }
+
                 return new DirectMethodResponse((int)HttpStatusCode.NotFound);
             });
         }

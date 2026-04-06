@@ -114,7 +114,10 @@ namespace EdgeHubRestartTester
             }
             finally
             {
-                if (iotHubServiceClient != null) iotHubServiceClient.Dispose();
+                if (iotHubServiceClient != null)
+                {
+                    iotHubServiceClient.Dispose();
+                }
 
                 foreach (IotHubModuleClient client in moduleClients)
                 {

@@ -2,6 +2,15 @@
   "version": 1,
   "dependencies": {
     "net10.0": {
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.2.0-beta.164, )",
+        "resolved": "1.2.0-beta.164",
+        "contentHash": "IWMH8RyJGDu8ZrYFKIwjfcuXizpJnjnMGE8tDRnZ36AIAQeFDjeUPH2EUEMwj4+63oQBu/KkzRe9clSW9s5mdA==",
+        "dependencies": {
+          "StyleCop.Analyzers.Unstable": "1.2.0.164"
+        }
+      },
       "App.Metrics.Abstractions": {
         "type": "Transitive",
         "resolved": "4.3.0",
@@ -42,10 +51,28 @@
           "protobuf-net": "2.4.0"
         }
       },
+      "Azure.Core": {
+        "type": "Transitive",
+        "resolved": "1.31.0",
+        "contentHash": "YZlzaVS4XpPPIob934+UFfxvxMWe05PG3FDfwAXZz+MY+ShDJCjMokfrfh18F7VDW5tG0iMbPVjigeL6crGCiQ==",
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "1.1.1",
+          "System.Memory.Data": "1.0.2"
+        }
+      },
       "Microsoft.Azure.Amqp": {
         "type": "Transitive",
         "resolved": "2.6.2",
         "contentHash": "6hQqWRiHRd9J6pGBlzQM9LBOWaO8xIsRVYs3olrDGqOkK7v9mgwz9rmrv+49FIbLEOGgkP9IKLnXdsA4Y8IIYw=="
+      },
+      "Microsoft.Azure.Devices": {
+        "type": "Transitive",
+        "resolved": "2.0.0-rc",
+        "contentHash": "zV8NsT47erV26kFKws0hvZuWe975C/rbHMvjNcfOnl0MH5WeaJWPnn0Baag4PeCfEPw5zh8ikxFGRxRD6xztYQ==",
+        "dependencies": {
+          "Azure.Core": "1.31.0",
+          "Microsoft.Azure.Amqp": "2.6.2"
+        }
       },
       "Microsoft.Azure.Devices.Client": {
         "type": "Transitive",
@@ -58,8 +85,8 @@
       },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
-        "resolved": "1.0.0",
-        "contentHash": "K63Y4hORbBcKLWH5wnKgzyn7TOfYzevIEwIedQHBIkmkEBA9SCqgvom+XTuE+fAFGvINGkhFItaZ2dvMGdT5iw=="
+        "resolved": "1.1.1",
+        "contentHash": "yuvf07qFWFqtK3P/MRkEKLhn5r2UbSpVueRziSqj0yJQIKFwG1pq9mOayK3zE5qZCTs0CbrwL9M6R8VwqyGy2w=="
       },
       "Microsoft.Extensions.Configuration": {
         "type": "Transitive",
@@ -273,6 +300,16 @@
           "Serilog": "4.0.0"
         }
       },
+      "StyleCop.Analyzers.Unstable": {
+        "type": "Transitive",
+        "resolved": "1.2.0.164",
+        "contentHash": "3WJ5JvRP9QjdrwspeLFjwD2AZw2CcDmYLQ7x8oofxvOzXvboZdFlPsSV8h56hLyK0lnMFvtpb48nxz7oQ4RgCQ=="
+      },
+      "System.Memory.Data": {
+        "type": "Transitive",
+        "resolved": "1.0.2",
+        "contentHash": "JGkzeqgBsiZwKJZ1IxPNsDFZDhUvuEdX8L8BDC8N3KOj+6zMcNU28CNN59TpZE/VJYy9cP+5M+sbxtWJx3/xtw=="
+      },
       "System.Private.ServiceModel": {
         "type": "Transitive",
         "resolved": "4.5.3",
@@ -301,6 +338,7 @@
       "microsoft.azure.devices.edge.moduleutil": {
         "type": "Project",
         "dependencies": {
+          "Microsoft.Azure.Devices": "[2.0.0-rc, )",
           "Microsoft.Azure.Devices.Client": "[2.0.0-rc, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"
         }

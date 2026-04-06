@@ -68,8 +68,15 @@ namespace DirectMethodSender
             finally
             {
                 // Implicit CloseAsync()
-                if (directMethodClient != null) await directMethodClient.DisposeAsync();
-                if (reportClient != null) await reportClient.DisposeAsync();
+                if (directMethodClient != null)
+                {
+                    await directMethodClient.DisposeAsync();
+                }
+
+                if (reportClient != null)
+                {
+                    await reportClient.DisposeAsync();
+                }
             }
 
             completed.Set();
