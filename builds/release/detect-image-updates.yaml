@@ -94,7 +94,9 @@ steps:
         docker buildx imagetools inspect --format "{{json .Provenance}}" $image | jq -r '
           . as $doc | [
             keys[] | $doc[.] | [
-              .SLSA // halt | .materials[] | select(.uri | startswith("pkg:docker/docker/dockerfile") | not)
+              .SLSA // halt | .buildDefinition.resolvedDependencies[] | select(
+                .uri | startswith("pkg:docker/docker/dockerfile") | not
+              ) 
             ] | if length == 1 then first else (
               "Error: inspect command found more than one base image in provenance materials\n\(.)" | halt_error
             ) end | "\(.uri | sub("pkg:docker/(?<i>.+)@(?<t>.+)\\?.+"; "\(.i):\(.t)")),sha256:\(.digest.sha256)"
