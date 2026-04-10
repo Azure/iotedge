@@ -163,8 +163,8 @@ jobs:
         displayName: Publish code coverage results
         inputs:
           summaryFileLocation: "edgelet/cobertura.xml"
-      - task: BuildQualityChecks@9
-        displayName: "Check build quality"
+      - task: BuildQualityChecks@10
+        displayName: Check build quality
         inputs:
           checkCoverage: true
           coverageFailOption: fixed
