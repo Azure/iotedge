@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         readonly string eventHubName;
         readonly string eventHubNamespace;
-        readonly int eventHubPartitionCount;
+        readonly Lazy<Task<int>> eventHubPartitionCount;
         readonly string iotHubHostname;
         readonly Lazy<RegistryManager> registryManager;
         readonly Lazy<ServiceClient> serviceClient;
@@ -57,22 +57,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         settings);
                 });
 
-            var consumerOptions = new EventHubConsumerClientOptions();
-            proxy.ForEach(p =>
-            {
-                consumerOptions.ConnectionOptions.TransportType = EventHubsTransportType.AmqpWebSockets;
-                consumerOptions.ConnectionOptions.Proxy = p;
-            });
+            this.eventHubPartitionCount = new Lazy<Task<int>>(
+                () =>
+                {
+                    var consumerOptions = new EventHubConsumerClientOptions();
+                    proxy.ForEach(p =>
+                    {
+                        consumerOptions.ConnectionOptions.TransportType = EventHubsTransportType.AmqpWebSockets;
+                        consumerOptions.ConnectionOptions.Proxy = p;
+                    });
 
-            var consumer = new EventHubConsumerClient(
-                EventHubConsumerClient.DefaultConsumerGroupName,
-                this.eventHubNamespace,
-                this.eventHubName,
-                new AzureCliCredential(),
-                consumerOptions);
+                    var consumer = new EventHubConsumerClient(
+                        EventHubConsumerClient.DefaultConsumerGroupName,
+                        this.eventHubNamespace,
+                        this.eventHubName,
+                        new AzureCliCredential(),
+                        consumerOptions);
 
-            this.eventHubPartitionCount = consumer.GetPartitionIdsAsync().GetAwaiter().GetResult().Length;
-            consumer.CloseAsync().GetAwaiter().GetResult();
+                    return consumer.GetPartitionIdsAsync()
+                        .ContinueWith(t => t.Result.Length)
+                        .ContinueWith(t =>
+                        {
+                            Task.WhenAll(consumer.CloseAsync(), t);
+                            return t.Result;
+                        });
+                });
         }
 
         public string Hostname => this.iotHubHostname;
@@ -215,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             var receiver = new PartitionReceiver(
                 EventHubConsumerClient.DefaultConsumerGroupName,
-                EventHubPartitionKeyResolver.ResolveToPartition(deviceId, this.eventHubPartitionCount),
+                EventHubPartitionKeyResolver.ResolveToPartition(deviceId, await this.eventHubPartitionCount.Value),
                 EventPosition.FromEnqueuedTime(seekTime),
                 this.eventHubNamespace,
                 this.eventHubName,
