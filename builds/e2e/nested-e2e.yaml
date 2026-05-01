@@ -56,6 +56,7 @@ stages:
           serviceConnection: $(az.subscription)
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
+      iotHubHostName: $(iothub.hostname)
       upstream.protocol: mqtt
       test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_mqtt.json'
   - job:  SetupVM_and_RunTest_level3

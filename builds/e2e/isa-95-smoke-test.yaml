@@ -104,6 +104,7 @@ stages:
       - template: templates/nested-create-identity.yaml
         parameters:
           arch: $(arch)
+          iotHubHostName: $(iothub.hostname)
       - template: templates/nested-agent-deploy.yaml
         parameters:
           containerRegistryServer: $(containerRegistryServer)
@@ -163,6 +164,7 @@ stages:
       - template: templates/nested-create-identity.yaml
         parameters:
           arch: $(arch)
+          iotHubHostName: $(iothub.hostname)
       - template: templates/nested-agent-deploy.yaml
         parameters:
           containerRegistryServer: $(containerRegistryServer)
@@ -223,6 +225,7 @@ stages:
       - template: templates/nested-create-identity.yaml
         parameters:
           arch: $(arch)
+          iotHubHostName: $(iothub.hostname)
       - template: templates/nested-agent-deploy.yaml
         parameters:
           containerRegistryServer: $(containerRegistryServer)
