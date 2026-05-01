@@ -483,7 +483,24 @@ jobs:
 
     steps:
     - script: |
-        sudo snap install docker
+        MAX_RETRIES=5
+        RETRY_COUNT=0
+
+        while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; do
+          if sudo snap install docker; then
+            echo "Docker snap installed successfully."
+            break
+          fi
+
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+          if [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; then
+            echo "snap install docker failed (attempt $RETRY_COUNT/$MAX_RETRIES). Retrying in 30s..."
+            sleep 30
+          else
+            echo "snap install docker failed after $MAX_RETRIES attempts."
+            exit 1
+          fi
+        done
       displayName: Install Docker as a snap
     - template: templates/e2e-setup.yaml
       parameters:
