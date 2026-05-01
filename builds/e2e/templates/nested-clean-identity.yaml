@@ -17,5 +17,5 @@ steps:
           exit 1
         fi
 
-        echo "Deleting device ${{ parameters.deviceId }} from hub ${{ parameters.iotHubName }} in subscription $(azure.subscription)"
+        echo "Deleting device ${{ parameters.deviceId }} from hub ${{ parameters.iotHubName }}"
         az iot hub device-identity delete -n ${{ parameters.iotHubName }} -d ${{ parameters.deviceId }}

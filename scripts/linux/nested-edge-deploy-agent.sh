@@ -109,7 +109,6 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<Container_Registry>@$CONTAINER_REGISTRY@g" "$deployment_working_file"
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
-    sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<proxyAddress>@$PROXY_ADDRESS@g" "$deployment_working_file"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
@@ -150,9 +149,6 @@ function process_args() {
         elif [ $saveNextArg -eq 6 ]; then
             CONTAINER_REGISTRY_PASSWORD="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 7 ]; then
-            IOT_HUB_CONNECTION_STRING="$arg"
-            saveNextArg=0
         elif [ $saveNextArg -eq 8 ]; then
             STORAGE_ACCOUNT_CONNECTION_STRING="$arg"
             saveNextArg=0
@@ -167,9 +163,6 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 12 ]; then
             CUSTOM_EDGE_HUB_IMAGE="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 13 ]; then
-            SUBSCRIPTION="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 14 ]; then
             LEVEL="$arg"
@@ -202,13 +195,11 @@ function process_args() {
                 '-containerRegistry' ) saveNextArg=4;;
                 '-containerRegistryUsername' ) saveNextArg=5;;
                 '-containerRegistryPassword' ) saveNextArg=6;;
-                '-iotHubConnectionString' ) saveNextArg=7;;
                 '-storageAccountConnectionString' ) saveNextArg=8;;
                 '-deploymentFileName' ) saveNextArg=9;;
                 '-edgeRuntimeBuildNumber' ) saveNextArg=10;;
                 '-customEdgeAgentImage' ) saveNextArg=11;;
                 '-customEdgeHubImage' ) saveNextArg=12;;
-                '-subscription' ) saveNextArg=13;;
                 '-level' ) saveNextArg=14;;
                 '-parentName' ) saveNextArg=15;;
                 '-connectionString' ) saveNextArg=16;;
@@ -230,13 +221,11 @@ function process_args() {
     # Required parameters
     # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
     # [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }
-    [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
-    [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
 
     echo 'Required parameters are provided'
