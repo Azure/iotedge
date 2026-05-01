@@ -626,11 +626,6 @@ jobs:
       containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
       containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
       containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
-      # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
-      'agent.disablelogplugin.testfilepublisherplugin': true
-      'agent.disablelogplugin.testresultlogplugin': true
-      # because we aren't publishing test artifacts for this job, turn on verbose logging instead
-      verbose: true
       # skip component governance detection to avoid proxy issues. It is checked in the other jobs.
       skipComponentGovernanceDetection: true
 
