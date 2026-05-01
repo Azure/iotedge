@@ -664,7 +664,8 @@ jobs:
     dependsOn:
     - Token
     - ContainerRegistryCredentials
-    condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'))
+    condition: succeeded('Token')
+
     pool:
       name: $(pool.linux.name)
       demands:
@@ -716,6 +717,8 @@ jobs:
     dependsOn:
     - Token
     - ContainerRegistryCredentials
+    condition: succeeded('Token')
+
     pool:
       name: $(pool.linux.arm.name)
       demands:
