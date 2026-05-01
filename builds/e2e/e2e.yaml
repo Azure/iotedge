@@ -683,7 +683,6 @@ jobs:
       containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
       containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
       containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
-      minimal: true
 
     timeoutInMinutes: 90
 
@@ -735,7 +734,6 @@ jobs:
       containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
       containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
       containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
-      minimal: true
 
     timeoutInMinutes: 90
 

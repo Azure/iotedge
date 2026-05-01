@@ -86,50 +86,6 @@ steps:
       
       sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 
-- bash: |
-    echo "=== HOSTNAME RESOLUTION ==="
-    hostname
-    cat /etc/hosts
-    getent ahosts $(hostname)
-    echo ""
-
-    echo "=== IPTABLES NAT (IPv4) ==="
-    sudo iptables -t nat -L DOCKER -n 2>&1
-    echo ""
-
-    echo "=== IP6TABLES NAT (IPv6) ==="
-    sudo ip6tables -t nat -L DOCKER -n 2>&1
-    echo ""
-
-    echo "=== DOCKER-PROXY ==="
-    which docker-proxy 2>&1 || echo "docker-proxy NOT FOUND"
-    find /usr/bin /usr/sbin /usr/libexec -name '*docker*proxy*' 2>/dev/null || echo "not found anywhere"
-    echo ""
-
-    echo "=== FIREWALLD ==="
-    systemctl is-active firewalld 2>&1
-    echo ""
-
-    echo "=== IP FORWARDING ==="
-    sysctl net.ipv4.ip_forward net.ipv6.conf.all.forwarding
-    echo ""
-
-    echo "=== DOCKER PORT BINDINGS ==="
-    docker port edgeHub 2>&1
-    echo ""
-
-    echo "=== CONNECTIVITY TEST FROM HOST ==="
-    echo "" > /dev/tcp/localhost/8883 2>&1 && echo "localhost:8883 IPv4 OK" || echo "localhost:8883 FAILED"
-    echo "" > /dev/tcp/127.0.0.1/8883 2>&1 && echo "127.0.0.1:8883 OK" || echo "127.0.0.1:8883 FAILED"
-    echo "" > /dev/tcp/::1/8883 2>&1 && echo "::1:8883 IPv6 OK" || echo "::1:8883 IPv6 FAILED"
-    echo "" > /dev/tcp/$(hostname)/8883 2>&1 && echo "$(hostname):8883 OK" || echo "$(hostname):8883 FAILED"
-    echo ""
-
-    echo "=== LISTENING SOCKETS ON 8883 ==="
-    sudo ss -tlnp | grep 8883
-    exit 0
-  displayName: Temporarily dump network debug info
-
 - task: PublishTestResults@2
   displayName: Publish test results
   inputs:

@@ -116,23 +116,22 @@ namespace Microsoft.Azure.Devices.Edge.Test
             () => Profiler.Run(
                 async () =>
                 {
-                    // using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
-                    // CancellationToken token = cts.Token;
-                    // await this.daemon.StopAsync(token);
-                    // foreach (EdgeDevice device in Context.Current.DeleteList.Values)
-                    // {
-                    //     await device.MaybeDeleteIdentityAsync(token);
-                    // }
+                    using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
+                    CancellationToken token = cts.Token;
+                    await this.daemon.StopAsync(token);
+                    foreach (EdgeDevice device in Context.Current.DeleteList.Values)
+                    {
+                        await device.MaybeDeleteIdentityAsync(token);
+                    }
 
-                    // // Remove packages installed by this run.
-                    // await this.daemon.UninstallAsync(token);
+                    // Remove packages installed by this run.
+                    await this.daemon.UninstallAsync(token);
 
-                    // string certsPath = this.daemon.GetCertificatesPath();
-                    // if (Directory.Exists(certsPath))
-                    // {
-                    //     Directory.Delete(certsPath, true);
-                    // }
-                    await Task.CompletedTask;
+                    string certsPath = this.daemon.GetCertificatesPath();
+                    if (Directory.Exists(certsPath))
+                    {
+                        Directory.Delete(certsPath, true);
+                    }
                 },
                 "Completed end-to-end test teardown"),
             () =>
