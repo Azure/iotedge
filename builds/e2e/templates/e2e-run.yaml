@@ -83,7 +83,9 @@ steps:
       {
         $filter += '&Category!=NestedEdgeOnly'
       }
-      
+
+      echo "Test filter: $filter"
+
       sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 
 - task: PublishTestResults@2
