@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse2003 {
     #[serde(rename = "Warnings", skip_serializing_if = "Option::is_none")]
     warnings: Option<Vec<String>>,

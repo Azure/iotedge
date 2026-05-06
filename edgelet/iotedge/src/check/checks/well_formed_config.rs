@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use edgelet_settings::{Settings, CONFIG_FILE_DEFAULT, UPSTREAM_PARENT_KEYWORD};
+use edgelet_settings::{CONFIG_FILE_DEFAULT, Settings, UPSTREAM_PARENT_KEYWORD};
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 use crate::error::Error;

@@ -118,6 +118,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt as _;
+
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
@@ -199,7 +201,7 @@ mod tests {
 
         let route = test_route_ok!(TEST_PATH);
         let response = route.post(Some(body)).await.unwrap();
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
         let response: super::EncryptResponse = serde_json::from_slice(&body).unwrap();
         base64::Engine::decode(&engine, response.ciphertext).unwrap();
     }

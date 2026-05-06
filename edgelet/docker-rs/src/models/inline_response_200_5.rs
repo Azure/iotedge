@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse2005 {
     /// Container IDs that were deleted
     #[serde(rename = "ContainersDeleted", skip_serializing_if = "Option::is_none")]

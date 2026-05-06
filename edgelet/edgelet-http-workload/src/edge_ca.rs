@@ -280,8 +280,8 @@ pub(crate) fn keys(
     Ok((private_key, public_key))
 }
 
-pub(crate) fn extensions(
-) -> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
+pub(crate) fn extensions()
+-> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
     let mut csr_extensions = openssl::stack::Stack::new()?;
 
     let mut key_usage = openssl::x509::extension::KeyUsage::new();

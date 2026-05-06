@@ -9,14 +9,117 @@ members = [
     "edgelet-http-workload",
     "edgelet-image-cleanup",
     "edgelet-settings",
+    "edgelet-test-utils",
     "edgelet-utils",
     "iotedge",
     "support-bundle",
 ]
 resolver = "2"
 
+
+[workspace.dependencies]
+anyhow = "1"
+async-trait = "0.1"
+atty = "0.2"
+
+base64 = "0.22"
+byte-unit = "5"
+bytes = "1"
+
+chrono = { version = "0.4.7", features = ["serde"] }
+chrono-humanize = "0.2"
+
+clap = { version = "4", features = ["cargo", "env", "string"] }
+config = { version = "0.15", default-features = false }
+
+erased-serde = "0.4"
+
+futures-util = "0.3"
+
+hex = "0.4"
+http = "1"
+http-body = "1"
+http-body-util = "0.1"
+humantime = "2"
+humantime-serde = "1"
+hyper = { version = "1", features = ["client", "http1", "server"] }
+hyper-util = { version = "0.1", features = [
+	"client",
+	"client-legacy",
+	"http1",
+	"service",
+	"tokio",
+] }
+hyper-openssl = { version = "0.10.1", features = ["tokio"] }
+
+libc = "0.2"
+log = { version = "0.4", features = ["std"] }
+
+nix = "0.31"
+num_cpus = "1.8"
+
+openssl = "0.10"
+
+percent-encoding = "2"
+
+regex = "1"
+
+semver = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serial_test = "3"
+sha2 = "0.11"
+sysinfo = "0.39"
+
+tabwriter = "1"
+termcolor = "1"
+test-case = "3"
+thiserror = "2"
+tokio = { version = "1", features = [
+    "macros",
+    "parking_lot",
+    "process",
+    "rt",
+    "rt-multi-thread",
+    "signal",
+    "sync",
+    "time",
+] }
+toml = "1"
+tower-service = "0.3"
+
+url = { version = "2", features = ["serde"] }
+
+yaml-rust = "0.4"
+
+zip = { version = "8", features = ["deflate"], default-features = false }
+
+aziot-cert-client-async = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-cert-common-http = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-certd-config = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-identity-client-async = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-identity-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-identity-common-http = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-identityd-config = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-key-client = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-key-client-async = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-key-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-key-common-http = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-key-openssl-engine = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-keyd-config = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-keys-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-tpmd-config = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziotctl-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+cert-renewal = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+config-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+http-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+logger = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+test-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+
+
 [profile.dev]
 panic = 'abort'
+
 
 [profile.release]
 panic = 'abort'

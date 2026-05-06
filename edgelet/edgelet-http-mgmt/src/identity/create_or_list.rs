@@ -129,6 +129,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt as _;
+
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
@@ -181,7 +183,7 @@ mod tests {
             };
 
             let response = route.post(Some(body)).await.unwrap();
-            let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+            let body = response.into_body().collect().await.unwrap().to_bytes();
             let response: crate::identity::Identity = serde_json::from_slice(&body).unwrap();
 
             expected_identities.push(response);
@@ -192,7 +194,7 @@ mod tests {
         route.client = client.clone();
 
         let response = route.get().await.unwrap();
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
         let response: super::ListIdentitiesResponse = serde_json::from_slice(&body).unwrap();
 
         // Check that identities response contains the expected identities

@@ -2,25 +2,28 @@
 name = "edgelet-settings"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
+edition = "2024"
 publish = false
-edition = "2021"
+
 
 [dependencies]
-chrono = "0.4"
-serde = { version = "1", features = ["derive"] }
-humantime-serde = "1.0"
-url = { version = "2", features = ["serde"] }
+chrono = { workspace = true }
+humantime-serde = { workspace = true }
+serde = { workspace = true }
+url = { workspace = true }
 
-aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", optional = true }
+aziot-certd-config = { workspace = true }
+cert-renewal = { workspace = true }
+config-common = { workspace = true, optional = true }
+http-common = { workspace = true }
+
 docker = { path = "../docker-rs", optional = true }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+
 
 [dev-dependencies]
-lazy_static = "1"
-serde_json = "1"
-test-case = "2"
+serde_json = { workspace = true }
+test-case = { workspace = true }
+
 
 [features]
 settings-docker = ["config-common", "docker"]

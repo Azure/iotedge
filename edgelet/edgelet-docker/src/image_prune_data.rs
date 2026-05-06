@@ -67,7 +67,11 @@ impl ImagePruneData {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
-                log::warn!("Could not read image garbage collection data. Latest time of use will not be updated for image: {}. Error: {}", image_id, e);
+                log::warn!(
+                    "Could not read image garbage collection data. Latest time of use will not be updated for image: {}. Error: {}",
+                    image_id,
+                    e
+                );
                 return Err(e);
             }
         };
@@ -121,7 +125,10 @@ impl ImagePruneData {
             Ok(map) => map,
             Err(e) => {
                 drop(guard);
-                log::warn!("Could not read image garbage collection data. Image garbage collection will not prune any images. {}", e);
+                log::warn!(
+                    "Could not read image garbage collection data. Image garbage collection will not prune any images. {}",
+                    e
+                );
                 return Ok(HashMap::new());
             }
         };
@@ -143,7 +150,10 @@ impl ImagePruneData {
             guard.tmp_filepath.clone(),
             guard.image_use_filepath.clone(),
         ) {
-            log::warn!("Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}", e);
+            log::warn!(
+                "Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}",
+                e
+            );
         };
 
         /* ============================== */
@@ -221,7 +231,7 @@ fn write_images_with_timestamp(
         Err(err) => {
             return Err(Error::FileOperation(format!(
                 "Could not update garbage collection data {err}"
-            )))
+            )));
         }
     };
 
@@ -287,10 +297,10 @@ mod tests {
     use serial_test::serial;
 
     use crate::{
-        image_prune_data::{
-            get_images_with_timestamp, process_state, IMAGE_USE_FILENAME, TMP_FILENAME,
-        },
         ImagePruneData,
+        image_prune_data::{
+            IMAGE_USE_FILENAME, TMP_FILENAME, get_images_with_timestamp, process_state,
+        },
     };
 
     use super::write_images_with_timestamp;

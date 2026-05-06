@@ -84,7 +84,7 @@ where
             None => {
                 return Err(edgelet_http::error::bad_request(
                     "missing parameter: request body",
-                ))
+                ));
             }
         };
 
@@ -130,7 +130,7 @@ async fn get_module_key(
     let identity = match identity {
         aziot_identity_common::Identity::Aziot(identity) => identity,
         aziot_identity_common::Identity::Local(_) => {
-            return Err(edgelet_http::error::server_error("invalid identity type"))
+            return Err(edgelet_http::error::server_error("invalid identity type"));
         }
     };
 
@@ -144,6 +144,8 @@ async fn get_module_key(
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt as _;
+
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
@@ -211,7 +213,7 @@ mod tests {
 
         let route = test_route_ok!(TEST_PATH);
         let response = route.post(Some(body)).await.unwrap();
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
         let response: super::SignResponse = serde_json::from_slice(&body).unwrap();
         base64::Engine::decode(&engine, response.digest).unwrap();
     }
@@ -246,9 +248,11 @@ mod tests {
             identities.replace_with(|identities| {
                 identities.remove("testModule");
 
-                assert!(identities
-                    .insert("testModule".to_string(), identity)
-                    .is_none());
+                assert!(
+                    identities
+                        .insert("testModule".to_string(), identity)
+                        .is_none()
+                );
 
                 identities.to_owned()
             });
@@ -278,9 +282,11 @@ mod tests {
                 identity.auth = None;
                 let identity = aziot_identity_common::Identity::Aziot(identity);
 
-                assert!(identities
-                    .insert("testModule".to_string(), identity)
-                    .is_none());
+                assert!(
+                    identities
+                        .insert("testModule".to_string(), identity)
+                        .is_none()
+                );
 
                 identities.to_owned()
             });
@@ -313,9 +319,11 @@ mod tests {
 
                 let identity = aziot_identity_common::Identity::Aziot(identity);
 
-                assert!(identities
-                    .insert("testModule".to_string(), identity)
-                    .is_none());
+                assert!(
+                    identities
+                        .insert("testModule".to_string(), identity)
+                        .is_none()
+                );
 
                 identities.to_owned()
             });

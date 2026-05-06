@@ -532,9 +532,14 @@ impl Check {
                             id: "(aziot-identity-service-error)".into(),
                             description: format!(
                                 "aziot-identity-service checks unavailable - could not communicate with '{}' binary.",
-                                &self.aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
+                                &self
+                                    .aziot_bin
+                                    .to_str()
+                                    .expect("aziot_bin should be valid UTF-8")
                             ),
-                            result: CheckResult::Failed(anyhow::Error::from(err).context(Error::Aziot)),
+                            result: CheckResult::Failed(
+                                anyhow::Error::from(err).context(Error::Aziot),
+                            ),
                             additional_info: serde_json::Value::Null,
                         },
                         self.verbose,
@@ -707,11 +712,9 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
 mod tests {
     use edgelet_settings::docker::Settings;
 
-    use super::{checks::ProxySettings, checks::WellFormedConfig, Check, CheckResult, Checker};
+    use super::{Check, CheckResult, Checker, checks::ProxySettings, checks::WellFormedConfig};
 
-    lazy_static::lazy_static! {
-        static ref ENV_LOCK: tokio::sync::Mutex<()> = Default::default();
-    }
+    static ENV_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
     enum MobyProxyState {
         Set,
@@ -758,28 +761,30 @@ mod tests {
             EdgeAgentProxyState::NotSet => "sample_settings.toml",
         };
 
-        // Unset var to make sure we have a clean start
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
-        std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
+        unsafe {
+            // Unset var to make sure we have a clean start
+            std::env::remove_var("AZIOT_EDGED_CONFIG");
+            std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
 
-        // Set proxy for IoT Edge Agent in config.toml
-        std::env::set_var(
-            "AZIOT_EDGED_CONFIG",
-            format!(
-                "{}/../edgelet-settings/test-files/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                config_toml_filename,
-            ),
-        );
+            // Set proxy for IoT Edge Agent in config.toml
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG",
+                format!(
+                    "{}/../edgelet-settings/test-files/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    config_toml_filename,
+                ),
+            );
 
-        std::env::set_var(
-            "AZIOT_EDGED_CONFIG_DIR",
-            format!(
-                "{}/../edgelet-settings/test-files/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "config.d",
-            ),
-        );
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG_DIR",
+                format!(
+                    "{}/../edgelet-settings/test-files/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    "config.d",
+                ),
+            );
+        }
 
         // Create an empty check
         let mut check = super::Check::new(
@@ -837,8 +842,10 @@ mod tests {
             }
         }
 
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
-        std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
+        unsafe {
+            std::env::remove_var("AZIOT_EDGED_CONFIG");
+            std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
+        }
     }
 
     #[tokio::test]
@@ -846,14 +853,16 @@ mod tests {
         for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
             let _env_lock = ENV_LOCK.lock().await;
 
-            std::env::set_var(
-                "AZIOT_EDGED_CONFIG",
-                format!(
-                    "{}/../edgelet-settings/test-files/{}",
-                    env!("CARGO_MANIFEST_DIR"),
-                    filename,
-                ),
-            );
+            unsafe {
+                std::env::set_var(
+                    "AZIOT_EDGED_CONFIG",
+                    format!(
+                        "{}/../edgelet-settings/test-files/{}",
+                        env!("CARGO_MANIFEST_DIR"),
+                        filename,
+                    ),
+                );
+            }
 
             let mut check = Check::new(
                 "daemon.json".into(), // unused for this test
@@ -883,14 +892,16 @@ mod tests {
 
         let _env_lock = ENV_LOCK.lock().await;
 
-        std::env::set_var(
-            "AZIOT_EDGED_CONFIG",
-            format!(
-                "{}/../edgelet-settings/test-files/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                filename,
-            ),
-        );
+        unsafe {
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG",
+                format!(
+                    "{}/../edgelet-settings/test-files/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    filename,
+                ),
+            );
+        }
 
         let mut check = Check::new(
             "daemon.json".into(), // unused for this test
@@ -919,12 +930,16 @@ mod tests {
         // grab an env lock since we are going to be mucking with the environment.
         let _env_lock = ENV_LOCK.lock().await;
 
-        // unset var to make sure we have a clean start
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
-
         // Setup the https_proxy environment var
         let env_proxy_uri1 = "https://environment1:123";
-        std::env::set_var("https_proxy", env_proxy_uri1);
+
+        unsafe {
+            // unset var to make sure we have a clean start
+            std::env::remove_var("AZIOT_EDGED_CONFIG");
+
+            std::env::set_var("https_proxy", env_proxy_uri1);
+        }
+
         let proxy_uri = super::get_proxy_uri(Option::None);
         // Validate that the uri is picked up from the environment.
         assert!(
@@ -932,14 +947,16 @@ mod tests {
             "Unable to get proxy_uri from the environment"
         );
         assert_eq!(
-                    proxy_uri.unwrap(),
-                    env_proxy_uri1.to_string(),
-                    "proxy _uri fetched from the environment var \"https_proxy\" did not match expected value: '{env_proxy_uri1};"
-                );
+            proxy_uri.unwrap(),
+            env_proxy_uri1.to_string(),
+            "proxy _uri fetched from the environment var \"https_proxy\" did not match expected value: '{env_proxy_uri1};"
+        );
 
         // Setup the HTTPS_PROXY environment var
         let env_proxy_uri2 = "https://environment2:123";
-        std::env::set_var("HTTPS_PROXY", env_proxy_uri2);
+        unsafe {
+            std::env::set_var("HTTPS_PROXY", env_proxy_uri2);
+        }
         let proxy_uri = super::get_proxy_uri(Option::None);
         // Validate that the uri is picked up from the environment.
         assert!(
@@ -952,15 +969,17 @@ mod tests {
             "proxy _uri fetched from the environment var \"HTTPS_PROXY\" did not match expected value: '{env_proxy_uri2};"
         );
 
-        // Point to a test config
-        std::env::set_var(
-            "AZIOT_EDGED_CONFIG",
-            format!(
-                "{}/../edgelet-settings/test-files/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "sample_settings_with_proxy_uri.toml",
-            ),
-        );
+        unsafe {
+            // Point to a test config
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG",
+                format!(
+                    "{}/../edgelet-settings/test-files/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    "sample_settings_with_proxy_uri.toml",
+                ),
+            );
+        }
 
         // Get proxy_uri again
         let config_proxy_uri = "https://config:123";
@@ -990,10 +1009,12 @@ mod tests {
             "proxy_uri fetched from the config did not match expected value: \'{parm_proxy_uri}\'",
         );
 
-        // clean up the env
-        std::env::remove_var("AZIOT_EDGED_CONFIG");
-        std::env::remove_var("HTTPS_PROXY");
-        std::env::remove_var("https_proxy");
+        unsafe {
+            // clean up the env
+            std::env::remove_var("AZIOT_EDGED_CONFIG");
+            std::env::remove_var("HTTPS_PROXY");
+            std::env::remove_var("https_proxy");
+        }
     }
 
     #[tokio::test]

@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContainerSummary {
     #[serde(rename = "Id")]
     id: String,
@@ -248,7 +248,7 @@ impl ContainerSummary {
     }
 }
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContainerHostConfig {
     #[serde(rename = "NetworkMode")]
     network_mode: String,
@@ -275,7 +275,7 @@ impl ContainerHostConfig {
     }
 }
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContainerNetworkSettings {
     #[serde(rename = "Networks")]
     networks: ::std::collections::HashMap<String, crate::models::EndpointSettings>,

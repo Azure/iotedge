@@ -18,6 +18,7 @@ pub(crate) struct Provisioning {
 pub(crate) enum ProvisioningType {
     Manual(Manual),
     Dps(Dps),
+    #[allow(dead_code)]
     External(External),
 }
 
@@ -44,8 +45,8 @@ impl<'de> serde::Deserialize<'de> for Manual {
         let authentication = match (value.device_connection_string, value.authentication) {
             (Some(_), Some(_)) => {
                 return Err(serde::de::Error::custom(
-                        "Only one of provisioning.device_connection_string or provisioning.authentication must be set in the config.yaml.",
-                    ));
+                    "Only one of provisioning.device_connection_string or provisioning.authentication must be set in the config.yaml.",
+                ));
             }
             (Some(device_connection_string), None) => ManualAuthMethod::DeviceConnectionString(
                 device_connection_string

@@ -12,17 +12,17 @@
 pub mod base;
 
 pub use base::module::Settings as ModuleSpec;
-pub use base::{aziot, module, uri, watchdog};
 pub use base::{IotedgeMaxRequests, RuntimeSettings};
+pub use base::{aziot, module, uri, watchdog};
 
 #[cfg(feature = "settings-docker")]
 pub mod docker;
 #[cfg(feature = "settings-docker")]
 pub use crate::docker::{
+    CONFIG_FILE_DEFAULT, Settings,
     config::{DockerConfig, UPSTREAM_PARENT_KEYWORD},
     network::{Ipam, MobyNetwork},
     runtime::{ContentTrust, MobyRuntime},
-    Settings, CONFIG_FILE_DEFAULT,
 };
 
 /// ID of the device CA cert in certd and private key in keyd.

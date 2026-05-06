@@ -71,8 +71,7 @@ To reconfigure IoT Edge, run:
     let old_master_encryption_key_path = {
         // libiothsm derived the filenames for encryption keys from their alias (see `normalize_alias_file_path`)
         // so the name of the master encryption key can be hard-coded.
-        const OLD_MASTER_ENCRYPTION_KEY_PATH: &str =
-            "/var/lib/iotedge/hsm/enc_keys/edgelet-masterWt5mT2xpO72EPKlt2Tt0Sq4uJCrMvfl2rzzKRB3pnyo_.enc.key";
+        const OLD_MASTER_ENCRYPTION_KEY_PATH: &str = "/var/lib/iotedge/hsm/enc_keys/edgelet-masterWt5mT2xpO72EPKlt2Tt0Sq4uJCrMvfl2rzzKRB3pnyo_.enc.key";
 
         let old_master_encryption_key_path = Path::new(OLD_MASTER_ENCRYPTION_KEY_PATH);
         if old_master_encryption_key_path.is_file() {
@@ -115,7 +114,7 @@ fn execute_inner(
                 return Err(format!(
                     "there is no old config at {old_config_file_display} available to migrate"
                 )
-                .into())
+                .into());
             }
             _ => return Err(format!("could not open {old_config_file_display}: {err}").into()),
         },
@@ -132,7 +131,7 @@ fn execute_inner(
         match old_config.and_then(config::Config::try_deserialize) {
             Ok(old_config) => old_config,
             Err(err) => {
-                return Err(format!("could not parse {old_config_file_display}: {err}").into())
+                return Err(format!("could not parse {old_config_file_display}: {err}").into());
             }
         }
     };
@@ -304,7 +303,7 @@ fn execute_inner(
             ),
 
             old_config::ProvisioningType::External(_) => {
-                return Err("external provisioning is not supported.".into())
+                return Err("external provisioning is not supported.".into());
             }
         };
 
@@ -365,9 +364,6 @@ fn execute_inner(
         auto_reprovisioning_mode,
 
         imported_master_encryption_key: old_master_encryption_key_path,
-
-        #[cfg(contenttrust)]
-        manifest_trust_bundle_cert: None,
 
         additional_info: None,
 

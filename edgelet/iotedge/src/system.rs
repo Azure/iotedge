@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::ffi::OsStr;
-
-use lazy_static::lazy_static;
+use std::{ffi::OsStr, sync::LazyLock};
 
 use aziotctl_common::system::{
-    get_status, get_system_logs as logs, restart, set_log_level as log_level, stop,
-    ServiceDefinition,
+    ServiceDefinition, get_status, get_system_logs as logs, restart, set_log_level as log_level,
+    stop,
 };
 
 #[cfg(not(feature = "snapctl"))]
@@ -18,51 +16,45 @@ use aziot_identity_common_http::ApiVersion;
 use crate::error::Error;
 
 #[cfg(feature = "snapctl")]
-lazy_static! {
-    static ref IOTEDGED: ServiceDefinition = {
-        ServiceDefinition {
-            service: "snap.azure-iot-edge.aziot-edged.service",
-            sockets: &[],
-        }
-    };
-    static ref DOCKERPROXY: ServiceDefinition = {
-        ServiceDefinition {
-            service: "snap.azure-iot-edge.docker-proxy.service",
-            sockets: &[],
-        }
-    };
-    static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> =
-        [&*DOCKERPROXY, &*IOTEDGED].into_iter().collect();
-}
+static IOTEDGED: LazyLock<ServiceDefinition> = LazyLock::new(|| ServiceDefinition {
+    service: "snap.azure-iot-edge.aziot-edged.service",
+    sockets: &[],
+});
+#[cfg(feature = "snapctl")]
+static DOCKERPROXY: LazyLock<ServiceDefinition> = LazyLock::new(|| ServiceDefinition {
+    service: "snap.azure-iot-edge.docker-proxy.service",
+    sockets: &[],
+});
+#[cfg(feature = "snapctl")]
+static SERVICE_DEFINITIONS: LazyLock<Vec<[&ServiceDefinition]>> =
+    LazyLock::new(|| vec![&DOCKERPROXY, &IOTEDGED]);
 
 #[cfg(not(feature = "snapctl"))]
-lazy_static! {
-    static ref IOTEDGED: ServiceDefinition = {
-        // If IOTEDGE_LISTEN_MANAGEMENT_URI isn't set at compile-time, assume socket activation is being used.
-        //
-        // This doesn't matter for released packages since those always have IOTEDGE_LISTEN_MANAGEMENT_URI set.
-        // It's only useful for non-package builds.
-        let uses_socket_activation = option_env!("IOTEDGE_LISTEN_MANAGEMENT_URI").map_or(true, |value| value.starts_with("fd://"));
+static IOTEDGED: LazyLock<ServiceDefinition> = LazyLock::new(|| {
+    // If IOTEDGE_LISTEN_MANAGEMENT_URI isn't set at compile-time, assume socket activation is being used.
+    //
+    // This doesn't matter for released packages since those always have IOTEDGE_LISTEN_MANAGEMENT_URI set.
+    // It's only useful for non-package builds.
+    let uses_socket_activation = option_env!("IOTEDGE_LISTEN_MANAGEMENT_URI")
+        .map_or(true, |value| value.starts_with("fd://"));
 
-        let sockets: &'static [&'static str] =
-            if uses_socket_activation {
-                &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"]
-            }
-            else {
-                &[]
-            };
-
-        ServiceDefinition {
-            service: "aziot-edged.service",
-            sockets,
-        }
+    let sockets: &'static [&'static str] = if uses_socket_activation {
+        &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"]
+    } else {
+        &[]
     };
 
-    static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> =
-        std::iter::once(&*IOTEDGED)
-            .chain(IS_SERVICES.iter().copied())
-            .collect();
-}
+    ServiceDefinition {
+        service: "aziot-edged.service",
+        sockets,
+    }
+});
+
+static SERVICE_DEFINITIONS: LazyLock<Vec<&ServiceDefinition>> = LazyLock::new(|| {
+    std::iter::once(&*IOTEDGED)
+        .chain(IS_SERVICES.iter().copied())
+        .collect()
+});
 
 pub struct System;
 

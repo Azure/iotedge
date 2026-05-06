@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Platform {
     /// Architecture represents the hardware architecture (for example, `x86_64`).
     #[serde(rename = "Architecture", skip_serializing_if = "Option::is_none")]

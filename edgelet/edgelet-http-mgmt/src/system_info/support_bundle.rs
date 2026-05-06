@@ -120,7 +120,7 @@ where
     }
 }
 
-struct ReadStream(Box<dyn Read + Send>);
+struct ReadStream(Box<dyn Read + Send + Sync>);
 
 impl futures_util::stream::Stream for ReadStream {
     type Item = Result<Vec<u8>, std::io::Error>;

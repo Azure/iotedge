@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse200State {
     /// The status of the container. For example, `\"running\"` or `\"exited\"`.
     #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]

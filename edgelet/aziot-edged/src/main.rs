@@ -11,7 +11,7 @@ mod workload_manager;
 
 use std::sync::atomic;
 
-use edgelet_core::{module::ModuleAction, ModuleRuntime, WatchdogAction};
+use edgelet_core::{ModuleRuntime, WatchdogAction, module::ModuleAction};
 use edgelet_docker::{ImagePruneData, MakeModuleRuntime};
 use edgelet_image_cleanup::image_gc;
 use edgelet_settings::RuntimeSettings;

@@ -6,9 +6,11 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{process, str};
 
 use anyhow::Context;
-use sysinfo::{CpuExt, DiskExt, PidExt, ProcessExt, System, SystemExt};
-use tokio::sync::mpsc::UnboundedSender;
+use hyper::body::Incoming;
+use hyper_util::client::legacy::connect::Connect;
+use sysinfo::{Disks, Process, System};
 use tokio::sync::Mutex;
+use tokio::sync::mpsc::UnboundedSender;
 use url::Url;
 
 use docker::apis::{Configuration, DockerApi, DockerApiClient};
@@ -24,7 +26,7 @@ use edgelet_utils::ensure_not_empty;
 use http_common::Connector;
 
 use crate::error::Error;
-use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use crate::module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE, runtime_state};
 use crate::{ImagePruneData, MakeModuleRuntime};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
@@ -77,7 +79,7 @@ impl<C> std::fmt::Debug for DockerModuleRuntime<C> {
 #[async_trait::async_trait]
 impl<C> ModuleRegistry for DockerModuleRuntime<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+    C: Clone + Connect + Send + Sync + 'static,
 {
     type Config = DockerConfig;
 
@@ -120,11 +122,17 @@ where
         match self.list_images().await {
             Ok(image_name_to_id) => {
                 if image_name_to_id.is_empty() {
-                    log::error!("No docker images present on device: {} was just pulled, but not found on device", image);
+                    log::error!(
+                        "No docker images present on device: {} was just pulled, but not found on device",
+                        image
+                    );
                 } else if let Some(image_id) = image_name_to_id.get(config.image()) {
                     self.image_use_data.record_image_use_timestamp(image_id)?;
                 } else {
-                    log::warn!("Could not retrieve image id. {} was not added to image garbage collection list and will not be garbage collected", image);
+                    log::warn!(
+                        "Could not retrieve image id. {} was not added to image garbage collection list and will not be garbage collected",
+                        image
+                    );
                 }
             }
             Err(e) => log::error!("Could not get list of docker images: {}", e),
@@ -295,7 +303,7 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
 #[async_trait::async_trait]
 impl<C> ModuleRuntime for DockerModuleRuntime<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+    C: Clone + Connect + Send + Sync + 'static,
 {
     type Config = DockerConfig;
     type Module = DockerModule<C>;
@@ -600,7 +608,7 @@ where
 
         let start_time = system_resources
             .process(sysinfo::Pid::from_u32(process::id()))
-            .map(ProcessExt::start_time)
+            .map(Process::start_time)
             .unwrap_or_default();
 
         let current_time = SystemTime::now()
@@ -608,20 +616,20 @@ where
             .unwrap_or_default()
             .as_secs();
 
-        let used_cpu = system_resources.global_cpu_info().cpu_usage();
+        let used_cpu = system_resources.global_cpu_usage();
         let total_memory = total_memory_bytes(&system_resources);
         let used_memory = used_memory_bytes(&system_resources);
 
-        let disks = system_resources
-            .disks()
+        let disks = Disks::new_with_refreshed_list()
+            .list()
             .iter()
             .map(|disk| {
                 DiskInfo::new(
                     disk.name().to_string_lossy().into_owned(),
                     disk.available_space(),
                     disk.total_space(),
-                    String::from_utf8_lossy(disk.file_system()).into_owned(),
-                    format!("{:?}", disk.type_()),
+                    disk.file_system().to_string_lossy().into_owned(),
+                    format!("{:?}", disk.kind()),
                 )
             })
             .collect();
@@ -758,7 +766,7 @@ where
         Ok(result)
     }
 
-    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body> {
+    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<Incoming> {
         log::info!("Getting logs for module {}...", id);
 
         self.client
@@ -788,7 +796,7 @@ where
             remove.push(ModuleRuntime::remove(self, module.name()));
         }
 
-        for result in futures::future::join_all(remove).await {
+        for result in futures_util::future::join_all(remove).await {
             if let Err(err) = result {
                 log::warn!("Failed to remove module: {:?}", err);
             }
@@ -805,7 +813,7 @@ where
             stop.push(self.stop(module.name(), wait_before_kill));
         }
 
-        for result in futures::future::join_all(stop).await {
+        for result in futures_util::future::join_all(stop).await {
             if let Err(err) = result {
                 log::warn!("Failed to stop module: {:?}", err);
             }
@@ -904,7 +912,9 @@ fn unset_privileged(
     }
     if let Some(config) = create_options.host_config() {
         if config.privileged() == Some(&true) || config.cap_add().map_or(0, Vec::len) != 0 {
-            log::warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
+            log::warn!(
+                "Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service."
+            );
             let mut config = config.clone();
 
             config.set_privileged(false);

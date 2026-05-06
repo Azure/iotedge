@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use chrono::prelude::*;
+use hyper::body::Incoming;
 use nix::sys::utsname::UtsName;
 use serde::{Deserialize, Serialize};
 
@@ -402,7 +403,7 @@ pub struct ProvisioningInfo {
 pub struct SystemResources {
     host_uptime: u64,
     process_uptime: u64,
-    used_cpu: f64,
+    used_cpu: f32,
     used_ram: u64,
     total_ram: u64,
     disks: Vec<DiskInfo>,
@@ -413,7 +414,7 @@ impl SystemResources {
     pub fn new(
         host_uptime: u64,
         process_uptime: u64,
-        used_cpu: f64,
+        used_cpu: f32,
         used_ram: u64,
         total_ram: u64,
         disks: Vec<DiskInfo>,
@@ -480,7 +481,7 @@ pub trait ModuleRuntime {
     async fn list(&self) -> anyhow::Result<Vec<Self::Module>>;
     async fn list_with_details(&self) -> anyhow::Result<Vec<(Self::Module, ModuleRuntimeState)>>;
     async fn list_images(&self) -> anyhow::Result<std::collections::HashMap<String, String>>;
-    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body>;
+    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<Incoming>;
     async fn remove_all(&self) -> anyhow::Result<()>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> anyhow::Result<()>;
     async fn module_top(&self, id: &str) -> anyhow::Result<Vec<i32>>;

@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ManagerStatus {
     #[serde(rename = "Leader", skip_serializing_if = "Option::is_none")]
     leader: Option<bool>,

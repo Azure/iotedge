@@ -3,26 +3,23 @@ use edgelet_settings::RuntimeSettings;
 use serde::Deserialize;
 
 use crate::check::{
-    upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult, Checker, CheckerMeta,
+    Check, CheckResult, Checker, CheckerMeta, upstream_protocol_port::UpstreamProtocolPort,
 };
 
 pub(crate) fn get_host_container_upstream_tests() -> Vec<Box<dyn Checker>> {
     vec![
-        #[cfg(unix)]
         make_check(
             "container-default-connect-upstream-amqp",
             "container on the default network can connect to upstream AMQP port",
             UpstreamProtocolPort::Amqp,
             false,
         ),
-        #[cfg(unix)]
         make_check(
             "container-default-connect-upstream-https",
             "container on the default network can connect to upstream HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
             false,
         ),
-        #[cfg(unix)]
         make_check(
             "container-default-connect-upstream-mqtt",
             "container on the default network can connect to upstream MQTT port",

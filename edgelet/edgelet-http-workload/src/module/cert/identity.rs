@@ -84,8 +84,8 @@ where
     type PutBody = serde::de::IgnoredAny;
 }
 
-fn identity_cert_extensions(
-) -> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
+fn identity_cert_extensions()
+-> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
     let mut csr_extensions = openssl::stack::Stack::new()?;
 
     let mut ext_key_usage = openssl::x509::extension::ExtendedKeyUsage::new();

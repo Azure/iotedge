@@ -1,3 +1,12 @@
+use std::convert::Infallible;
+
+use bytes::Bytes;
+use http_body_util::{BodyExt as _, combinators::BoxBody};
+use hyper::body::Incoming;
+use hyper_util::{
+    client::legacy::{Client, connect::Connect},
+    rt::TokioExecutor,
+};
 use serde::Deserialize;
 
 use super::configuration::Configuration;
@@ -6,7 +15,7 @@ use crate::models;
 type BoxFutureResult<'a, T> =
     std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>> + Send + 'a>>;
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ApiError {
     #[serde(deserialize_with = "try_from_u16")]
@@ -31,9 +40,9 @@ where
 }
 
 impl ApiError {
-    async fn try_from_response(value: hyper::Response<hyper::Body>) -> anyhow::Result<Self> {
+    async fn try_from_response(value: hyper::Response<Incoming>) -> anyhow::Result<Self> {
         let (parts, body) = value.into_parts();
-        let error_bytes = hyper::body::to_bytes(body).await?;
+        let error_bytes = body.collect().await?.to_bytes();
         let error_str = String::from_utf8(error_bytes.to_vec())?;
         Ok(Self {
             code: parts.status,
@@ -54,17 +63,17 @@ impl ApiError {
 
 #[derive(Clone)]
 pub struct DockerApiClient<C> {
-    client: hyper::Client<C>,
+    client: Client<C, BoxBody<Bytes, Infallible>>,
     configuration: std::sync::Arc<Configuration>,
 }
 
 impl<C> DockerApiClient<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+    C: Clone + Connect + Send + Sync + 'static,
 {
     pub fn new(connector: C) -> Self {
         Self {
-            client: hyper::Client::builder().build(connector),
+            client: Client::builder(TokioExecutor::new()).build(connector),
             configuration: std::sync::Arc::new(Configuration::default()),
         }
     }
@@ -159,7 +168,7 @@ pub trait DockerApi {
         until: Option<i32>,
         timestamps: bool,
         tail: &'a str,
-    ) -> BoxFutureResult<'a, hyper::Body>;
+    ) -> BoxFutureResult<'a, Incoming>;
 
     fn network_create(
         &self,
@@ -183,7 +192,7 @@ macro_rules! api_call {
                 .contains("application/json"),
             "expected JSON Content-Type"
         );
-        let response_bytes = ::hyper::body::to_bytes(body).await?;
+        let response_bytes = http_body_util::BodyExt::collect(body).await?.to_bytes();
         Ok(::serde_json::from_slice::<$output>(&response_bytes)?)
     }};
     (@inner maybe_output $response:ident => $transfer:ident $blk:block ; $($_output:ty)?) => {{
@@ -191,11 +200,11 @@ macro_rules! api_call {
         $blk
     }};
 
-    (@inner build_request $builder:ident) => { $builder.body(::hyper::Body::empty()) };
+    (@inner build_request $builder:ident) => { $builder.body(http_body_util::combinators::BoxBody::new(http_body_util::Empty::new())) };
     (@inner build_request $builder:ident $body:ident $_:ty) => {
         $builder
-            .header(::hyper::header::CONTENT_TYPE, "application/json")
-            .body(::hyper::Body::from(::serde_json::to_string(&$body)?))
+            .header(hyper::header::CONTENT_TYPE, "application/json")
+            .body(http_body_util::combinators::BoxBody::new(http_body_util::Full::new(serde_json::to_string(&$body)?.into())))
     };
 
     (@inner query $param:ident &$($_:lifetime)? str) => { $param };
@@ -266,7 +275,7 @@ macro_rules! api_call {
 
 impl<C> DockerApi for DockerApiClient<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+    C: Clone + Connect + Send + Sync + 'static,
 {
     api_call! {
         system_info : get "/info" -> models::SystemInfo ;
@@ -390,7 +399,7 @@ where
                 "expected JSON Content-Type"
             );
 
-            let response_bytes = hyper::body::to_bytes(body).await?;
+            let response_bytes = body.collect().await?.to_bytes();
             let mut last = serde_json::Deserializer::from_slice(&response_bytes)
                 .into_iter::<serde_json::Map<String, serde_json::Value>>()
                 .last()
@@ -414,7 +423,7 @@ where
     }
 
     api_call! {
-        container_logs : get "/containers/{id}/logs" -> hyper::Body ;
+        container_logs : get "/containers/{id}/logs" -> Incoming ;
         path : [ id: &'a str ] ;
         query : [
             "follow" = (follow: bool),
@@ -444,10 +453,12 @@ mod tests {
             serde_json::to_string(&serde_json::json!({"status":"STATUS"})).unwrap(),
         );
         let client = DockerApiClient::new(JsonConnector::ok(&payload));
-        assert!(client
-            .image_create("", "", "", "", "", "", "")
-            .await
-            .is_ok());
+        assert!(
+            client
+                .image_create("", "", "", "", "", "", "")
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]

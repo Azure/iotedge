@@ -11,8 +11,8 @@ use tabwriter::TabWriter;
 use edgelet_core::{Module, ModuleRuntime, ModuleStatus as ModuleStatusEnum};
 use edgelet_http::ModuleStatus;
 
-use crate::error::Error;
 use crate::MgmtModule;
+use crate::error::Error;
 
 pub struct List<M, W> {
     runtime: M,

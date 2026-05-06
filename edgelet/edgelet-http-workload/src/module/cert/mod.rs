@@ -3,6 +3,11 @@
 pub(crate) mod identity;
 pub(crate) mod server;
 
+use std::error::Error as StdError;
+
+use bytes::Bytes;
+use http_body_util::combinators::BoxBody;
+
 #[cfg(not(test))]
 use aziot_cert_client_async::Client as CertClient;
 #[cfg(not(test))]
@@ -64,7 +69,10 @@ impl CertApi {
         common_name: String,
         subject_alt_names: Vec<SubjectAltName>,
         extensions: openssl::stack::Stack<openssl::x509::X509Extension>,
-    ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
+    ) -> Result<
+        hyper::Response<BoxBody<Bytes, Box<dyn StdError + Send + Sync>>>,
+        http_common::server::Error,
+    > {
         let keys = new_keys()
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
         let private_key = key_to_pem(&keys.0);
@@ -196,8 +204,7 @@ fn get_expiration(cert: &str) -> Result<String, http_common::server::Error> {
     let expiration = cert.not_after().to_string();
     let expiration = chrono::NaiveDateTime::parse_from_str(&expiration, "%b %e %H:%M:%S %Y GMT")
         .expect("cert not_after should parse");
-    let expiration = chrono::DateTime::<chrono::Utc>::from_utc(expiration, chrono::Utc);
-
+    let expiration = chrono::TimeZone::from_utc_datetime(&chrono::Utc, &expiration);
     Ok(expiration.to_rfc3339())
 }
 
@@ -214,6 +221,8 @@ fn key_to_pem(key: &openssl::pkey::PKey<openssl::pkey::Private>) -> String {
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt as _;
+
     fn test_api() -> super::CertApi {
         let key_client = super::KeyClient::default();
         let key_client = std::sync::Arc::new(tokio::sync::Mutex::new(key_client));
@@ -254,7 +263,7 @@ mod tests {
             .unwrap();
 
         // Parse response
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
         let response: super::CertificateResponse = serde_json::from_slice(&body).unwrap();
 
         let cert = openssl::x509::X509::from_pem(response.certificate.as_bytes()).unwrap();

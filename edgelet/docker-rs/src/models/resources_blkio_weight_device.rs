@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ResourcesBlkioWeightDevice {
     #[serde(rename = "Path", skip_serializing_if = "Option::is_none")]
     path: Option<String>,

@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SwarmSpecEncryptionConfig {
     /// If set, generate a key and use it to lock data stored on the managers.
     #[serde(rename = "AutoLockManagers", skip_serializing_if = "Option::is_none")]

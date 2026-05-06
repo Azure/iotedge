@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use std::io::{Seek, Write};
 use tokio::process::Command;
 
 use anyhow::Context;
-use zip::{write::FileOptions, ZipWriter};
+use zip::{ZipWriter, write::FileOptions};
 
 use crate::error::Error;
 use edgelet_core::LogOptions;
@@ -48,7 +48,7 @@ pub async fn write_check(
 pub async fn write_inspect<W>(
     module_name: &str,
     zip_writer: &mut ZipWriter<W>,
-    file_options: &FileOptions,
+    file_options: &FileOptions<'_, ()>,
     verbose: bool,
 ) -> anyhow::Result<()>
 where
@@ -118,7 +118,7 @@ pub async fn get_docker_networks() -> Result<Vec<String>, Error> {
 pub async fn write_network_inspect<W>(
     network_name: &str,
     zip_writer: &mut ZipWriter<W>,
-    file_options: &FileOptions,
+    file_options: &FileOptions<'_, ()>,
     verbose: bool,
 ) -> anyhow::Result<()>
 where
@@ -170,20 +170,18 @@ pub async fn write_system_log<W>(
     unit: &str,
     log_options: &LogOptions,
     zip_writer: &mut ZipWriter<W>,
-    file_options: &FileOptions,
+    file_options: &FileOptions<'_, ()>,
     verbose: bool,
 ) -> anyhow::Result<()>
 where
     W: Write + Seek,
 {
     print_verbose(format!("Getting system logs for {name}").as_str(), verbose);
-    let timestamp = NaiveDateTime::from_timestamp_opt(log_options.since().into(), 0)
-        .ok_or(Error::SupportBundle)?;
-    let since_time: DateTime<Utc> = DateTime::from_utc(timestamp, Utc);
+    let since_time: DateTime<Utc> =
+        DateTime::from_timestamp(log_options.since().into(), 0).ok_or(Error::SupportBundle)?;
     let until_time: Option<DateTime<Utc>> = log_options
         .until()
-        .and_then(|until| NaiveDateTime::from_timestamp_opt(until.into(), 0))
-        .map(|until| DateTime::from_utc(until, Utc));
+        .and_then(|until| DateTime::from_timestamp(until.into(), 0));
 
     let command = {
         let mut command = Command::new("journalctl");

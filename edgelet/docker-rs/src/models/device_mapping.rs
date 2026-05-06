@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct DeviceMapping {
     #[serde(rename = "PathOnHost", skip_serializing_if = "Option::is_none")]
     path_on_host: Option<String>,

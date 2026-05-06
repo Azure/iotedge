@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse20012Actor {
     /// The ID of the object emitting the event
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]

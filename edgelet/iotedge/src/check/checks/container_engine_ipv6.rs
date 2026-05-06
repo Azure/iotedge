@@ -29,8 +29,7 @@ impl Checker for ContainerEngineIPv6 {
 
 impl ContainerEngineIPv6 {
     fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        const MESSAGE: &str =
-            "Container engine is not configured for IPv6 communication.\n\
+        const MESSAGE: &str = "Container engine is not configured for IPv6 communication.\n\
              Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";
 
         let is_edge_ipv6_configured = check.settings.as_ref().map_or(false, |settings| {
@@ -58,7 +57,7 @@ impl ContainerEngineIPv6 {
                     Err(err.context(MESSAGE))
                 } else {
                     Ok(CheckResult::Ignored)
-                }
+                };
             }
         };
         let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)

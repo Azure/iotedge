@@ -27,8 +27,7 @@ impl Checker for ContainerEngineDns {
 
 impl ContainerEngineDns {
     fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        const MESSAGE: &str =
-        "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub.\n\
+        const MESSAGE: &str = "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub.\n\
          Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.\n\
          You can ignore this warning if you are setting DNS server per module in the Edge deployment.";
 

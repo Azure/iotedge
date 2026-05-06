@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct NetworkSettings {
     /// Name of the network'a bridge (for example, `docker0`).
     #[serde(rename = "Bridge", skip_serializing_if = "Option::is_none")]

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use edgelet_core::{module::ModuleAction, Error, UrlExt};
+use edgelet_core::{Error, UrlExt, module::ModuleAction};
 use edgelet_settings::uri::Listen;
 
 use crate::error::Error as EdgedError;
@@ -250,7 +250,10 @@ where
     M::Config: serde::Serialize,
 {
     if let Err(err) = shutdown_rx.await {
-        return  Err(EdgedError::from_err("Could wait on the stop signal, workload manager will continue but not shutdown properly", err));
+        return Err(EdgedError::from_err(
+            "Could wait on the stop signal, workload manager will continue but not shutdown properly",
+            err,
+        ));
     }
 
     let module_list = runtime
