@@ -1,11 +1,11 @@
 parameters:
   containerRegistryServer: ''
   containerRegistryUsername: ''
-  dpsIdScope: ''
+  dpsIdScope: 'optional'
   eventHubName: ''
   eventHubFullyQualitifiedNamespace: ''
   iotHubHostName: ''
-  iotHubResourceId: ''
+  iotHubResourceId: 'optional'
   rootCaCertificate: ''
   rootCaKey: ''
 
