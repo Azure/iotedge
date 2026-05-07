@@ -7,7 +7,7 @@ steps:
     name: isa95_lock_lvl${{ parameters.lvl }}
     displayName: 'Locking network of ${{ parameters.agentName }}'
     inputs:
-      azureSubscription: 'IoTEdge1-msazure'
+      azureSubscription: '$(az.subscription)'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |

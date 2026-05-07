@@ -3,7 +3,7 @@ steps:
     condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
     displayName: 'Get rootCA'
     inputs:
-      azureSubscription: 'IoTEdge1-msazure'
+      azureSubscription: '$(az.subscription)'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |

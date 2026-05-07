@@ -7,7 +7,7 @@ steps:
     displayName: 'Create identity'
     name: createIdentity
     inputs:
-      azureSubscription: 'IoTEdge1-msazure'
+      azureSubscription: '$(az.subscription)'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |

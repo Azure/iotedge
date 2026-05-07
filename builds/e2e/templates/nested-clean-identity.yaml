@@ -9,7 +9,7 @@ steps:
     displayName: 'Clean identity level=${{ parameters.lvl }} arch=${{ parameters.arch }}'
     condition: always()
     inputs:
-      azureSubscription: 'IoTEdge1-msazure'
+      azureSubscription: '$(az.subscription)'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
