@@ -10,7 +10,7 @@
       },
       "Microsoft.Azure.Devices": {
         "type": "Direct",
-        "requested": "[1.42.0-edgeLts, )",
+        "requested": "[1.42.0-edgeLts, 1.42.0-edgeLts]",
         "resolved": "1.42.0-edgeLts",
         "contentHash": "uBgp2gb14LJmonqxibPpi38CXAUiGPYljhvCRDOdnmTC2Wp+Eku4U2T7+RnDamv/wO3zfVpXdmJj88GJZ4FphQ==",
         "dependencies": {
@@ -38,6 +38,15 @@
         "contentHash": "SjxKYS5nX6prcaT8ZjbkONh3vnh0Rxru09+gQ1a07v4TM530Oe/jq3Q4dOZPfo1wq0LYmTgLOZKrqRfEx4auPw==",
         "dependencies": {
           "Castle.Core": "5.1.0"
+        }
+      },
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.2.0-beta.164, )",
+        "resolved": "1.2.0-beta.164",
+        "contentHash": "IWMH8RyJGDu8ZrYFKIwjfcuXizpJnjnMGE8tDRnZ36AIAQeFDjeUPH2EUEMwj4+63oQBu/KkzRe9clSW9s5mdA==",
+        "dependencies": {
+          "StyleCop.Analyzers.Unstable": "1.2.0.164"
         }
       },
       "xunit": {
@@ -560,6 +569,11 @@
           "Serilog": "2.5.0"
         }
       },
+      "StyleCop.Analyzers.Unstable": {
+        "type": "Transitive",
+        "resolved": "1.2.0.164",
+        "contentHash": "3WJ5JvRP9QjdrwspeLFjwD2AZw2CcDmYLQ7x8oofxvOzXvboZdFlPsSV8h56hLyK0lnMFvtpb48nxz7oQ4RgCQ=="
+      },
       "System.ClientModel": {
         "type": "Transitive",
         "resolved": "1.1.0",
@@ -752,7 +766,7 @@
         "type": "Project",
         "dependencies": {
           "Azure.Storage.Blobs": "[12.19.1, )",
-          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, )",
+          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Agent.Core": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"
         }

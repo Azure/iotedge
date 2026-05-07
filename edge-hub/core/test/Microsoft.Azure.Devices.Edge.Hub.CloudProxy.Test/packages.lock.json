@@ -40,6 +40,15 @@
           "Castle.Core": "5.1.0"
         }
       },
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.2.0-beta.164, )",
+        "resolved": "1.2.0-beta.164",
+        "contentHash": "IWMH8RyJGDu8ZrYFKIwjfcuXizpJnjnMGE8tDRnZ36AIAQeFDjeUPH2EUEMwj4+63oQBu/KkzRe9clSW9s5mdA==",
+        "dependencies": {
+          "StyleCop.Analyzers.Unstable": "1.2.0.164"
+        }
+      },
       "xunit": {
         "type": "Direct",
         "requested": "[2.4.2, )",
@@ -721,6 +730,11 @@
           "NETStandard.Library": "1.6.1"
         }
       },
+      "StyleCop.Analyzers.Unstable": {
+        "type": "Transitive",
+        "resolved": "1.2.0.164",
+        "contentHash": "3WJ5JvRP9QjdrwspeLFjwD2AZw2CcDmYLQ7x8oofxvOzXvboZdFlPsSV8h56hLyK0lnMFvtpb48nxz7oQ4RgCQ=="
+      },
       "System.ClientModel": {
         "type": "Transitive",
         "resolved": "1.1.0",
@@ -849,7 +863,7 @@
         "type": "Project",
         "dependencies": {
           "DotNetty.Transport": "[0.7.6, )",
-          "Microsoft.Azure.Devices": "[1.42.0-edgeLts, )",
+          "Microsoft.Azure.Devices": "[1.42.0-edgeLts, 1.42.0-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Hub.Core": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
           "Stateless": "[4.0.0, )"
@@ -860,7 +874,7 @@
         "dependencies": {
           "App.Metrics": "[3.0.0, )",
           "JetBrains.Annotations": "[2018.3.0, )",
-          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, )",
+          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Storage": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
           "Microsoft.Azure.Devices.Routing.Core": "[1.0.0, )"
@@ -898,8 +912,8 @@
       "microsoft.azure.devices.edge.test.common": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Azure.Devices": "[1.42.0-edgeLts, )",
-          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, )",
+          "Microsoft.Azure.Devices": "[1.42.0-edgeLts, 1.42.0-edgeLts]",
+          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
           "Microsoft.Azure.EventHubs": "[4.3.2, )",
           "Microsoft.Extensions.Configuration.Binder": "[10.0.0, )",

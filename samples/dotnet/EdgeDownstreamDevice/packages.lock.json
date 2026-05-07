@@ -4,7 +4,7 @@
     "net10.0": {
       "Microsoft.Azure.Devices.Client": {
         "type": "Direct",
-        "requested": "[1.43.0-edgeLts, )",
+        "requested": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
         "resolved": "1.43.0-edgeLts",
         "contentHash": "lmcZUT04unp09ZoY9RdXTHjjsZrKs1oFotyvOlZBpsYD06R0/CTpfjbuk54LOqkH0NDk2lErnPAH/+/FE04fMg==",
         "dependencies": {

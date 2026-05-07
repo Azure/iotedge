@@ -4,7 +4,7 @@
     "net10.0": {
       "Microsoft.Azure.Devices.Client": {
         "type": "Direct",
-        "requested": "[1.43.0-edgeLts, )",
+        "requested": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
         "resolved": "1.43.0-edgeLts",
         "contentHash": "lmcZUT04unp09ZoY9RdXTHjjsZrKs1oFotyvOlZBpsYD06R0/CTpfjbuk54LOqkH0NDk2lErnPAH/+/FE04fMg==",
         "dependencies": {
@@ -77,6 +77,15 @@
           "Microsoft.Extensions.Configuration.Abstractions": "10.0.0",
           "Microsoft.Extensions.Configuration.FileExtensions": "10.0.0",
           "Microsoft.Extensions.FileProviders.Abstractions": "10.0.0"
+        }
+      },
+      "StyleCop.Analyzers": {
+        "type": "Direct",
+        "requested": "[1.2.0-beta.164, )",
+        "resolved": "1.2.0-beta.164",
+        "contentHash": "IWMH8RyJGDu8ZrYFKIwjfcuXizpJnjnMGE8tDRnZ36AIAQeFDjeUPH2EUEMwj4+63oQBu/KkzRe9clSW9s5mdA==",
+        "dependencies": {
+          "StyleCop.Analyzers.Unstable": "1.2.0.164"
         }
       },
       "System.Runtime.Loader": {
@@ -521,6 +530,11 @@
           "Serilog": "2.5.0"
         }
       },
+      "StyleCop.Analyzers.Unstable": {
+        "type": "Transitive",
+        "resolved": "1.2.0.164",
+        "contentHash": "3WJ5JvRP9QjdrwspeLFjwD2AZw2CcDmYLQ7x8oofxvOzXvboZdFlPsSV8h56hLyK0lnMFvtpb48nxz7oQ4RgCQ=="
+      },
       "System.ClientModel": {
         "type": "Transitive",
         "resolved": "1.1.0",
@@ -682,7 +696,7 @@
       "microsoft.azure.devices.edge.agent.diagnostics": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, )",
+          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Agent.IoTHub": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Storage": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
@@ -694,7 +708,7 @@
         "type": "Project",
         "dependencies": {
           "Azure.Storage.Blobs": "[12.19.1, )",
-          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, )",
+          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Agent.Core": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"
         }
@@ -702,7 +716,7 @@
       "microsoft.azure.devices.edge.moduleutil": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, )",
+          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"
         }
       },
@@ -716,8 +730,8 @@
       "microsoft.azure.devices.edge.test.common": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Azure.Devices": "[1.42.0-edgeLts, )",
-          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, )",
+          "Microsoft.Azure.Devices": "[1.42.0-edgeLts, 1.42.0-edgeLts]",
+          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
           "Microsoft.Azure.EventHubs": "[4.3.2, )",
           "Microsoft.Extensions.Configuration.Binder": "[10.0.0, )",
