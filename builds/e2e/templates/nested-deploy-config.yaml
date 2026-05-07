@@ -46,4 +46,4 @@ steps:
 
         # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
         deployment_working_file="$(Agent.HomeDirectory)/../working/deployment.json"
-        az iot edge set-modules --device-id "${{ parameters.deviceId }}" --hub-name "$(iotHubName)" --content ${deployment_working_file} --output none
+        az iot edge set-modules --auth-type login --device-id "${{ parameters.deviceId }}" --hub-name "$(iotHubName)" --content ${deployment_working_file} --output none
