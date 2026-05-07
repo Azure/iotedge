@@ -15,7 +15,7 @@ steps:
     env:
       AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
     inputs:
-      azureSubscription: '$(az.subscription)'
+      azureSubscription: 'IoTEdge1-msazure'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
@@ -44,6 +44,6 @@ steps:
           # -iotHubName "$(iotHubName)" \
           # -deviceId "${{ parameters.deviceId }}" \
 
-          # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
-          deployment_working_file="$(Agent.HomeDirectory)/../working/deployment.json"
-          az iot edge set-modules --device-id "${{ parameters.deviceId }}" --hub-name "$(iotHubName)" --content ${deployment_working_file} --output none
+        # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
+        deployment_working_file="$(Agent.HomeDirectory)/../working/deployment.json"
+        az iot edge set-modules --device-id "${{ parameters.deviceId }}" --hub-name "$(iotHubName)" --content ${deployment_working_file} --output none

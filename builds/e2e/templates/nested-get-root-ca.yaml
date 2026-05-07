@@ -3,7 +3,7 @@ steps:
     condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
     displayName: 'Get rootCA'
     inputs:
-      azureSubscription: '$(az.subscription)'
+      azureSubscription: 'IoTEdge1-msazure'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
@@ -17,5 +17,5 @@ steps:
         sudo update-ca-certificates
 
         #clean up
-        sudo rm tar -xjvf rootCA.tar.bz2
+        sudo rm rootCA.tar.bz2
         sudo rm -r ./certs

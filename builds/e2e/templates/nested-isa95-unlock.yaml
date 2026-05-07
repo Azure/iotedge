@@ -7,7 +7,7 @@ steps:
     condition: always()
     displayName: 'Unlocking network of ${{ parameters.agentName }}'
     inputs:
-      azureSubscription: '$(az.subscription)'
+      azureSubscription: 'IoTEdge1-msazure'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
