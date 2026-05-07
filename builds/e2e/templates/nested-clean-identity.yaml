@@ -18,4 +18,4 @@ steps:
         fi
 
         echo "Deleting device ${{ parameters.deviceId }} from hub ${{ parameters.iotHubName }}"
-        az iot hub device-identity delete -n ${{ parameters.iotHubName }} -d ${{ parameters.deviceId }}
+        az iot hub device-identity delete --auth-type login --hub-name ${{ parameters.iotHubName }} --device-id ${{ parameters.deviceId }}
