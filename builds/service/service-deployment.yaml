@@ -65,12 +65,18 @@ steps:
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
 
-- pwsh: |
-    $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
-    sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:Name=TempSensor
+- task: AzureCLI@2
   displayName: Run tests
   env:
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
+    no_proxy: 'localhost'
+  inputs:
+    azureSubscription: $(az.subscription)
+    scriptType: 'pscore'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
+      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:Name=TempSensor
 
 - task: PublishTestResults@2
   displayName: Publish test results
