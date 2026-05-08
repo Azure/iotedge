@@ -108,6 +108,11 @@ steps:
       ROOT_CERT: ${{ parameters.rootCaCertificate }}
       ROOT_KEY: ${{ parameters.rootCaKey }}
 
+  - task: UseDotNet@2
+    displayName: Install .NET 10 SDK
+    inputs:
+      packageType: sdk
+      version: 10.0.x
   - pwsh: |
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       dotnet build $testDir

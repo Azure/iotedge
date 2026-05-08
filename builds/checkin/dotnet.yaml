@@ -35,6 +35,11 @@ jobs:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
   steps:
+  - task: UseDotNet@2
+    displayName: Install .NET 10 SDK
+    inputs:
+      packageType: sdk
+      version: 10.0.x
   - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites
   - script: |
@@ -63,6 +68,11 @@ jobs:
     demands:
     - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
   steps:
+  - task: UseDotNet@2
+    displayName: Install .NET 10 SDK
+    inputs:
+      packageType: sdk
+      version: 10.0.x
   - script: scripts/linux/installPrereqs.sh
     displayName: Install Prerequisites
   - script: |
