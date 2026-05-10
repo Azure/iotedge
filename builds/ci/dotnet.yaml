@@ -28,10 +28,8 @@ jobs:
           keyVaultName: $(kv.name)
           secretsFilter: >-
             EdgeCapableDevice2,
-            EventHubConnStr2,
             IotDevice2ConnStr2,
             IotDevice3ConnStr2,
-            IotHubConnStr2,
             IotHubMqttHeadCert
       - task: Bash@3
         displayName: Install Prerequisites
@@ -52,10 +50,9 @@ jobs:
         displayName: Integration Tests
         env:
           EdgeCapableDevice2: $(EdgeCapableDevice2)
-          EventHubConnStr2: $(EventHubConnStr2)
           IotDevice2ConnStr2: $(IotDevice2ConnStr2)
           IotDevice3ConnStr2: $(IotDevice3ConnStr2)
-          IotHubConnStr2: $(IotHubConnStr2)
+          IotHubHostname: $(iothub.hostname)
           IotHubMqttHeadCert: $(IotHubMqttHeadCert)
       - task: PublishTestResults@2
         displayName: Publish test results

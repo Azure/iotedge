@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
+    using global::Azure.Identity;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -25,7 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
-    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
     using Message = Microsoft.Azure.Devices.Client.Message;
 
     [Integration]
@@ -52,16 +52,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
 
-            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             await registryManager.OpenAsync();
 
-            string iothubHostName = iotHubConnectionStringBuilder.HostName;
-            var identityProvider = new IdentityProvider(iothubHostName);
+            var identityProvider = new IdentityProvider(iotHubHostname);
             var identityFactory = new ClientCredentialsFactory(identityProvider);
 
-            (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(EdgeDeviceId, iotHubConnectionString, registryManager, true, false);
+            (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(EdgeDeviceId, iotHubHostname, registryManager, true, false);
             string edgeHubConnectionString = $"{deviceConnStr};ModuleId={EdgeHubModuleId}";
 
             IClientCredentials edgeHubCredentials = identityFactory.GetWithConnectionString(edgeHubConnectionString);
@@ -86,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 1,
                 new ClientProvider(Option.None<string>()),
                 Option.None<UpstreamProtocol>(),
-                new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)),
+                new ClientTokenProvider(signatureProvider, iotHubHostname, edgeDeviceId, TimeSpan.FromMinutes(60)),
                 deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 edgeHubCredentials.Identity,
@@ -124,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 var routerConfig = new RouterConfig(Enumerable.Empty<Route>());
                 TimeSpan defaultTimeout = TimeSpan.FromSeconds(60);
                 var endpointExecutorFactory = new SyncEndpointExecutorFactory(new EndpointExecutorConfig(defaultTimeout, new FixedInterval(0, TimeSpan.FromSeconds(1)), defaultTimeout, true));
-                Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iothubHostName, routerConfig, endpointExecutorFactory);
+                Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubHostname, routerConfig, endpointExecutorFactory);
                 IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
                 var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
                 IEdgeHub edgeHub = new RoutingEdgeHub(router, new RoutingMessageConverter(), connectionManager, twinManager, edgeDeviceId, "$edgeHub", invokeMethodHandler, subscriptionProcessor, Mock.Of<IDeviceScopeIdentitiesCache>());
@@ -202,14 +200,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // Simulate a module and a downstream device that connects to Edge Hub.
                 string moduleId = "module1";
-                string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{edgeDeviceId}/modules/{moduleId}");
-                string moduleConnectionstring = $"HostName={iothubHostName};DeviceId={edgeDeviceId};ModuleId={moduleId};SharedAccessSignature={sasToken}";
+                string sasToken = TokenHelper.CreateSasToken($"{iotHubHostname}/devices/{edgeDeviceId}/modules/{moduleId}");
+                string moduleConnectionstring = $"HostName={iotHubHostname};DeviceId={edgeDeviceId};ModuleId={moduleId};SharedAccessSignature={sasToken}";
                 IClientCredentials moduleClientCredentials = identityFactory.GetWithConnectionString(moduleConnectionstring);
                 var moduleProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
 
                 string downstreamDeviceId = "device1";
-                sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{downstreamDeviceId}");
-                string downstreamDeviceConnectionstring = $"HostName={iothubHostName};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
+                sasToken = TokenHelper.CreateSasToken($"{iotHubHostname}/devices/{downstreamDeviceId}");
+                string downstreamDeviceConnectionstring = $"HostName={iotHubHostname};DeviceId={downstreamDeviceId};SharedAccessSignature={sasToken}";
                 IClientCredentials downstreamDeviceCredentials = identityFactory.GetWithConnectionString(downstreamDeviceConnectionstring);
                 var downstreamDeviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
 

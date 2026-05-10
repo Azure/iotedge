@@ -1,9 +1,8 @@
 {
-  "iotHubConnStrKey": "IotHubConnStr2",
+  "iotHubHostname": "IotHubHostname",
   "device1ConnStrKey": "IotDevice1ConnStr2",
   "device2ConnStrKey": "IotDevice2ConnStr2",
   "device3ConnStrKey": "IotDevice3ConnStr2",
-  "eventHubConnStrKey": "EventHubConnStr2",
   "edgeCapableDeviceConnStrKey": "EdgeCapableDevice2",
   "testSuite": [
     "test-config-x64.json"

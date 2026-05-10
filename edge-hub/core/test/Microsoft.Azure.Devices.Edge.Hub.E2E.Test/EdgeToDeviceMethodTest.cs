@@ -5,13 +5,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using global::Azure.Identity;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
     using Xunit.Abstractions;
     using EdgeHubConstants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
-    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
@@ -34,9 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async Task InvokeMethodOnModuleTest(ITransportSettings[] transportSettings)
         {
             // Arrange
-            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             ModuleClient receiver = null;
 
             string edgeDeviceConnectionString = ConfigHelper.TestConfig[EdgeHubConstants.ConfigKey.IotHubConnectionString];
@@ -59,9 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string receiverModuleName = "method-module";
             try
             {
-                ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                ServiceClient sender = ServiceClient.Create(iotHubHostname, new AzureCliCredential());
 
-                string receiverModuleConnectionString = await RegistryManagerHelper.CreateModuleIfNotExists(rm, connectionStringBuilder.HostName, edgeDeviceId, receiverModuleName);
+                string receiverModuleConnectionString = await RegistryManagerHelper.CreateModuleIfNotExists(rm, iotHubHostname, edgeDeviceId, receiverModuleName);
                 receiver = ModuleClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
                 await receiver.OpenAsync();
                 await receiver.SetMethodHandlerAsync("poke", MethodHandler, null);
@@ -127,8 +126,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             // Arrange
             string deviceName = string.Format("deviceMethodTest-{0}", transportSettings.First().GetTransportType().ToString("g"));
-            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             DeviceClient receiver = null;
 
             string edgeDeviceConnectionString = ConfigHelper.TestConfig[EdgeHubConstants.ConfigKey.IotHubConnectionString];
@@ -149,10 +148,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         200));
             }
 
-            (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice(deviceName, iotHubConnectionString, rm, scope: edgeDevice.Scope);
+            (string deviceId, string receiverModuleConnectionString) = await RegistryManagerHelper.CreateDevice(deviceName, iotHubHostname, rm, scope: edgeDevice.Scope);
             try
             {
-                ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                ServiceClient sender = ServiceClient.Create(iotHubHostname, new AzureCliCredential());
 
                 receiver = DeviceClient.CreateFromConnectionString(receiverModuleConnectionString, transportSettings);
                 await receiver.OpenAsync();

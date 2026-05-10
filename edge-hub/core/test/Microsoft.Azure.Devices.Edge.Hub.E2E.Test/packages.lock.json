@@ -8,11 +8,37 @@
         "resolved": "4.9.1",
         "contentHash": "L92DMQxpy4Xw3IypXxL8Z4NHt+qIkB1e0NB2OJ9u105Xp5sVsZSJ04YtYyubmM3KG8aC+WpyBhN14XcjPx5gLg=="
       },
+      "Azure.Identity": {
+        "type": "Direct",
+        "requested": "[1.17.1, )",
+        "resolved": "1.17.1",
+        "contentHash": "MSZkBrctcpiGxs9Cvr2VKKoN6qFLZlP3I6xuCWJ9iTgitI5Rgxtk5gfOSpXPZE3+CJmZ/mnqpQyGyjawFn5Vvg==",
+        "dependencies": {
+          "Azure.Core": "1.50.0",
+          "Microsoft.Identity.Client": "4.78.0",
+          "Microsoft.Identity.Client.Extensions.Msal": "4.78.0"
+        }
+      },
       "JetBrains.Annotations": {
         "type": "Direct",
         "requested": "[2018.3.0, )",
         "resolved": "2018.3.0",
         "contentHash": "Hbt5edAd7OfnYwsRayYguECzIJ4FUWDGjeEHsmxIgEpBbqZglhpxqjPWnWN/pEQM1HFGojMrR9dsywmC8pPTeQ=="
+      },
+      "Microsoft.Azure.Devices": {
+        "type": "Direct",
+        "requested": "[1.41.0, )",
+        "resolved": "1.41.0",
+        "contentHash": "J3tr63fgQOeCLMJQt67TXmx7HG2ZhH9TyTgm699pmcCR1tAsUaJrsKWX/IJYB+5SfwRGaXVFzy2aSbabzFS+/Q==",
+        "dependencies": {
+          "Azure.Core": "1.44.1",
+          "Microsoft.Azure.Amqp": "2.6.9",
+          "Microsoft.Azure.Devices.Shared": "1.30.4",
+          "Microsoft.Rest.ClientRuntime": "2.3.24",
+          "Newtonsoft.Json": "13.0.3",
+          "System.Diagnostics.Contracts": "4.3.0",
+          "System.Diagnostics.TraceSource": "4.3.0"
+        }
       },
       "Microsoft.NET.Test.Sdk": {
         "type": "Direct",
@@ -171,16 +197,6 @@
           "System.Memory.Data": "1.0.2"
         }
       },
-      "Azure.Identity": {
-        "type": "Transitive",
-        "resolved": "1.17.1",
-        "contentHash": "MSZkBrctcpiGxs9Cvr2VKKoN6qFLZlP3I6xuCWJ9iTgitI5Rgxtk5gfOSpXPZE3+CJmZ/mnqpQyGyjawFn5Vvg==",
-        "dependencies": {
-          "Azure.Core": "1.50.0",
-          "Microsoft.Identity.Client": "4.78.0",
-          "Microsoft.Identity.Client.Extensions.Msal": "4.78.0"
-        }
-      },
       "Azure.Messaging.EventHubs": {
         "type": "Transitive",
         "resolved": "5.12.2",
@@ -314,20 +330,6 @@
         "type": "Transitive",
         "resolved": "2.7.0",
         "contentHash": "gm/AEakujttMzrDhZ5QpRz3fICVkYDn/oDG9SmxDP+J7R8JDBXYU9WWG7hr6wQy40mY+wjUF0yUGXDPRDRNJwQ=="
-      },
-      "Microsoft.Azure.Devices": {
-        "type": "Transitive",
-        "resolved": "1.41.0",
-        "contentHash": "J3tr63fgQOeCLMJQt67TXmx7HG2ZhH9TyTgm699pmcCR1tAsUaJrsKWX/IJYB+5SfwRGaXVFzy2aSbabzFS+/Q==",
-        "dependencies": {
-          "Azure.Core": "1.44.1",
-          "Microsoft.Azure.Amqp": "2.6.9",
-          "Microsoft.Azure.Devices.Shared": "1.30.4",
-          "Microsoft.Rest.ClientRuntime": "2.3.24",
-          "Newtonsoft.Json": "13.0.3",
-          "System.Diagnostics.Contracts": "4.3.0",
-          "System.Diagnostics.TraceSource": "4.3.0"
-        }
       },
       "Microsoft.Azure.Devices.Client": {
         "type": "Transitive",
@@ -2165,6 +2167,8 @@
       "microsoft.azure.devices.edge.hub.cloudproxy.test": {
         "type": "Project",
         "dependencies": {
+          "Azure.Identity": "[1.17.1, )",
+          "Microsoft.Azure.Devices": "[1.41.0, )",
           "Microsoft.Azure.Devices.Edge.Hub.CloudProxy": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Hub.Core": "[1.0.0, )",
           "Microsoft.Azure.Devices.Edge.Hub.Core.Test": "[1.0.0, )",

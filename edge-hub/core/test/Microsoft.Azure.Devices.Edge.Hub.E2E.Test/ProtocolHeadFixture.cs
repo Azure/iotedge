@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
+    using global::Azure.Identity;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -79,10 +80,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await ConnectToIotHub(edgeDeviceConnectionString);
 
             // Set edgeHub connection string to config
-            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(edgeDeviceConnectionString);
             string iothub = ConnectionStringHelper.GetHostName(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             var edgeHubModule = await rm.GetModuleAsync(edgeDeviceId, "$edgeHub");
             if (edgeHubModule.Authentication.Type == AuthenticationType.None)
             {

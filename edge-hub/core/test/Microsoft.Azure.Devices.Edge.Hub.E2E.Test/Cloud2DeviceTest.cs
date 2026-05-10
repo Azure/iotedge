@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using global::Azure.Identity;
     using JetBrains.Annotations;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -31,17 +32,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_SingleMessage_ShouldSucceed(TransportType transportType)
         {
             // Arrange
-            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubHostname, rm, scope: edgeDevice.Scope);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
             try
             {
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                serviceClient = ServiceClient.Create(iotHubHostname, new AzureCliCredential());
                 await serviceClient.OpenAsync();
 
                 ITransportSettings[] settings = this.GetTransportSettings(transportType);
@@ -67,18 +68,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
             // Arrange
-            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
 
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubHostname, rm, scope: edgeDevice.Scope);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
             try
             {
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                serviceClient = ServiceClient.Create(iotHubHostname, new AzureCliCredential());
                 await serviceClient.OpenAsync();
 
                 ITransportSettings[] settings = this.GetTransportSettings();
@@ -123,17 +124,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
         {
             // Arrange
-            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubHostname, rm, scope: edgeDevice.Scope);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
             try
             {
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                serviceClient = ServiceClient.Create(iotHubHostname, new AzureCliCredential());
                 await serviceClient.OpenAsync();
 
                 // Act

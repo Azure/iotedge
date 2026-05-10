@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Collections.Generic;
     using System.Net;
     using System.Text;
-    using System.Threading;
     using System.Threading.Tasks;
+    using global::Azure.Identity;
     using global::Azure.Messaging.EventHubs;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
@@ -327,8 +327,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         static async Task UpdateDesiredProperty(string deviceId, TwinCollection desired)
         {
-            string connectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(connectionString);
+            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             Twin twin = await registryManager.GetTwinAsync(deviceId);
             twin.Properties.Desired = desired;
             twin = await registryManager.UpdateTwinAsync(deviceId, twin, twin.ETag);
