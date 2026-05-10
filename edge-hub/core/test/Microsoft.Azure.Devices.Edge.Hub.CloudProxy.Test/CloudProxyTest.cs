@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [TestPriority(401)]
         public async Task SendMessageTest()
         {
-            string device2ConnectionString = await SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey);
+            string device2ConnectionString = SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey);
             string deviceId2 = IotHubConnectionStringBuilder.Create(device2ConnectionString).DeviceId;
 
             IMessage message = MessageHelper.GenerateMessages(1)[0];
@@ -62,8 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IList<IMessage> messages = MessageHelper.GenerateMessages(4);
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
 
-            string device2ConnectionString = await SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey);
-            string device3ConnectionString = await SecretsHelper.GetSecretFromConfigKey(Device3ConnStrKey);
+            string device2ConnectionString = SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey);
+            string device3ConnectionString = SecretsHelper.GetSecretFromConfigKey(Device3ConnStrKey);
             string deviceId2 = IotHubConnectionStringBuilder.Create(device2ConnectionString).DeviceId;
             string deviceId3 = IotHubConnectionStringBuilder.Create(device3ConnectionString).DeviceId;
 
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [TestPriority(403)]
         public async Task SendMessageBatchTest()
         {
-            string device2ConnectionString = await SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey);
+            string device2ConnectionString = SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey);
             string deviceId2 = IotHubConnectionStringBuilder.Create(device2ConnectionString).DeviceId;
 
             IList<IMessage> messages = MessageHelper.GenerateMessages(4);
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 ["desiredPropertyTest"] = Guid.NewGuid().ToString()
             };
 
-            await UpdateDesiredProperty(ConnectionStringHelper.GetDeviceId(await SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey)), desired);
+            await UpdateDesiredProperty(ConnectionStringHelper.GetDeviceId(SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey)), desired);
             await update.Task;
             await cloudProxy.RemoveDesiredPropertyUpdatesAsync();
 
@@ -281,8 +281,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // TODO: The following secrets don't actually exist (and when they do, they won't be secrets). This is just
             // to get the tests building. We need to refactor the tests to not rely on secrets for these values.
-            string eventHubNamespace = await SecretsHelper.GetSecretFromConfigKey("eventHubNamespace");
-            string eventHubName = await SecretsHelper.GetSecretFromConfigKey("eventHubName");
+            string eventHubNamespace = SecretsHelper.GetSecretFromConfigKey("eventHubNamespace");
+            string eventHubName = SecretsHelper.GetSecretFromConfigKey("eventHubName");
             var eventHubReceiver = new EventHubReceiver(eventHubNamespace, eventHubName);
             var receivedMessagesByPartition = new Dictionary<string, List<EventData>>();
 
@@ -327,7 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         static async Task UpdateDesiredProperty(string deviceId, TwinCollection desired)
         {
-            string connectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string connectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(connectionString);
             Twin twin = await registryManager.GetTwinAsync(deviceId);
             twin.Properties.Desired = desired;
@@ -341,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         async Task<ICloudProxy> GetCloudProxyFromConnectionStringKey(string connectionStringConfigKey, IEdgeHub edgeHub)
         {
             const int ConnectionPoolSize = 10;
-            string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
+            string deviceConnectionString = SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
             string deviceId = ConnectionStringHelper.GetDeviceId(deviceConnectionString);
             string iotHubHostName = ConnectionStringHelper.GetHostName(deviceConnectionString);
             string sasKey = ConnectionStringHelper.GetSharedAccessKey(deviceConnectionString);

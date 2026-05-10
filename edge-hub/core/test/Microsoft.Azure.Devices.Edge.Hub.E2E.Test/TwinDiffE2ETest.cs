@@ -402,7 +402,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task RunTestCase(ITransportSettings[] transportSettings, Func<DeviceClient, string, RegistryManager, Task> testCase)
         {
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             (DeviceClient deviceClient, string deviceName) = await InitializeDeviceClient(rm, iotHubConnectionString, transportSettings);
             try

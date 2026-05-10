@@ -293,35 +293,6 @@
           "Newtonsoft.Json": "13.0.3"
         }
       },
-      "Microsoft.Azure.KeyVault": {
-        "type": "Transitive",
-        "resolved": "3.0.5",
-        "contentHash": "hbWw44JCJhk7e+CFeqSD1iQ2k4MP6bVVahEd9Cd1OP6JNyy0Y/S+9almtadH3vUoeDQsBAoQmzGImNoK3gxpog==",
-        "dependencies": {
-          "Microsoft.Azure.KeyVault.WebKey": "3.0.5",
-          "Microsoft.Rest.ClientRuntime": "[2.3.20, 3.0.0)",
-          "Microsoft.Rest.ClientRuntime.Azure": "[3.3.18, 4.0.0)",
-          "Newtonsoft.Json": "10.0.3",
-          "System.Net.Http": "4.3.4"
-        }
-      },
-      "Microsoft.Azure.KeyVault.WebKey": {
-        "type": "Transitive",
-        "resolved": "3.0.5",
-        "contentHash": "LmvQxr3qaK1rEMcsQCIz88T4LT6Mskd3mS425iXGFargt/FHS/p4lT++gBlsB3IZyU/opM7v8Yruzp13xu/I8g==",
-        "dependencies": {
-          "Microsoft.Rest.ClientRuntime": "[2.3.20, 3.0.0)",
-          "Microsoft.Rest.ClientRuntime.Azure": "[3.3.18, 4.0.0)",
-          "Newtonsoft.Json": "10.0.3",
-          "System.Collections": "4.3.0",
-          "System.Collections.Concurrent": "4.3.0",
-          "System.Linq": "4.3.0",
-          "System.Net.Http": "4.3.4",
-          "System.Runtime": "4.3.0",
-          "System.Security.Cryptography.Algorithms": "4.3.0",
-          "System.Security.Cryptography.Cng": "4.3.0"
-        }
-      },
       "Microsoft.Bcl.AsyncInterfaces": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -547,16 +518,6 @@
         "resolved": "2.3.24",
         "contentHash": "hZH7XgM3eV2jFrnq7Yf0nBD4WVXQzDrer2gEY7HMNiwio2hwDsTHO6LWuueNQAfRpNp4W7mKxcXpwXUiuVIlYw==",
         "dependencies": {
-          "Newtonsoft.Json": "10.0.3"
-        }
-      },
-      "Microsoft.Rest.ClientRuntime.Azure": {
-        "type": "Transitive",
-        "resolved": "3.3.18",
-        "contentHash": "pCtem10PRQYvzRiwJVInsccsqB0NrTjW83NF3zWk1LpN3IS0AneZKq89RyogDT7mRMT1Li/mLY8N8kU6RAiK0g==",
-        "dependencies": {
-          "Microsoft.Rest.ClientRuntime": "[2.3.17, 3.0.0)",
-          "NETStandard.Library": "1.6.1",
           "Newtonsoft.Json": "10.0.3"
         }
       },
@@ -1951,7 +1912,6 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
-          "Microsoft.Azure.KeyVault": "[3.0.5, )",
           "Microsoft.Extensions.Configuration": "[5.0.0, )",
           "Microsoft.Extensions.Configuration.EnvironmentVariables": "[5.0.0, )",
           "Microsoft.Extensions.Configuration.Json": "[5.0.0, )",

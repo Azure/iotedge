@@ -15,8 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 
         public static IConfigurationRoot TestConfig => TestConfigLazy.Value;
 
-        public static IConfiguration KeyVaultConfig => TestConfig.GetSection("keyVault");
-
         public static TestEnvironment Environment => LazyEnvironment.Value;
 
         static IConfigurationRoot GetTestConfiguration()

@@ -260,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [Fact]
         public async Task EdgeAgentConnectionBasicTest()
         {
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
@@ -352,7 +352,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string configurationId = "testconfiguration-" + Guid.NewGuid().ToString();
             string conditionPropertyName = "condition-" + Guid.NewGuid().ToString("N");
             string conditionPropertyValue = Guid.NewGuid().ToString();
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
 
@@ -429,7 +429,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string addOnConfigurationId = "addon" + configurationId;
             string conditionPropertyName = "condition-" + Guid.NewGuid().ToString("N");
             string conditionPropertyValue = Guid.NewGuid().ToString();
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
 
@@ -1171,7 +1171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task EdgeAgentConnectionStatusTest()
         {
             // Arrange
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
@@ -1271,7 +1271,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task EdgeAgentPingMethodTest()
         {
             // Arrange
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();

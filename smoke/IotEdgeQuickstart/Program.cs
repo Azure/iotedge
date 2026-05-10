@@ -208,7 +208,7 @@ Defaults:
 
                 if (address != null && user == null && password == null)
                 {
-                    (user, password) = await this.RegistryArgsFromSecret(address);
+                    (user, password) = this.RegistryArgsFromSecret(address);
                 }
 
                 Option<RegistryCredentials> credentials = address != null && user != null && password != null
@@ -266,8 +266,7 @@ Defaults:
                         throw new ArgumentException("Unknown BootstrapperType");
                 }
 
-                string iothubHostName = this.IotHubHostName ??
-                                          await SecretsHelper.GetSecretFromConfigKey("iotHubHostName");
+                string iothubHostName = this.IotHubHostName ?? SecretsHelper.GetSecretFromConfigKey("iotHubHostName");
 
                 Option<DPSAttestation> dpsAttestation = Option.None<DPSAttestation>();
                 if (!string.IsNullOrEmpty(this.DPSScopeId))
@@ -303,11 +302,9 @@ Defaults:
                     }
                 }
 
-                string eventHubName = this.EventHubName ??
-                                  await SecretsHelper.GetSecretFromConfigKey("eventHubName");
+                string eventHubName = this.EventHubName ?? SecretsHelper.GetSecretFromConfigKey("eventHubName");
 
-                string eventHubNamespace = this.EventHubNamespace ??
-                                  await SecretsHelper.GetSecretFromConfigKey("eventHubNamespace");
+                string eventHubNamespace = this.EventHubNamespace ?? SecretsHelper.GetSecretFromConfigKey("eventHubNamespace");
 
                 Option<string> deployment = this.DeploymentFileName != null ? Option.Some(this.DeploymentFileName) : Option.None<string>();
 
@@ -354,14 +351,14 @@ Defaults:
             return 0;
         }
 
-        async Task<(string, string)> RegistryArgsFromSecret(string address)
+        (string, string) RegistryArgsFromSecret(string address)
         {
             // Expects our Key Vault to contain a secret with the following properties:
             //  key   - based on registry hostname (e.g.,
             //          edgerelease.azurecr.io => edgerelease-azurecr-io)
             //  value - "<user> <password>" (separated by a space)
             string key = address.Replace('.', '-');
-            string value = await SecretsHelper.GetSecret(key);
+            string value = SecretsHelper.GetSecret(key);
             string[] vals = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             return (vals[0], vals[1]);
         }

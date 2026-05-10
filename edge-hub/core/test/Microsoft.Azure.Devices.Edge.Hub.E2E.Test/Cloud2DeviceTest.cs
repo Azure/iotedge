@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_SingleMessage_ShouldSucceed(TransportType transportType)
         {
             // Arrange
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
             // Arrange
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
         {
             // Arrange
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);

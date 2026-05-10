@@ -27,7 +27,6 @@ jobs:
           azureSubscription: $(azure.subscription)
           keyVaultName: $(kv.name)
           secretsFilter: >-
-            DummySecret1,
             EdgeCapableDevice2,
             EventHubConnStr2,
             IotDevice2ConnStr2,
@@ -52,7 +51,6 @@ jobs:
       - script: sudo -E bash -c './scripts/linux/runTests.sh "$(test.filter)" "$(Build.Configuration)"'
         displayName: Integration Tests
         env:
-          DummySecret1: $(DummySecret1)
           EdgeCapableDevice2: $(EdgeCapableDevice2)
           EventHubConnStr2: $(EventHubConnStr2)
           IotDevice2ConnStr2: $(IotDevice2ConnStr2)

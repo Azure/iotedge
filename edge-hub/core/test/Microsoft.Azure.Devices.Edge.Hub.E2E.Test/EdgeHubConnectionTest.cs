@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     { typeof(TwinCollection), twinCollectionMessageConverter }
                 });
 
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubConnectionString = SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
             RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             await registryManager.OpenAsync();
