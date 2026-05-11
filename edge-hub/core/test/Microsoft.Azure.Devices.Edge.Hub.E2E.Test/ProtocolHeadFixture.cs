@@ -109,7 +109,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await configUpdater.Init(configSource);
 
             ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
-            logger.LogInformation("[dlb] IoT Hub Hostname: {IoTHubHostname}", iotHubHostname);
             MqttProtocolHead mqttProtocolHead = await container.Resolve<Task<MqttProtocolHead>>();
             AmqpProtocolHead amqpProtocolHead = await container.Resolve<Task<AmqpProtocolHead>>();
             var httpProtocolHead = new HttpProtocolHead(hosting.WebHost);
