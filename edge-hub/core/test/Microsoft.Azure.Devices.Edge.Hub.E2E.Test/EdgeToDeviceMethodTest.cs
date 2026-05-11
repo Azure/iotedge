@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async Task InvokeMethodOnModuleTest(ITransportSettings[] transportSettings)
         {
             // Arrange
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             ModuleClient receiver = null;
 
@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             // Arrange
             string deviceName = string.Format("deviceMethodTest-{0}", transportSettings.First().GetTransportType().ToString("g"));
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             DeviceClient receiver = null;
 

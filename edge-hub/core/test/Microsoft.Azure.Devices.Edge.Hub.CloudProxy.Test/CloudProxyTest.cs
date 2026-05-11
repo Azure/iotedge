@@ -327,7 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         static async Task UpdateDesiredProperty(string deviceId, TwinCollection desired)
         {
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             Twin twin = await registryManager.GetTwinAsync(deviceId);
             twin.Properties.Desired = desired;

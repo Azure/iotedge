@@ -403,7 +403,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task RunTestCase(ITransportSettings[] transportSettings, Func<DeviceClient, string, RegistryManager, Task> testCase)
         {
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             (DeviceClient deviceClient, string deviceName) = await InitializeDeviceClient(rm, iotHubHostname, transportSettings);
             try

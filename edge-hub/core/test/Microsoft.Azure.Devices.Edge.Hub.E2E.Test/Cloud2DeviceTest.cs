@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_SingleMessage_ShouldSucceed(TransportType transportType)
         {
             // Arrange
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
             // Arrange
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
         {
             // Arrange
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);

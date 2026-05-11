@@ -258,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [Fact]
         public async Task EdgeAgentConnectionBasicTest()
         {
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             await registryManager.OpenAsync();
 
@@ -349,7 +349,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string configurationId = "testconfiguration-" + Guid.NewGuid().ToString();
             string conditionPropertyName = "condition-" + Guid.NewGuid().ToString("N");
             string conditionPropertyValue = Guid.NewGuid().ToString();
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
 
             try
@@ -425,7 +425,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string addOnConfigurationId = "addon" + configurationId;
             string conditionPropertyName = "condition-" + Guid.NewGuid().ToString("N");
             string conditionPropertyValue = Guid.NewGuid().ToString();
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
 
             try
@@ -1166,7 +1166,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task EdgeAgentConnectionStatusTest()
         {
             // Arrange
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             await registryManager.OpenAsync();
 
@@ -1265,7 +1265,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task EdgeAgentPingMethodTest()
         {
             // Arrange
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             await registryManager.OpenAsync();
 
