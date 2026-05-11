@@ -21,8 +21,6 @@ run_tests()
     --no-build
 }
 
-echo "[dlb] IotHubHostname = ${IotHubHostname}"
-
 echo "Running tests with filter: '$TEST_FILTER' and configuration: '$BUILD_CONFIG'"
 
 PASS_RESULT=true
