@@ -20,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
-    using Serilog;
     using EdgeHubConstants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 
     public class ProtocolHeadFixture : IDisposable
@@ -82,7 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             // Set edgeHub connection string to config
             string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
-            Log.Information("[dlb] IoT Hub Hostname: {IoTHubHostname}", iotHubHostname);
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(edgeDeviceConnectionString);
             string iothub = ConnectionStringHelper.GetHostName(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
@@ -110,7 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
             await configUpdater.Init(configSource);
 
-            Microsoft.Extensions.Logging.ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
+            ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
+            logger.LogInformation("[dlb] IoT Hub Hostname: {IoTHubHostname}", iotHubHostname);
             MqttProtocolHead mqttProtocolHead = await container.Resolve<Task<MqttProtocolHead>>();
             AmqpProtocolHead amqpProtocolHead = await container.Resolve<Task<AmqpProtocolHead>>();
             var httpProtocolHead = new HttpProtocolHead(hosting.WebHost);
