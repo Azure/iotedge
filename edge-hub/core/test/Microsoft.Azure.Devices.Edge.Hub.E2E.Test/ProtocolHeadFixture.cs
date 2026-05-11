@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await ConnectToIotHub(edgeDeviceConnectionString);
 
             // Set edgeHub connection string to config
-            string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(edgeDeviceConnectionString);
             string iothub = ConnectionStringHelper.GetHostName(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
