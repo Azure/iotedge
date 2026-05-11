@@ -46,15 +46,20 @@ jobs:
           CERT_VALUE: $(IotHubMqttHeadCert)
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --skip-quickstart
         displayName: Build
-      - script: |
-          sudo -E bash -c './scripts/linux/runTests.sh "$(test.filter)" "$(Build.Configuration)"'
-        displayName: Integration Tests
+      - task: AzureCLI@2
+        displayName: Integration tests
         env:
           EdgeCapableDevice2: $(EdgeCapableDevice2)
           IotDevice2ConnStr2: $(IotDevice2ConnStr2)
           IotDevice3ConnStr2: $(IotDevice3ConnStr2)
           IotHubHostname: $(iothub.hostname)
           IotHubMqttHeadCert: $(IotHubMqttHeadCert)
+        inputs:
+          azureSubscription: $(azure.subscription)
+          scriptType: pscore
+          scriptLocation: inlineScript
+          inlineScript: |
+            sudo -E bash -c './scripts/linux/runTests.sh "$(test.filter)" "$(Build.Configuration)"'
       - task: PublishTestResults@2
         displayName: Publish test results
         inputs:
