@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
+    using Serilog;
     using EdgeHubConstants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 
     public class ProtocolHeadFixture : IDisposable
@@ -81,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             // Set edgeHub connection string to config
             string iotHubHostname = SecretsHelper.GetSecretFromConfigKey("iotHubHostname");
+            Log.Information("[dlb] IoT Hub Hostname: {IoTHubHostname}", iotHubHostname);
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(edgeDeviceConnectionString);
             string iothub = ConnectionStringHelper.GetHostName(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
