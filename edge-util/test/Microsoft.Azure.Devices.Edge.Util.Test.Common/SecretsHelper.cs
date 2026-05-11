@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
         public static string GetSecret(string secret)
         {
             Preconditions.CheckNonWhiteSpace(secret, nameof(secret));
-            // Get the secret from the environment first, otherwise go to key vault
             return ConfigHelper.TestConfig[secret] ?? string.Empty;
         }
 
