@@ -23,8 +23,14 @@ run_tests()
 
 echo "Running tests with filter: '$TEST_FILTER' and configuration: '$BUILD_CONFIG'"
 
+PASS_RESULT=true
+
 while read testProject; do
   testPath="$(dirname $testProject)"
   echo "Found test project: $testPath"
-  run_tests $testPath
+  run_tests $testPath || PASS_RESULT=false
 done < <(find . -iname '*.Test.csproj')
+
+if ! $PASS_RESULT; then
+  exit 1
+fi

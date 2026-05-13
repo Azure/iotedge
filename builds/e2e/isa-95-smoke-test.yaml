@@ -104,6 +104,7 @@ stages:
       - template: templates/nested-create-identity.yaml
         parameters:
           arch: $(arch)
+          iotHubHostName: $(iothub.hostname)
       - template: templates/nested-agent-deploy.yaml
         parameters:
           containerRegistryServer: $(containerRegistryServer)
@@ -163,6 +164,7 @@ stages:
       - template: templates/nested-create-identity.yaml
         parameters:
           arch: $(arch)
+          iotHubHostName: $(iothub.hostname)
       - template: templates/nested-agent-deploy.yaml
         parameters:
           containerRegistryServer: $(containerRegistryServer)
@@ -223,6 +225,7 @@ stages:
       - template: templates/nested-create-identity.yaml
         parameters:
           arch: $(arch)
+          iotHubHostName: $(iothub.hostname)
       - template: templates/nested-agent-deploy.yaml
         parameters:
           containerRegistryServer: $(containerRegistryServer)
@@ -323,15 +326,16 @@ stages:
         parameters:
           containerRegistryServer: '$(containerRegistryServer)'
           containerRegistryUsername: '$(containerRegistryUsername)'
-          iotHubResourceId: '$(iotHubResourceId)'
+          eventHubName: '$(eventhub.name)'
+          eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+          iotHubHostName: '$(iothub.hostname)'
           rootCaCertificate: '$(rootCaCertificate)'
           rootCaKey: '$(rootCaKey)'
       - template: templates/e2e-run.yaml
         parameters:
+          azureSubscription: '$(az.subscription)'
           containerRegistryPassword: '$(containerRegistryPassword)'
           dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-          eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          iotHubConnectionString: '$(IotHub-ConnStr)'
           rootCaPassword: '$(rootCaPassword)'
           sas_uri: '$(sas_uri)'
           test_type: $(test_type)

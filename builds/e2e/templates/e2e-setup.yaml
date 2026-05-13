@@ -1,7 +1,11 @@
 parameters:
   containerRegistryServer: ''
   containerRegistryUsername: ''
-  iotHubResourceId: ''
+  dpsIdScope: 'optional'
+  eventHubName: ''
+  eventHubFullyQualitifiedNamespace: ''
+  iotHubHostName: ''
+  iotHubResourceId: 'optional'
   rootCaCertificate: ''
   rootCaKey: ''
 
@@ -163,8 +167,11 @@ steps:
       echo "Edge hub image: $edgeHubImage"
   
       $context = @{
+        eventHubName = '${{ parameters.eventHubName }}';
+        eventHubFullyQualitifiedNamespace = '${{ parameters.eventHubFullyQualitifiedNamespace }}';
+        iotHubHostName = '${{ parameters.iotHubHostName }}';
         nestededge = "$nestededge";
-        dpsIdScope = '$(dps.idScope)';
+        dpsIdScope = '${{ parameters.dpsIdScope }}';
         isa95Tag = 'false';
         edgeAgentImage = "$edgeAgentImage";
         edgeHubImage = "$edgeHubImage";
@@ -180,7 +187,7 @@ steps:
         networkControllerImage = "$imagePrefix-network-controller:$imageTag";
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
         metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag";
-        iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
+        iotHubResourceId = '${{ parameters.iotHubResourceId }}';
         metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
         numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
         edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
@@ -229,23 +236,27 @@ steps:
 
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
-    env:
-      IOT_HUB_RESOURCE_ID: ${{ parameters.iotHubResourceId }}
 
   - bash: |
       set -euo pipefail
 
       if ! systemctl cat docker.service >/dev/null 2>&1; then
-        # Skip the workaround on agents where Docker is installed as a snap. Note that we'll need
-        # a different workaround for those agents if/when they exhibit the same issue.
-        echo 'Docker service not found'
-        exit 0
+        # Apply the workaround differently for agents where Docker is installed as a snap
+        snap_docker_config='/var/snap/docker/current/config/daemon.json'
+        if [ -f $snap_docker_config ]; then
+          sudo snap stop docker
+          jq '. + { "min-api-version": "1.34" }' $snap_docker_config \
+            | sudo tee $snap_docker_config.tmp >/dev/null && sudo mv $snap_docker_config.tmp $snap_docker_config
+          sudo snap start docker
+        else
+          echo 'Docker service not found'
+        fi
+      else
+        echo 'Updating minimum Docker API version to 1.34'
+        sudo mkdir -p /etc/systemd/system/docker.service.d
+        echo -e '[Service]\nEnvironment=DOCKER_MIN_API_VERSION=1.34' \
+          | sudo tee /etc/systemd/system/docker.service.d/min-api-version.override.conf
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
       fi
-
-      echo 'Updating minimum Docker API version to 1.34'
-      sudo mkdir -p /etc/systemd/system/docker.service.d
-      echo -e '[Service]\nEnvironment=DOCKER_MIN_API_VERSION=1.34' \
-        | sudo tee /etc/systemd/system/docker.service.d/min-api-version.override.conf
-      sudo systemctl daemon-reload
-      sudo systemctl restart docker
     displayName: Update Docker's minimum API version to work around IoT Edge issue

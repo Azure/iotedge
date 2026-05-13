@@ -6,6 +6,7 @@ namespace EdgeHubRestartTester
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
@@ -21,7 +22,7 @@ namespace EdgeHubRestartTester
 
         Settings(
             TimeSpan sdkOperationTimeout,
-            string serviceClientConnectionString,
+            string iotHubHostname,
             string deviceId,
             string reportingEndpointUrl,
             TimeSpan restartPeriod,
@@ -43,7 +44,7 @@ namespace EdgeHubRestartTester
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
             this.RestartPeriod = restartPeriod;
             this.SdkOperationTimeout = sdkOperationTimeout;
-            this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -69,7 +70,7 @@ namespace EdgeHubRestartTester
 
             return new Settings(
                 configuration.GetValue("sdkOperationTimeout", TimeSpan.FromMilliseconds(20)),
-                configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING", string.Empty),
+                configuration.GetValue<string>("IOT_HUB_HOSTNAME", string.Empty),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
                 configuration.GetValue<string>("reportingEndpointUrl"),
                 configuration.GetValue("restartPeriod", TimeSpan.FromMinutes(5)),
@@ -80,7 +81,7 @@ namespace EdgeHubRestartTester
                 configuration.GetValue("trackingId", string.Empty));
         }
 
-        public string IoTHubConnectionString { get; }
+        public string IotHubHostname { get; }
 
         public string DeviceId { get; }
 
@@ -123,7 +124,7 @@ namespace EdgeHubRestartTester
         {
             if (!this.isConnectorConfigReady)
             {
-                RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
+                RegistryManager rm = RegistryManager.Create(this.IotHubHostname, new WorkloadIdentityCredential());
                 Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
                 string connectorConfigJson = moduleTwin.Properties.Desired["edgeHubConnectorConfig"].ToString();
 

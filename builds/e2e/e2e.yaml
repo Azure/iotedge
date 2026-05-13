@@ -63,9 +63,6 @@ jobs:
       identityArtifactName: aziot-identity-debian11-arm32v7
       artifactName: iotedged-debian11-arm32v7
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -81,16 +78,19 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -114,9 +114,6 @@ jobs:
       identityArtifactName: aziot-identity-debian12-amd64
       artifactName: iotedged-debian12-amd64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -132,15 +129,18 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -164,9 +164,6 @@ jobs:
       identityArtifactName: aziot-identity-debian12-aarch64
       artifactName: iotedged-debian12-aarch64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -180,15 +177,18 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -211,9 +211,6 @@ jobs:
       identityArtifactName: aziot-identity-debian12-arm32v7
       artifactName: iotedged-debian12-arm32v7
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -230,16 +227,19 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -263,9 +263,6 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu22.04-amd64
       artifactName: iotedged-ubuntu22.04-amd64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -281,15 +278,18 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -313,9 +313,6 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu22.04-aarch64
       artifactName: iotedged-ubuntu22.04-aarch64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -331,15 +328,18 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -363,9 +363,6 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -381,15 +378,18 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -413,9 +413,6 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu24.04-aarch64
       artifactName: iotedged-ubuntu24.04-aarch64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -429,15 +426,18 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -453,9 +453,6 @@ jobs:
     variables:
       os: linux
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -492,15 +489,18 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -524,9 +524,6 @@ jobs:
       identityArtifactName: aziot-identity-redhat8-amd64
       artifactName: iotedged-redhat8-amd64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -540,15 +537,18 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -572,9 +572,6 @@ jobs:
       identityArtifactName: aziot-identity-redhat9-amd64
       artifactName: iotedged-redhat9-amd64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -588,15 +585,18 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -619,9 +619,6 @@ jobs:
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -629,11 +626,6 @@ jobs:
       containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
       containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
       containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
-      # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
-      'agent.disablelogplugin.testfilepublisherplugin': true
-      'agent.disablelogplugin.testresultlogplugin': true
-      # because we aren't publishing test artifacts for this job, turn on verbose logging instead
-      verbose: true
       # skip component governance detection to avoid proxy issues. It is checked in the other jobs.
       skipComponentGovernanceDetection: true
 
@@ -643,16 +635,19 @@ jobs:
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
         test_type: http_proxy
@@ -664,7 +659,8 @@ jobs:
     dependsOn:
     - Token
     - ContainerRegistryCredentials
-    condition: and(succeeded('Token'), eq(variables['run.EFLOW.amd64'], 'true'))
+    condition: succeeded('Token')
+
     pool:
       name: $(pool.linux.name)
       demands:
@@ -676,9 +672,6 @@ jobs:
       identityArtifactName: aziot-identity-azurelinux3-amd64
       artifactName: iotedged-azurelinux3-amd64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -690,19 +683,25 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
+    - bash: |
+        echo "127.0.0.1 $(hostname)" | sudo tee -a /etc/hosts
+      displayName: Add hostname to /etc/hosts
     - template: templates/e2e-setup.yaml
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'
 
@@ -713,6 +712,8 @@ jobs:
     dependsOn:
     - Token
     - ContainerRegistryCredentials
+    condition: succeeded('Token')
+
     pool:
       name: $(pool.linux.arm.name)
       demands:
@@ -724,9 +725,6 @@ jobs:
       identityArtifactName: aziot-identity-azurelinux3-aarch64
       artifactName: iotedged-azurelinux3-aarch64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      eventHubCompatibleEndpoint: $[ dependencies.Token.outputs['secrets.eventHubCompatibleEndpoint'] ]
-      iotHubConnectionString: $[ dependencies.Token.outputs['secrets.iotHubConnectionString'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -738,18 +736,24 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
+    - bash: |
+        echo "127.0.0.1 $(hostname)" | sudo tee -a /etc/hosts
+      displayName: Add hostname to /etc/hosts
     - template: templates/e2e-setup.yaml
       parameters:
         containerRegistryServer: '$(containerRegistryServer)'
         containerRegistryUsername: '$(containerRegistryUsername)'
-        iotHubResourceId: '$(iotHubResourceId)'
+        dpsIdScope: '$(dps.idScope)'
+        eventHubName: '$(eventhub.name)'
+        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+        iotHubHostName: '$(iothub.hostname)'
+        iotHubResourceId: '$(iothub.resourceid)'
         rootCaCertificate: '$(rootCaCertificate)'
         rootCaKey: '$(rootCaKey)'
     - template: templates/e2e-run.yaml
       parameters:
+        azureSubscription: '$(az.subscription)'
         containerRegistryPassword: '$(containerRegistryPassword)'
         dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-        iotHubConnectionString: '$(iotHubConnectionString)'
         rootCaPassword: '$(rootCaPassword)'
         sas_uri: '$(sas_uri)'

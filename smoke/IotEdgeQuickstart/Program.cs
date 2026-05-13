@@ -21,15 +21,16 @@ Environment Variables:
   the value of the corresponding environment variable will be used unless the
   option is specified on the command line.
 
-  Option                    Environment variable
-  --bootstrapper-archive    bootstrapperArchivePath
-  --connection-string       iothubConnectionString
-  --eventhub-endpoint       eventhubCompatibleEndpointWithEntityPath
-  --password                registryPassword
-  --registry                registryAddress
-  --tag                     imageTag
-  --username                registryUser
-  --proxy                   https_proxy
+  Option                        Environment variable
+  --bootstrapper-archive        bootstrapperArchivePath
+  --event-hub-namespace         eventHubNamespace
+  --event-hub-name              eventHubName
+  --iothub-hostname             iothubHostName
+  --password                    registryPassword
+  --registry                    registryAddress
+  --tag                         imageTag
+  --username                    registryUser
+  --proxy                       https_proxy
 
 Defaults:
   All options to this command have defaults. If an option is not specified and
@@ -39,11 +40,12 @@ Defaults:
   Option                                Default value
   --bootstrapper                        'iotedged'
   --bootstrapper-archive                no path (archive is installed from apt or pypi)
-  --connection-string                   get the value from Key Vault
   --device-id                           an auto-generated unique identifier
-  --initialize-with-agent-artifact      false
   --edge-hostname                       'quickstart'
-  --eventhub-endpoint                   get the value from Key Vault
+  --event-hub-namespace                 get the value from Key Vault
+  --event-hub-name                      get the value from Key Vault
+  --initialize-with-agent-artifact      false
+  --iothub-hostname                     get the value from Key Vault
   --leave-running                       none (or 'all' if given as a switch)
   --password                            anonymous, or Key Vault if --registry is specified
   --registry                            mcr.microsoft.com (anonymous)
@@ -72,20 +74,23 @@ Defaults:
         [Option("-b|--bootstrapper=<iotedged/iotedgectl>", CommandOptionType.SingleValue, Description = "Which bootstrapper to use")]
         public BootstrapperType BootstrapperType { get; } = BootstrapperType.Iotedged;
 
-        [Option("-c|--connection-string <value>", Description = "IoT Hub connection string (hub-scoped, e.g. iothubowner)")]
-        public string IotHubConnectionString { get; } = Environment.GetEnvironmentVariable("iothubConnectionString");
-
         [Option("-d|--device-id", Description = "Edge device identifier registered with IoT Hub")]
         public string DeviceId { get; } = $"iot-edge-quickstart-{Guid.NewGuid()}";
+
+        [Option("--event-hub-name <value>", Description = "Event Hub name")]
+        public string EventHubName { get; } = Environment.GetEnvironmentVariable("eventHubName");
+
+        [Option("--event-hub-namespace <value>", Description = "Fully qualified Event Hub namespace")]
+        public string EventHubNamespace { get; } = Environment.GetEnvironmentVariable("eventHubNamespace");
+
+        [Option("-h|--use-http=<hostname>", Description = "Modules talk to iotedged via tcp instead of unix domain socket")]
+        public (bool useHttp, string hostname) UseHttp { get; } = (false, string.Empty);
 
         [Option("--initialize-with-agent-artifact <true/false>", CommandOptionType.SingleValue, Description = "Boolean specifying whether to bypass startup of edge agent 1.0 and start with the desired agent artifact directly")]
         public bool InitializeWithAgentArtifact { get; } = false;
 
-        [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
-        public string EventHubCompatibleEndpointWithEntityPath { get; } = Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath");
-
-        [Option("-h|--use-http=<hostname>", Description = "Modules talk to iotedged via tcp instead of unix domain socket")]
-        public (bool useHttp, string hostname) UseHttp { get; } = (false, string.Empty);
+        [Option("--iothub-hostname <value>", Description = "IoT Hub hostname")]
+        public string IotHubHostName { get; } = Environment.GetEnvironmentVariable("iothubHostName");
 
         [Option("--use-connect-management-uri=<connect_management_uri>", Description = "Modules talk to a custom connect management socket (default is unix:///var/run/iotedge/mgmt.sock)")]
         public string ConnectManagementUri { get; } = string.Empty;
@@ -203,7 +208,7 @@ Defaults:
 
                 if (address != null && user == null && password == null)
                 {
-                    (user, password) = await this.RegistryArgsFromSecret(address);
+                    (user, password) = this.RegistryArgsFromSecret(address);
                 }
 
                 Option<RegistryCredentials> credentials = address != null && user != null && password != null
@@ -261,8 +266,7 @@ Defaults:
                         throw new ArgumentException("Unknown BootstrapperType");
                 }
 
-                string connectionString = this.IotHubConnectionString ??
-                                          await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+                string iothubHostName = this.IotHubHostName ?? SecretsHelper.GetSecretFromConfigKey("iotHubHostName");
 
                 Option<DPSAttestation> dpsAttestation = Option.None<DPSAttestation>();
                 if (!string.IsNullOrEmpty(this.DPSScopeId))
@@ -298,8 +302,9 @@ Defaults:
                     }
                 }
 
-                string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
-                                  await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
+                string eventHubName = this.EventHubName ?? SecretsHelper.GetSecretFromConfigKey("eventHubName");
+
+                string eventHubNamespace = this.EventHubNamespace ?? SecretsHelper.GetSecretFromConfigKey("eventHubNamespace");
 
                 Option<string> deployment = this.DeploymentFileName != null ? Option.Some(this.DeploymentFileName) : Option.None<string>();
 
@@ -310,8 +315,9 @@ Defaults:
                 var test = new Quickstart(
                     bootstrapper,
                     credentials,
-                    connectionString,
-                    endpoint,
+                    eventHubName,
+                    eventHubNamespace,
+                    iothubHostName,
                     this.UpstreamProtocol.Item2,
                     proxy,
                     tag,
@@ -345,14 +351,14 @@ Defaults:
             return 0;
         }
 
-        async Task<(string, string)> RegistryArgsFromSecret(string address)
+        (string, string) RegistryArgsFromSecret(string address)
         {
             // Expects our Key Vault to contain a secret with the following properties:
             //  key   - based on registry hostname (e.g.,
             //          edgerelease.azurecr.io => edgerelease-azurecr-io)
             //  value - "<user> <password>" (separated by a space)
             string key = address.Replace('.', '-');
-            string value = await SecretsHelper.GetSecret(key);
+            string value = SecretsHelper.GetSecret(key);
             string[] vals = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             return (vals[0], vals[1]);
         }
