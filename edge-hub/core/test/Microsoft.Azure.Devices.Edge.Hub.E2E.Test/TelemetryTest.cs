@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             TestModule sender = null;
             TestModule receiver = null;
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+            string edgeDeviceConnectionString = SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             TestModule sender = null;
             TestModule receiver = null;
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+            string edgeDeviceConnectionString = SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             TestModule sender = null;
             TestModule receiver = null;
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+            string edgeDeviceConnectionString = SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             TestModule sender = null;
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+            string edgeDeviceConnectionString = SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
@@ -218,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             TestModule sender = null;
             TestModule receiver = null;
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+            string edgeDeviceConnectionString = SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 

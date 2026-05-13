@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             token),
                         "Received events from module '{Device}' on Event Hub '{EventHub}'",
                         parentDeviceId + "/" + relayerModuleId,
-                        this.IotHub.EntityPath);
+                        this.IotHub.EventHubName);
                 },
                 async () =>
                 {

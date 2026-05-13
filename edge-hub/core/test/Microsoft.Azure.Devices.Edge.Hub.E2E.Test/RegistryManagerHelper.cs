@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     public static class RegistryManagerHelper
     {
-        public static async Task<Tuple<string, string>> CreateDevice(string devicePrefix, string iotHubConnectionString, RegistryManager registryManager, bool iotEdgeCapable = false, bool appendGatewayHostName = true, string scope = null)
+        public static async Task<Tuple<string, string>> CreateDevice(string devicePrefix, string iotHubHostname, RegistryManager registryManager, bool iotEdgeCapable = false, bool appendGatewayHostName = true, string scope = null)
         {
             string deviceName = devicePrefix + Guid.NewGuid();
             var device = new Device(deviceName)
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
 
             device = await registryManager.AddDeviceAsync(device);
-            string deviceConnectionString = GetDeviceConnectionString(device, ConnectionStringHelper.GetHostName(iotHubConnectionString), appendGatewayHostName);
+            string deviceConnectionString = GetDeviceConnectionString(device, iotHubHostname, appendGatewayHostName);
 
             await Task.Delay(1000);
             return new Tuple<string, string>(deviceName, deviceConnectionString);

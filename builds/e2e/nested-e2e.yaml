@@ -56,6 +56,7 @@ stages:
           serviceConnection: $(az.subscription)
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
+      iotHubHostName: $(iothub.hostname)
       upstream.protocol: mqtt
       test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_mqtt.json'
   - job:  SetupVM_and_RunTest_level3
@@ -77,7 +78,6 @@ stages:
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
       dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      iotHubResourceId: $[ dependencies.Token.outputs['secrets.iotHubResourceId'] ]
       rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
       rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
       rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
@@ -100,18 +100,20 @@ stages:
       - template: templates/nested-get-device-name.yaml
       - template: templates/e2e-setup.yaml
         parameters:
-          containerRegistryServer: $(containerRegistryServer)
-          containerRegistryUsername: $(containerRegistryUsername)
-          iotHubResourceId: '$(iotHubResourceId)'
+          containerRegistryServer: '$(containerRegistryServer)'
+          containerRegistryUsername: '$(containerRegistryUsername)'
+          eventHubName: '$(eventhub.name)'
+          eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+          iotHubHostName: '$(iothub.hostname)'
+          iotHubResourceId: '$(iothub.resourceid)'
           rootCaCertificate: '$(rootCaCertificate)'
           rootCaKey: '$(rootCaKey)'
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
+          azureSubscription: '$(az.subscription)'
           containerRegistryPassword: '$(containerRegistryPassword)'
           dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-          eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          iotHubConnectionString: '$(IotHub-ConnStr)'
           rootCaPassword: '$(rootCaPassword)'
           sas_uri: $(sas_uri)
           test_type: nestededge_mqtt
@@ -137,10 +139,9 @@ stages:
           name: 4
       - template: templates/e2e-run.yaml
         parameters:
+          azureSubscription: '$(az.subscription)'
           containerRegistryPassword: '$(containerRegistryPassword)'
           dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-          eventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          iotHubConnectionString: '$(IotHub-ConnStr)'
           rootCaPassword: '$(rootCaPassword)'
           sas_uri: $(sas_uri)
           test_type: nestededge_amqp

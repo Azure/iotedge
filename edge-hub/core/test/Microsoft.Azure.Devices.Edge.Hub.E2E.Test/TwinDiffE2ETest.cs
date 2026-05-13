@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Threading.Tasks;
+    using global::Azure.Identity;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -402,9 +403,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task RunTestCase(ITransportSettings[] transportSettings, Func<DeviceClient, string, RegistryManager, Task> testCase)
         {
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            (DeviceClient deviceClient, string deviceName) = await InitializeDeviceClient(rm, iotHubConnectionString, transportSettings);
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
+            RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
+            (DeviceClient deviceClient, string deviceName) = await InitializeDeviceClient(rm, iotHubHostname, transportSettings);
             try
             {
                 await testCase(deviceClient, deviceName, rm);

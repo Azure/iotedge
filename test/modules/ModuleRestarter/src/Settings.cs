@@ -13,12 +13,12 @@ namespace ModuleRestarter
         internal static Settings Current = Create();
 
         Settings(
-            string serviceClientConnectionString,
+            string iotHubHostname,
             string deviceId,
             string desiredModulesToRestartCSV,
             int restartIntervalInMins)
         {
-            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.RestartInterval = TimeSpan.FromMinutes(Preconditions.CheckRange(restartIntervalInMins, 1));
 
@@ -42,13 +42,13 @@ namespace ModuleRestarter
                 .Build();
 
             return new Settings(
-                configuration.GetValue("ServiceClientConnectionString", string.Empty),
+                configuration.GetValue("IotHubHostname", string.Empty),
                 configuration.GetValue("IOTEDGE_DEVICEID", string.Empty),
                 configuration.GetValue("DesiredModulesToRestartCSV", string.Empty),
                 configuration.GetValue("RestartIntervalInMins", 10));
         }
 
-        public string ServiceClientConnectionString { get; }
+        public string IotHubHostname { get; }
 
         public string DeviceId { get; }
 

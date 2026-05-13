@@ -29,8 +29,6 @@ steps:
     azureSubscription: $(az.subscription)
     keyVaultName: $(az.keyVault)
     secretsFilter: >-
-      TestIotHubConnectionString,
-      TestEventHubCompatibleEndpoint,
       TestRootCaCertificate,
       TestRootCaKey,
       TestRootCaPassword
@@ -63,6 +61,9 @@ steps:
 - pwsh: |
     $context = @{
       logFile = Join-Path '$(binDir)' 'testoutput.log';
+      eventHubName = '$(eventhub.name)';
+      eventHubFullyQualitifiedNamespace = '$(eventhub.namespace.hostname)';
+      iotHubHostName = '$(iothub.hostname)';
       caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
       rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
@@ -70,27 +71,18 @@ steps:
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
 
-- pwsh: |
-    if ($env:EH_ARG -and $env:IH_ARG)
-    {
-      $env:E2E_EVENT_HUB_ENDPOINT = $env:EH_ARG
-      $env:E2E_IOT_HUB_CONNECTION_STRING = $env:IH_ARG
-    }
-    else
-    {
-      $env:E2E_EVENT_HUB_ENDPOINT = $env:EH_KV
-      $env:E2E_IOT_HUB_CONNECTION_STRING = $env:IH_KV
-    }
-
-    $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
-    sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:Name=TempSensor
+- task: AzureCLI@2
   displayName: Run tests
   env:
-    EH_ARG: $(connstr.eventHub)
-    EH_KV: $(TestEventHubCompatibleEndpoint)
-    IH_ARG: $(connstr.iotHub)
-    IH_KV: $(TestIotHubConnectionString)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
+    no_proxy: 'localhost'
+  inputs:
+    azureSubscription: $(az.subscription)
+    scriptType: 'pscore'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
+      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:Name=TempSensor
 
 - task: PublishTestResults@2
   displayName: Publish test results

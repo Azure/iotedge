@@ -2621,7 +2621,7 @@ SOFTWARE.
 
 ***
 
-Microsoft.Azure.EventHubs
+Azure.Messaging.EventHubs
 MIT License
 
 Copyright (c) 2016 Microsoft Azure

@@ -59,7 +59,6 @@ steps:
         itemPattern: |
          $(az.pipeline.images.artifacts)/$(quickstart.package.name)
          $(az.pipeline.images.artifacts)/e2e_deployment_files/*
-         $(az.pipeline.images.artifacts)/scripts/linux/trcE2ETest.sh
          $(az.pipeline.images.artifacts)/artifactInfo.txt
 
   - task: DownloadBuildArtifacts@0

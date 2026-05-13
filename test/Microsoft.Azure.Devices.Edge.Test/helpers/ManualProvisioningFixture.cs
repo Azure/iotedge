@@ -24,8 +24,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public ManualProvisioningFixture()
         {
             this.IotHub = new IotHub(
-                Context.Current.ConnectionString,
-                Context.Current.EventHubEndpoint,
+                Context.Current.IotHubHostname,
+                Context.Current.EventHubName,
+                Context.Current.EventHubNamespace,
                 Context.Current.TestRunnerProxy);
         }
 

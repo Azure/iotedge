@@ -73,14 +73,17 @@ stages:
           parameters:
             containerRegistryServer: '$(acrServer)'
             containerRegistryUsername: '$(acrUsername)'
-            iotHubResourceId: '$(iotHubResourceId)'
+            dpsIdScope: '$(dps.idScope)'
+            eventHubName: '$(eventhub.name)'
+            eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+            iotHubHostName: '$(iothub.hostname)'
+            iotHubResourceId: '$(iothub.resourceid)'
             rootCaCertificate: '$(rootCaCertificate)'
             rootCaKey: '$(rootCaKey)'
         - template: ../e2e/templates/e2e-run.yaml
           parameters:
+            azureSubscription: '$(az.subscription)'
             containerRegistryPassword: '$(acrPassword)'
             dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-            eventHubCompatibleEndpoint: '$(eventHubCompatibleEndpoint)'
-            iotHubConnectionString: '$(iotHubConnectionString)'
             rootCaPassword: '$(rootCaPassword)'
             sas_uri: '$(sas_uri)'
