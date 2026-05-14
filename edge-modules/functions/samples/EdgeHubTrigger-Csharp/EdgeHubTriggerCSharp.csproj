@@ -23,6 +23,7 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Routing" Version="2.2.2" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.2.0" />
     <!--
       We have a transitive dependency on System.Net.Http via Microsoft.NET.Sdk.Functions/3.0.13.

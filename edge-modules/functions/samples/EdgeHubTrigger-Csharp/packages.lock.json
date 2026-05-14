@@ -15,6 +15,19 @@
           "Microsoft.Net.Http.Headers": "2.2.0"
         }
       },
+      "Microsoft.AspNetCore.Routing": {
+        "type": "Direct",
+        "requested": "[2.2.2, )",
+        "resolved": "2.2.2",
+        "contentHash": "HcmJmmGYewdNZ6Vcrr5RkQbc/YWU4F79P3uPPBi6fCFOgUewXNM1P4kbPuoem7tN4f7x8mq7gTsm5QGohQ5g/w==",
+        "dependencies": {
+          "Microsoft.AspNetCore.Http.Extensions": "2.2.0",
+          "Microsoft.AspNetCore.Routing.Abstractions": "2.2.0",
+          "Microsoft.Extensions.Logging.Abstractions": "2.2.0",
+          "Microsoft.Extensions.ObjectPool": "2.2.0",
+          "Microsoft.Extensions.Options": "2.2.0"
+        }
+      },
       "Microsoft.Extensions.Logging.Console": {
         "type": "Direct",
         "requested": "[10.0.0, )",
@@ -227,18 +240,6 @@
         "contentHash": "CIHWEKrHzZfFp7t57UXsueiSA/raku56TgRYauV/W1+KAQq6vevz60zjEKaazt3BI76zwMz3B4jGWnCwd8kwQw==",
         "dependencies": {
           "Microsoft.Extensions.Primitives": "2.2.0"
-        }
-      },
-      "Microsoft.AspNetCore.Routing": {
-        "type": "Transitive",
-        "resolved": "2.2.2",
-        "contentHash": "HcmJmmGYewdNZ6Vcrr5RkQbc/YWU4F79P3uPPBi6fCFOgUewXNM1P4kbPuoem7tN4f7x8mq7gTsm5QGohQ5g/w==",
-        "dependencies": {
-          "Microsoft.AspNetCore.Http.Extensions": "2.2.0",
-          "Microsoft.AspNetCore.Routing.Abstractions": "2.2.0",
-          "Microsoft.Extensions.Logging.Abstractions": "2.2.0",
-          "Microsoft.Extensions.ObjectPool": "2.2.0",
-          "Microsoft.Extensions.Options": "2.2.0"
         }
       },
       "Microsoft.AspNetCore.Routing.Abstractions": {
