@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
-    using global::Azure.Identity;
     using global::Azure.Messaging.EventHubs;
     using global::Azure.Messaging.EventHubs.Consumer;
     using global::Azure.Messaging.EventHubs.Primitives;
@@ -41,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     proxy.ForEach(p => settings.Proxy = p);
                     return RegistryManager.Create(
                         this.iotHubHostname,
-                        new AzureCliCredential(),
+                        OsPlatform.CreateAzureCliCredential(),
                         settings);
                 });
 
@@ -52,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     proxy.ForEach(p => settings.HttpProxy = p);
                     return ServiceClient.Create(
                         this.iotHubHostname,
-                        new AzureCliCredential(),
+                        OsPlatform.CreateAzureCliCredential(),
                         DeviceTransportType.Amqp_WebSocket_Only,
                         settings);
                 });
@@ -71,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         EventHubConsumerClient.DefaultConsumerGroupName,
                         this.eventHubNamespace,
                         this.eventHubName,
-                        new AzureCliCredential(),
+                        OsPlatform.CreateAzureCliCredential(),
                         consumerOptions);
 
                     return consumer.GetPartitionIdsAsync()
@@ -228,7 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 EventPosition.FromEnqueuedTime(seekTime),
                 this.eventHubNamespace,
                 this.eventHubName,
-                new AzureCliCredential());
+                OsPlatform.CreateAzureCliCredential());
 
             var result = new TaskCompletionSource<bool>();
             using (token.Register(() => result.TrySetCanceled()))
