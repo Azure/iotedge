@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using global::Azure.Identity;
     using global::Azure.Messaging.EventHubs;
     using global::Azure.Messaging.EventHubs.Consumer;
     using global::Azure.Messaging.EventHubs.Primitives;
@@ -18,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class IotHub
     {
-        readonly global::Azure.Identity.AzureCliCredential credential;
+        readonly AzureCliCredential credential;
         readonly string eventHubName;
         readonly string eventHubNamespace;
         readonly Lazy<Task<int>> eventHubPartitionCount;
