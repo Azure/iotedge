@@ -28,9 +28,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly Lazy<ServiceClient> serviceClient;
         static readonly TimeSpan eventHubRequestDuration = TimeSpan.FromSeconds(20);
 
+        static AzureCliCredential CreateAzureCliCredential()
+        {
+            if (OsPlatform.IsArm() && OsPlatform.Is32Bit())
+            {
+                return new AzureCliCredential(new AzureCliCredentialOptions
+                {
+                    ProcessTimeout = TimeSpan.FromSeconds(60)
+                });
+            }
+
+            return new AzureCliCredential();
+        }
+
         public IotHub(string iotHubHostname, string eventHubName, string eventHubNamespace, Option<Uri> proxyUri)
         {
-            this.credential = OsPlatform.CreateAzureCliCredential();
+            this.credential = IotHub.CreateAzureCliCredential();
             this.eventHubName = eventHubName;
             this.eventHubNamespace = eventHubNamespace;
             this.iotHubHostname = iotHubHostname;

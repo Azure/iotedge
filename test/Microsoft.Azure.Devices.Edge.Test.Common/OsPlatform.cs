@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
-    using global::Azure.Identity;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
     using Serilog;
@@ -18,22 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         public static readonly IOsPlatform Current = new Linux.OsPlatform();
 
+        public static bool Is32Bit() => RuntimeInformation.OSArchitecture == Architecture.X86 || RuntimeInformation.OSArchitecture == Architecture.Arm;
+
         public static bool Is64Bit() => RuntimeInformation.OSArchitecture == Architecture.X64 || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
         public static bool IsArm() => RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64;
-
-        public static AzureCliCredential CreateAzureCliCredential()
-        {
-            if (RuntimeInformation.OSArchitecture == Architecture.Arm)
-            {
-                return new AzureCliCredential(new AzureCliCredentialOptions
-                {
-                    ProcessTimeout = TimeSpan.FromSeconds(60)
-                });
-            }
-
-            return new AzureCliCredential();
-        }
 
         protected async Task InstallRootCertificateAsync(
             string basePath,
