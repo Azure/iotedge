@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class IotHub
     {
+        readonly global::Azure.Identity.AzureCliCredential credential;
         readonly string eventHubName;
         readonly string eventHubNamespace;
         readonly Lazy<Task<int>> eventHubPartitionCount;
@@ -28,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public IotHub(string iotHubHostname, string eventHubName, string eventHubNamespace, Option<Uri> proxyUri)
         {
+            this.credential = OsPlatform.CreateAzureCliCredential();
             this.eventHubName = eventHubName;
             this.eventHubNamespace = eventHubNamespace;
             this.iotHubHostname = iotHubHostname;
@@ -40,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     proxy.ForEach(p => settings.Proxy = p);
                     return RegistryManager.Create(
                         this.iotHubHostname,
-                        OsPlatform.CreateAzureCliCredential(),
+                        this.credential,
                         settings);
                 });
 
@@ -51,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     proxy.ForEach(p => settings.HttpProxy = p);
                     return ServiceClient.Create(
                         this.iotHubHostname,
-                        OsPlatform.CreateAzureCliCredential(),
+                        this.credential,
                         DeviceTransportType.Amqp_WebSocket_Only,
                         settings);
                 });
@@ -70,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         EventHubConsumerClient.DefaultConsumerGroupName,
                         this.eventHubNamespace,
                         this.eventHubName,
-                        OsPlatform.CreateAzureCliCredential(),
+                        this.credential,
                         consumerOptions);
 
                     return consumer.GetPartitionIdsAsync()
@@ -227,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 EventPosition.FromEnqueuedTime(seekTime),
                 this.eventHubNamespace,
                 this.eventHubName,
-                OsPlatform.CreateAzureCliCredential());
+                this.credential);
 
             var result = new TaskCompletionSource<bool>();
             using (token.Register(() => result.TrySetCanceled()))
