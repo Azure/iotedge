@@ -44,11 +44,17 @@ steps:
     ROOT_CERT: $(TestRootCaCertificate)
     ROOT_KEY: $(TestRootCaKey)
 
+- task: UseDotNet@2
+  displayName: Install .NET 10 SDK
+  inputs:
+    packageType: sdk
+    version: 10.0.x
+
 - pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build $testDir
 
-    $binDir = Convert-Path "$testDir/bin/Debug/net8.0"
+    $binDir = Convert-Path "$testDir/bin/Debug/net10.0"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
 

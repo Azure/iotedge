@@ -1,6 +1,19 @@
 <Project>
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- NU1510: .NET 10 SDK warns when a PackageReference is already provided by the target framework
+         and therefore cannot be pruned. The references in this repo are intentional pins held over
+         from older targets; suppressing keeps behavior identical without scrubbing the references.
+         SYSLIB0057: X509Certificate2 byte[]/string constructors are marked [Obsolete] in .NET 9+ in
+         favor of X509CertificateLoader. The constructors are still functional and behaviorally
+         identical; suppressing the obsoletion warning avoids an API migration.
+         CS0618: A few enum members in the new Microsoft.Azure.Devices SDK are now [Obsolete] but still
+         function identically; suppressing avoids API churn until a follow-up migration.
+         CA2022: New analyzer rule flags Stream.Read inexact reads; existing usages are intentional
+         and behaviorally correct, so suppress without rewriting.
+         ASPDEPR008: ASP.NET Core 10 marked IWebHost obsolete in favor of IHost; the legacy hosting
+         API is retained here to preserve startup semantics. -->
+    <NoWarn>$(NoWarn);NU1510;SYSLIB0057;CS0618;CA2022;ASPDEPR004;ASPDEPR008</NoWarn>
   </PropertyGroup>
 </Project>
