@@ -63,6 +63,7 @@ impl ContainerCreateBodyNetworkingConfig {
         self.endpoints_config = Some(endpoints_config);
     }
 
+    #[must_use]
     pub fn with_endpoints_config(
         mut self,
         endpoints_config: ::std::collections::BTreeMap<String, crate::models::EndpointSettings>,

@@ -25,7 +25,7 @@ pub struct ApiError {
 
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "HTTP {}: {}", &self.code, &self.message)
+        write!(f, "HTTP {}: {}", self.code, self.message)
     }
 }
 
@@ -78,6 +78,7 @@ where
         }
     }
 
+    #[must_use]
     pub fn with_configuration(mut self, configuration: Configuration) -> Self {
         self.configuration = std::sync::Arc::new(configuration);
         self
@@ -245,7 +246,7 @@ macro_rules! api_call {
                     .finish();
                 let uri = (self.configuration.uri_composer)(
                     &self.configuration.base_path,
-                    &format!("{}?{}", format_args!($path), query)
+                    &format!("{}?{query}", format_args!($path))
                 )?;
 
                 let mut builder = ::hyper::Request::$method(&uri)
@@ -258,7 +259,7 @@ macro_rules! api_call {
                 let request = api_call!(@inner build_request builder $(body $btype)?)?;
 
                 let response = ::tokio::time::timeout(
-                    ::std::time::Duration::from_secs(60),
+                    std::time::Duration::from_mins(1),
                     self.client.request(request)
                 )
                 .await??;

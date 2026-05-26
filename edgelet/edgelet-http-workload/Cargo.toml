@@ -49,3 +49,7 @@ nix = { workspace = true }
 test-common = { workspace = true }
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+
+[lints]
+workspace = true

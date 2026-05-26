@@ -52,10 +52,7 @@ where
             .decode_utf8()
             .ok()?;
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         let api = super::CertApi::new(
             service.key_client.clone(),
@@ -167,10 +164,10 @@ mod tests {
         test_route_err!("/modules/testModule/genid//certificate/server");
 
         // Extra character at beginning of URI
-        test_route_err!(&format!("a{}", TEST_PATH));
+        test_route_err!(&format!("a{TEST_PATH}"));
 
         // Extra character at end of URI
-        test_route_err!(&format!("{}a", TEST_PATH));
+        test_route_err!(&format!("{TEST_PATH}a"));
     }
 
     #[tokio::test]

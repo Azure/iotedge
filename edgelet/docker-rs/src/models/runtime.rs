@@ -36,6 +36,7 @@ impl Runtime {
         self.path = Some(path);
     }
 
+    #[must_use]
     pub fn with_path(mut self, path: String) -> Self {
         self.path = Some(path);
         self
@@ -53,6 +54,7 @@ impl Runtime {
         self.runtime_args = Some(runtime_args);
     }
 
+    #[must_use]
     pub fn with_runtime_args(mut self, runtime_args: Vec<String>) -> Self {
         self.runtime_args = Some(runtime_args);
         self

@@ -61,6 +61,7 @@ impl ExecConfig {
         self.attach_stdin = Some(attach_stdin);
     }
 
+    #[must_use]
     pub fn with_attach_stdin(mut self, attach_stdin: bool) -> Self {
         self.attach_stdin = Some(attach_stdin);
         self
@@ -78,6 +79,7 @@ impl ExecConfig {
         self.attach_stdout = Some(attach_stdout);
     }
 
+    #[must_use]
     pub fn with_attach_stdout(mut self, attach_stdout: bool) -> Self {
         self.attach_stdout = Some(attach_stdout);
         self
@@ -95,6 +97,7 @@ impl ExecConfig {
         self.attach_stderr = Some(attach_stderr);
     }
 
+    #[must_use]
     pub fn with_attach_stderr(mut self, attach_stderr: bool) -> Self {
         self.attach_stderr = Some(attach_stderr);
         self
@@ -112,6 +115,7 @@ impl ExecConfig {
         self.detach_keys = Some(detach_keys);
     }
 
+    #[must_use]
     pub fn with_detach_keys(mut self, detach_keys: String) -> Self {
         self.detach_keys = Some(detach_keys);
         self
@@ -129,6 +133,7 @@ impl ExecConfig {
         self.tty = Some(tty);
     }
 
+    #[must_use]
     pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self
@@ -146,6 +151,7 @@ impl ExecConfig {
         self.env = Some(env);
     }
 
+    #[must_use]
     pub fn with_env(mut self, env: Vec<String>) -> Self {
         self.env = Some(env);
         self
@@ -163,6 +169,7 @@ impl ExecConfig {
         self.cmd = Some(cmd);
     }
 
+    #[must_use]
     pub fn with_cmd(mut self, cmd: Vec<String>) -> Self {
         self.cmd = Some(cmd);
         self
@@ -180,6 +187,7 @@ impl ExecConfig {
         self.privileged = Some(privileged);
     }
 
+    #[must_use]
     pub fn with_privileged(mut self, privileged: bool) -> Self {
         self.privileged = Some(privileged);
         self
@@ -197,6 +205,7 @@ impl ExecConfig {
         self.user = Some(user);
     }
 
+    #[must_use]
     pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self

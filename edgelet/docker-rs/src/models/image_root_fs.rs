@@ -14,7 +14,7 @@ use serde_json::Value;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ImageRootFs {
     #[serde(rename = "Type")]
-    _type: String,
+    r#type: String,
     #[serde(rename = "Layers", skip_serializing_if = "Option::is_none")]
     layers: Option<Vec<String>>,
     #[serde(rename = "BaseLayer", skip_serializing_if = "Option::is_none")]
@@ -22,31 +22,33 @@ pub struct ImageRootFs {
 }
 
 impl ImageRootFs {
-    pub fn new(_type: String) -> Self {
+    pub fn new(r#type: String) -> Self {
         ImageRootFs {
-            _type,
+            r#type,
             layers: None,
             base_layer: None,
         }
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = _type;
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = r#type;
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = _type;
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = r#type;
         self
     }
 
-    pub fn _type(&self) -> &String {
-        &self._type
+    pub fn r#type(&self) -> &String {
+        &self.r#type
     }
 
     pub fn set_layers(&mut self, layers: Vec<String>) {
         self.layers = Some(layers);
     }
 
+    #[must_use]
     pub fn with_layers(mut self, layers: Vec<String>) -> Self {
         self.layers = Some(layers);
         self
@@ -64,6 +66,7 @@ impl ImageRootFs {
         self.base_layer = Some(base_layer);
     }
 
+    #[must_use]
     pub fn with_base_layer(mut self, base_layer: String) -> Self {
         self.base_layer = Some(base_layer);
         self

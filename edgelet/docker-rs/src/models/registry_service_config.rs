@@ -60,6 +60,7 @@ impl RegistryServiceConfig {
             Some(allow_nondistributable_artifacts_cid_rs);
     }
 
+    #[must_use]
     pub fn with_allow_nondistributable_artifacts_cid_rs(
         mut self,
         allow_nondistributable_artifacts_cid_rs: Vec<String>,
@@ -87,6 +88,7 @@ impl RegistryServiceConfig {
             Some(allow_nondistributable_artifacts_hostnames);
     }
 
+    #[must_use]
     pub fn with_allow_nondistributable_artifacts_hostnames(
         mut self,
         allow_nondistributable_artifacts_hostnames: Vec<String>,
@@ -110,6 +112,7 @@ impl RegistryServiceConfig {
         self.insecure_registry_cid_rs = Some(insecure_registry_cid_rs);
     }
 
+    #[must_use]
     pub fn with_insecure_registry_cid_rs(mut self, insecure_registry_cid_rs: Vec<String>) -> Self {
         self.insecure_registry_cid_rs = Some(insecure_registry_cid_rs);
         self
@@ -130,6 +133,7 @@ impl RegistryServiceConfig {
         self.index_configs = Some(index_configs);
     }
 
+    #[must_use]
     pub fn with_index_configs(
         mut self,
         index_configs: ::std::collections::HashMap<String, crate::models::IndexInfo>,
@@ -152,6 +156,7 @@ impl RegistryServiceConfig {
         self.mirrors = Some(mirrors);
     }
 
+    #[must_use]
     pub fn with_mirrors(mut self, mirrors: Vec<String>) -> Self {
         self.mirrors = Some(mirrors);
         self

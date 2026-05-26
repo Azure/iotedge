@@ -45,8 +45,8 @@ impl ConnectManagementUri {
             .starts_with("/azureiotedge-diagnostics:")
         {
             check.parent_hostname.as_ref().map_or_else(
-                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
-                |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
+                || format!("mcr.microsoft.com{}", check.diagnostics_image_name),
+                |upstream_hostname| format!("{upstream_hostname}{}", check.diagnostics_image_name),
             )
         } else {
             check.diagnostics_image_name.clone()
@@ -90,16 +90,13 @@ impl ConnectManagementUri {
 
             (scheme1, scheme2) if scheme1 != scheme2 => {
                 return Err(anyhow!(
-                    "configuration has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
-                    scheme1,
-                    scheme2,
+                    "configuration has invalid combination of schemes for connect.management_uri ({scheme1:?}) and listen.management_uri ({scheme2:?})"
                 ));
             }
 
             (scheme, _) => {
                 return Err(anyhow!(
-                    "Could not parse connect.management_uri: scheme {} is invalid",
-                    scheme,
+                    "Could not parse connect.management_uri: scheme {scheme} is invalid"
                 ));
             }
         }

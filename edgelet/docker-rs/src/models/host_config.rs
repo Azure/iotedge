@@ -324,6 +324,7 @@ impl HostConfig {
     //     self.cpu_shares = Some(cpu_shares);
     // }
 
+    // #[must_use]
     // pub fn with_cpu_shares(mut self, cpu_shares: i32) -> Self {
     //     self.cpu_shares = Some(cpu_shares);
     //     self
@@ -341,6 +342,7 @@ impl HostConfig {
         self.memory = Some(memory);
     }
 
+    #[must_use]
     pub fn with_memory(mut self, memory: i64) -> Self {
         self.memory = Some(memory);
         self
@@ -358,6 +360,7 @@ impl HostConfig {
     //     self.cgroup_parent = Some(cgroup_parent);
     // }
 
+    // #[must_use]
     // pub fn with_cgroup_parent(mut self, cgroup_parent: String) -> Self {
     //     self.cgroup_parent = Some(cgroup_parent);
     //     self
@@ -375,6 +378,7 @@ impl HostConfig {
     //     self.blkio_weight = Some(blkio_weight);
     // }
 
+    // #[must_use]
     // pub fn with_blkio_weight(mut self, blkio_weight: i32) -> Self {
     //     self.blkio_weight = Some(blkio_weight);
     //     self
@@ -395,6 +399,7 @@ impl HostConfig {
     //     self.blkio_weight_device = Some(blkio_weight_device);
     // }
 
+    // #[must_use]
     // pub fn with_blkio_weight_device(
     //     mut self,
     //     blkio_weight_device: Vec<crate::models::ResourcesBlkioWeightDevice>,
@@ -418,6 +423,7 @@ impl HostConfig {
     //     self.blkio_device_read_bps = Some(blkio_device_read_bps);
     // }
 
+    // #[must_use]
     // pub fn with_blkio_device_read_bps(
     //     mut self,
     //     blkio_device_read_bps: Vec<crate::models::ThrottleDevice>,
@@ -441,6 +447,7 @@ impl HostConfig {
     //     self.blkio_device_write_bps = Some(blkio_device_write_bps);
     // }
 
+    // #[must_use]
     // pub fn with_blkio_device_write_bps(
     //     mut self,
     //     blkio_device_write_bps: Vec<crate::models::ThrottleDevice>,
@@ -464,6 +471,7 @@ impl HostConfig {
     //     self.blkio_device_read_i_ops = Some(blkio_device_read_i_ops);
     // }
 
+    // #[must_use]
     // pub fn with_blkio_device_read_i_ops(
     //     mut self,
     //     blkio_device_read_i_ops: Vec<crate::models::ThrottleDevice>,
@@ -487,6 +495,7 @@ impl HostConfig {
     //     self.blkio_device_write_i_ops = Some(blkio_device_write_i_ops);
     // }
 
+    // #[must_use]
     // pub fn with_blkio_device_write_i_ops(
     //     mut self,
     //     blkio_device_write_i_ops: Vec<crate::models::ThrottleDevice>,
@@ -507,6 +516,7 @@ impl HostConfig {
     //     self.cpu_period = Some(cpu_period);
     // }
 
+    // #[must_use]
     // pub fn with_cpu_period(mut self, cpu_period: i64) -> Self {
     //     self.cpu_period = Some(cpu_period);
     //     self
@@ -524,6 +534,7 @@ impl HostConfig {
     //     self.cpu_quota = Some(cpu_quota);
     // }
 
+    // #[must_use]
     // pub fn with_cpu_quota(mut self, cpu_quota: i64) -> Self {
     //     self.cpu_quota = Some(cpu_quota);
     //     self
@@ -541,6 +552,7 @@ impl HostConfig {
     //     self.cpu_realtime_period = Some(cpu_realtime_period);
     // }
 
+    // #[must_use]
     // pub fn with_cpu_realtime_period(mut self, cpu_realtime_period: i64) -> Self {
     //     self.cpu_realtime_period = Some(cpu_realtime_period);
     //     self
@@ -558,6 +570,7 @@ impl HostConfig {
     //     self.cpu_realtime_runtime = Some(cpu_realtime_runtime);
     // }
 
+    // #[must_use]
     // pub fn with_cpu_realtime_runtime(mut self, cpu_realtime_runtime: i64) -> Self {
     //     self.cpu_realtime_runtime = Some(cpu_realtime_runtime);
     //     self
@@ -575,6 +588,7 @@ impl HostConfig {
     //     self.cpuset_cpus = Some(cpuset_cpus);
     // }
 
+    // #[must_use]
     // pub fn with_cpuset_cpus(mut self, cpuset_cpus: String) -> Self {
     //     self.cpuset_cpus = Some(cpuset_cpus);
     //     self
@@ -592,6 +606,7 @@ impl HostConfig {
     //     self.cpuset_mems = Some(cpuset_mems);
     // }
 
+    // #[must_use]
     // pub fn with_cpuset_mems(mut self, cpuset_mems: String) -> Self {
     //     self.cpuset_mems = Some(cpuset_mems);
     //     self
@@ -609,6 +624,7 @@ impl HostConfig {
     //     self.devices = Some(devices);
     // }
 
+    // #[must_use]
     // pub fn with_devices(mut self, devices: Vec<crate::models::DeviceMapping>) -> Self {
     //     self.devices = Some(devices);
     //     self
@@ -626,6 +642,7 @@ impl HostConfig {
     //     self.device_cgroup_rules = Some(device_cgroup_rules);
     // }
 
+    // #[must_use]
     // pub fn with_device_cgroup_rules(mut self, device_cgroup_rules: Vec<String>) -> Self {
     //     self.device_cgroup_rules = Some(device_cgroup_rules);
     //     self
@@ -643,6 +660,7 @@ impl HostConfig {
     //     self.disk_quota = Some(disk_quota);
     // }
 
+    // #[must_use]
     // pub fn with_disk_quota(mut self, disk_quota: i64) -> Self {
     //     self.disk_quota = Some(disk_quota);
     //     self
@@ -660,6 +678,7 @@ impl HostConfig {
     //     self.kernel_memory = Some(kernel_memory);
     // }
 
+    // #[must_use]
     // pub fn with_kernel_memory(mut self, kernel_memory: i64) -> Self {
     //     self.kernel_memory = Some(kernel_memory);
     //     self
@@ -677,6 +696,7 @@ impl HostConfig {
     //     self.memory_reservation = Some(memory_reservation);
     // }
 
+    // #[must_use]
     // pub fn with_memory_reservation(mut self, memory_reservation: i64) -> Self {
     //     self.memory_reservation = Some(memory_reservation);
     //     self
@@ -694,6 +714,7 @@ impl HostConfig {
     //     self.memory_swap = Some(memory_swap);
     // }
 
+    // #[must_use]
     // pub fn with_memory_swap(mut self, memory_swap: i64) -> Self {
     //     self.memory_swap = Some(memory_swap);
     //     self
@@ -711,6 +732,7 @@ impl HostConfig {
     //     self.memory_swappiness = Some(memory_swappiness);
     // }
 
+    // #[must_use]
     // pub fn with_memory_swappiness(mut self, memory_swappiness: i64) -> Self {
     //     self.memory_swappiness = Some(memory_swappiness);
     //     self
@@ -728,6 +750,7 @@ impl HostConfig {
     //     self.nano_cp_us = Some(nano_cp_us);
     // }
 
+    // #[must_use]
     // pub fn with_nano_cp_us(mut self, nano_cp_us: i64) -> Self {
     //     self.nano_cp_us = Some(nano_cp_us);
     //     self
@@ -745,6 +768,7 @@ impl HostConfig {
     //     self.oom_kill_disable = Some(oom_kill_disable);
     // }
 
+    // #[must_use]
     // pub fn with_oom_kill_disable(mut self, oom_kill_disable: bool) -> Self {
     //     self.oom_kill_disable = Some(oom_kill_disable);
     //     self
@@ -762,6 +786,7 @@ impl HostConfig {
     //     self.pids_limit = Some(pids_limit);
     // }
 
+    // #[must_use]
     // pub fn with_pids_limit(mut self, pids_limit: i64) -> Self {
     //     self.pids_limit = Some(pids_limit);
     //     self
@@ -779,6 +804,7 @@ impl HostConfig {
     //     self.ulimits = Some(ulimits);
     // }
 
+    // #[must_use]
     // pub fn with_ulimits(mut self, ulimits: Vec<crate::models::ResourcesUlimits>) -> Self {
     //     self.ulimits = Some(ulimits);
     //     self
@@ -796,6 +822,7 @@ impl HostConfig {
     //     self.cpu_count = Some(cpu_count);
     // }
 
+    // #[must_use]
     // pub fn with_cpu_count(mut self, cpu_count: i64) -> Self {
     //     self.cpu_count = Some(cpu_count);
     //     self
@@ -813,6 +840,7 @@ impl HostConfig {
     //     self.cpu_percent = Some(cpu_percent);
     // }
 
+    // #[must_use]
     // pub fn with_cpu_percent(mut self, cpu_percent: i64) -> Self {
     //     self.cpu_percent = Some(cpu_percent);
     //     self
@@ -830,6 +858,7 @@ impl HostConfig {
     //     self.io_maximum_i_ops = Some(io_maximum_i_ops);
     // }
 
+    // #[must_use]
     // pub fn with_io_maximum_i_ops(mut self, io_maximum_i_ops: i64) -> Self {
     //     self.io_maximum_i_ops = Some(io_maximum_i_ops);
     //     self
@@ -847,6 +876,7 @@ impl HostConfig {
     //     self.io_maximum_bandwidth = Some(io_maximum_bandwidth);
     // }
 
+    // #[must_use]
     // pub fn with_io_maximum_bandwidth(mut self, io_maximum_bandwidth: i64) -> Self {
     //     self.io_maximum_bandwidth = Some(io_maximum_bandwidth);
     //     self
@@ -864,6 +894,7 @@ impl HostConfig {
         self.binds = Some(binds);
     }
 
+    #[must_use]
     pub fn with_binds(mut self, binds: Vec<String>) -> Self {
         self.binds = Some(binds);
         self
@@ -881,6 +912,7 @@ impl HostConfig {
     //     self.container_id_file = Some(container_id_file);
     // }
 
+    // #[must_use]
     // pub fn with_container_id_file(mut self, container_id_file: String) -> Self {
     //     self.container_id_file = Some(container_id_file);
     //     self
@@ -898,6 +930,7 @@ impl HostConfig {
     //     self.log_config = Some(log_config);
     // }
 
+    // #[must_use]
     // pub fn with_log_config(mut self, log_config: crate::models::HostConfigLogConfig) -> Self {
     //     self.log_config = Some(log_config);
     //     self
@@ -915,6 +948,7 @@ impl HostConfig {
     //     self.network_mode = Some(network_mode);
     // }
 
+    // #[must_use]
     // pub fn with_network_mode(mut self, network_mode: String) -> Self {
     //     self.network_mode = Some(network_mode);
     //     self
@@ -938,6 +972,7 @@ impl HostConfig {
         self.port_bindings = Some(port_bindings);
     }
 
+    #[must_use]
     pub fn with_port_bindings(
         mut self,
         port_bindings: ::std::collections::BTreeMap<
@@ -964,6 +999,7 @@ impl HostConfig {
     //     self.restart_policy = Some(restart_policy);
     // }
 
+    // #[must_use]
     // pub fn with_restart_policy(mut self, restart_policy: crate::models::RestartPolicy) -> Self {
     //     self.restart_policy = Some(restart_policy);
     //     self
@@ -981,6 +1017,7 @@ impl HostConfig {
     //     self.auto_remove = Some(auto_remove);
     // }
 
+    // #[must_use]
     // pub fn with_auto_remove(mut self, auto_remove: bool) -> Self {
     //     self.auto_remove = Some(auto_remove);
     //     self
@@ -998,6 +1035,7 @@ impl HostConfig {
     //     self.volume_driver = Some(volume_driver);
     // }
 
+    // #[must_use]
     // pub fn with_volume_driver(mut self, volume_driver: String) -> Self {
     //     self.volume_driver = Some(volume_driver);
     //     self
@@ -1015,6 +1053,7 @@ impl HostConfig {
     //     self.volumes_from = Some(volumes_from);
     // }
 
+    // #[must_use]
     // pub fn with_volumes_from(mut self, volumes_from: Vec<String>) -> Self {
     //     self.volumes_from = Some(volumes_from);
     //     self
@@ -1032,6 +1071,7 @@ impl HostConfig {
         self.mounts = Some(mounts);
     }
 
+    #[must_use]
     pub fn with_mounts(mut self, mounts: Vec<crate::models::Mount>) -> Self {
         self.mounts = Some(mounts);
         self
@@ -1049,6 +1089,7 @@ impl HostConfig {
         self.cap_add = Some(cap_add);
     }
 
+    #[must_use]
     pub fn with_cap_add(mut self, cap_add: Vec<String>) -> Self {
         self.cap_add = Some(cap_add);
         self
@@ -1066,6 +1107,7 @@ impl HostConfig {
         self.cap_drop = Some(cap_drop);
     }
 
+    #[must_use]
     pub fn with_cap_drop(mut self, cap_drop: Vec<String>) -> Self {
         self.cap_drop = Some(cap_drop);
         self
@@ -1083,6 +1125,7 @@ impl HostConfig {
     //     self.dns = Some(dns);
     // }
 
+    // #[must_use]
     // pub fn with_dns(mut self, dns: Vec<String>) -> Self {
     //     self.dns = Some(dns);
     //     self
@@ -1100,6 +1143,7 @@ impl HostConfig {
     //     self.dns_options = Some(dns_options);
     // }
 
+    // #[must_use]
     // pub fn with_dns_options(mut self, dns_options: Vec<String>) -> Self {
     //     self.dns_options = Some(dns_options);
     //     self
@@ -1117,6 +1161,7 @@ impl HostConfig {
     //     self.dns_search = Some(dns_search);
     // }
 
+    // #[must_use]
     // pub fn with_dns_search(mut self, dns_search: Vec<String>) -> Self {
     //     self.dns_search = Some(dns_search);
     //     self
@@ -1134,6 +1179,7 @@ impl HostConfig {
         self.extra_hosts = Some(extra_hosts);
     }
 
+    #[must_use]
     pub fn with_extra_hosts(mut self, extra_hosts: Vec<String>) -> Self {
         self.extra_hosts = Some(extra_hosts);
         self
@@ -1151,6 +1197,7 @@ impl HostConfig {
     //     self.group_add = Some(group_add);
     // }
 
+    // #[must_use]
     // pub fn with_group_add(mut self, group_add: Vec<String>) -> Self {
     //     self.group_add = Some(group_add);
     //     self
@@ -1168,6 +1215,7 @@ impl HostConfig {
     //     self.ipc_mode = Some(ipc_mode);
     // }
 
+    // #[must_use]
     // pub fn with_ipc_mode(mut self, ipc_mode: String) -> Self {
     //     self.ipc_mode = Some(ipc_mode);
     //     self
@@ -1185,6 +1233,7 @@ impl HostConfig {
     //     self.cgroup = Some(cgroup);
     // }
 
+    // #[must_use]
     // pub fn with_cgroup(mut self, cgroup: String) -> Self {
     //     self.cgroup = Some(cgroup);
     //     self
@@ -1202,6 +1251,7 @@ impl HostConfig {
     //     self.links = Some(links);
     // }
 
+    // #[must_use]
     // pub fn with_links(mut self, links: Vec<String>) -> Self {
     //     self.links = Some(links);
     //     self
@@ -1219,6 +1269,7 @@ impl HostConfig {
     //     self.oom_score_adj = Some(oom_score_adj);
     // }
 
+    // #[must_use]
     // pub fn with_oom_score_adj(mut self, oom_score_adj: i32) -> Self {
     //     self.oom_score_adj = Some(oom_score_adj);
     //     self
@@ -1236,6 +1287,7 @@ impl HostConfig {
     //     self.pid_mode = Some(pid_mode);
     // }
 
+    // #[must_use]
     // pub fn with_pid_mode(mut self, pid_mode: String) -> Self {
     //     self.pid_mode = Some(pid_mode);
     //     self
@@ -1253,6 +1305,7 @@ impl HostConfig {
         self.privileged = Some(privileged);
     }
 
+    #[must_use]
     pub fn with_privileged(mut self, privileged: bool) -> Self {
         self.privileged = Some(privileged);
         self
@@ -1270,6 +1323,7 @@ impl HostConfig {
     //     self.publish_all_ports = Some(publish_all_ports);
     // }
 
+    // #[must_use]
     // pub fn with_publish_all_ports(mut self, publish_all_ports: bool) -> Self {
     //     self.publish_all_ports = Some(publish_all_ports);
     //     self
@@ -1287,6 +1341,7 @@ impl HostConfig {
     //     self.readonly_rootfs = Some(readonly_rootfs);
     // }
 
+    // #[must_use]
     // pub fn with_readonly_rootfs(mut self, readonly_rootfs: bool) -> Self {
     //     self.readonly_rootfs = Some(readonly_rootfs);
     //     self
@@ -1304,6 +1359,7 @@ impl HostConfig {
     //     self.security_opt = Some(security_opt);
     // }
 
+    // #[must_use]
     // pub fn with_security_opt(mut self, security_opt: Vec<String>) -> Self {
     //     self.security_opt = Some(security_opt);
     //     self
@@ -1321,6 +1377,7 @@ impl HostConfig {
     //     self.storage_opt = Some(storage_opt);
     // }
 
+    // #[must_use]
     // pub fn with_storage_opt(
     //     mut self,
     //     storage_opt: ::std::collections::BTreeMap<String, String>,
@@ -1341,6 +1398,7 @@ impl HostConfig {
     //     self.tmpfs = Some(tmpfs);
     // }
 
+    // #[must_use]
     // pub fn with_tmpfs(mut self, tmpfs: ::std::collections::BTreeMap<String, String>) -> Self {
     //     self.tmpfs = Some(tmpfs);
     //     self
@@ -1358,6 +1416,7 @@ impl HostConfig {
     //     self.uts_mode = Some(uts_mode);
     // }
 
+    // #[must_use]
     // pub fn with_uts_mode(mut self, uts_mode: String) -> Self {
     //     self.uts_mode = Some(uts_mode);
     //     self
@@ -1375,6 +1434,7 @@ impl HostConfig {
     //     self.userns_mode = Some(userns_mode);
     // }
 
+    // #[must_use]
     // pub fn with_userns_mode(mut self, userns_mode: String) -> Self {
     //     self.userns_mode = Some(userns_mode);
     //     self
@@ -1392,6 +1452,7 @@ impl HostConfig {
     //     self.shm_size = Some(shm_size);
     // }
 
+    // #[must_use]
     // pub fn with_shm_size(mut self, shm_size: i64) -> Self {
     //     self.shm_size = Some(shm_size);
     //     self
@@ -1409,6 +1470,7 @@ impl HostConfig {
     //     self.sysctls = Some(sysctls);
     // }
 
+    // #[must_use]
     // pub fn with_sysctls(mut self, sysctls: ::std::collections::BTreeMap<String, String>) -> Self {
     //     self.sysctls = Some(sysctls);
     //     self
@@ -1426,6 +1488,7 @@ impl HostConfig {
     //     self.runtime = Some(runtime);
     // }
 
+    // #[must_use]
     // pub fn with_runtime(mut self, runtime: String) -> Self {
     //     self.runtime = Some(runtime);
     //     self
@@ -1443,6 +1506,7 @@ impl HostConfig {
     //     self.console_size = Some(console_size);
     // }
 
+    // #[must_use]
     // pub fn with_console_size(mut self, console_size: Vec<i32>) -> Self {
     //     self.console_size = Some(console_size);
     //     self
@@ -1460,6 +1524,7 @@ impl HostConfig {
     //     self.isolation = Some(isolation);
     // }
 
+    // #[must_use]
     // pub fn with_isolation(mut self, isolation: String) -> Self {
     //     self.isolation = Some(isolation);
     //     self

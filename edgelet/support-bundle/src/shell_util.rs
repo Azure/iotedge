@@ -102,7 +102,7 @@ pub async fn get_docker_networks() -> Result<Vec<String>, Error> {
         } else {
             println!(
                 "Could not find network names: {}",
-                String::from_utf8_lossy(&result.stderr)
+                String::from_utf8_lossy(&result.stderr),
             );
             edgelet_settings::DEFAULT_NETWORKID.to_owned()
         }

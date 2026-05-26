@@ -36,6 +36,7 @@ impl TaskSpecResources {
         self.limits = Some(limits);
     }
 
+    #[must_use]
     pub fn with_limits(mut self, limits: crate::models::ResourceObject) -> Self {
         self.limits = Some(limits);
         self
@@ -53,6 +54,7 @@ impl TaskSpecResources {
         self.reservation = Some(reservation);
     }
 
+    #[must_use]
     pub fn with_reservation(mut self, reservation: crate::models::ResourceObject) -> Self {
         self.reservation = Some(reservation);
         self

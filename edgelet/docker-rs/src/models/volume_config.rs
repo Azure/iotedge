@@ -41,6 +41,7 @@ impl VolumeConfig {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -58,6 +59,7 @@ impl VolumeConfig {
         self.driver = Some(driver);
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
@@ -75,6 +77,7 @@ impl VolumeConfig {
         self.driver_opts = Some(driver_opts);
     }
 
+    #[must_use]
     pub fn with_driver_opts(
         mut self,
         driver_opts: ::std::collections::HashMap<String, String>,
@@ -95,6 +98,7 @@ impl VolumeConfig {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self

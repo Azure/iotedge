@@ -26,6 +26,7 @@ impl ContainerSummaryInnerHostConfig {
         self.network_mode = Some(network_mode);
     }
 
+    #[must_use]
     pub fn with_network_mode(mut self, network_mode: String) -> Self {
         self.network_mode = Some(network_mode);
         self

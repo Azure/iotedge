@@ -44,6 +44,7 @@ impl IndexInfo {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -61,6 +62,7 @@ impl IndexInfo {
         self.mirrors = Some(mirrors);
     }
 
+    #[must_use]
     pub fn with_mirrors(mut self, mirrors: Vec<String>) -> Self {
         self.mirrors = Some(mirrors);
         self
@@ -78,6 +80,7 @@ impl IndexInfo {
         self.secure = Some(secure);
     }
 
+    #[must_use]
     pub fn with_secure(mut self, secure: bool) -> Self {
         self.secure = Some(secure);
         self
@@ -95,6 +98,7 @@ impl IndexInfo {
         self.official = Some(official);
     }
 
+    #[must_use]
     pub fn with_official(mut self, official: bool) -> Self {
         self.official = Some(official);
         self

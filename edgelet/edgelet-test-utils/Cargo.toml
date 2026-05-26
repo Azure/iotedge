@@ -22,3 +22,7 @@ cert-renewal = { workspace = true }
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
+
+
+[lints]
+workspace = true

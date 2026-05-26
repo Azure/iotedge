@@ -303,9 +303,8 @@ async fn execute_inner(
             let preloaded_master_encryption_key_bytes =
                 std::fs::read(&imported_master_encryption_key).map_err(|err| {
                     format!(
-                        "could not import master encryption key file {}: {}",
+                        "could not import master encryption key file {}: {err}",
                         imported_master_encryption_key.display(),
-                        err
                     )
                 })?;
             keyd_config.preloaded_keys.insert(

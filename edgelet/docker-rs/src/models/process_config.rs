@@ -40,6 +40,7 @@ impl ProcessConfig {
         self.privileged = Some(privileged);
     }
 
+    #[must_use]
     pub fn with_privileged(mut self, privileged: bool) -> Self {
         self.privileged = Some(privileged);
         self
@@ -57,6 +58,7 @@ impl ProcessConfig {
         self.user = Some(user);
     }
 
+    #[must_use]
     pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
@@ -74,6 +76,7 @@ impl ProcessConfig {
         self.tty = Some(tty);
     }
 
+    #[must_use]
     pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self
@@ -91,6 +94,7 @@ impl ProcessConfig {
         self.entrypoint = Some(entrypoint);
     }
 
+    #[must_use]
     pub fn with_entrypoint(mut self, entrypoint: String) -> Self {
         self.entrypoint = Some(entrypoint);
         self
@@ -108,6 +112,7 @@ impl ProcessConfig {
         self.arguments = Some(arguments);
     }
 
+    #[must_use]
     pub fn with_arguments(mut self, arguments: Vec<String>) -> Self {
         self.arguments = Some(arguments);
         self

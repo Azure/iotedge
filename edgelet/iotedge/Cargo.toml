@@ -60,3 +60,7 @@ support-bundle = { path = "../support-bundle" }
 
 [features]
 snapctl = ["aziotctl-common/snapctl", "support-bundle/snapctl"]
+
+
+[lints]
+workspace = true

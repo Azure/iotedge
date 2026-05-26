@@ -55,7 +55,7 @@ where
             log::debug!(
                 "Skipped pulling image for module {} as per pull policy",
                 module.name()
-            )
+            );
         }
     }
 

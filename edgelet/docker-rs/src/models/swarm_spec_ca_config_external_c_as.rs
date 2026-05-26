@@ -41,6 +41,7 @@ impl SwarmSpecCaConfigExternalCAs {
         self.protocol = Some(protocol);
     }
 
+    #[must_use]
     pub fn with_protocol(mut self, protocol: String) -> Self {
         self.protocol = Some(protocol);
         self
@@ -58,6 +59,7 @@ impl SwarmSpecCaConfigExternalCAs {
         self.URL = Some(URL);
     }
 
+    #[must_use]
     pub fn with_URL(mut self, URL: String) -> Self {
         self.URL = Some(URL);
         self
@@ -75,6 +77,7 @@ impl SwarmSpecCaConfigExternalCAs {
         self.options = Some(options);
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
@@ -92,6 +95,7 @@ impl SwarmSpecCaConfigExternalCAs {
         self.ca_cert = Some(ca_cert);
     }
 
+    #[must_use]
     pub fn with_ca_cert(mut self, ca_cert: String) -> Self {
         self.ca_cert = Some(ca_cert);
         self

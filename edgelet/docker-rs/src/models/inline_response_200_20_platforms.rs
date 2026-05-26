@@ -43,6 +43,7 @@ impl InlineResponse20020Platforms {
         self.architecture = Some(architecture);
     }
 
+    #[must_use]
     pub fn with_architecture(mut self, architecture: String) -> Self {
         self.architecture = Some(architecture);
         self
@@ -60,6 +61,7 @@ impl InlineResponse20020Platforms {
         self.OS = Some(OS);
     }
 
+    #[must_use]
     pub fn with_OS(mut self, OS: String) -> Self {
         self.OS = Some(OS);
         self
@@ -77,6 +79,7 @@ impl InlineResponse20020Platforms {
         self.os_version = Some(os_version);
     }
 
+    #[must_use]
     pub fn with_os_version(mut self, os_version: String) -> Self {
         self.os_version = Some(os_version);
         self
@@ -94,6 +97,7 @@ impl InlineResponse20020Platforms {
         self.os_features = Some(os_features);
     }
 
+    #[must_use]
     pub fn with_os_features(mut self, os_features: Vec<String>) -> Self {
         self.os_features = Some(os_features);
         self
@@ -111,6 +115,7 @@ impl InlineResponse20020Platforms {
         self.variant = Some(variant);
     }
 
+    #[must_use]
     pub fn with_variant(mut self, variant: String) -> Self {
         self.variant = Some(variant);
         self
@@ -128,6 +133,7 @@ impl InlineResponse20020Platforms {
         self.features = Some(features);
     }
 
+    #[must_use]
     pub fn with_features(mut self, features: Vec<String>) -> Self {
         self.features = Some(features);
         self

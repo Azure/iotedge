@@ -37,6 +37,7 @@ impl TaskSpecContainerSpecPrivileges {
         self.credential_spec = Some(credential_spec);
     }
 
+    #[must_use]
     pub fn with_credential_spec(
         mut self,
         credential_spec: crate::models::TaskSpecContainerSpecPrivilegesCredentialSpec,
@@ -62,6 +63,7 @@ impl TaskSpecContainerSpecPrivileges {
         self.se_linux_context = Some(se_linux_context);
     }
 
+    #[must_use]
     pub fn with_se_linux_context(
         mut self,
         se_linux_context: crate::models::TaskSpecContainerSpecPrivilegesSeLinuxContext,

@@ -27,6 +27,7 @@ impl InlineResponse2004 {
         self.status_code = status_code;
     }
 
+    #[must_use]
     pub fn with_status_code(mut self, status_code: i32) -> Self {
         self.status_code = status_code;
         self

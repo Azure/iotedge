@@ -60,9 +60,9 @@ impl ContainerEngineDns {
                 )
             })
             .context(MESSAGE)?;
-        self.dns = daemon_config.dns.clone();
+        self.dns.clone_from(&daemon_config.dns);
 
-        if daemon_config.dns.map_or(true, |e| e.is_empty()) {
+        if daemon_config.dns.is_none_or(|e| e.is_empty()) {
             return Ok(CheckResult::Warning(anyhow::anyhow!(MESSAGE)));
         }
 

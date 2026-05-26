@@ -32,6 +32,7 @@ impl InlineResponse2011 {
         self.id = Some(id);
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
@@ -49,6 +50,7 @@ impl InlineResponse2011 {
         self.warning = Some(warning);
     }
 
+    #[must_use]
     pub fn with_warning(mut self, warning: String) -> Self {
         self.warning = Some(warning);
         self

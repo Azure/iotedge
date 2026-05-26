@@ -35,6 +35,7 @@ impl SwarmSpecOrchestration {
         self.task_history_retention_limit = Some(task_history_retention_limit);
     }
 
+    #[must_use]
     pub fn with_task_history_retention_limit(mut self, task_history_retention_limit: i64) -> Self {
         self.task_history_retention_limit = Some(task_history_retention_limit);
         self

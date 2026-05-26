@@ -55,6 +55,7 @@ impl InlineResponse20011 {
         self.version = Some(version);
     }
 
+    #[must_use]
     pub fn with_version(mut self, version: String) -> Self {
         self.version = Some(version);
         self
@@ -72,6 +73,7 @@ impl InlineResponse20011 {
         self.api_version = Some(api_version);
     }
 
+    #[must_use]
     pub fn with_api_version(mut self, api_version: String) -> Self {
         self.api_version = Some(api_version);
         self
@@ -89,6 +91,7 @@ impl InlineResponse20011 {
         self.min_api_version = Some(min_api_version);
     }
 
+    #[must_use]
     pub fn with_min_api_version(mut self, min_api_version: String) -> Self {
         self.min_api_version = Some(min_api_version);
         self
@@ -106,6 +109,7 @@ impl InlineResponse20011 {
         self.git_commit = Some(git_commit);
     }
 
+    #[must_use]
     pub fn with_git_commit(mut self, git_commit: String) -> Self {
         self.git_commit = Some(git_commit);
         self
@@ -123,6 +127,7 @@ impl InlineResponse20011 {
         self.go_version = Some(go_version);
     }
 
+    #[must_use]
     pub fn with_go_version(mut self, go_version: String) -> Self {
         self.go_version = Some(go_version);
         self
@@ -140,6 +145,7 @@ impl InlineResponse20011 {
         self.os = Some(os);
     }
 
+    #[must_use]
     pub fn with_os(mut self, os: String) -> Self {
         self.os = Some(os);
         self
@@ -157,6 +163,7 @@ impl InlineResponse20011 {
         self.arch = Some(arch);
     }
 
+    #[must_use]
     pub fn with_arch(mut self, arch: String) -> Self {
         self.arch = Some(arch);
         self
@@ -174,6 +181,7 @@ impl InlineResponse20011 {
         self.kernel_version = Some(kernel_version);
     }
 
+    #[must_use]
     pub fn with_kernel_version(mut self, kernel_version: String) -> Self {
         self.kernel_version = Some(kernel_version);
         self
@@ -191,6 +199,7 @@ impl InlineResponse20011 {
         self.experimental = Some(experimental);
     }
 
+    #[must_use]
     pub fn with_experimental(mut self, experimental: bool) -> Self {
         self.experimental = Some(experimental);
         self
@@ -208,6 +217,7 @@ impl InlineResponse20011 {
         self.build_time = Some(build_time);
     }
 
+    #[must_use]
     pub fn with_build_time(mut self, build_time: String) -> Self {
         self.build_time = Some(build_time);
         self

@@ -33,6 +33,7 @@ impl ThrottleDevice {
         self.path = Some(path);
     }
 
+    #[must_use]
     pub fn with_path(mut self, path: String) -> Self {
         self.path = Some(path);
         self
@@ -50,6 +51,7 @@ impl ThrottleDevice {
         self.rate = Some(rate);
     }
 
+    #[must_use]
     pub fn with_rate(mut self, rate: i64) -> Self {
         self.rate = Some(rate);
         self

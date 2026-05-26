@@ -36,6 +36,7 @@ impl JoinTokens {
         self.worker = Some(worker);
     }
 
+    #[must_use]
     pub fn with_worker(mut self, worker: String) -> Self {
         self.worker = Some(worker);
         self
@@ -53,6 +54,7 @@ impl JoinTokens {
         self.manager = Some(manager);
     }
 
+    #[must_use]
     pub fn with_manager(mut self, manager: String) -> Self {
         self.manager = Some(manager);
         self

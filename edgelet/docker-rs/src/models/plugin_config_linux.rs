@@ -38,6 +38,7 @@ impl PluginConfigLinux {
         self.capabilities = capabilities;
     }
 
+    #[must_use]
     pub fn with_capabilities(mut self, capabilities: Vec<String>) -> Self {
         self.capabilities = capabilities;
         self
@@ -51,6 +52,7 @@ impl PluginConfigLinux {
         self.allow_all_devices = allow_all_devices;
     }
 
+    #[must_use]
     pub fn with_allow_all_devices(mut self, allow_all_devices: bool) -> Self {
         self.allow_all_devices = allow_all_devices;
         self
@@ -64,6 +66,7 @@ impl PluginConfigLinux {
         self.devices = devices;
     }
 
+    #[must_use]
     pub fn with_devices(mut self, devices: Vec<crate::models::PluginDevice>) -> Self {
         self.devices = devices;
         self

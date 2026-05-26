@@ -37,6 +37,7 @@ impl Body {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -54,6 +55,7 @@ impl Body {
         self.description = Some(description);
     }
 
+    #[must_use]
     pub fn with_description(mut self, description: String) -> Self {
         self.description = Some(description);
         self
@@ -71,6 +73,7 @@ impl Body {
         self.value = Some(value);
     }
 
+    #[must_use]
     pub fn with_value(mut self, value: Vec<String>) -> Self {
         self.value = Some(value);
         self

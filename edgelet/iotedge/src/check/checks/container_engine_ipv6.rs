@@ -32,7 +32,7 @@ impl ContainerEngineIPv6 {
         const MESSAGE: &str = "Container engine is not configured for IPv6 communication.\n\
              Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";
 
-        let is_edge_ipv6_configured = check.settings.as_ref().map_or(false, |settings| {
+        let is_edge_ipv6_configured = check.settings.as_ref().is_some_and(|settings| {
             let moby_network = settings.moby_runtime().network();
             if let MobyNetwork::Network(network) = moby_network {
                 network.ipv6().unwrap_or_default()

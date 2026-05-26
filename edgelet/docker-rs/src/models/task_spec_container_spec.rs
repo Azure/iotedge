@@ -109,6 +109,7 @@ impl TaskSpecContainerSpec {
         self.image = Some(image);
     }
 
+    #[must_use]
     pub fn with_image(mut self, image: String) -> Self {
         self.image = Some(image);
         self
@@ -126,6 +127,7 @@ impl TaskSpecContainerSpec {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -143,6 +145,7 @@ impl TaskSpecContainerSpec {
         self.command = Some(command);
     }
 
+    #[must_use]
     pub fn with_command(mut self, command: Vec<String>) -> Self {
         self.command = Some(command);
         self
@@ -160,6 +163,7 @@ impl TaskSpecContainerSpec {
         self.args = Some(args);
     }
 
+    #[must_use]
     pub fn with_args(mut self, args: Vec<String>) -> Self {
         self.args = Some(args);
         self
@@ -177,6 +181,7 @@ impl TaskSpecContainerSpec {
         self.hostname = Some(hostname);
     }
 
+    #[must_use]
     pub fn with_hostname(mut self, hostname: String) -> Self {
         self.hostname = Some(hostname);
         self
@@ -194,6 +199,7 @@ impl TaskSpecContainerSpec {
         self.env = Some(env);
     }
 
+    #[must_use]
     pub fn with_env(mut self, env: Vec<String>) -> Self {
         self.env = Some(env);
         self
@@ -211,6 +217,7 @@ impl TaskSpecContainerSpec {
         self.dir = Some(dir);
     }
 
+    #[must_use]
     pub fn with_dir(mut self, dir: String) -> Self {
         self.dir = Some(dir);
         self
@@ -228,6 +235,7 @@ impl TaskSpecContainerSpec {
         self.user = Some(user);
     }
 
+    #[must_use]
     pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
@@ -245,6 +253,7 @@ impl TaskSpecContainerSpec {
         self.groups = Some(groups);
     }
 
+    #[must_use]
     pub fn with_groups(mut self, groups: Vec<String>) -> Self {
         self.groups = Some(groups);
         self
@@ -262,6 +271,7 @@ impl TaskSpecContainerSpec {
         self.privileges = Some(privileges);
     }
 
+    #[must_use]
     pub fn with_privileges(
         mut self,
         privileges: crate::models::TaskSpecContainerSpecPrivileges,
@@ -282,6 +292,7 @@ impl TaskSpecContainerSpec {
         self.TTY = Some(TTY);
     }
 
+    #[must_use]
     pub fn with_TTY(mut self, TTY: bool) -> Self {
         self.TTY = Some(TTY);
         self
@@ -299,6 +310,7 @@ impl TaskSpecContainerSpec {
         self.open_stdin = Some(open_stdin);
     }
 
+    #[must_use]
     pub fn with_open_stdin(mut self, open_stdin: bool) -> Self {
         self.open_stdin = Some(open_stdin);
         self
@@ -316,6 +328,7 @@ impl TaskSpecContainerSpec {
         self.read_only = Some(read_only);
     }
 
+    #[must_use]
     pub fn with_read_only(mut self, read_only: bool) -> Self {
         self.read_only = Some(read_only);
         self
@@ -333,6 +346,7 @@ impl TaskSpecContainerSpec {
         self.mounts = Some(mounts);
     }
 
+    #[must_use]
     pub fn with_mounts(mut self, mounts: Vec<crate::models::Mount>) -> Self {
         self.mounts = Some(mounts);
         self
@@ -350,6 +364,7 @@ impl TaskSpecContainerSpec {
         self.stop_signal = Some(stop_signal);
     }
 
+    #[must_use]
     pub fn with_stop_signal(mut self, stop_signal: String) -> Self {
         self.stop_signal = Some(stop_signal);
         self
@@ -367,6 +382,7 @@ impl TaskSpecContainerSpec {
         self.stop_grace_period = Some(stop_grace_period);
     }
 
+    #[must_use]
     pub fn with_stop_grace_period(mut self, stop_grace_period: i64) -> Self {
         self.stop_grace_period = Some(stop_grace_period);
         self
@@ -384,6 +400,7 @@ impl TaskSpecContainerSpec {
         self.health_check = Some(health_check);
     }
 
+    #[must_use]
     pub fn with_health_check(mut self, health_check: crate::models::HealthConfig) -> Self {
         self.health_check = Some(health_check);
         self
@@ -401,6 +418,7 @@ impl TaskSpecContainerSpec {
         self.hosts = Some(hosts);
     }
 
+    #[must_use]
     pub fn with_hosts(mut self, hosts: Vec<String>) -> Self {
         self.hosts = Some(hosts);
         self
@@ -418,6 +436,7 @@ impl TaskSpecContainerSpec {
         self.dns_config = Some(dns_config);
     }
 
+    #[must_use]
     pub fn with_dns_config(
         mut self,
         dns_config: crate::models::TaskSpecContainerSpecDnsConfig,
@@ -438,6 +457,7 @@ impl TaskSpecContainerSpec {
         self.secrets = Some(secrets);
     }
 
+    #[must_use]
     pub fn with_secrets(
         mut self,
         secrets: Vec<crate::models::TaskSpecContainerSpecSecrets>,
@@ -458,6 +478,7 @@ impl TaskSpecContainerSpec {
         self.configs = Some(configs);
     }
 
+    #[must_use]
     pub fn with_configs(
         mut self,
         configs: Vec<crate::models::TaskSpecContainerSpecConfigs>,

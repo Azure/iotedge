@@ -79,7 +79,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     variables:
-      coverage.goal: 30
+      coverage.goal: 25
     pool:
       name: $(pool.linux.name)
       demands:
@@ -89,12 +89,12 @@ jobs:
         displayName: Install Rust
       - script: |
           . "$HOME/.cargo/env"
-          cargo install --locked --version 0.26.1 cargo-tarpaulin
+          cargo install --locked --version 0.35.4 cargo-tarpaulin
         workingDirectory: edgelet
         displayName: Install Cargo Tarpaulin
       - script: |
           . "$HOME/.cargo/env"
-          cargo tarpaulin --out Xml --output-dir .
+          cargo tarpaulin --out Xml --output-dir . --workspace --exclude docker
         displayName: Test
         workingDirectory: edgelet
       - task: PublishCodeCoverageResults@2

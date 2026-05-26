@@ -53,6 +53,7 @@ impl Plugin {
         self.id = Some(id);
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
@@ -70,6 +71,7 @@ impl Plugin {
         self.name = name;
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -83,6 +85,7 @@ impl Plugin {
         self.enabled = enabled;
     }
 
+    #[must_use]
     pub fn with_enabled(mut self, enabled: bool) -> Self {
         self.enabled = enabled;
         self
@@ -96,6 +99,7 @@ impl Plugin {
         self.settings = settings;
     }
 
+    #[must_use]
     pub fn with_settings(mut self, settings: crate::models::PluginSettings) -> Self {
         self.settings = settings;
         self
@@ -109,6 +113,7 @@ impl Plugin {
         self.plugin_reference = Some(plugin_reference);
     }
 
+    #[must_use]
     pub fn with_plugin_reference(mut self, plugin_reference: String) -> Self {
         self.plugin_reference = Some(plugin_reference);
         self
@@ -126,6 +131,7 @@ impl Plugin {
         self.config = config;
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: crate::models::PluginConfig) -> Self {
         self.config = config;
         self

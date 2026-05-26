@@ -32,6 +32,7 @@ impl ContainerSummaryInnerNetworkSettings {
         self.networks = Some(networks);
     }
 
+    #[must_use]
     pub fn with_networks(
         mut self,
         networks: ::std::collections::HashMap<String, crate::models::EndpointSettings>,

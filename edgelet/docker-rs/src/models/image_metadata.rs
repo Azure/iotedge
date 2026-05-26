@@ -28,6 +28,7 @@ impl ImageMetadata {
         self.last_tag_time = Some(last_tag_time);
     }
 
+    #[must_use]
     pub fn with_last_tag_time(mut self, last_tag_time: String) -> Self {
         self.last_tag_time = Some(last_tag_time);
         self

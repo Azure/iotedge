@@ -33,6 +33,7 @@ impl ExecStartConfig {
         self.detach = Some(detach);
     }
 
+    #[must_use]
     pub fn with_detach(mut self, detach: bool) -> Self {
         self.detach = Some(detach);
         self
@@ -50,6 +51,7 @@ impl ExecStartConfig {
         self.tty = Some(tty);
     }
 
+    #[must_use]
     pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self

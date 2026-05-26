@@ -29,6 +29,7 @@ impl SwarmSpecTaskDefaults {
         self.log_driver = Some(log_driver);
     }
 
+    #[must_use]
     pub fn with_log_driver(
         mut self,
         log_driver: crate::models::SwarmSpecTaskDefaultsLogDriver,

@@ -482,7 +482,7 @@ fn execute_inner(
             } = listen;
 
             let management_uri = map_listen_uri(management_uri).map_err(|management_uri| {
-                format!("unexpected value of listen.management_uri {management_uri}",)
+                format!("unexpected value of listen.management_uri {management_uri}")
             })?;
             let workload_uri = map_listen_uri(workload_uri).map_err(|workload_uri| {
                 format!("unexpected value of listen.workload_uri {workload_uri}")

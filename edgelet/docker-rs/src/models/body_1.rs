@@ -44,6 +44,7 @@ impl Body1 {
         self.listen_addr = Some(listen_addr);
     }
 
+    #[must_use]
     pub fn with_listen_addr(mut self, listen_addr: String) -> Self {
         self.listen_addr = Some(listen_addr);
         self
@@ -61,6 +62,7 @@ impl Body1 {
         self.advertise_addr = Some(advertise_addr);
     }
 
+    #[must_use]
     pub fn with_advertise_addr(mut self, advertise_addr: String) -> Self {
         self.advertise_addr = Some(advertise_addr);
         self
@@ -78,6 +80,7 @@ impl Body1 {
         self.data_path_addr = Some(data_path_addr);
     }
 
+    #[must_use]
     pub fn with_data_path_addr(mut self, data_path_addr: String) -> Self {
         self.data_path_addr = Some(data_path_addr);
         self
@@ -95,6 +98,7 @@ impl Body1 {
         self.force_new_cluster = Some(force_new_cluster);
     }
 
+    #[must_use]
     pub fn with_force_new_cluster(mut self, force_new_cluster: bool) -> Self {
         self.force_new_cluster = Some(force_new_cluster);
         self
@@ -112,6 +116,7 @@ impl Body1 {
         self.spec = Some(spec);
     }
 
+    #[must_use]
     pub fn with_spec(mut self, spec: crate::models::SwarmSpec) -> Self {
         self.spec = Some(spec);
         self

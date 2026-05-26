@@ -33,6 +33,7 @@ impl InlineResponse20012Actor {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -50,6 +51,7 @@ impl InlineResponse20012Actor {
         self.attributes = Some(attributes);
     }
 
+    #[must_use]
     pub fn with_attributes(
         mut self,
         attributes: ::std::collections::HashMap<String, String>,

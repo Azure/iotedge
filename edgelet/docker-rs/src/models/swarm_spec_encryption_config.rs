@@ -32,6 +32,7 @@ impl SwarmSpecEncryptionConfig {
         self.auto_lock_managers = Some(auto_lock_managers);
     }
 
+    #[must_use]
     pub fn with_auto_lock_managers(mut self, auto_lock_managers: bool) -> Self {
         self.auto_lock_managers = Some(auto_lock_managers);
         self

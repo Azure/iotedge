@@ -33,6 +33,7 @@ impl VolumeUsageData {
         self.size = size;
     }
 
+    #[must_use]
     pub fn with_size(mut self, size: i32) -> Self {
         self.size = size;
         self
@@ -46,6 +47,7 @@ impl VolumeUsageData {
         self.ref_count = ref_count;
     }
 
+    #[must_use]
     pub fn with_ref_count(mut self, ref_count: i32) -> Self {
         self.ref_count = ref_count;
         self

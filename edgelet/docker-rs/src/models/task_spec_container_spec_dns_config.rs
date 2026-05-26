@@ -40,6 +40,7 @@ impl TaskSpecContainerSpecDnsConfig {
         self.nameservers = Some(nameservers);
     }
 
+    #[must_use]
     pub fn with_nameservers(mut self, nameservers: Vec<String>) -> Self {
         self.nameservers = Some(nameservers);
         self
@@ -57,6 +58,7 @@ impl TaskSpecContainerSpecDnsConfig {
         self.search = Some(search);
     }
 
+    #[must_use]
     pub fn with_search(mut self, search: Vec<String>) -> Self {
         self.search = Some(search);
         self
@@ -74,6 +76,7 @@ impl TaskSpecContainerSpecDnsConfig {
         self.options = Some(options);
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: Vec<String>) -> Self {
         self.options = Some(options);
         self

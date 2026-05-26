@@ -26,6 +26,7 @@ impl TaskSpecPlacementPreferences {
         self.spread = Some(spread);
     }
 
+    #[must_use]
     pub fn with_spread(mut self, spread: crate::models::TaskSpecPlacementSpread) -> Self {
         self.spread = Some(spread);
         self

@@ -31,6 +31,7 @@ impl GenericResourcesInnerDiscreteResourceSpec {
         self.kind = Some(kind);
     }
 
+    #[must_use]
     pub fn with_kind(mut self, kind: String) -> Self {
         self.kind = Some(kind);
         self
@@ -48,6 +49,7 @@ impl GenericResourcesInnerDiscreteResourceSpec {
         self.value = Some(value);
     }
 
+    #[must_use]
     pub fn with_value(mut self, value: i64) -> Self {
         self.value = Some(value);
         self

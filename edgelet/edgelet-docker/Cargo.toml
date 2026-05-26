@@ -31,3 +31,7 @@ docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 edgelet-utils = { path = "../edgelet-utils" }
+
+
+[lints]
+workspace = true

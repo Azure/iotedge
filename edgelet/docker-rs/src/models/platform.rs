@@ -36,6 +36,7 @@ impl Platform {
         self.architecture = Some(architecture);
     }
 
+    #[must_use]
     pub fn with_architecture(mut self, architecture: String) -> Self {
         self.architecture = Some(architecture);
         self
@@ -53,6 +54,7 @@ impl Platform {
         self.OS = Some(OS);
     }
 
+    #[must_use]
     pub fn with_OS(mut self, OS: String) -> Self {
         self.OS = Some(OS);
         self

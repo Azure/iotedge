@@ -108,6 +108,7 @@ impl EndpointSettings {
     //     self.ipam_config = Some(ipam_config);
     // }
 
+    // #[must_use]
     // pub fn with_ipam_config(mut self, ipam_config: crate::models::EndpointIpamConfig) -> Self {
     //     self.ipam_config = Some(ipam_config);
     //     self
@@ -125,6 +126,7 @@ impl EndpointSettings {
     //     self.links = Some(links);
     // }
 
+    // #[must_use]
     // pub fn with_links(mut self, links: Vec<String>) -> Self {
     //     self.links = Some(links);
     //     self
@@ -142,6 +144,7 @@ impl EndpointSettings {
     //     self.aliases = Some(aliases);
     // }
 
+    // #[must_use]
     // pub fn with_aliases(mut self, aliases: Vec<String>) -> Self {
     //     self.aliases = Some(aliases);
     //     self
@@ -159,6 +162,7 @@ impl EndpointSettings {
         self.network_id = Some(network_id);
     }
 
+    #[must_use]
     pub fn with_network_id(mut self, network_id: String) -> Self {
         self.network_id = Some(network_id);
         self
@@ -176,6 +180,7 @@ impl EndpointSettings {
     //     self.endpoint_id = Some(endpoint_id);
     // }
 
+    // #[must_use]
     // pub fn with_endpoint_id(mut self, endpoint_id: String) -> Self {
     //     self.endpoint_id = Some(endpoint_id);
     //     self
@@ -193,6 +198,7 @@ impl EndpointSettings {
     //     self.gateway = Some(gateway);
     // }
 
+    // #[must_use]
     // pub fn with_gateway(mut self, gateway: String) -> Self {
     //     self.gateway = Some(gateway);
     //     self
@@ -210,6 +216,7 @@ impl EndpointSettings {
     //     self.ip_address = Some(ip_address);
     // }
 
+    // #[must_use]
     // pub fn with_ip_address(mut self, ip_address: String) -> Self {
     //     self.ip_address = Some(ip_address);
     //     self
@@ -227,6 +234,7 @@ impl EndpointSettings {
     //     self.ip_prefix_len = Some(ip_prefix_len);
     // }
 
+    // #[must_use]
     // pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> Self {
     //     self.ip_prefix_len = Some(ip_prefix_len);
     //     self
@@ -244,6 +252,7 @@ impl EndpointSettings {
     //     self.i_pv6_gateway = Some(i_pv6_gateway);
     // }
 
+    // #[must_use]
     // pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> Self {
     //     self.i_pv6_gateway = Some(i_pv6_gateway);
     //     self
@@ -261,6 +270,7 @@ impl EndpointSettings {
     //     self.global_i_pv6_address = Some(global_i_pv6_address);
     // }
 
+    // #[must_use]
     // pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> Self {
     //     self.global_i_pv6_address = Some(global_i_pv6_address);
     //     self
@@ -278,6 +288,7 @@ impl EndpointSettings {
     //     self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
     // }
 
+    // #[must_use]
     // pub fn with_global_i_pv6_prefix_len(mut self, global_i_pv6_prefix_len: i64) -> Self {
     //     self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
     //     self
@@ -295,6 +306,7 @@ impl EndpointSettings {
     //     self.mac_address = Some(mac_address);
     // }
 
+    // #[must_use]
     // pub fn with_mac_address(mut self, mac_address: String) -> Self {
     //     self.mac_address = Some(mac_address);
     //     self
@@ -312,6 +324,7 @@ impl EndpointSettings {
     //     self.driver_opts = Some(driver_opts);
     // }
 
+    // #[must_use]
     // pub fn with_driver_opts(
     //     mut self,
     //     driver_opts: ::std::collections::BTreeMap<String, String>,

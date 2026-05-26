@@ -30,6 +30,7 @@ impl InlineResponse20015 {
         self.volumes = volumes;
     }
 
+    #[must_use]
     pub fn with_volumes(mut self, volumes: Vec<crate::models::Volume>) -> Self {
         self.volumes = volumes;
         self
@@ -43,6 +44,7 @@ impl InlineResponse20015 {
         self.warnings = warnings;
     }
 
+    #[must_use]
     pub fn with_warnings(mut self, warnings: Vec<String>) -> Self {
         self.warnings = warnings;
         self

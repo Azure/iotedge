@@ -37,6 +37,7 @@ impl CreateImageInfo {
         self.error = Some(error);
     }
 
+    #[must_use]
     pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
@@ -54,6 +55,7 @@ impl CreateImageInfo {
         self.status = Some(status);
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
@@ -71,6 +73,7 @@ impl CreateImageInfo {
         self.progress = Some(progress);
     }
 
+    #[must_use]
     pub fn with_progress(mut self, progress: String) -> Self {
         self.progress = Some(progress);
         self
@@ -88,6 +91,7 @@ impl CreateImageInfo {
         self.progress_detail = Some(progress_detail);
     }
 
+    #[must_use]
     pub fn with_progress_detail(mut self, progress_detail: crate::models::ProgressDetail) -> Self {
         self.progress_detail = Some(progress_detail);
         self

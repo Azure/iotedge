@@ -32,6 +32,7 @@ impl SwarmSpecDispatcher {
         self.heartbeat_period = Some(heartbeat_period);
     }
 
+    #[must_use]
     pub fn with_heartbeat_period(mut self, heartbeat_period: i64) -> Self {
         self.heartbeat_period = Some(heartbeat_period);
         self

@@ -113,12 +113,12 @@ impl DockerConfig {
 
         let Some(auth) = &self.auth else { return };
 
-        if let Some(serveraddress) = auth.serveraddress() {
-            if let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
-                let url = rest.to_string();
-                if let Some(auth) = &mut self.auth {
-                    auth.set_serveraddress(format!("{parent_hostname}{url}"));
-                }
+        if let Some(serveraddress) = auth.serveraddress()
+            && let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD)
+        {
+            let url = rest.to_string();
+            if let Some(auth) = &mut self.auth {
+                auth.set_serveraddress(format!("{parent_hostname}{url}"));
             }
         }
     }

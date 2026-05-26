@@ -139,7 +139,7 @@ async fn run() -> Result<(), EdgedError> {
         .stop_all(Some(std::time::Duration::from_secs(30)))
         .await
     {
-        log::warn!("Failed to stop modules on startup: {}", err);
+        log::warn!("Failed to stop modules on startup: {err}");
     } else {
         log::info!("All modules stopped");
     }
@@ -217,7 +217,7 @@ async fn run() -> Result<(), EdgedError> {
         }
 
         if wait_time >= shutdown_timeout {
-            log::warn!("{} task(s) have not exited in time for shutdown", tasks);
+            log::warn!("{tasks} task(s) have not exited in time for shutdown");
 
             break;
         }

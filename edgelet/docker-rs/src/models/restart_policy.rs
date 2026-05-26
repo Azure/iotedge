@@ -36,6 +36,7 @@ impl RestartPolicy {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -53,6 +54,7 @@ impl RestartPolicy {
         self.maximum_retry_count = Some(maximum_retry_count);
     }
 
+    #[must_use]
     pub fn with_maximum_retry_count(mut self, maximum_retry_count: i32) -> Self {
         self.maximum_retry_count = Some(maximum_retry_count);
         self

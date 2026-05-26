@@ -29,6 +29,7 @@ impl ObjectVersion {
         self.index = Some(index);
     }
 
+    #[must_use]
     pub fn with_index(mut self, index: i32) -> Self {
         self.index = Some(index);
         self

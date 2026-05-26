@@ -21,3 +21,7 @@ edgelet-settings = { path = "../edgelet-settings" }
 
 [features]
 snapctl = []
+
+
+[lints]
+workspace = true

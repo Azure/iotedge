@@ -37,6 +37,7 @@ impl EndpointIpamConfig {
         self.i_pv4_address = Some(i_pv4_address);
     }
 
+    #[must_use]
     pub fn with_i_pv4_address(mut self, i_pv4_address: String) -> Self {
         self.i_pv4_address = Some(i_pv4_address);
         self
@@ -54,6 +55,7 @@ impl EndpointIpamConfig {
         self.i_pv6_address = Some(i_pv6_address);
     }
 
+    #[must_use]
     pub fn with_i_pv6_address(mut self, i_pv6_address: String) -> Self {
         self.i_pv6_address = Some(i_pv6_address);
         self
@@ -71,6 +73,7 @@ impl EndpointIpamConfig {
         self.link_local_i_ps = Some(link_local_i_ps);
     }
 
+    #[must_use]
     pub fn with_link_local_i_ps(mut self, link_local_i_ps: Vec<String>) -> Self {
         self.link_local_i_ps = Some(link_local_i_ps);
         self

@@ -59,10 +59,7 @@ where
             .decode_utf8()
             .ok()?;
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             key_client: service.key_client.clone(),
@@ -121,8 +118,7 @@ async fn get_module_key(
 
         client.get_identity(module_id).await.map_err(|err| {
             edgelet_http::error::server_error(format!(
-                "failed to get module identity for {}: {}",
-                module_id, err
+                "failed to get module identity for {module_id}: {err}"
             ))
         })
     }?;
@@ -166,10 +162,10 @@ mod tests {
         test_route_err!("/modules/testModule/genid//sign");
 
         // Extra character at beginning of URI
-        test_route_err!(&format!("a{}", TEST_PATH));
+        test_route_err!(&format!("a{TEST_PATH}"));
 
         // Extra character at end of URI
-        test_route_err!(&format!("{}a", TEST_PATH));
+        test_route_err!(&format!("{TEST_PATH}a"));
     }
 
     #[tokio::test]

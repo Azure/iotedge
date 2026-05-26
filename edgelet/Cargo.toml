@@ -117,6 +117,25 @@ logger = { git = "https://github.com/arsing/iot-identity-service", branch = "rus
 test-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
 
 
+[workspace.lints.rust]
+rust_2018_idioms = { level = "deny", priority = -1 }
+unexpected_cfgs = { level = "deny", check-cfg = ["cfg(tarpaulin_include)"] }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+default_trait_access = "allow"
+fn_params_excessive_bools = "allow"
+let_and_return = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+similar_names = "allow"
+too_many_arguments = "allow"
+too_many_lines = "allow"
+type_complexity = "allow"
+
+
 [profile.dev]
 panic = 'abort'
 

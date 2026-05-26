@@ -31,6 +31,7 @@ impl ResourcesBlkioWeightDevice {
         self.path = Some(path);
     }
 
+    #[must_use]
     pub fn with_path(mut self, path: String) -> Self {
         self.path = Some(path);
         self
@@ -48,6 +49,7 @@ impl ResourcesBlkioWeightDevice {
         self.weight = Some(weight);
     }
 
+    #[must_use]
     pub fn with_weight(mut self, weight: i32) -> Self {
         self.weight = Some(weight);
         self

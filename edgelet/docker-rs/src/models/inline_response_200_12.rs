@@ -15,7 +15,7 @@ use serde_json::Value;
 pub struct InlineResponse20012 {
     /// The type of object emitting the event
     #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
-    _type: Option<String>,
+    r#type: Option<String>,
     /// The type of event
     #[serde(rename = "Action", skip_serializing_if = "Option::is_none")]
     action: Option<String>,
@@ -32,7 +32,7 @@ pub struct InlineResponse20012 {
 impl InlineResponse20012 {
     pub fn new() -> Self {
         InlineResponse20012 {
-            _type: None,
+            r#type: None,
             action: None,
             actor: None,
             time: None,
@@ -40,27 +40,29 @@ impl InlineResponse20012 {
         }
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = Some(_type);
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = Some(r#type);
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = Some(_type);
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = Some(r#type);
         self
     }
 
-    pub fn _type(&self) -> Option<&str> {
-        self._type.as_ref().map(AsRef::as_ref)
+    pub fn r#type(&self) -> Option<&str> {
+        self.r#type.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn reset__type(&mut self) {
-        self._type = None;
+    pub fn reset_type(&mut self) {
+        self.r#type = None;
     }
 
     pub fn set_action(&mut self, action: String) {
         self.action = Some(action);
     }
 
+    #[must_use]
     pub fn with_action(mut self, action: String) -> Self {
         self.action = Some(action);
         self
@@ -78,6 +80,7 @@ impl InlineResponse20012 {
         self.actor = Some(actor);
     }
 
+    #[must_use]
     pub fn with_actor(mut self, actor: crate::models::InlineResponse20012Actor) -> Self {
         self.actor = Some(actor);
         self
@@ -95,6 +98,7 @@ impl InlineResponse20012 {
         self.time = Some(time);
     }
 
+    #[must_use]
     pub fn with_time(mut self, time: i32) -> Self {
         self.time = Some(time);
         self
@@ -112,6 +116,7 @@ impl InlineResponse20012 {
         self.time_nano = Some(time_nano);
     }
 
+    #[must_use]
     pub fn with_time_nano(mut self, time_nano: i64) -> Self {
         self.time_nano = Some(time_nano);
         self

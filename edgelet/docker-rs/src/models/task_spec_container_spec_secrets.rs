@@ -36,6 +36,7 @@ impl TaskSpecContainerSpecSecrets {
         self.file = Some(file);
     }
 
+    #[must_use]
     pub fn with_file(mut self, file: crate::models::TaskSpecContainerSpecFile) -> Self {
         self.file = Some(file);
         self
@@ -53,6 +54,7 @@ impl TaskSpecContainerSpecSecrets {
         self.secret_id = Some(secret_id);
     }
 
+    #[must_use]
     pub fn with_secret_id(mut self, secret_id: String) -> Self {
         self.secret_id = Some(secret_id);
         self
@@ -70,6 +72,7 @@ impl TaskSpecContainerSpecSecrets {
         self.secret_name = Some(secret_name);
     }
 
+    #[must_use]
     pub fn with_secret_name(mut self, secret_name: String) -> Self {
         self.secret_name = Some(secret_name);
         self

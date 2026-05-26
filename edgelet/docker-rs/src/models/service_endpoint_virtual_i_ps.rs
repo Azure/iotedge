@@ -31,6 +31,7 @@ impl ServiceEndpointVirtualIPs {
         self.network_id = Some(network_id);
     }
 
+    #[must_use]
     pub fn with_network_id(mut self, network_id: String) -> Self {
         self.network_id = Some(network_id);
         self
@@ -48,6 +49,7 @@ impl ServiceEndpointVirtualIPs {
         self.addr = Some(addr);
     }
 
+    #[must_use]
     pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self

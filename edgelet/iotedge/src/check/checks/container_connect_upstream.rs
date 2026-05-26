@@ -91,17 +91,15 @@ impl ContainerConnectUpstream {
             .starts_with("/azureiotedge-diagnostics:")
         {
             check.parent_hostname.as_ref().map_or_else(
-                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
-                |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
+                || format!("mcr.microsoft.com{}", check.diagnostics_image_name),
+                |upstream_hostname| format!("{upstream_hostname}{}", check.diagnostics_image_name),
             )
         } else {
             check.diagnostics_image_name.clone()
         };
 
-        let parent_hostname: String;
-        let upstream_hostname = if let Some(upstream_hostname) = check.parent_hostname.as_ref() {
-            parent_hostname = upstream_hostname.to_string();
-            &parent_hostname
+        let upstream_hostname = if let Some(upstream_hostname) = &check.parent_hostname {
+            upstream_hostname
         } else if let Some(iothub_hostname) = &check.iothub_hostname {
             iothub_hostname
         } else {
@@ -161,7 +159,7 @@ impl ContainerConnectUpstream {
         }
 
         if &port == "443" {
-            self.proxy = check.proxy_uri.clone();
+            self.proxy.clone_from(&check.proxy_uri);
             if let Some(proxy) = &check.proxy_uri {
                 args.extend(["--proxy", proxy.as_str()]);
             }

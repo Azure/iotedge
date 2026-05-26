@@ -32,10 +32,7 @@ where
             return None;
         }
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             reprovision: service.reprovision.clone(),

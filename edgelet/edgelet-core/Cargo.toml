@@ -24,3 +24,7 @@ url = { workspace = true }
 aziotctl-common = { workspace = true }
 
 edgelet-settings = { path = "../edgelet-settings" }
+
+
+[lints]
+workspace = true

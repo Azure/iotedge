@@ -505,7 +505,7 @@ async fn run() -> anyhow::Result<()> {
         ("list", _) => List::new(runtime()?, io::stdout()).execute().await,
         ("restart", args) => {
             Restart::new(
-                args.get_one::<String>("MODULE").unwrap().to_string(),
+                args.get_one::<String>("MODULE").unwrap().clone(),
                 runtime()?,
                 io::stdout(),
             )
@@ -513,7 +513,7 @@ async fn run() -> anyhow::Result<()> {
             .await
         }
         ("logs", args) => {
-            let id = args.get_one::<String>("MODULE").unwrap().to_string();
+            let id = args.get_one::<String>("MODULE").unwrap().clone();
             let follow = args.get_flag("follow");
             let tail = args
                 .get_one::<String>("tail")

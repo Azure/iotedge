@@ -22,3 +22,7 @@ url = { workspace = true }
 tokio = { workspace = true }
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+
+[lints]
+workspace = true

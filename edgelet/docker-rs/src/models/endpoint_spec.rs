@@ -36,6 +36,7 @@ impl EndpointSpec {
         self.mode = Some(mode);
     }
 
+    #[must_use]
     pub fn with_mode(mut self, mode: String) -> Self {
         self.mode = Some(mode);
         self
@@ -53,6 +54,7 @@ impl EndpointSpec {
         self.ports = Some(ports);
     }
 
+    #[must_use]
     pub fn with_ports(mut self, ports: Vec<crate::models::EndpointPortConfig>) -> Self {
         self.ports = Some(ports);
         self

@@ -36,6 +36,7 @@ impl ImageSummary {
         self.id = id;
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self
@@ -49,6 +50,7 @@ impl ImageSummary {
         self.repo_tags = repo_tags;
     }
 
+    #[must_use]
     pub fn with_repo_tags(mut self, repo_tags: Vec<String>) -> Self {
         self.repo_tags = repo_tags;
         self

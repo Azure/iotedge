@@ -43,6 +43,7 @@ impl TaskSpecPluginSpec {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -60,6 +61,7 @@ impl TaskSpecPluginSpec {
         self.remote = Some(remote);
     }
 
+    #[must_use]
     pub fn with_remote(mut self, remote: String) -> Self {
         self.remote = Some(remote);
         self
@@ -77,6 +79,7 @@ impl TaskSpecPluginSpec {
         self.disabled = Some(disabled);
     }
 
+    #[must_use]
     pub fn with_disabled(mut self, disabled: bool) -> Self {
         self.disabled = Some(disabled);
         self
@@ -94,6 +97,7 @@ impl TaskSpecPluginSpec {
         self.plugin_privilege = Some(plugin_privilege);
     }
 
+    #[must_use]
     pub fn with_plugin_privilege(mut self, plugin_privilege: Vec<crate::models::Body>) -> Self {
         self.plugin_privilege = Some(plugin_privilege);
         self

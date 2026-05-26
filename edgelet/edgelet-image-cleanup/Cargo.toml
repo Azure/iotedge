@@ -18,3 +18,7 @@ http-common = { workspace = true }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
+
+
+[lints]
+workspace = true

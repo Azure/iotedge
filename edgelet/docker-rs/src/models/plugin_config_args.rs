@@ -42,6 +42,7 @@ impl PluginConfigArgs {
         self.name = name;
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -55,6 +56,7 @@ impl PluginConfigArgs {
         self.description = description;
     }
 
+    #[must_use]
     pub fn with_description(mut self, description: String) -> Self {
         self.description = description;
         self
@@ -68,6 +70,7 @@ impl PluginConfigArgs {
         self.settable = settable;
     }
 
+    #[must_use]
     pub fn with_settable(mut self, settable: Vec<String>) -> Self {
         self.settable = settable;
         self
@@ -81,6 +84,7 @@ impl PluginConfigArgs {
         self.value = value;
     }
 
+    #[must_use]
     pub fn with_value(mut self, value: Vec<String>) -> Self {
         self.value = value;
         self

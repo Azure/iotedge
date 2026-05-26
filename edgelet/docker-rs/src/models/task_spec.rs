@@ -57,6 +57,7 @@ impl TaskSpec {
         self.plugin_spec = Some(plugin_spec);
     }
 
+    #[must_use]
     pub fn with_plugin_spec(mut self, plugin_spec: crate::models::TaskSpecPluginSpec) -> Self {
         self.plugin_spec = Some(plugin_spec);
         self
@@ -74,6 +75,7 @@ impl TaskSpec {
         self.container_spec = Some(container_spec);
     }
 
+    #[must_use]
     pub fn with_container_spec(
         mut self,
         container_spec: crate::models::TaskSpecContainerSpec,
@@ -94,6 +96,7 @@ impl TaskSpec {
         self.resources = Some(resources);
     }
 
+    #[must_use]
     pub fn with_resources(mut self, resources: crate::models::TaskSpecResources) -> Self {
         self.resources = Some(resources);
         self
@@ -111,6 +114,7 @@ impl TaskSpec {
         self.restart_policy = Some(restart_policy);
     }
 
+    #[must_use]
     pub fn with_restart_policy(
         mut self,
         restart_policy: crate::models::TaskSpecRestartPolicy,
@@ -131,6 +135,7 @@ impl TaskSpec {
         self.placement = Some(placement);
     }
 
+    #[must_use]
     pub fn with_placement(mut self, placement: crate::models::TaskSpecPlacement) -> Self {
         self.placement = Some(placement);
         self
@@ -148,6 +153,7 @@ impl TaskSpec {
         self.force_update = Some(force_update);
     }
 
+    #[must_use]
     pub fn with_force_update(mut self, force_update: i32) -> Self {
         self.force_update = Some(force_update);
         self
@@ -165,6 +171,7 @@ impl TaskSpec {
         self.runtime = Some(runtime);
     }
 
+    #[must_use]
     pub fn with_runtime(mut self, runtime: String) -> Self {
         self.runtime = Some(runtime);
         self
@@ -182,6 +189,7 @@ impl TaskSpec {
         self.networks = Some(networks);
     }
 
+    #[must_use]
     pub fn with_networks(mut self, networks: Vec<crate::models::TaskSpecNetworks>) -> Self {
         self.networks = Some(networks);
         self
@@ -199,6 +207,7 @@ impl TaskSpec {
         self.log_driver = Some(log_driver);
     }
 
+    #[must_use]
     pub fn with_log_driver(mut self, log_driver: crate::models::TaskSpecLogDriver) -> Self {
         self.log_driver = Some(log_driver);
         self

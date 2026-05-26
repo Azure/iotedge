@@ -125,7 +125,7 @@ impl CertApi {
                 .create_cert(cert_id, csr, Some((&self.edge_ca_cert, edge_ca_key_handle)))
                 .await
                 .map_err(|_| {
-                    edgelet_http::error::server_error(format!("failed to create cert {}", cert_id))
+                    edgelet_http::error::server_error(format!("failed to create cert {cert_id}"))
                 })
         }?;
 

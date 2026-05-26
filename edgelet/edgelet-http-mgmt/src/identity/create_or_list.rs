@@ -58,10 +58,7 @@ where
             return None;
         }
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             client: service.identity.clone(),
@@ -86,7 +83,7 @@ where
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
-        };
+        }
 
         let res = ListIdentitiesResponse { identities };
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
@@ -98,11 +95,8 @@ where
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
-        let body = match body {
-            Some(body) => body,
-            None => {
-                return Err(edgelet_http::error::bad_request("missing request body"));
-            }
+        let Some(body) = body else {
+            return Err(edgelet_http::error::bad_request("missing request body"));
         };
 
         let client = self.client.lock().await;

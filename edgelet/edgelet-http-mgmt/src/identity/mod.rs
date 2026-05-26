@@ -50,7 +50,7 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
                     auth_type: "sas".to_string(),
                 })
             }
-            _ => Err(edgelet_http::error::bad_request(
+            aziot_identity_common::Identity::Local(_) => Err(edgelet_http::error::bad_request(
                 "invalid parameter: identity type",
             )),
         }

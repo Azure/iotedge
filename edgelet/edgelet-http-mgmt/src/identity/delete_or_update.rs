@@ -44,10 +44,7 @@ where
             .decode_utf8()
             .ok()?;
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             client: service.identity.clone(),
@@ -64,7 +61,7 @@ where
         let client = self.client.lock().await;
 
         match client.delete_identity(&self.module_id).await {
-            Ok(_) => Ok(http_common::server::response::no_content()),
+            Ok(()) => Ok(http_common::server::response::no_content()),
             Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
         }
     }

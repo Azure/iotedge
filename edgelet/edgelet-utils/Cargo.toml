@@ -14,3 +14,7 @@ yaml-rust = { workspace = true }
 
 [dev-dependencies]
 serde = { workspace = true }
+
+
+[lints]
+workspace = true

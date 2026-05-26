@@ -29,6 +29,7 @@ impl TaskSpecPlacementSpread {
         self.spread_descriptor = Some(spread_descriptor);
     }
 
+    #[must_use]
     pub fn with_spread_descriptor(mut self, spread_descriptor: String) -> Self {
         self.spread_descriptor = Some(spread_descriptor);
         self

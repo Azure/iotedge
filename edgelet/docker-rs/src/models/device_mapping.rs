@@ -37,6 +37,7 @@ impl DeviceMapping {
         self.path_on_host = Some(path_on_host);
     }
 
+    #[must_use]
     pub fn with_path_on_host(mut self, path_on_host: String) -> Self {
         self.path_on_host = Some(path_on_host);
         self
@@ -54,6 +55,7 @@ impl DeviceMapping {
         self.path_in_container = Some(path_in_container);
     }
 
+    #[must_use]
     pub fn with_path_in_container(mut self, path_in_container: String) -> Self {
         self.path_in_container = Some(path_in_container);
         self
@@ -71,6 +73,7 @@ impl DeviceMapping {
         self.cgroup_permissions = Some(cgroup_permissions);
     }
 
+    #[must_use]
     pub fn with_cgroup_permissions(mut self, cgroup_permissions: String) -> Self {
         self.cgroup_permissions = Some(cgroup_permissions);
         self

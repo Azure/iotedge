@@ -31,6 +31,7 @@ impl TaskSpecNetworks {
         self.target = Some(target);
     }
 
+    #[must_use]
     pub fn with_target(mut self, target: String) -> Self {
         self.target = Some(target);
         self
@@ -48,6 +49,7 @@ impl TaskSpecNetworks {
         self.aliases = Some(aliases);
     }
 
+    #[must_use]
     pub fn with_aliases(mut self, aliases: Vec<String>) -> Self {
         self.aliases = Some(aliases);
         self

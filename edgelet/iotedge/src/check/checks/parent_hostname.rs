@@ -43,7 +43,7 @@ impl ParentHostname {
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
         if !aziotctl_common::is_rfc_1035_valid(config_parent_hostname) {
             return Ok(CheckResult::Warning(anyhow!(
-                "configuration has parent_hostname {} which does not comply with RFC 1035.\n\
+                "configuration has parent_hostname {config_parent_hostname} which does not comply with RFC 1035.\n\
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
              - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
@@ -51,14 +51,12 @@ impl ParentHostname {
                and must contain only ASCII alphanumeric characters or hyphens (a-z, A-Z, 0-9, \"-\").\n\
              \n\
              Not complying with RFC 1035 may cause errors during the TLS handshake with modules and downstream devices.",
-                config_parent_hostname,
             )));
         }
 
         if !aziotctl_common::check_length_for_local_issuer(config_parent_hostname) {
             return Ok(CheckResult::Failed(anyhow!(
-                "configuration parent_hostname {} is too long to be used as a certificate issuer",
-                config_parent_hostname,
+                "configuration parent_hostname {config_parent_hostname} is too long to be used as a certificate issuer"
             )));
         }
 

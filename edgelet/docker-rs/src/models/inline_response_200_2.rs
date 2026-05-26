@@ -30,6 +30,7 @@ impl InlineResponse2002 {
         self.path = path;
     }
 
+    #[must_use]
     pub fn with_path(mut self, path: String) -> Self {
         self.path = path;
         self
@@ -43,6 +44,7 @@ impl InlineResponse2002 {
         self.kind = kind;
     }
 
+    #[must_use]
     pub fn with_kind(mut self, kind: i32) -> Self {
         self.kind = kind;
         self

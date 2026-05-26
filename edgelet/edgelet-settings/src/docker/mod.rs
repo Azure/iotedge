@@ -332,11 +332,11 @@ mod tests {
         assert!(image_gc_settings.is_enabled());
         assert_eq!(
             image_gc_settings.image_age_cleanup_threshold(),
-            Duration::from_secs(60 * 60 * 24 * 7)
+            Duration::from_hours(24 * 7)
         );
         assert_eq!(
             image_gc_settings.cleanup_recurrence(),
-            Duration::from_secs(60 * 60 * 24)
+            Duration::from_hours(24)
         );
         assert_eq!(image_gc_settings.cleanup_time(), 0);
     }

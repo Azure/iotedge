@@ -36,6 +36,7 @@ impl InlineResponse2009 {
         self.images_deleted = Some(images_deleted);
     }
 
+    #[must_use]
     pub fn with_images_deleted(
         mut self,
         images_deleted: Vec<crate::models::ImageDeleteResponseItem>,
@@ -56,6 +57,7 @@ impl InlineResponse2009 {
         self.space_reclaimed = Some(space_reclaimed);
     }
 
+    #[must_use]
     pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> Self {
         self.space_reclaimed = Some(space_reclaimed);
         self

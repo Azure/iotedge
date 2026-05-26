@@ -88,9 +88,9 @@ where
         let is_content_trust_enabled = false;
 
         if is_content_trust_enabled {
-            log::info!("Pulling image via digest {}...", image);
+            log::info!("Pulling image via digest {image}...");
         } else {
-            log::info!("Pulling image via tag {}...", image);
+            log::info!("Pulling image via tag {image}...");
         }
 
         let creds = match config.auth() {
@@ -109,40 +109,38 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
                 Error::RegistryOperation(RegistryOperation::PullImage(image.clone()))
             })?;
 
-        log::info!("Successfully pulled image {}", image);
+        log::info!("Successfully pulled image {image}");
 
         // Now, get the image_id of the image we just pulled for image garbage collection in future
         match self.list_images().await {
             Ok(image_name_to_id) => {
                 if image_name_to_id.is_empty() {
                     log::error!(
-                        "No docker images present on device: {} was just pulled, but not found on device",
-                        image
+                        "No docker images present on device: {image} was just pulled, but not found on device"
                     );
                 } else if let Some(image_id) = image_name_to_id.get(config.image()) {
                     self.image_use_data.record_image_use_timestamp(image_id)?;
                 } else {
                     log::warn!(
-                        "Could not retrieve image id. {} was not added to image garbage collection list and will not be garbage collected",
-                        image
+                        "Could not retrieve image id. {image} was not added to image garbage collection list and will not be garbage collected"
                     );
                 }
             }
-            Err(e) => log::error!("Could not get list of docker images: {}", e),
-        };
+            Err(e) => log::error!("Could not get list of docker images: {e}"),
+        }
 
         Ok(())
     }
 
     async fn remove(&self, name: &str) -> anyhow::Result<()> {
-        log::info!("Removing image {}...", name);
+        log::info!("Removing image {name}...");
 
         ensure_not_empty(name).with_context(|| {
             Error::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
@@ -153,14 +151,14 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
                 Error::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
             })?;
 
-        log::info!("Successfully removed image {}", name);
+        log::info!("Successfully removed image {name}");
         Ok(())
     }
 }
@@ -231,7 +229,7 @@ async fn create_network_if_missing(
 ) -> anyhow::Result<()> {
     let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
     let network_id = settings.moby_runtime().network().name();
-    log::info!("Using runtime network id {}", network_id);
+    log::info!("Using runtime network id {network_id}");
 
     let filter = format!(r#"{{"name":{{"{network_id}":true}}}}"#);
     let existing_iotedge_networks = client
@@ -239,7 +237,7 @@ async fn create_network_if_missing(
         .await
         .context(Error::Docker)
         .map_err(|e| {
-            log::warn!("{:?}", e);
+            log::warn!("{e:?}");
             e
         })
         .context(Error::RuntimeOperation(RuntimeOperation::Init))?;
@@ -250,14 +248,14 @@ async fn create_network_if_missing(
 
         if let Some(ipam_config) = ipam {
             network_config.set_IPAM(ipam_config);
-        };
+        }
 
         client
             .network_create(network_config)
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .context(Error::RuntimeOperation(RuntimeOperation::Init))?;
@@ -278,15 +276,15 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
                         let mut config_map = HashMap::new();
                         if let Some(gateway_config) = ipam_config.gateway() {
                             config_map.insert("Gateway".to_string(), gateway_config.to_string());
-                        };
+                        }
 
                         if let Some(subnet_config) = ipam_config.subnet() {
                             config_map.insert("Subnet".to_string(), subnet_config.to_string());
-                        };
+                        }
 
                         if let Some(ip_range_config) = ipam_config.ip_range() {
                             config_map.insert("IPRange".to_string(), ip_range_config.to_string());
-                        };
+                        }
 
                         config_map
                     })
@@ -345,7 +343,7 @@ where
             module.config().image().to_string(),
         );
 
-        log::debug!("Creating container {} with image {}", module.name(), image);
+        log::debug!("Creating container {} with image {image}", module.name());
 
         let create_options = create_options
             .with_image(image)
@@ -359,7 +357,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
@@ -382,7 +380,7 @@ where
     }
 
     async fn get(&self, id: &str) -> anyhow::Result<(Self::Module, ModuleRuntimeState)> {
-        log::debug!("Getting module {}...", id);
+        log::debug!("Getting module {id}...");
 
         ensure_not_empty(id)
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
@@ -402,21 +400,21 @@ where
         let mut create_options = ContainerCreateBody::new();
         let mut image = name.clone();
 
-        if let Some(config) = response.config() {
-            if let Some(labels) = config.labels() {
-                // Conversion of HashMap to BTreeMap.
-                let mut btree_labels = std::collections::BTreeMap::new();
+        if let Some(config) = response.config()
+            && let Some(labels) = config.labels()
+        {
+            // Conversion of HashMap to BTreeMap.
+            let mut btree_labels = std::collections::BTreeMap::new();
 
-                for (key, value) in labels {
-                    btree_labels.insert(key.clone(), value.clone());
+            for (key, value) in labels {
+                btree_labels.insert(key.clone(), value.clone());
 
-                    if key == "net.azure-devices.edge.original-image" {
-                        image = value.clone();
-                    }
+                if key == "net.azure-devices.edge.original-image" {
+                    image.clone_from(value);
                 }
-
-                create_options.set_labels(btree_labels);
             }
+
+            create_options.set_labels(btree_labels);
         }
 
         let mut config = DockerConfig::new(
@@ -441,7 +439,7 @@ where
     }
 
     async fn start(&self, id: &str) -> anyhow::Result<()> {
-        log::info!("Starting module {}...", id);
+        log::info!("Starting module {id}...");
 
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned()))
@@ -452,15 +450,12 @@ where
         self.create_socket_channel
             .send(ModuleAction::Start(id.to_string(), sender))
             .map_err(|_| {
-                log::error!("Could not notify workload manager, start of module: {}", id);
+                log::error!("Could not notify workload manager, start of module: {id}");
                 Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_string()))
             })?;
 
         receiver.await.map_err(|_| {
-            log::error!(
-                "Could not wait on workload manager response, start of module: {}",
-                id
-            );
+            log::error!("Could not wait on workload manager response, start of module: {id}");
             Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned()))
         })?;
 
@@ -469,14 +464,14 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned())))
     }
 
     async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> anyhow::Result<()> {
-        log::info!("Stopping module {}...", id);
+        log::info!("Stopping module {id}...");
 
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned()))
@@ -484,14 +479,14 @@ where
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
-            s if s > i32::max_value() as u64 => i32::max_value(),
+            s if s > i32::MAX as u64 => i32::MAX,
             s => s as i32,
         });
 
         self.create_socket_channel
             .send(ModuleAction::Stop(id.to_string()))
             .map_err(|_| {
-                log::error!("Could not notify workload manager, stop of module: {}", id);
+                log::error!("Could not notify workload manager, stop of module: {id}");
                 Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
             })?;
 
@@ -500,14 +495,14 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned())))
     }
 
     async fn restart(&self, id: &str) -> anyhow::Result<()> {
-        log::info!("Restarting module {}...", id);
+        log::info!("Restarting module {id}...");
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::RestartModule(id.to_owned()))
         })?;
@@ -517,7 +512,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
@@ -534,7 +529,7 @@ where
             .image_hash()
             .ok_or(Error::GetImageId())?;
 
-        log::info!("Removing module {}...", id);
+        log::info!("Removing module {id}...");
 
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned()))
@@ -548,7 +543,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
@@ -562,10 +557,7 @@ where
         self.create_socket_channel
             .send(ModuleAction::Remove(id.to_string()))
             .map_err(|_| {
-                log::error!(
-                    "Could not notify workload manager, remove of module: {}",
-                    id
-                );
+                log::error!("Could not notify workload manager, remove of module: {id}");
                 anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::GetModule(
                     id.to_string()
                 )))
@@ -654,7 +646,7 @@ where
         Ok(SystemResources::new(
             uptime,
             current_time - start_time,
-            used_cpu.into(),
+            used_cpu,
             used_memory,
             total_memory,
             disks,
@@ -686,12 +678,12 @@ where
             .iter()
             .flat_map(|container| {
                 DockerConfig::new(
-                    container.image().to_string(),
+                    container.image().clone(),
                     ContainerCreateBody::new().with_labels(
                         container
                             .labels()
                             .iter()
-                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                            .map(|(k, v)| (k.clone(), v.clone()))
                             .collect(),
                     ),
                     None,
@@ -750,7 +742,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .context(Error::RuntimeOperation(RuntimeOperation::ListImages))?;
@@ -767,7 +759,7 @@ where
     }
 
     async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<Incoming> {
-        log::info!("Getting logs for module {}...", id);
+        log::info!("Getting logs for module {id}...");
 
         self.client
             .container_logs(
@@ -783,7 +775,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
     }
@@ -798,7 +790,7 @@ where
 
         for result in futures_util::future::join_all(remove).await {
             if let Err(err) = result {
-                log::warn!("Failed to remove module: {:?}", err);
+                log::warn!("Failed to remove module: {err:?}");
             }
         }
 
@@ -815,7 +807,7 @@ where
 
         for result in futures_util::future::join_all(stop).await {
             if let Err(err) = result {
-                log::warn!("Failed to stop module: {:?}", err);
+                log::warn!("Failed to stop module: {err:?}");
             }
         }
 
@@ -829,7 +821,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned())))?;
@@ -910,18 +902,18 @@ fn unset_privileged(
     if allow_elevated_docker_permissions {
         return;
     }
-    if let Some(config) = create_options.host_config() {
-        if config.privileged() == Some(&true) || config.cap_add().map_or(0, Vec::len) != 0 {
-            log::warn!(
-                "Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service."
-            );
-            let mut config = config.clone();
+    if let Some(config) = create_options.host_config()
+        && (config.privileged() == Some(&true) || config.cap_add().map_or(0, Vec::len) != 0)
+    {
+        log::warn!(
+            "Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service."
+        );
+        let mut config = config.clone();
 
-            config.set_privileged(false);
-            config.reset_cap_add();
+        config.set_privileged(false);
+        config.reset_cap_add();
 
-            create_options.set_host_config(config);
-        }
+        create_options.set_host_config(config);
     }
 }
 

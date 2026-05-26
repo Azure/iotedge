@@ -33,6 +33,7 @@ impl InlineResponse2005 {
         self.containers_deleted = Some(containers_deleted);
     }
 
+    #[must_use]
     pub fn with_containers_deleted(mut self, containers_deleted: Vec<String>) -> Self {
         self.containers_deleted = Some(containers_deleted);
         self
@@ -50,6 +51,7 @@ impl InlineResponse2005 {
         self.space_reclaimed = Some(space_reclaimed);
     }
 
+    #[must_use]
     pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> Self {
         self.space_reclaimed = Some(space_reclaimed);
         self

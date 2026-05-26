@@ -30,6 +30,7 @@ impl MountBindOptions {
         self.propagation = Some(propagation);
     }
 
+    #[must_use]
     pub fn with_propagation(mut self, propagation: String) -> Self {
         self.propagation = Some(propagation);
         self

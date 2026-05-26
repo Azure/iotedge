@@ -74,10 +74,7 @@ where
         let certificate = match (certificate, self.optional) {
             (Ok(certificate), _) => std::str::from_utf8(&certificate)
                 .map_err(|err| {
-                    edgelet_http::error::server_error(format!(
-                        "could not parse certificate: {}",
-                        err
-                    ))
+                    edgelet_http::error::server_error(format!("could not parse certificate: {err}"))
                 })?
                 .to_string(),
 

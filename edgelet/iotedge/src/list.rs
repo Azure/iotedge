@@ -71,32 +71,32 @@ fn humanize_status(status: &ModuleStatus) -> String {
     match status_enum {
         ModuleStatusEnum::Unknown => "Unknown".to_string(),
         ModuleStatusEnum::Stopped | ModuleStatusEnum::Dead => {
-            if let Some(exit_status) = &status.exit_status {
-                if let Ok(time) = DateTime::parse_from_rfc3339(&exit_status.exit_time) {
-                    return format!("Stopped {}", format_time(time, Tense::Past));
-                }
+            if let Some(exit_status) = &status.exit_status
+                && let Ok(time) = DateTime::parse_from_rfc3339(&exit_status.exit_time)
+            {
+                return format!("Stopped {}", format_time(time, Tense::Past));
             }
 
             "Stopped".to_string()
         }
         ModuleStatusEnum::Failed => {
-            if let Some(exit_status) = &status.exit_status {
-                if let Ok(time) = DateTime::parse_from_rfc3339(&exit_status.exit_time) {
-                    return format!(
-                        "Failed ({}) {}",
-                        exit_status.status_code,
-                        format_time(time, Tense::Past)
-                    );
-                }
+            if let Some(exit_status) = &status.exit_status
+                && let Ok(time) = DateTime::parse_from_rfc3339(&exit_status.exit_time)
+            {
+                return format!(
+                    "Failed ({}) {}",
+                    exit_status.status_code,
+                    format_time(time, Tense::Past)
+                );
             }
 
             "Failed".to_string()
         }
         ModuleStatusEnum::Running => {
-            if let Some(start_time) = &status.start_time {
-                if let Ok(time) = DateTime::parse_from_rfc3339(start_time) {
-                    return format!("Up {}", format_time(time, Tense::Present));
-                }
+            if let Some(start_time) = &status.start_time
+                && let Ok(time) = DateTime::parse_from_rfc3339(start_time)
+            {
+                return format!("Up {}", format_time(time, Tense::Present));
             }
 
             "Up".to_string()

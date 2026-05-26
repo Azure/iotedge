@@ -48,6 +48,7 @@ impl HealthConfig {
         self.test = Some(test);
     }
 
+    #[must_use]
     pub fn with_test(mut self, test: Vec<String>) -> Self {
         self.test = Some(test);
         self
@@ -65,6 +66,7 @@ impl HealthConfig {
         self.interval = Some(interval);
     }
 
+    #[must_use]
     pub fn with_interval(mut self, interval: i64) -> Self {
         self.interval = Some(interval);
         self
@@ -82,6 +84,7 @@ impl HealthConfig {
         self.timeout = Some(timeout);
     }
 
+    #[must_use]
     pub fn with_timeout(mut self, timeout: i64) -> Self {
         self.timeout = Some(timeout);
         self
@@ -99,6 +102,7 @@ impl HealthConfig {
         self.retries = Some(retries);
     }
 
+    #[must_use]
     pub fn with_retries(mut self, retries: i32) -> Self {
         self.retries = Some(retries);
         self
@@ -116,6 +120,7 @@ impl HealthConfig {
         self.start_period = Some(start_period);
     }
 
+    #[must_use]
     pub fn with_start_period(mut self, start_period: i64) -> Self {
         self.start_period = Some(start_period);
         self

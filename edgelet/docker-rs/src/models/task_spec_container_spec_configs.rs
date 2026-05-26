@@ -36,6 +36,7 @@ impl TaskSpecContainerSpecConfigs {
         self.file = Some(file);
     }
 
+    #[must_use]
     pub fn with_file(mut self, file: crate::models::TaskSpecContainerSpecFile1) -> Self {
         self.file = Some(file);
         self
@@ -53,6 +54,7 @@ impl TaskSpecContainerSpecConfigs {
         self.config_id = Some(config_id);
     }
 
+    #[must_use]
     pub fn with_config_id(mut self, config_id: String) -> Self {
         self.config_id = Some(config_id);
         self
@@ -70,6 +72,7 @@ impl TaskSpecContainerSpecConfigs {
         self.config_name = Some(config_name);
     }
 
+    #[must_use]
     pub fn with_config_name(mut self, config_name: String) -> Self {
         self.config_name = Some(config_name);
         self

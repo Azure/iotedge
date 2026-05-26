@@ -37,6 +37,7 @@ impl GenericResourcesInner {
         self.named_resource_spec = Some(named_resource_spec);
     }
 
+    #[must_use]
     pub fn with_named_resource_spec(
         mut self,
         named_resource_spec: crate::models::GenericResourcesInnerNamedResourceSpec,
@@ -62,6 +63,7 @@ impl GenericResourcesInner {
         self.discrete_resource_spec = Some(discrete_resource_spec);
     }
 
+    #[must_use]
     pub fn with_discrete_resource_spec(
         mut self,
         discrete_resource_spec: crate::models::GenericResourcesInnerDiscreteResourceSpec,

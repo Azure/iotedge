@@ -38,8 +38,8 @@ impl ContainerLocalTime {
             .starts_with("/azureiotedge-diagnostics:")
         {
             check.parent_hostname.as_ref().map_or_else(
-                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
-                |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
+                || format!("mcr.microsoft.com{}", check.diagnostics_image_name),
+                |upstream_hostname| format!("{upstream_hostname}{}", check.diagnostics_image_name),
             )
         } else {
             check.diagnostics_image_name.clone()
@@ -73,8 +73,7 @@ impl ContainerLocalTime {
             .context("Could not query local time of host")?;
         self.expected_duration = Some(expected_duration);
 
-        let diff = std::cmp::max(actual_duration, expected_duration)
-            - std::cmp::min(actual_duration, expected_duration);
+        let diff = actual_duration.abs_diff(expected_duration);
         self.diff = Some(diff.as_secs());
 
         if diff.as_secs() >= 10 {

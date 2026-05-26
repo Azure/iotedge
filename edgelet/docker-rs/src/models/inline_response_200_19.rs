@@ -27,6 +27,7 @@ impl InlineResponse20019 {
         self.unlock_key = Some(unlock_key);
     }
 
+    #[must_use]
     pub fn with_unlock_key(mut self, unlock_key: String) -> Self {
         self.unlock_key = Some(unlock_key);
         self

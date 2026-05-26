@@ -57,13 +57,12 @@ impl WellFormedConfig {
             }
         };
 
-        if let Some(parent_hostname) = check.parent_hostname.as_ref() {
-            if let Some(image_tail) = check
+        if let Some(parent_hostname) = check.parent_hostname.as_ref()
+            && let Some(image_tail) = check
                 .diagnostics_image_name
                 .strip_prefix(UPSTREAM_PARENT_KEYWORD)
-            {
-                check.diagnostics_image_name = format!("{parent_hostname}{image_tail}");
-            }
+        {
+            check.diagnostics_image_name = format!("{parent_hostname}{image_tail}");
         }
 
         check.settings = Some(settings);

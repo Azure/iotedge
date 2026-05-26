@@ -29,6 +29,7 @@ impl InlineResponse2006 {
         self.space_reclaimed = Some(space_reclaimed);
     }
 
+    #[must_use]
     pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> Self {
         self.space_reclaimed = Some(space_reclaimed);
         self

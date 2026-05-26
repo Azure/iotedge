@@ -34,6 +34,7 @@ impl ServiceSpecMode {
         self.replicated = Some(replicated);
     }
 
+    #[must_use]
     pub fn with_replicated(mut self, replicated: crate::models::ServiceSpecModeReplicated) -> Self {
         self.replicated = Some(replicated);
         self
@@ -51,6 +52,7 @@ impl ServiceSpecMode {
         self.global = Some(global);
     }
 
+    #[must_use]
     pub fn with_global(mut self, global: Value) -> Self {
         self.global = Some(global);
         self

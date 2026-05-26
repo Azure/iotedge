@@ -34,6 +34,7 @@ impl TaskStatusContainerStatus {
         self.container_id = Some(container_id);
     }
 
+    #[must_use]
     pub fn with_container_id(mut self, container_id: String) -> Self {
         self.container_id = Some(container_id);
         self
@@ -51,6 +52,7 @@ impl TaskStatusContainerStatus {
         self.PID = Some(PID);
     }
 
+    #[must_use]
     pub fn with_PID(mut self, PID: i32) -> Self {
         self.PID = Some(PID);
         self
@@ -68,6 +70,7 @@ impl TaskStatusContainerStatus {
         self.exit_code = Some(exit_code);
     }
 
+    #[must_use]
     pub fn with_exit_code(mut self, exit_code: i32) -> Self {
         self.exit_code = Some(exit_code);
         self

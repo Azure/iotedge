@@ -246,6 +246,7 @@ impl SystemInfo {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -263,6 +264,7 @@ impl SystemInfo {
         self.containers = Some(containers);
     }
 
+    #[must_use]
     pub fn with_containers(mut self, containers: i32) -> Self {
         self.containers = Some(containers);
         self
@@ -280,6 +282,7 @@ impl SystemInfo {
         self.containers_running = Some(containers_running);
     }
 
+    #[must_use]
     pub fn with_containers_running(mut self, containers_running: i32) -> Self {
         self.containers_running = Some(containers_running);
         self
@@ -297,6 +300,7 @@ impl SystemInfo {
         self.containers_paused = Some(containers_paused);
     }
 
+    #[must_use]
     pub fn with_containers_paused(mut self, containers_paused: i32) -> Self {
         self.containers_paused = Some(containers_paused);
         self
@@ -314,6 +318,7 @@ impl SystemInfo {
         self.containers_stopped = Some(containers_stopped);
     }
 
+    #[must_use]
     pub fn with_containers_stopped(mut self, containers_stopped: i32) -> Self {
         self.containers_stopped = Some(containers_stopped);
         self
@@ -331,6 +336,7 @@ impl SystemInfo {
         self.images = Some(images);
     }
 
+    #[must_use]
     pub fn with_images(mut self, images: i32) -> Self {
         self.images = Some(images);
         self
@@ -348,6 +354,7 @@ impl SystemInfo {
         self.driver = Some(driver);
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
@@ -365,6 +372,7 @@ impl SystemInfo {
         self.driver_status = Some(driver_status);
     }
 
+    #[must_use]
     pub fn with_driver_status(mut self, driver_status: Vec<Vec<String>>) -> Self {
         self.driver_status = Some(driver_status);
         self
@@ -382,6 +390,7 @@ impl SystemInfo {
         self.docker_root_dir = Some(docker_root_dir);
     }
 
+    #[must_use]
     pub fn with_docker_root_dir(mut self, docker_root_dir: String) -> Self {
         self.docker_root_dir = Some(docker_root_dir);
         self
@@ -399,6 +408,7 @@ impl SystemInfo {
         self.system_status = Some(system_status);
     }
 
+    #[must_use]
     pub fn with_system_status(mut self, system_status: Vec<Vec<String>>) -> Self {
         self.system_status = Some(system_status);
         self
@@ -416,6 +426,7 @@ impl SystemInfo {
         self.plugins = Some(plugins);
     }
 
+    #[must_use]
     pub fn with_plugins(mut self, plugins: crate::models::PluginsInfo) -> Self {
         self.plugins = Some(plugins);
         self
@@ -433,6 +444,7 @@ impl SystemInfo {
         self.memory_limit = Some(memory_limit);
     }
 
+    #[must_use]
     pub fn with_memory_limit(mut self, memory_limit: bool) -> Self {
         self.memory_limit = Some(memory_limit);
         self
@@ -450,6 +462,7 @@ impl SystemInfo {
         self.swap_limit = Some(swap_limit);
     }
 
+    #[must_use]
     pub fn with_swap_limit(mut self, swap_limit: bool) -> Self {
         self.swap_limit = Some(swap_limit);
         self
@@ -467,6 +480,7 @@ impl SystemInfo {
         self.kernel_memory = Some(kernel_memory);
     }
 
+    #[must_use]
     pub fn with_kernel_memory(mut self, kernel_memory: bool) -> Self {
         self.kernel_memory = Some(kernel_memory);
         self
@@ -484,6 +498,7 @@ impl SystemInfo {
         self.cpu_cfs_period = Some(cpu_cfs_period);
     }
 
+    #[must_use]
     pub fn with_cpu_cfs_period(mut self, cpu_cfs_period: bool) -> Self {
         self.cpu_cfs_period = Some(cpu_cfs_period);
         self
@@ -501,6 +516,7 @@ impl SystemInfo {
         self.cpu_cfs_quota = Some(cpu_cfs_quota);
     }
 
+    #[must_use]
     pub fn with_cpu_cfs_quota(mut self, cpu_cfs_quota: bool) -> Self {
         self.cpu_cfs_quota = Some(cpu_cfs_quota);
         self
@@ -518,6 +534,7 @@ impl SystemInfo {
         self.cpu_shares = Some(cpu_shares);
     }
 
+    #[must_use]
     pub fn with_cpu_shares(mut self, cpu_shares: bool) -> Self {
         self.cpu_shares = Some(cpu_shares);
         self
@@ -535,6 +552,7 @@ impl SystemInfo {
         self.cpu_set = Some(cpu_set);
     }
 
+    #[must_use]
     pub fn with_cpu_set(mut self, cpu_set: bool) -> Self {
         self.cpu_set = Some(cpu_set);
         self
@@ -552,6 +570,7 @@ impl SystemInfo {
         self.oom_kill_disable = Some(oom_kill_disable);
     }
 
+    #[must_use]
     pub fn with_oom_kill_disable(mut self, oom_kill_disable: bool) -> Self {
         self.oom_kill_disable = Some(oom_kill_disable);
         self
@@ -569,6 +588,7 @@ impl SystemInfo {
         self.i_pv4_forwarding = Some(i_pv4_forwarding);
     }
 
+    #[must_use]
     pub fn with_i_pv4_forwarding(mut self, i_pv4_forwarding: bool) -> Self {
         self.i_pv4_forwarding = Some(i_pv4_forwarding);
         self
@@ -586,6 +606,7 @@ impl SystemInfo {
         self.bridge_nf_iptables = Some(bridge_nf_iptables);
     }
 
+    #[must_use]
     pub fn with_bridge_nf_iptables(mut self, bridge_nf_iptables: bool) -> Self {
         self.bridge_nf_iptables = Some(bridge_nf_iptables);
         self
@@ -603,6 +624,7 @@ impl SystemInfo {
         self.bridge_nf_ip6tables = Some(bridge_nf_ip6tables);
     }
 
+    #[must_use]
     pub fn with_bridge_nf_ip6tables(mut self, bridge_nf_ip6tables: bool) -> Self {
         self.bridge_nf_ip6tables = Some(bridge_nf_ip6tables);
         self
@@ -620,6 +642,7 @@ impl SystemInfo {
         self.debug = Some(debug);
     }
 
+    #[must_use]
     pub fn with_debug(mut self, debug: bool) -> Self {
         self.debug = Some(debug);
         self
@@ -637,6 +660,7 @@ impl SystemInfo {
         self.n_fd = Some(n_fd);
     }
 
+    #[must_use]
     pub fn with_n_fd(mut self, n_fd: i32) -> Self {
         self.n_fd = Some(n_fd);
         self
@@ -654,6 +678,7 @@ impl SystemInfo {
         self.n_goroutines = Some(n_goroutines);
     }
 
+    #[must_use]
     pub fn with_n_goroutines(mut self, n_goroutines: i32) -> Self {
         self.n_goroutines = Some(n_goroutines);
         self
@@ -671,6 +696,7 @@ impl SystemInfo {
         self.system_time = Some(system_time);
     }
 
+    #[must_use]
     pub fn with_system_time(mut self, system_time: String) -> Self {
         self.system_time = Some(system_time);
         self
@@ -688,6 +714,7 @@ impl SystemInfo {
         self.logging_driver = Some(logging_driver);
     }
 
+    #[must_use]
     pub fn with_logging_driver(mut self, logging_driver: String) -> Self {
         self.logging_driver = Some(logging_driver);
         self
@@ -705,6 +732,7 @@ impl SystemInfo {
         self.cgroup_driver = Some(cgroup_driver);
     }
 
+    #[must_use]
     pub fn with_cgroup_driver(mut self, cgroup_driver: String) -> Self {
         self.cgroup_driver = Some(cgroup_driver);
         self
@@ -722,6 +750,7 @@ impl SystemInfo {
         self.n_events_listener = Some(n_events_listener);
     }
 
+    #[must_use]
     pub fn with_n_events_listener(mut self, n_events_listener: i32) -> Self {
         self.n_events_listener = Some(n_events_listener);
         self
@@ -739,6 +768,7 @@ impl SystemInfo {
         self.kernel_version = Some(kernel_version);
     }
 
+    #[must_use]
     pub fn with_kernel_version(mut self, kernel_version: String) -> Self {
         self.kernel_version = Some(kernel_version);
         self
@@ -756,6 +786,7 @@ impl SystemInfo {
         self.operating_system = Some(operating_system);
     }
 
+    #[must_use]
     pub fn with_operating_system(mut self, operating_system: String) -> Self {
         self.operating_system = Some(operating_system);
         self
@@ -773,6 +804,7 @@ impl SystemInfo {
         self.os_type = Some(os_type);
     }
 
+    #[must_use]
     pub fn with_os_type(mut self, os_type: String) -> Self {
         self.os_type = Some(os_type);
         self
@@ -790,6 +822,7 @@ impl SystemInfo {
         self.architecture = Some(architecture);
     }
 
+    #[must_use]
     pub fn with_architecture(mut self, architecture: String) -> Self {
         self.architecture = Some(architecture);
         self
@@ -807,6 +840,7 @@ impl SystemInfo {
         self.NCPU = Some(NCPU);
     }
 
+    #[must_use]
     pub fn with_NCPU(mut self, NCPU: i32) -> Self {
         self.NCPU = Some(NCPU);
         self
@@ -824,6 +858,7 @@ impl SystemInfo {
         self.mem_total = Some(mem_total);
     }
 
+    #[must_use]
     pub fn with_mem_total(mut self, mem_total: i64) -> Self {
         self.mem_total = Some(mem_total);
         self
@@ -841,6 +876,7 @@ impl SystemInfo {
         self.index_server_address = Some(index_server_address);
     }
 
+    #[must_use]
     pub fn with_index_server_address(mut self, index_server_address: String) -> Self {
         self.index_server_address = Some(index_server_address);
         self
@@ -858,6 +894,7 @@ impl SystemInfo {
         self.registry_config = Some(registry_config);
     }
 
+    #[must_use]
     pub fn with_registry_config(
         mut self,
         registry_config: crate::models::RegistryServiceConfig,
@@ -878,6 +915,7 @@ impl SystemInfo {
         self.generic_resources = Some(generic_resources);
     }
 
+    #[must_use]
     pub fn with_generic_resources(
         mut self,
         generic_resources: crate::models::GenericResources,
@@ -898,6 +936,7 @@ impl SystemInfo {
         self.http_proxy = Some(http_proxy);
     }
 
+    #[must_use]
     pub fn with_http_proxy(mut self, http_proxy: String) -> Self {
         self.http_proxy = Some(http_proxy);
         self
@@ -915,6 +954,7 @@ impl SystemInfo {
         self.https_proxy = Some(https_proxy);
     }
 
+    #[must_use]
     pub fn with_https_proxy(mut self, https_proxy: String) -> Self {
         self.https_proxy = Some(https_proxy);
         self
@@ -932,6 +972,7 @@ impl SystemInfo {
         self.no_proxy = Some(no_proxy);
     }
 
+    #[must_use]
     pub fn with_no_proxy(mut self, no_proxy: String) -> Self {
         self.no_proxy = Some(no_proxy);
         self
@@ -949,6 +990,7 @@ impl SystemInfo {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -966,6 +1008,7 @@ impl SystemInfo {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: Vec<String>) -> Self {
         self.labels = Some(labels);
         self
@@ -983,6 +1026,7 @@ impl SystemInfo {
         self.experimental_build = Some(experimental_build);
     }
 
+    #[must_use]
     pub fn with_experimental_build(mut self, experimental_build: bool) -> Self {
         self.experimental_build = Some(experimental_build);
         self
@@ -1000,6 +1044,7 @@ impl SystemInfo {
         self.server_version = Some(server_version);
     }
 
+    #[must_use]
     pub fn with_server_version(mut self, server_version: String) -> Self {
         self.server_version = Some(server_version);
         self
@@ -1017,6 +1062,7 @@ impl SystemInfo {
         self.cluster_store = Some(cluster_store);
     }
 
+    #[must_use]
     pub fn with_cluster_store(mut self, cluster_store: String) -> Self {
         self.cluster_store = Some(cluster_store);
         self
@@ -1034,6 +1080,7 @@ impl SystemInfo {
         self.cluster_advertise = Some(cluster_advertise);
     }
 
+    #[must_use]
     pub fn with_cluster_advertise(mut self, cluster_advertise: String) -> Self {
         self.cluster_advertise = Some(cluster_advertise);
         self
@@ -1054,6 +1101,7 @@ impl SystemInfo {
         self.runtimes = Some(runtimes);
     }
 
+    #[must_use]
     pub fn with_runtimes(
         mut self,
         runtimes: ::std::collections::HashMap<String, crate::models::Runtime>,
@@ -1074,6 +1122,7 @@ impl SystemInfo {
         self.default_runtime = Some(default_runtime);
     }
 
+    #[must_use]
     pub fn with_default_runtime(mut self, default_runtime: String) -> Self {
         self.default_runtime = Some(default_runtime);
         self
@@ -1091,6 +1140,7 @@ impl SystemInfo {
         self.swarm = Some(swarm);
     }
 
+    #[must_use]
     pub fn with_swarm(mut self, swarm: crate::models::SwarmInfo) -> Self {
         self.swarm = Some(swarm);
         self
@@ -1108,6 +1158,7 @@ impl SystemInfo {
         self.live_restore_enabled = Some(live_restore_enabled);
     }
 
+    #[must_use]
     pub fn with_live_restore_enabled(mut self, live_restore_enabled: bool) -> Self {
         self.live_restore_enabled = Some(live_restore_enabled);
         self
@@ -1125,6 +1176,7 @@ impl SystemInfo {
         self.isolation = Some(isolation);
     }
 
+    #[must_use]
     pub fn with_isolation(mut self, isolation: String) -> Self {
         self.isolation = Some(isolation);
         self
@@ -1142,6 +1194,7 @@ impl SystemInfo {
         self.init_binary = Some(init_binary);
     }
 
+    #[must_use]
     pub fn with_init_binary(mut self, init_binary: String) -> Self {
         self.init_binary = Some(init_binary);
         self
@@ -1159,6 +1212,7 @@ impl SystemInfo {
         self.containerd_commit = Some(containerd_commit);
     }
 
+    #[must_use]
     pub fn with_containerd_commit(mut self, containerd_commit: crate::models::Commit) -> Self {
         self.containerd_commit = Some(containerd_commit);
         self
@@ -1176,6 +1230,7 @@ impl SystemInfo {
         self.runc_commit = Some(runc_commit);
     }
 
+    #[must_use]
     pub fn with_runc_commit(mut self, runc_commit: crate::models::Commit) -> Self {
         self.runc_commit = Some(runc_commit);
         self
@@ -1193,6 +1248,7 @@ impl SystemInfo {
         self.init_commit = Some(init_commit);
     }
 
+    #[must_use]
     pub fn with_init_commit(mut self, init_commit: crate::models::Commit) -> Self {
         self.init_commit = Some(init_commit);
         self
@@ -1210,6 +1266,7 @@ impl SystemInfo {
         self.security_options = Some(security_options);
     }
 
+    #[must_use]
     pub fn with_security_options(mut self, security_options: Vec<String>) -> Self {
         self.security_options = Some(security_options);
         self

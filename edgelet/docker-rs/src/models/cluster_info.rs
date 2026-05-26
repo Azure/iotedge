@@ -56,6 +56,7 @@ impl ClusterInfo {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -73,6 +74,7 @@ impl ClusterInfo {
         self.version = Some(version);
     }
 
+    #[must_use]
     pub fn with_version(mut self, version: crate::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
@@ -90,6 +92,7 @@ impl ClusterInfo {
         self.created_at = Some(created_at);
     }
 
+    #[must_use]
     pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
@@ -107,6 +110,7 @@ impl ClusterInfo {
         self.updated_at = Some(updated_at);
     }
 
+    #[must_use]
     pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
@@ -124,6 +128,7 @@ impl ClusterInfo {
         self.spec = Some(spec);
     }
 
+    #[must_use]
     pub fn with_spec(mut self, spec: crate::models::SwarmSpec) -> Self {
         self.spec = Some(spec);
         self
@@ -141,6 +146,7 @@ impl ClusterInfo {
         self.tls_info = Some(tls_info);
     }
 
+    #[must_use]
     pub fn with_tls_info(mut self, tls_info: crate::models::TlsInfo) -> Self {
         self.tls_info = Some(tls_info);
         self
@@ -158,6 +164,7 @@ impl ClusterInfo {
         self.root_rotation_in_progress = Some(root_rotation_in_progress);
     }
 
+    #[must_use]
     pub fn with_root_rotation_in_progress(
         mut self,
         root_rotation_in_progress: bool,

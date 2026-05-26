@@ -51,6 +51,7 @@ impl SwarmSpecRaft {
         self.snapshot_interval = Some(snapshot_interval);
     }
 
+    #[must_use]
     pub fn with_snapshot_interval(mut self, snapshot_interval: i32) -> Self {
         self.snapshot_interval = Some(snapshot_interval);
         self
@@ -68,6 +69,7 @@ impl SwarmSpecRaft {
         self.keep_old_snapshots = Some(keep_old_snapshots);
     }
 
+    #[must_use]
     pub fn with_keep_old_snapshots(mut self, keep_old_snapshots: i32) -> Self {
         self.keep_old_snapshots = Some(keep_old_snapshots);
         self
@@ -85,6 +87,7 @@ impl SwarmSpecRaft {
         self.log_entries_for_slow_followers = Some(log_entries_for_slow_followers);
     }
 
+    #[must_use]
     pub fn with_log_entries_for_slow_followers(
         mut self,
         log_entries_for_slow_followers: i32,
@@ -105,6 +108,7 @@ impl SwarmSpecRaft {
         self.election_tick = Some(election_tick);
     }
 
+    #[must_use]
     pub fn with_election_tick(mut self, election_tick: i32) -> Self {
         self.election_tick = Some(election_tick);
         self
@@ -122,6 +126,7 @@ impl SwarmSpecRaft {
         self.heartbeat_tick = Some(heartbeat_tick);
     }
 
+    #[must_use]
     pub fn with_heartbeat_tick(mut self, heartbeat_tick: i32) -> Self {
         self.heartbeat_tick = Some(heartbeat_tick);
         self

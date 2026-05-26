@@ -35,6 +35,7 @@ impl InlineResponse20020 {
         self.descriptor = descriptor;
     }
 
+    #[must_use]
     pub fn with_descriptor(
         mut self,
         descriptor: crate::models::InlineResponse20020Descriptor,
@@ -51,6 +52,7 @@ impl InlineResponse20020 {
         self.platforms = platforms;
     }
 
+    #[must_use]
     pub fn with_platforms(
         mut self,
         platforms: Vec<crate::models::InlineResponse20020Platforms>,

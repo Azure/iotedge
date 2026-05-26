@@ -40,6 +40,7 @@ impl ServiceUpdateStatus {
         self.state = Some(state);
     }
 
+    #[must_use]
     pub fn with_state(mut self, state: String) -> Self {
         self.state = Some(state);
         self
@@ -57,6 +58,7 @@ impl ServiceUpdateStatus {
         self.started_at = Some(started_at);
     }
 
+    #[must_use]
     pub fn with_started_at(mut self, started_at: String) -> Self {
         self.started_at = Some(started_at);
         self
@@ -74,6 +76,7 @@ impl ServiceUpdateStatus {
         self.completed_at = Some(completed_at);
     }
 
+    #[must_use]
     pub fn with_completed_at(mut self, completed_at: String) -> Self {
         self.completed_at = Some(completed_at);
         self
@@ -91,6 +94,7 @@ impl ServiceUpdateStatus {
         self.message = Some(message);
     }
 
+    #[must_use]
     pub fn with_message(mut self, message: String) -> Self {
         self.message = Some(message);
         self

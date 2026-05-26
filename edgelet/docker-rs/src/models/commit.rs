@@ -36,6 +36,7 @@ impl Commit {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -53,6 +54,7 @@ impl Commit {
         self.expected = Some(expected);
     }
 
+    #[must_use]
     pub fn with_expected(mut self, expected: String) -> Self {
         self.expected = Some(expected);
         self

@@ -26,6 +26,7 @@ impl ServiceSpecModeReplicated {
         self.replicas = Some(replicas);
     }
 
+    #[must_use]
     pub fn with_replicas(mut self, replicas: i64) -> Self {
         self.replicas = Some(replicas);
         self

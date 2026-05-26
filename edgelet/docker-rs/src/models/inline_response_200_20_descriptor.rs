@@ -40,6 +40,7 @@ impl InlineResponse20020Descriptor {
         self.media_type = Some(media_type);
     }
 
+    #[must_use]
     pub fn with_media_type(mut self, media_type: String) -> Self {
         self.media_type = Some(media_type);
         self
@@ -57,6 +58,7 @@ impl InlineResponse20020Descriptor {
         self.size = Some(size);
     }
 
+    #[must_use]
     pub fn with_size(mut self, size: i64) -> Self {
         self.size = Some(size);
         self
@@ -74,6 +76,7 @@ impl InlineResponse20020Descriptor {
         self.digest = Some(digest);
     }
 
+    #[must_use]
     pub fn with_digest(mut self, digest: String) -> Self {
         self.digest = Some(digest);
         self
@@ -91,6 +94,7 @@ impl InlineResponse20020Descriptor {
         self.ur_ls = Some(ur_ls);
     }
 
+    #[must_use]
     pub fn with_ur_ls(mut self, ur_ls: Vec<String>) -> Self {
         self.ur_ls = Some(ur_ls);
         self

@@ -16,20 +16,15 @@ use edgelet_settings::module::Settings as ModuleSpec;
 
 use crate::error::Error;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
+    #[default]
     Unknown,
     Running,
     Stopped,
     Failed,
     Dead,
-}
-
-impl Default for ModuleStatus {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 impl fmt::Display for ModuleStatus {
@@ -130,16 +125,11 @@ impl ModuleRuntimeState {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum LogTail {
+    #[default]
     All,
     Num(u64),
-}
-
-impl Default for LogTail {
-    fn default() -> Self {
-        Self::All
-    }
 }
 
 impl fmt::Display for LogTail {
@@ -331,7 +321,7 @@ impl SystemInfo {
 impl Default for SystemInfo {
     fn default() -> Self {
         let kernel = nix::sys::utsname::uname()
-            .map_err(|e| log::error!("Failed calling uname(): {}", e))
+            .map_err(|e| log::error!("Failed calling uname(): {e}"))
             .ok();
 
         let kernel = kernel.as_ref();
@@ -391,7 +381,7 @@ impl Default for SystemInfo {
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ProvisioningInfo {
-    /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
+    /// IoT Edge provisioning type, examples: `manual.device_connection_string`, `dps.x509`
     pub r#type: String,
     #[serde(rename = "dynamicReprovisioning")]
     pub dynamic_reprovisioning: bool,

@@ -44,6 +44,7 @@ impl TaskSpecContainerSpecFile1 {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -61,6 +62,7 @@ impl TaskSpecContainerSpecFile1 {
         self.UID = Some(UID);
     }
 
+    #[must_use]
     pub fn with_UID(mut self, UID: String) -> Self {
         self.UID = Some(UID);
         self
@@ -78,6 +80,7 @@ impl TaskSpecContainerSpecFile1 {
         self.GID = Some(GID);
     }
 
+    #[must_use]
     pub fn with_GID(mut self, GID: String) -> Self {
         self.GID = Some(GID);
         self
@@ -95,6 +98,7 @@ impl TaskSpecContainerSpecFile1 {
         self.mode = Some(mode);
     }
 
+    #[must_use]
     pub fn with_mode(mut self, mode: i32) -> Self {
         self.mode = Some(mode);
         self

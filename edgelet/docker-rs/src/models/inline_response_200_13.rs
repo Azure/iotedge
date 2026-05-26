@@ -37,6 +37,7 @@ impl InlineResponse20013 {
         self.layers_size = Some(layers_size);
     }
 
+    #[must_use]
     pub fn with_layers_size(mut self, layers_size: i64) -> Self {
         self.layers_size = Some(layers_size);
         self
@@ -54,6 +55,7 @@ impl InlineResponse20013 {
         self.images = Some(images);
     }
 
+    #[must_use]
     pub fn with_images(mut self, images: Vec<crate::models::ImageSummary>) -> Self {
         self.images = Some(images);
         self
@@ -71,6 +73,7 @@ impl InlineResponse20013 {
         self.containers = Some(containers);
     }
 
+    #[must_use]
     pub fn with_containers(mut self, containers: Vec<crate::models::ContainerSummary>) -> Self {
         self.containers = Some(containers);
         self
@@ -88,6 +91,7 @@ impl InlineResponse20013 {
         self.volumes = Some(volumes);
     }
 
+    #[must_use]
     pub fn with_volumes(mut self, volumes: Vec<crate::models::Volume>) -> Self {
         self.volumes = Some(volumes);
         self

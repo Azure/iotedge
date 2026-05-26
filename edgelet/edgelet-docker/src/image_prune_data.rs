@@ -68,9 +68,7 @@ impl ImagePruneData {
             Err(e) => {
                 drop(guard);
                 log::warn!(
-                    "Could not read image garbage collection data. Latest time of use will not be updated for image: {}. Error: {}",
-                    image_id,
-                    e
+                    "Could not read image garbage collection data. Latest time of use will not be updated for image: {image_id}. Error: {e}"
                 );
                 return Err(e);
             }
@@ -90,10 +88,7 @@ impl ImagePruneData {
         );
 
         if res.is_ok() {
-            log::debug!(
-                "Image with ID {} tracked in image garbage collection state.",
-                image_id
-            );
+            log::debug!("Image with ID {image_id} tracked in image garbage collection state.");
         }
 
         drop(guard);
@@ -126,8 +121,7 @@ impl ImagePruneData {
             Err(e) => {
                 drop(guard);
                 log::warn!(
-                    "Could not read image garbage collection data. Image garbage collection will not prune any images. {}",
-                    e
+                    "Could not read image garbage collection data. Image garbage collection will not prune any images. {e}"
                 );
                 return Ok(HashMap::new());
             }
@@ -151,10 +145,9 @@ impl ImagePruneData {
             guard.image_use_filepath.clone(),
         ) {
             log::warn!(
-                "Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {}",
-                e
+                "Failed to update image auto pruning persistence file. File will be updated on next scheduled run. {e}"
             );
-        };
+        }
 
         /* ============================== */
 
@@ -173,7 +166,7 @@ fn get_images_with_timestamp(
     if !std::path::Path::new(&image_use_filepath).exists() {
         log::info!(
             "Image garbage collection data file not found; creating file at: {}",
-            image_use_filepath.as_str()
+            image_use_filepath.as_str(),
         );
         let _file = fs::File::create(image_use_filepath.clone()).map_err(Error::CreateFile)?;
     }
@@ -215,12 +208,11 @@ fn write_images_with_timestamp(
 
     for (key, value) in state_to_persist {
         let image_details = format!("{key} {}\n", value.as_secs());
-        let res = write!(file, "{image_details}",);
+        let res = write!(file, "{image_details}");
         if res.is_err() {
             let msg = format!(
-                "Could not write image:{} with timestamp:{} to store",
-                key,
-                value.as_secs()
+                "Could not write image:{key} with timestamp:{} to store",
+                value.as_secs(),
             );
             return Err(Error::FileOperation(msg));
         }
@@ -233,7 +225,7 @@ fn write_images_with_timestamp(
                 "Could not update garbage collection data {err}"
             )));
         }
-    };
+    }
 
     Ok(())
 }
@@ -271,7 +263,7 @@ fn process_state(
     // track entries younger than min age
     for (key, value) in &iotedge_images_map {
         if current_time.as_secs() - value.as_secs() < image_age_cleanup_threshold.as_secs() {
-            carry_over.insert(key.to_string(), *value);
+            carry_over.insert(key.clone(), *value);
         }
     }
 
@@ -556,12 +548,8 @@ mod tests {
     #[test]
     #[serial]
     fn test_process_state() {
-        let (map1, map2) = process_state(
-            HashMap::new(),
-            HashSet::new(),
-            Duration::from_secs(60 * 60 * 24),
-        )
-        .unwrap();
+        let (map1, map2) =
+            process_state(HashMap::new(), HashSet::new(), Duration::from_hours(24)).unwrap();
         assert!(map1.is_empty());
         assert!(map2.is_empty());
 
@@ -591,39 +579,39 @@ mod tests {
         // currently used
         all_iotedge_images.insert(
             "sha256:670dcc86b69df89a9d5a9e1a7ae5b8f67619c1c74e19de8a35f57d6c06505fd4".to_string(),
-            time - Duration::from_secs(60 * 60 * 24),
+            time - Duration::from_hours(24),
         );
         all_iotedge_images.insert(
             "sha256:62aedd01bd8520c43d06b09f7a0f67ba9720bdc04631a8242c65ea995f3ecac8".to_string(),
-            time - Duration::from_secs(60 * 60 * 24 * 5),
+            time - Duration::from_hours(24 * 5),
         );
         all_iotedge_images.insert(
             "sha256:a4d112e0884bd2ba078ab8222e075bc656cc65cd433dfbb74d6de7cee188f2f2".to_string(),
-            time - Duration::from_secs(60 * 60 * 24 * 9),
+            time - Duration::from_hours(24 * 9),
         );
 
         // others
         all_iotedge_images.insert(
             "sha256:a40d3130a63918663f6e412178d2e83010994bb5a6bdb9ba314ca43013c05331".to_string(),
-            time - Duration::from_secs(60 * 60 * 12),
+            time - Duration::from_hours(12),
         );
         all_iotedge_images.insert(
             "sha256:269d9943b0d310e1ab49a55e14752596567a74daa37270c6217abfc33f48f7f5".to_string(),
-            time - Duration::from_secs(60 * 60 * 24 * 12),
+            time - Duration::from_hours(24 * 12),
         );
         all_iotedge_images.insert(
             "sha256:a1e6072c125f6102f410418ca0647841376982b460ab570916b01f264daf89af".to_string(),
-            time - Duration::from_secs(60 * 60 * 24 * 13),
+            time - Duration::from_hours(24 * 13),
         );
         all_iotedge_images.insert(
             "sha256:a4d112e0884bd2ba078ab8222e075bc989cc65cd433dfbb74d6de7cee188g4g7".to_string(),
-            time - Duration::from_secs(60 * 60 * 24 * 8),
+            time - Duration::from_hours(24 * 8),
         );
 
         let (to_delete, carry_over) = process_state(
             all_iotedge_images,
             images_being_used,
-            Duration::from_secs(60 * 60 * 24),
+            Duration::from_hours(24),
         )
         .unwrap();
         assert!(to_delete.len() == 3);

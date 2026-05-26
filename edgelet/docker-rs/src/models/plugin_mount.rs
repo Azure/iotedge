@@ -24,7 +24,7 @@ pub struct PluginMount {
     #[serde(rename = "Destination")]
     destination: String,
     #[serde(rename = "Type")]
-    _type: String,
+    r#type: String,
     #[serde(rename = "Options")]
     options: Vec<String>,
 }
@@ -36,7 +36,7 @@ impl PluginMount {
         settable: Vec<String>,
         source: String,
         destination: String,
-        _type: String,
+        r#type: String,
         options: Vec<String>,
     ) -> Self {
         PluginMount {
@@ -45,7 +45,7 @@ impl PluginMount {
             settable,
             source,
             destination,
-            _type,
+            r#type,
             options,
         }
     }
@@ -54,6 +54,7 @@ impl PluginMount {
         self.name = name;
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -67,6 +68,7 @@ impl PluginMount {
         self.description = description;
     }
 
+    #[must_use]
     pub fn with_description(mut self, description: String) -> Self {
         self.description = description;
         self
@@ -80,6 +82,7 @@ impl PluginMount {
         self.settable = settable;
     }
 
+    #[must_use]
     pub fn with_settable(mut self, settable: Vec<String>) -> Self {
         self.settable = settable;
         self
@@ -93,6 +96,7 @@ impl PluginMount {
         self.source = source;
     }
 
+    #[must_use]
     pub fn with_source(mut self, source: String) -> Self {
         self.source = source;
         self
@@ -106,6 +110,7 @@ impl PluginMount {
         self.destination = destination;
     }
 
+    #[must_use]
     pub fn with_destination(mut self, destination: String) -> Self {
         self.destination = destination;
         self
@@ -115,23 +120,25 @@ impl PluginMount {
         &self.destination
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = _type;
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = r#type;
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = _type;
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = r#type;
         self
     }
 
-    pub fn _type(&self) -> &String {
-        &self._type
+    pub fn r#type(&self) -> &String {
+        &self.r#type
     }
 
     pub fn set_options(&mut self, options: Vec<String>) {
         self.options = options;
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: Vec<String>) -> Self {
         self.options = options;
         self

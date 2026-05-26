@@ -33,3 +33,7 @@ edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-image-cleanup = { path = "../edgelet-image-cleanup" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
+
+
+[lints]
+workspace = true

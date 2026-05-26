@@ -36,6 +36,7 @@ impl PortBinding {
         self.host_ip = Some(host_ip);
     }
 
+    #[must_use]
     pub fn with_host_ip(mut self, host_ip: String) -> Self {
         self.host_ip = Some(host_ip);
         self
@@ -53,6 +54,7 @@ impl PortBinding {
         self.host_port = Some(host_port);
     }
 
+    #[must_use]
     pub fn with_host_port(mut self, host_port: String) -> Self {
         self.host_port = Some(host_port);
         self

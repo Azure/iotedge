@@ -37,6 +37,7 @@ impl Ipam {
         self.driver = Some(driver);
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
@@ -54,6 +55,7 @@ impl Ipam {
         self.config = Some(config);
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: Vec<::std::collections::HashMap<String, String>>) -> Self {
         self.config = Some(config);
         self
@@ -71,6 +73,7 @@ impl Ipam {
         self.options = Some(options);
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self

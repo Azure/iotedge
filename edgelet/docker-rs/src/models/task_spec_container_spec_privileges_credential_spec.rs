@@ -36,6 +36,7 @@ impl TaskSpecContainerSpecPrivilegesCredentialSpec {
         self.file = Some(file);
     }
 
+    #[must_use]
     pub fn with_file(mut self, file: String) -> Self {
         self.file = Some(file);
         self
@@ -53,6 +54,7 @@ impl TaskSpecContainerSpecPrivilegesCredentialSpec {
         self.registry = Some(registry);
     }
 
+    #[must_use]
     pub fn with_registry(mut self, registry: String) -> Self {
         self.registry = Some(registry);
         self

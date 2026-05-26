@@ -33,6 +33,7 @@ impl Container1 {
         self.container = Some(container);
     }
 
+    #[must_use]
     pub fn with_container(mut self, container: String) -> Self {
         self.container = Some(container);
         self
@@ -50,6 +51,7 @@ impl Container1 {
         self.force = Some(force);
     }
 
+    #[must_use]
     pub fn with_force(mut self, force: bool) -> Self {
         self.force = Some(force);
         self

@@ -44,6 +44,7 @@ impl TaskSpecRestartPolicy {
         self.condition = Some(condition);
     }
 
+    #[must_use]
     pub fn with_condition(mut self, condition: String) -> Self {
         self.condition = Some(condition);
         self
@@ -61,6 +62,7 @@ impl TaskSpecRestartPolicy {
         self.delay = Some(delay);
     }
 
+    #[must_use]
     pub fn with_delay(mut self, delay: i64) -> Self {
         self.delay = Some(delay);
         self
@@ -78,6 +80,7 @@ impl TaskSpecRestartPolicy {
         self.max_attempts = Some(max_attempts);
     }
 
+    #[must_use]
     pub fn with_max_attempts(mut self, max_attempts: i64) -> Self {
         self.max_attempts = Some(max_attempts);
         self
@@ -95,6 +98,7 @@ impl TaskSpecRestartPolicy {
         self.window = Some(window);
     }
 
+    #[must_use]
     pub fn with_window(mut self, window: i64) -> Self {
         self.window = Some(window);
         self

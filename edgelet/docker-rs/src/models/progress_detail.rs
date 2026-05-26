@@ -31,6 +31,7 @@ impl ProgressDetail {
         self.code = Some(code);
     }
 
+    #[must_use]
     pub fn with_code(mut self, code: i32) -> Self {
         self.code = Some(code);
         self
@@ -48,6 +49,7 @@ impl ProgressDetail {
         self.message = Some(message);
     }
 
+    #[must_use]
     pub fn with_message(mut self, message: i32) -> Self {
         self.message = Some(message);
         self

@@ -49,7 +49,7 @@ pub async fn image_garbage_collect(
             {
                 is_bootstrap_image_deleted = is_image_deleted;
                 if !is_image_deleted {
-                    bootstrap_image_id_option = id_option.clone();
+                    bootstrap_image_id_option = id_option;
                 }
             } else {
                 log::error!("Could not get bootstrap image id");
@@ -69,11 +69,11 @@ pub async fn image_garbage_collect(
 
         // sleep till it's time to wake up based on recurrence (and on current time post-last-execution to avoid time drift)
         let recurrence = settings.cleanup_recurrence();
-        let delay = recurrence
-            - Duration::from_secs(
-                (TOTAL_MINS_IN_DAY - get_sleep_time_mins(*cleanup_time_in_mins)) * 60,
-            );
-        tokio::time::sleep(delay).await;
+        if let Some(delay) = recurrence.checked_sub(Duration::from_secs(
+            (TOTAL_MINS_IN_DAY - get_sleep_time_mins(*cleanup_time_in_mins)) * 60,
+        )) {
+            tokio::time::sleep(delay).await;
+        }
     }
 }
 
@@ -84,10 +84,7 @@ async fn remove_unused_images(
 ) -> Result<(), ImageCleanupError> {
     log::info!("Image Garbage Collection starting scheduled run");
 
-    let bootstrap_img_id = match bootstrap_image_id_option.clone() {
-        Some(id) => id,
-        None => String::default(),
-    };
+    let bootstrap_img_id = bootstrap_image_id_option.clone().unwrap_or_default();
 
     // track images associated with extant containers
     let modules = ModuleRuntime::list_with_details(runtime)
@@ -115,7 +112,7 @@ async fn remove_unused_images(
     // delete images
     for key in image_map.keys() {
         if let Err(e) = ModuleRegistry::remove(runtime, key).await {
-            log::error!("Could not delete image {} : {}", key, e);
+            log::error!("Could not delete image {key} : {e}");
         }
     }
 
@@ -145,17 +142,12 @@ async fn get_bootstrap_image_id(
         .map_err(ImageCleanupError::ListImages)?;
     let image_id_option = image_name_to_id.get(&edge_agent_bootstrap);
 
-    let bootstrap_image_id =
-        image_id_option.map_or_else(String::default, |image_id| image_id.to_string());
+    let bootstrap_image_id = image_id_option.map_or_else(String::default, ToString::to_string);
 
     if bootstrap_image_id.is_empty() {
         log::debug!("The bootstrap Edge Agent image was not found on this device");
     } else {
-        log::info!(
-            "Bootstrap Edge Agent image {} has ID {}",
-            edge_agent_bootstrap,
-            bootstrap_image_id
-        );
+        log::info!("Bootstrap Edge Agent image {edge_agent_bootstrap} has ID {bootstrap_image_id}");
     }
 
     Ok((

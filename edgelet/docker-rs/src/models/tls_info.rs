@@ -43,6 +43,7 @@ impl TlsInfo {
         self.trust_root = Some(trust_root);
     }
 
+    #[must_use]
     pub fn with_trust_root(mut self, trust_root: String) -> Self {
         self.trust_root = Some(trust_root);
         self
@@ -60,6 +61,7 @@ impl TlsInfo {
         self.cert_issuer_subject = Some(cert_issuer_subject);
     }
 
+    #[must_use]
     pub fn with_cert_issuer_subject(mut self, cert_issuer_subject: String) -> Self {
         self.cert_issuer_subject = Some(cert_issuer_subject);
         self
@@ -77,6 +79,7 @@ impl TlsInfo {
         self.cert_issuer_public_key = Some(cert_issuer_public_key);
     }
 
+    #[must_use]
     pub fn with_cert_issuer_public_key(mut self, cert_issuer_public_key: String) -> Self {
         self.cert_issuer_public_key = Some(cert_issuer_public_key);
         self

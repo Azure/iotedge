@@ -30,6 +30,7 @@ impl IdResponse {
         self.id = id;
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self

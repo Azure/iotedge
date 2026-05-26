@@ -46,6 +46,7 @@ impl Service {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -63,6 +64,7 @@ impl Service {
         self.version = Some(version);
     }
 
+    #[must_use]
     pub fn with_version(mut self, version: crate::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
@@ -80,6 +82,7 @@ impl Service {
         self.created_at = Some(created_at);
     }
 
+    #[must_use]
     pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
@@ -97,6 +100,7 @@ impl Service {
         self.updated_at = Some(updated_at);
     }
 
+    #[must_use]
     pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
@@ -114,6 +118,7 @@ impl Service {
         self.spec = Some(spec);
     }
 
+    #[must_use]
     pub fn with_spec(mut self, spec: crate::models::ServiceSpec) -> Self {
         self.spec = Some(spec);
         self
@@ -131,6 +136,7 @@ impl Service {
         self.endpoint = Some(endpoint);
     }
 
+    #[must_use]
     pub fn with_endpoint(mut self, endpoint: crate::models::ServiceEndpoint) -> Self {
         self.endpoint = Some(endpoint);
         self
@@ -148,6 +154,7 @@ impl Service {
         self.update_status = Some(update_status);
     }
 
+    #[must_use]
     pub fn with_update_status(mut self, update_status: crate::models::ServiceUpdateStatus) -> Self {
         self.update_status = Some(update_status);
         self

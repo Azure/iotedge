@@ -40,6 +40,7 @@ impl NetworkContainer {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -57,6 +58,7 @@ impl NetworkContainer {
         self.endpoint_id = Some(endpoint_id);
     }
 
+    #[must_use]
     pub fn with_endpoint_id(mut self, endpoint_id: String) -> Self {
         self.endpoint_id = Some(endpoint_id);
         self
@@ -74,6 +76,7 @@ impl NetworkContainer {
         self.mac_address = Some(mac_address);
     }
 
+    #[must_use]
     pub fn with_mac_address(mut self, mac_address: String) -> Self {
         self.mac_address = Some(mac_address);
         self
@@ -91,6 +94,7 @@ impl NetworkContainer {
         self.i_pv4_address = Some(i_pv4_address);
     }
 
+    #[must_use]
     pub fn with_i_pv4_address(mut self, i_pv4_address: String) -> Self {
         self.i_pv4_address = Some(i_pv4_address);
         self
@@ -108,6 +112,7 @@ impl NetworkContainer {
         self.i_pv6_address = Some(i_pv6_address);
     }
 
+    #[must_use]
     pub fn with_i_pv6_address(mut self, i_pv6_address: String) -> Self {
         self.i_pv6_address = Some(i_pv6_address);
         self

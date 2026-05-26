@@ -14,7 +14,7 @@ use serde_json::Value;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PluginConfigRootfs {
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    _type: Option<String>,
+    r#type: Option<String>,
     #[serde(rename = "diff_ids", skip_serializing_if = "Option::is_none")]
     diff_ids: Option<Vec<String>>,
 }
@@ -22,32 +22,34 @@ pub struct PluginConfigRootfs {
 impl PluginConfigRootfs {
     pub fn new() -> Self {
         PluginConfigRootfs {
-            _type: None,
+            r#type: None,
             diff_ids: None,
         }
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = Some(_type);
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = Some(r#type);
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = Some(_type);
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = Some(r#type);
         self
     }
 
-    pub fn _type(&self) -> Option<&str> {
-        self._type.as_ref().map(AsRef::as_ref)
+    pub fn r#type(&self) -> Option<&str> {
+        self.r#type.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn reset__type(&mut self) {
-        self._type = None;
+    pub fn reset_type(&mut self) {
+        self.r#type = None;
     }
 
     pub fn set_diff_ids(&mut self, diff_ids: Vec<String>) {
         self.diff_ids = Some(diff_ids);
     }
 
+    #[must_use]
     pub fn with_diff_ids(mut self, diff_ids: Vec<String>) -> Self {
         self.diff_ids = Some(diff_ids);
         self

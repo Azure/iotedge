@@ -26,7 +26,7 @@ pub struct TaskSpecContainerSpecPrivilegesSeLinuxContext {
     role: Option<String>,
     /// SELinux type label
     #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
-    _type: Option<String>,
+    r#type: Option<String>,
     /// SELinux level label
     #[serde(rename = "Level", skip_serializing_if = "Option::is_none")]
     level: Option<String>,
@@ -39,7 +39,7 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
             disable: None,
             user: None,
             role: None,
-            _type: None,
+            r#type: None,
             level: None,
         }
     }
@@ -48,6 +48,7 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
         self.disable = Some(disable);
     }
 
+    #[must_use]
     pub fn with_disable(mut self, disable: bool) -> Self {
         self.disable = Some(disable);
         self
@@ -65,6 +66,7 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
         self.user = Some(user);
     }
 
+    #[must_use]
     pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
@@ -82,6 +84,7 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
         self.role = Some(role);
     }
 
+    #[must_use]
     pub fn with_role(mut self, role: String) -> Self {
         self.role = Some(role);
         self
@@ -95,27 +98,29 @@ impl TaskSpecContainerSpecPrivilegesSeLinuxContext {
         self.role = None;
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = Some(_type);
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = Some(r#type);
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = Some(_type);
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = Some(r#type);
         self
     }
 
-    pub fn _type(&self) -> Option<&str> {
-        self._type.as_ref().map(AsRef::as_ref)
+    pub fn r#type(&self) -> Option<&str> {
+        self.r#type.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn reset__type(&mut self) {
-        self._type = None;
+    pub fn reset_type(&mut self) {
+        self.r#type = None;
     }
 
     pub fn set_level(&mut self, level: String) {
         self.level = Some(level);
     }
 
+    #[must_use]
     pub fn with_level(mut self, level: String) -> Self {
         self.level = Some(level);
         self

@@ -33,6 +33,7 @@ impl ImageDeleteResponseItem {
         self.untagged = Some(untagged);
     }
 
+    #[must_use]
     pub fn with_untagged(mut self, untagged: String) -> Self {
         self.untagged = Some(untagged);
         self
@@ -50,6 +51,7 @@ impl ImageDeleteResponseItem {
         self.deleted = Some(deleted);
     }
 
+    #[must_use]
     pub fn with_deleted(mut self, deleted: String) -> Self {
         self.deleted = Some(deleted);
         self

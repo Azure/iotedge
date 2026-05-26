@@ -546,7 +546,7 @@ impl Check {
                         self.warnings_as_errors,
                     )?;
                 }
-            };
+            }
         }
 
         // run the built-in checks
@@ -630,7 +630,7 @@ impl Check {
             };
 
             if let Err(err) = serde_json::to_writer(std::io::stdout(), &check_results) {
-                eprintln!("Could not write JSON output: {err}",);
+                eprintln!("Could not write JSON output: {err}");
                 return Err(Error::Diagnostics.into());
             }
 
@@ -648,10 +648,10 @@ fn get_proxy_uri(arg: Option<String>) -> Option<String> {
     }
     // Proxy_address wasn't passed in on the command line. Pull it from the aziot-edged settings
     // for Edge Agent's environment variables.
-    if let Ok(settings) = Settings::new() {
-        if let Some(agent_proxy_uri) = settings.base.agent().env().get("https_proxy") {
-            return Some(agent_proxy_uri.clone());
-        }
+    if let Ok(settings) = Settings::new()
+        && let Some(agent_proxy_uri) = settings.base.agent().env().get("https_proxy")
+    {
+        return Some(agent_proxy_uri.clone());
     }
     // Otherwise, pull it from the environment
     std::env::var("HTTPS_PROXY")

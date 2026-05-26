@@ -30,6 +30,7 @@ impl ErrorResponse {
         self.message = message;
     }
 
+    #[must_use]
     pub fn with_message(mut self, message: String) -> Self {
         self.message = message;
         self

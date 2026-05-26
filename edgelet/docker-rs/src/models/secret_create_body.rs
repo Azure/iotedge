@@ -41,6 +41,7 @@ impl SecretCreateBody {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -58,6 +59,7 @@ impl SecretCreateBody {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -75,6 +77,7 @@ impl SecretCreateBody {
         self.data = Some(data);
     }
 
+    #[must_use]
     pub fn with_data(mut self, data: String) -> Self {
         self.data = Some(data);
         self
@@ -92,6 +95,7 @@ impl SecretCreateBody {
         self.driver = Some(driver);
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: crate::models::Driver) -> Self {
         self.driver = Some(driver);
         self

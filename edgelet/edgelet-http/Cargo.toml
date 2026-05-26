@@ -28,3 +28,7 @@ tokio = { workspace = true }
 
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+
+[lints]
+workspace = true

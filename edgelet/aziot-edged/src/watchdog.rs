@@ -14,7 +14,7 @@ pub(crate) async fn run_until_shutdown(
 ) -> Result<edgelet_core::WatchdogAction, EdgedError> {
     // Run the watchdog every 60 seconds while waiting for any running task to send a
     // watchdog action.
-    let watchdog_period = std::time::Duration::from_secs(60);
+    let watchdog_period = std::time::Duration::from_mins(1);
     let watchdog_retries = settings.watchdog().max_retries();
     let mut watchdog_errors = 0;
 
@@ -34,7 +34,7 @@ pub(crate) async fn run_until_shutdown(
             futures_util::future::Either::Left((_, _)) => {
                 if let Err(err) = watchdog(&settings, device_info, &runtime, identity_client).await
                 {
-                    log::warn!("Error in watchdog: {}", err);
+                    log::warn!("Error in watchdog: {err}");
 
                     watchdog_errors += 1;
 
@@ -48,7 +48,7 @@ pub(crate) async fn run_until_shutdown(
 
             futures_util::future::Either::Right((action, _)) => {
                 let action = action.expect("shutdown channel closed");
-                log::info!("{}", action);
+                log::info!("{action}");
 
                 if let edgelet_core::WatchdogAction::EdgeCaRenewal = action {
                     restart_modules(&settings, &runtime).await;
@@ -61,7 +61,7 @@ pub(crate) async fn run_until_shutdown(
                         .stop_all(Some(std::time::Duration::from_secs(30)))
                         .await
                     {
-                        log::warn!("Failed to stop modules on shutdown: {}", err);
+                        log::warn!("Failed to stop modules on shutdown: {err}");
                     } else {
                         log::info!("All modules stopped");
                     }
@@ -91,23 +91,19 @@ async fn watchdog(
             }
 
             edgelet_core::ModuleStatus::Stopped | edgelet_core::ModuleStatus::Failed => {
-                log::info!(
-                    "Edge runtime status is {}, starting module now...",
-                    agent_status
-                );
+                log::info!("Edge runtime status is {agent_status}, starting module now...");
 
                 runtime
                     .start(agent_name)
                     .await
                     .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
 
-                log::info!("Started Edge runtime module {}", agent_name);
+                log::info!("Started Edge runtime module {agent_name}");
             }
 
             edgelet_core::ModuleStatus::Dead | edgelet_core::ModuleStatus::Unknown => {
                 log::info!(
-                    "Edge runtime status is {}, removing and recreating module...",
-                    agent_status
+                    "Edge runtime status is {agent_status}, removing and recreating module..."
                 );
 
                 runtime
@@ -153,7 +149,7 @@ async fn restart_modules(
     };
 
     if let Err(err) = runtime.stop_all(None).await {
-        log::warn!("Edge CA renewal failed to stop modules: {}", err);
+        log::warn!("Edge CA renewal failed to stop modules: {err}");
 
         return;
     }
@@ -167,17 +163,17 @@ async fn restart_modules(
 
         if module_name != agent_name {
             if let Err(err) = runtime.start(module_name).await {
-                log::warn!("Edge CA renewal failed to restart {}: {}", module_name, err);
+                log::warn!("Edge CA renewal failed to restart {module_name}: {err}");
             } else {
-                log::info!("Edge CA renewal restarted {}", module_name);
+                log::info!("Edge CA renewal restarted {module_name}");
             }
         }
     }
 
     if let Err(err) = runtime.start(agent_name).await {
-        log::warn!("Edge CA renewal failed to restart {}: {}", agent_name, err);
+        log::warn!("Edge CA renewal failed to restart {agent_name}: {err}");
     } else {
-        log::info!("Edge CA renewal restarted {}", agent_name);
+        log::info!("Edge CA renewal restarted {agent_name}");
     }
 }
 
@@ -194,10 +190,7 @@ async fn create_and_start_agent(
     let mut env = agent_env(gen_id, settings, device_info);
     agent_spec.env_mut().append(&mut env);
 
-    log::info!(
-        "Creating and starting Edge runtime module {}...",
-        agent_name
-    );
+    log::info!("Creating and starting Edge runtime module {agent_name}...");
 
     if let edgelet_settings::module::ImagePullPolicy::OnCreate = agent_spec.image_pull_policy() {
         edgelet_core::ModuleRegistry::pull(runtime.registry(), agent_spec.config())
@@ -210,14 +203,14 @@ async fn create_and_start_agent(
         .await
         .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
 
-    log::info!("Created Edge runtime module {}", agent_name);
+    log::info!("Created Edge runtime module {agent_name}");
 
     runtime
         .start(agent_name)
         .await
         .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
 
-    log::info!("Started Edge runtime module {}", agent_name);
+    log::info!("Started Edge runtime module {agent_name}");
 
     Ok(())
 }

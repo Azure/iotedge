@@ -29,6 +29,7 @@ impl InlineResponse20017 {
         self.networks_deleted = Some(networks_deleted);
     }
 
+    #[must_use]
     pub fn with_networks_deleted(mut self, networks_deleted: Vec<String>) -> Self {
         self.networks_deleted = Some(networks_deleted);
         self

@@ -27,6 +27,7 @@ impl ServiceUpdateResponse {
         self.warnings = Some(warnings);
     }
 
+    #[must_use]
     pub fn with_warnings(mut self, warnings: Vec<String>) -> Self {
         self.warnings = Some(warnings);
         self

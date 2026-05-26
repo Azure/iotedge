@@ -37,6 +37,7 @@ impl ConfigCreateBody {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -54,6 +55,7 @@ impl ConfigCreateBody {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -71,6 +73,7 @@ impl ConfigCreateBody {
         self.data = Some(data);
     }
 
+    #[must_use]
     pub fn with_data(mut self, data: String) -> Self {
         self.data = Some(data);
         self
