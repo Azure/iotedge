@@ -52,7 +52,7 @@ function setup_iotedge() {
     
     if [ -z $PARENT_NAME ]; then
         echo "[agent.config.auth]" | sudo tee -a /etc/aziot/config.toml
-        echo "serveraddress = \"${CONTAINER_REGISTRY}\"" | sudo tee -a /etc/aziot/config.toml
+        echo "serveraddress = \"${CONTAINER_REGISTRY}:443\"" | sudo tee -a /etc/aziot/config.toml
         echo "username = \"${CONTAINER_REGISTRY_USERNAME}\"" | sudo tee -a /etc/aziot/config.toml
         echo "password = \"${CONTAINER_REGISTRY_PASSWORD}\"" | sudo tee -a /etc/aziot/config.toml
         echo "" | sudo tee -a  /etc/aziot/config.toml
