@@ -45,14 +45,14 @@ function setup_iotedge() {
     if [ ! -z $PARENT_NAME ]; then
         echo "image = \"\$upstream:443/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label\"" | sudo tee -a /etc/aziot/config.toml
     else
-        echo "image = \"${CONTAINER_REGISTRY}:443/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label\"" | sudo tee -a /etc/aziot/config.toml
+        echo "image = \"${CONTAINER_REGISTRY}/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label\"" | sudo tee -a /etc/aziot/config.toml
     fi    
     echo "createOptions = { }" | sudo tee -a /etc/aziot/config.toml
     echo "" | sudo tee -a  /etc/aziot/config.toml
     
     if [ -z $PARENT_NAME ]; then
         echo "[agent.config.auth]" | sudo tee -a /etc/aziot/config.toml
-        echo "serveraddress = \"${CONTAINER_REGISTRY}:443\"" | sudo tee -a /etc/aziot/config.toml
+        echo "serveraddress = \"${CONTAINER_REGISTRY}\"" | sudo tee -a /etc/aziot/config.toml
         echo "username = \"${CONTAINER_REGISTRY_USERNAME}\"" | sudo tee -a /etc/aziot/config.toml
         echo "password = \"${CONTAINER_REGISTRY_PASSWORD}\"" | sudo tee -a /etc/aziot/config.toml
         echo "" | sudo tee -a  /etc/aziot/config.toml
