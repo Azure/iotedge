@@ -46,10 +46,10 @@ function setup_iotedge() {
         echo "image = \"\$upstream:443/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label\"" | sudo tee -a /etc/aziot/config.toml
     else
         echo "image = \"${CONTAINER_REGISTRY}/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label\"" | sudo tee -a /etc/aziot/config.toml
-    fi    
+    fi
     echo "createOptions = { }" | sudo tee -a /etc/aziot/config.toml
     echo "" | sudo tee -a  /etc/aziot/config.toml
-    
+
     if [ -z $PARENT_NAME ]; then
         echo "[agent.config.auth]" | sudo tee -a /etc/aziot/config.toml
         echo "serveraddress = \"${CONTAINER_REGISTRY}\"" | sudo tee -a /etc/aziot/config.toml
@@ -61,7 +61,7 @@ function setup_iotedge() {
     if [ ! -z $PROXY_ADDRESS ]; then
         echo "Configuring the bootstrapping edgeAgent to use http proxy"
         echo "[agent.env]" | sudo tee -a /etc/aziot/config.toml
-        echo "https_proxy = \"${PROXY_ADDRESS}\"" | sudo tee -a /etc/aziot/config.toml        
+        echo "https_proxy = \"${PROXY_ADDRESS}\"" | sudo tee -a /etc/aziot/config.toml
         echo "" | sudo tee -a /etc/aziot/config.toml
 
         echo "Adding proxy configuration to docker"
@@ -77,7 +77,7 @@ function setup_iotedge() {
         { echo "[Service]";
         echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
         } | sudo tee /etc/systemd/system/aziot-identityd.service.d/proxy.conf
-        sudo systemctl daemon-reload           
+        sudo systemctl daemon-reload
 
         echo "Adding proxy configuration to IoT Edge daemon"
         sudo mkdir -p /etc/systemd/system/aziot-edged.service.d/
@@ -173,7 +173,7 @@ function process_args() {
         elif [ $saveNextArg -eq 16 ]; then
             CONNECTION_STRING="$arg"
             saveNextArg=0
-        # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection                
+        # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
         # elif [ $saveNextArg -eq 17 ]; then
         #     DEVICE_ID="$arg"
         #     saveNextArg=0
