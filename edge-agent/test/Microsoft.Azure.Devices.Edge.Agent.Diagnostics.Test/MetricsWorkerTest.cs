@@ -363,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             void GetOffsetToRemove(Func<long, IEnumerable<Metric>, Task<bool>> func)
             {
                 // Note: .Result was used b/c moq `Callback` does not handle tasks.
-                IEnumerable<int> newOffsetsRemoved = AsyncEnumerable.Range(0, 100).WhereAwait(async i => await func(i, null)).ToListAsync().Result;
+                IEnumerable<int> newOffsetsRemoved = AsyncEnumerable.Range(0, 100).Where((Func<int, CancellationToken, ValueTask<bool>>)(async (i, ct) => await func(i, null))).ToListAsync().AsTask().Result;
 
                 offsetsRemoved.AddRange(newOffsetsRemoved);
             }

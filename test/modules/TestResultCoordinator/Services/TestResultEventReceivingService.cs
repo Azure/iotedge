@@ -4,10 +4,12 @@ namespace TestResultCoordinator.Services
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Identity;
+    using Azure.Messaging.EventHubs.Consumer;
+    using Azure.Messaging.EventHubs.Primitives;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using TestResultCoordinator.Storage;
@@ -36,17 +38,52 @@ namespace TestResultCoordinator.Services
             this.logger.LogInformation("Test Result Event Receiving Service running.");
 
             DateTime eventEnqueuedFrom = DateTime.UtcNow;
-            var builder = new EventHubsConnectionStringBuilder(this.serviceSpecificSettings.EventHubConnectionString);
-            this.logger.LogDebug($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}' enqueued on or after {eventEnqueuedFrom}");
 
-            EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(builder.ToString());
-            PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
+            var consumer = new EventHubConsumerClient(
                 this.serviceSpecificSettings.ConsumerGroupName,
-                EventHubPartitionKeyResolver.ResolveToPartition(Settings.Current.DeviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                EventPosition.FromEnqueuedTime(eventEnqueuedFrom));
-            eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(Settings.Current.TrackingId, Settings.Current.DeviceId, this.storage));
+                this.serviceSpecificSettings.EventHubNamespace,
+                this.serviceSpecificSettings.EventHubName,
+                new WorkloadIdentityCredential());
+            int numPartitions = (await consumer.GetPartitionIdsAsync()).Length;
+            await consumer.CloseAsync();
 
-            await cancellationToken.WhenCanceled();
+            var handler = new PartitionReceiveHandler(Settings.Current.TrackingId, Settings.Current.DeviceId, this.storage);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var receiver = new PartitionReceiver(
+                    this.serviceSpecificSettings.ConsumerGroupName,
+                    EventHubPartitionKeyResolver.ResolveToPartition(Settings.Current.DeviceId, numPartitions),
+                    EventPosition.FromEnqueuedTime(eventEnqueuedFrom),
+                    this.serviceSpecificSettings.EventHubNamespace,
+                    this.serviceSpecificSettings.EventHubName,
+                    new WorkloadIdentityCredential());
+
+                this.logger.LogDebug($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{this.serviceSpecificSettings.EventHubName}' enqueued on or after {eventEnqueuedFrom}");
+
+                try
+                {
+                    while (!cancellationToken.IsCancellationRequested)
+                    {
+                        var batch = await receiver.ReceiveBatchAsync(50, cancellationToken);
+                        await handler.ProcessEventsAsync(batch);
+                    }
+                }
+                catch (Azure.Messaging.EventHubs.EventHubsException e) when (e.IsTransient)
+                {
+                    this.logger.LogWarning(e, "Transient Event Hubs error; recreating receiver.");
+                    await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                }
+                catch (TaskCanceledException)
+                {
+                    // This is expected when the service is stopping.
+                    break;
+                }
+                finally
+                {
+                    await receiver.CloseAsync();
+                }
+            }
 
             this.logger.LogInformation($"Finish ExecuteAsync method in {nameof(TestResultEventReceivingService)}");
         }

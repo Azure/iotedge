@@ -350,7 +350,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                         data.Properties.TryGetValue("leaf-message-id", out object msgId);
 
-                        Log.Verbose($"Received event for '{devId}' with message ID '{msgId}' and body '{Encoding.UTF8.GetString(data.Body)}'");
+                        Log.Verbose($"Received event for '{devId}' with message ID '{msgId}' and body '{data.EventBody}'");
 
                         return devId != null && devId.ToString().Equals(this.device.Id)
                                              && msgId != null && msgId.ToString().Equals(this.messageId);
@@ -358,7 +358,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     token),
                 "Received events from device '{Device}' on Event Hub '{EventHub}'",
                 this.device.Id,
-                this.iotHub.EntityPath);
+                this.iotHub.EventHubName);
         }
 
         public Task InvokeDirectMethodAsync(CancellationToken token) =>

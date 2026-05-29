@@ -5,30 +5,33 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using global::Azure.Identity;
+    using global::Azure.Messaging.EventHubs;
+    using global::Azure.Messaging.EventHubs.Consumer;
+    using global::Azure.Messaging.EventHubs.Primitives;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
-    using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Serilog;
     using DeviceTransportType = Microsoft.Azure.Devices.TransportType;
-    using EventHubTransportType = Microsoft.Azure.EventHubs.TransportType;
-    using RetryPolicy = Util.TransientFaultHandling.RetryPolicy;
 
     public class IotHub
     {
-        readonly string eventHubEndpoint;
-        readonly string iotHubConnectionString;
+        readonly string eventHubName;
+        readonly string eventHubNamespace;
+        readonly Lazy<Task<int>> eventHubPartitionCount;
+        readonly string iotHubHostname;
         readonly Lazy<RegistryManager> registryManager;
         readonly Lazy<ServiceClient> serviceClient;
-        readonly Lazy<EventHubClient> eventHubClient;
         static readonly TimeSpan eventHubRequestDuration = TimeSpan.FromSeconds(20);
 
-        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<Uri> proxyUri)
+        public IotHub(string iotHubHostname, string eventHubName, string eventHubNamespace, Option<Uri> proxyUri)
         {
-            this.eventHubEndpoint = eventHubEndpoint;
-            this.iotHubConnectionString = iotHubConnectionString;
+            this.eventHubName = eventHubName;
+            this.eventHubNamespace = eventHubNamespace;
+            this.iotHubHostname = iotHubHostname;
             Option<IWebProxy> proxy = proxyUri.Map(p => new WebProxy(p) as IWebProxy);
 
             this.registryManager = new Lazy<RegistryManager>(
@@ -36,8 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     var settings = new HttpTransportSettings();
                     proxy.ForEach(p => settings.Proxy = p);
-                    return RegistryManager.CreateFromConnectionString(
-                        this.iotHubConnectionString,
+                    return RegistryManager.Create(
+                        this.iotHubHostname,
+                        new AzureCliCredential(),
                         settings);
                 });
 
@@ -46,36 +50,47 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     var settings = new ServiceClientTransportSettings();
                     proxy.ForEach(p => settings.HttpProxy = p);
-                    return ServiceClient.CreateFromConnectionString(
-                        this.iotHubConnectionString,
+                    return ServiceClient.Create(
+                        this.iotHubHostname,
+                        new AzureCliCredential(),
                         DeviceTransportType.Amqp_WebSocket_Only,
                         settings);
                 });
 
-            this.eventHubClient = new Lazy<EventHubClient>(
+            this.eventHubPartitionCount = new Lazy<Task<int>>(
                 () =>
                 {
-                    var builder = new EventHubsConnectionStringBuilder(this.eventHubEndpoint)
+                    var consumerOptions = new EventHubConsumerClientOptions();
+                    proxy.ForEach(p =>
                     {
-                        TransportType = EventHubTransportType.AmqpWebSockets
-                    };
-                    var client = EventHubClient.CreateFromConnectionString(builder.ToString());
-                    proxy.ForEach(p => client.WebProxy = p);
-                    return client;
+                        consumerOptions.ConnectionOptions.TransportType = EventHubsTransportType.AmqpWebSockets;
+                        consumerOptions.ConnectionOptions.Proxy = p;
+                    });
+
+                    var consumer = new EventHubConsumerClient(
+                        EventHubConsumerClient.DefaultConsumerGroupName,
+                        this.eventHubNamespace,
+                        this.eventHubName,
+                        new AzureCliCredential(),
+                        consumerOptions);
+
+                    return consumer.GetPartitionIdsAsync()
+                        .ContinueWith(t => t.Result.Length)
+                        .ContinueWith(t =>
+                        {
+                            Task.WhenAll(consumer.CloseAsync(), t);
+                            return t.Result;
+                        });
                 });
         }
 
-        public string Hostname =>
-            IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
+        public string Hostname => this.iotHubHostname;
 
-        public string EntityPath =>
-            new EventHubsConnectionStringBuilder(this.eventHubEndpoint).EntityPath;
+        public string EventHubName => this.eventHubName;
 
         RegistryManager RegistryManager => this.registryManager.Value;
 
         ServiceClient ServiceClient => this.serviceClient.Value;
-
-        EventHubClient EventHubClient => this.eventHubClient.Value;
 
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>
             this.RegistryManager.GetDeviceAsync(deviceId, token);
@@ -128,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
-            this.RegistryManager.RemoveDeviceAsync(device.Id);
+            this.RegistryManager.RemoveDeviceAsync(device.Id, token);
 
         public Task DeployDeviceConfigurationAsync(
             string deviceId,
@@ -205,47 +220,45 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Func<EventData, bool> onEventReceived,
             CancellationToken token)
         {
-            EventHubClient client = this.EventHubClient;
-            int count = (await GetPartitionCountAsync(client, token)).PartitionCount;
-            string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
             seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(2)); // substract 2 minutes to account for client/server drift
-            EventPosition position = EventPosition.FromEnqueuedTime(seekTime);
-            PartitionReceiver receiver = client.CreateReceiver("$Default", partition, position);
+
+            var receiver = new PartitionReceiver(
+                EventHubConsumerClient.DefaultConsumerGroupName,
+                EventHubPartitionKeyResolver.ResolveToPartition(deviceId, await this.eventHubPartitionCount.Value),
+                EventPosition.FromEnqueuedTime(seekTime),
+                this.eventHubNamespace,
+                this.eventHubName,
+                new AzureCliCredential());
 
             var result = new TaskCompletionSource<bool>();
             using (token.Register(() => result.TrySetCanceled()))
             {
-                receiver.SetReceiveHandler(
-                    new PartitionReceiveHandler(
-                        data =>
+                try
+                {
+                    while (!token.IsCancellationRequested && !result.Task.IsCompleted)
+                    {
+                        var batch = await receiver.ReceiveBatchAsync(50, token);
+                        foreach (EventData eventData in batch)
                         {
-                            bool done = onEventReceived(data);
-                            if (done)
+                            if (onEventReceived(eventData))
                             {
                                 result.TrySetResult(true);
+                                break;
                             }
-
-                            return done;
-                        }));
-
-                await result.Task;
+                        }
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    // This is expected when the service is stopping.
+                }
+                finally
+                {
+                    await receiver.CloseAsync();
+                }
             }
 
             await receiver.CloseAsync();
-        }
-
-        static async Task<EventHubRuntimeInformation> GetPartitionCountAsync(EventHubClient client, CancellationToken token)
-        {
-            CancellationToken eachRequestCancellationToken = new CancellationTokenSource(eventHubRequestDuration).Token;
-
-            // Sometimes eventhub will hang when getting runtime information, so we need a retry.
-            var retryStrategy = new Incremental(15, RetryStrategy.DefaultRetryInterval, RetryStrategy.DefaultRetryIncrement);
-            var retryPolicy = new RetryPolicy(new CatchTimeoutErrorDetectionStrategy(), retryStrategy);
-            return await retryPolicy.ExecuteAsync(
-                async () =>
-            {
-                return await Task.Run(async () => await client.GetRuntimeInformationAsync(), eachRequestCancellationToken);
-            }, token);
         }
 
         public async Task UpdateEdgeEnableStatus(string deviceId, bool enabled)
