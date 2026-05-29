@@ -94,27 +94,27 @@ yaml-rust = "0.4"
 
 zip = { version = "8", features = ["deflate"], default-features = false }
 
-aziot-cert-client-async = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-cert-common-http = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-certd-config = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-identity-client-async = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-identity-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-identity-common-http = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-identityd-config = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-key-client = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-key-client-async = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-key-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-key-common-http = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-key-openssl-engine = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-keyd-config = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-keys-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziot-tpmd-config = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-aziotctl-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-cert-renewal = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-config-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-http-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-logger = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
-test-common = { git = "https://github.com/arsing/iot-identity-service", branch = "rustup" }
+aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+logger = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+test-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 
 [workspace.lints.rust]
