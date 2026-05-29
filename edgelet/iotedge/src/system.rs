@@ -26,7 +26,7 @@ static DOCKERPROXY: LazyLock<ServiceDefinition> = LazyLock::new(|| ServiceDefini
     sockets: &[],
 });
 #[cfg(feature = "snapctl")]
-static SERVICE_DEFINITIONS: LazyLock<Vec<[&ServiceDefinition]>> =
+static SERVICE_DEFINITIONS: LazyLock<Vec<&ServiceDefinition>> =
     LazyLock::new(|| vec![&DOCKERPROXY, &IOTEDGED]);
 
 #[cfg(not(feature = "snapctl"))]
@@ -50,6 +50,7 @@ static IOTEDGED: LazyLock<ServiceDefinition> = LazyLock::new(|| {
     }
 });
 
+#[cfg(not(feature = "snapctl"))]
 static SERVICE_DEFINITIONS: LazyLock<Vec<&ServiceDefinition>> = LazyLock::new(|| {
     std::iter::once(&*IOTEDGED)
         .chain(IS_SERVICES.iter().copied())
