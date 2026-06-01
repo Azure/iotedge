@@ -1,20 +1,23 @@
 #!/usr/bin/make -f
-# You must remove unused comment lines for the released package.
-#export DH_VERBOSE = 1
-#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
-#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+# See debhelper(7)
+
+# output every command that modifies files on the build system.
+export DH_VERBOSE = 1
+export DH_OPTIONS = -v
+
 
 %:
-	dh $@ --with systemd
+	dh $@
 
-.PHONY: override_dh_installinit
-override_dh_installinit:
-	dh_systemd_enable
-	dh_installinit
+.PHONY: override_dh_installsystemd override_dh_shlibdeps
 
-override_dh_systemd_start:
-	echo "Not running dh_systemd_start"
+
+# Default behavior of dh_installsystemd is to enable and start all installed units, ie both sockets and services.
+# But we don't want to start the service, since it will need to be configured first.
+override_dh_installsystemd:
+	dh_installsystemd aziot-edged.mgmt.socket aziot-edged.workload.socket
+	dh_installsystemd --no-start aziot-edged.service
 
 override_dh_shlibdeps:
 ifeq ($(CARGO), cross)
