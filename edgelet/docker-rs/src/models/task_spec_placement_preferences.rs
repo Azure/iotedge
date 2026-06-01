@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskSpecPlacementPreferences {
     #[serde(rename = "Spread", skip_serializing_if = "Option::is_none")]
     spread: Option<crate::models::TaskSpecPlacementSpread>,
@@ -26,6 +26,7 @@ impl TaskSpecPlacementPreferences {
         self.spread = Some(spread);
     }
 
+    #[must_use]
     pub fn with_spread(mut self, spread: crate::models::TaskSpecPlacementSpread) -> Self {
         self.spread = Some(spread);
         self

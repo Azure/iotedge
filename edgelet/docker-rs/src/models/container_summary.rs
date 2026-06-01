@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContainerSummary {
     #[serde(rename = "Id")]
     id: String,
@@ -85,6 +85,7 @@ impl ContainerSummary {
     pub fn set_id(&mut self, id: String) {
         self.id = id;
     }
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self
@@ -96,6 +97,7 @@ impl ContainerSummary {
     pub fn set_names(&mut self, names: Vec<String>) {
         self.names = names;
     }
+    #[must_use]
     pub fn with_names(mut self, names: Vec<String>) -> Self {
         self.names = names;
         self
@@ -107,6 +109,7 @@ impl ContainerSummary {
     pub fn set_image(&mut self, image: String) {
         self.image = image;
     }
+    #[must_use]
     pub fn with_image(mut self, image: String) -> Self {
         self.image = image;
         self
@@ -118,6 +121,7 @@ impl ContainerSummary {
     pub fn set_image_id(&mut self, image_id: String) {
         self.image_id = image_id;
     }
+    #[must_use]
     pub fn with_image_id(mut self, image_id: String) -> Self {
         self.image_id = image_id;
         self
@@ -129,6 +133,7 @@ impl ContainerSummary {
     pub fn set_command(&mut self, command: String) {
         self.command = command;
     }
+    #[must_use]
     pub fn with_command(mut self, command: String) -> Self {
         self.command = command;
         self
@@ -140,6 +145,7 @@ impl ContainerSummary {
     pub fn set_created(&mut self, created: i64) {
         self.created = created;
     }
+    #[must_use]
     pub fn with_created(mut self, created: i64) -> Self {
         self.created = created;
         self
@@ -151,6 +157,7 @@ impl ContainerSummary {
     pub fn set_ports(&mut self, ports: Vec<crate::models::Port>) {
         self.ports = ports;
     }
+    #[must_use]
     pub fn with_ports(mut self, ports: Vec<crate::models::Port>) -> Self {
         self.ports = ports;
         self
@@ -162,6 +169,7 @@ impl ContainerSummary {
     pub fn set_size_rw(&mut self, size_rw: i64) {
         self.size_rw = size_rw;
     }
+    #[must_use]
     pub fn with_size_rw(mut self, size_rw: i64) -> Self {
         self.size_rw = size_rw;
         self
@@ -173,6 +181,7 @@ impl ContainerSummary {
     pub fn set_size_root_fs(&mut self, size_root_fs: i64) {
         self.size_root_fs = size_root_fs;
     }
+    #[must_use]
     pub fn with_size_root_fs(mut self, size_root_fs: i64) -> Self {
         self.size_root_fs = size_root_fs;
         self
@@ -184,6 +193,7 @@ impl ContainerSummary {
     pub fn set_labels(&mut self, labels: ::std::collections::HashMap<String, String>) {
         self.labels = labels;
     }
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = labels;
         self
@@ -195,6 +205,7 @@ impl ContainerSummary {
     pub fn set_state(&mut self, state: String) {
         self.state = state;
     }
+    #[must_use]
     pub fn with_state(mut self, state: String) -> Self {
         self.state = state;
         self
@@ -206,6 +217,7 @@ impl ContainerSummary {
     pub fn set_status(&mut self, status: String) {
         self.status = status;
     }
+    #[must_use]
     pub fn with_status(mut self, status: String) -> Self {
         self.status = status;
         self
@@ -217,6 +229,7 @@ impl ContainerSummary {
     pub fn set_host_config(&mut self, host_config: ContainerHostConfig) {
         self.host_config = host_config;
     }
+    #[must_use]
     pub fn with_host_config(mut self, host_config: ContainerHostConfig) -> Self {
         self.host_config = host_config;
         self
@@ -228,6 +241,7 @@ impl ContainerSummary {
     pub fn set_network_settings(&mut self, network_settings: ContainerNetworkSettings) {
         self.network_settings = network_settings;
     }
+    #[must_use]
     pub fn with_network_settings(mut self, network_settings: ContainerNetworkSettings) -> Self {
         self.network_settings = network_settings;
         self
@@ -239,6 +253,7 @@ impl ContainerSummary {
     pub fn set_mounts(&mut self, mounts: Vec<crate::models::Mount>) {
         self.mounts = mounts;
     }
+    #[must_use]
     pub fn with_mounts(mut self, mounts: Vec<crate::models::Mount>) -> Self {
         self.mounts = mounts;
         self
@@ -248,7 +263,7 @@ impl ContainerSummary {
     }
 }
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContainerHostConfig {
     #[serde(rename = "NetworkMode")]
     network_mode: String,
@@ -265,6 +280,7 @@ impl ContainerHostConfig {
         &self.network_mode
     }
 
+    #[must_use]
     pub fn with_network_mode(mut self, network_mode: String) -> Self {
         self.network_mode = network_mode;
         self
@@ -275,7 +291,7 @@ impl ContainerHostConfig {
     }
 }
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContainerNetworkSettings {
     #[serde(rename = "Networks")]
     networks: ::std::collections::HashMap<String, crate::models::EndpointSettings>,
@@ -295,6 +311,7 @@ impl ContainerNetworkSettings {
         self.networks = networks;
     }
 
+    #[must_use]
     pub fn with_networks(
         mut self,
         networks: ::std::collections::HashMap<String, crate::models::EndpointSettings>,

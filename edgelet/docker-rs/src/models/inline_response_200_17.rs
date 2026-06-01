@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse20017 {
     /// Networks that were deleted
     #[serde(rename = "NetworksDeleted", skip_serializing_if = "Option::is_none")]
@@ -29,6 +29,7 @@ impl InlineResponse20017 {
         self.networks_deleted = Some(networks_deleted);
     }
 
+    #[must_use]
     pub fn with_networks_deleted(mut self, networks_deleted: Vec<String>) -> Self {
         self.networks_deleted = Some(networks_deleted);
         self

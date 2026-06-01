@@ -12,7 +12,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Address {
     /// IP address.
     #[serde(rename = "Addr", skip_serializing_if = "Option::is_none")]
@@ -35,6 +35,7 @@ impl Address {
         self.addr = Some(addr);
     }
 
+    #[must_use]
     pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self
@@ -52,6 +53,7 @@ impl Address {
         self.prefix_len = Some(prefix_len);
     }
 
+    #[must_use]
     pub fn with_prefix_len(mut self, prefix_len: i32) -> Self {
         self.prefix_len = Some(prefix_len);
         self

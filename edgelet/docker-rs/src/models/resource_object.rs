@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ResourceObject {
     #[serde(rename = "NanoCPUs", skip_serializing_if = "Option::is_none")]
     nano_cp_us: Option<i64>,
@@ -37,6 +37,7 @@ impl ResourceObject {
         self.nano_cp_us = Some(nano_cp_us);
     }
 
+    #[must_use]
     pub fn with_nano_cp_us(mut self, nano_cp_us: i64) -> Self {
         self.nano_cp_us = Some(nano_cp_us);
         self
@@ -54,6 +55,7 @@ impl ResourceObject {
         self.memory_bytes = Some(memory_bytes);
     }
 
+    #[must_use]
     pub fn with_memory_bytes(mut self, memory_bytes: i64) -> Self {
         self.memory_bytes = Some(memory_bytes);
         self
@@ -71,6 +73,7 @@ impl ResourceObject {
         self.generic_resources = Some(generic_resources);
     }
 
+    #[must_use]
     pub fn with_generic_resources(
         mut self,
         generic_resources: crate::models::GenericResources,

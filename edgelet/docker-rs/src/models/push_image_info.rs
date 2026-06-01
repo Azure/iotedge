@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PushImageInfo {
     #[serde(rename = "error", skip_serializing_if = "Option::is_none")]
     error: Option<String>,
@@ -37,6 +37,7 @@ impl PushImageInfo {
         self.error = Some(error);
     }
 
+    #[must_use]
     pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
@@ -54,6 +55,7 @@ impl PushImageInfo {
         self.status = Some(status);
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
@@ -71,6 +73,7 @@ impl PushImageInfo {
         self.progress = Some(progress);
     }
 
+    #[must_use]
     pub fn with_progress(mut self, progress: String) -> Self {
         self.progress = Some(progress);
         self
@@ -88,6 +91,7 @@ impl PushImageInfo {
         self.progress_detail = Some(progress_detail);
     }
 
+    #[must_use]
     pub fn with_progress_detail(mut self, progress_detail: crate::models::ProgressDetail) -> Self {
         self.progress_detail = Some(progress_detail);
         self

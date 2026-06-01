@@ -36,7 +36,7 @@ use serde_json::Value;
 // - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] BTreeMap` property
 //   and is commented out as much as possible. Also copy this devnote there for future readers.
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct Mount {
     /// Container path.
     #[serde(rename = "Target", skip_serializing_if = "Option::is_none")]
@@ -46,7 +46,7 @@ pub struct Mount {
     source: Option<String>,
     /// The mount type. Available types:  - `bind` Mounts a file or directory from the host into the container. Must exist prior to creating the container. - `volume` Creates a volume with the given name and options (or uses a pre-existing volume with the same name and options). These are **not** removed when the container is removed. - `tmpfs` Create a tmpfs with the given options. The mount source cannot be specified for tmpfs.
     #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
-    _type: Option<String>,
+    r#type: Option<String>,
     /// Whether the mount should be read-only.
     #[serde(rename = "ReadOnly", skip_serializing_if = "Option::is_none")]
     read_only: Option<bool>,
@@ -68,7 +68,7 @@ impl Mount {
         Mount {
             target: None,
             source: None,
-            _type: None,
+            r#type: None,
             read_only: None,
             // consistency: None,
             // bind_options: None,
@@ -82,6 +82,7 @@ impl Mount {
         self.target = Some(target);
     }
 
+    #[must_use]
     pub fn with_target(mut self, target: String) -> Self {
         self.target = Some(target);
         self
@@ -99,6 +100,7 @@ impl Mount {
         self.source = Some(source);
     }
 
+    #[must_use]
     pub fn with_source(mut self, source: String) -> Self {
         self.source = Some(source);
         self
@@ -112,27 +114,29 @@ impl Mount {
         self.source = None;
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = Some(_type);
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = Some(r#type);
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = Some(_type);
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = Some(r#type);
         self
     }
 
-    pub fn _type(&self) -> Option<&str> {
-        self._type.as_ref().map(AsRef::as_ref)
+    pub fn r#type(&self) -> Option<&str> {
+        self.r#type.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn reset__type(&mut self) {
-        self._type = None;
+    pub fn reset_type(&mut self) {
+        self.r#type = None;
     }
 
     pub fn set_read_only(&mut self, read_only: bool) {
         self.read_only = Some(read_only);
     }
 
+    #[must_use]
     pub fn with_read_only(mut self, read_only: bool) -> Self {
         self.read_only = Some(read_only);
         self
@@ -150,6 +154,7 @@ impl Mount {
     //     self.consistency = Some(consistency);
     // }
 
+    // #[must_use]
     // pub fn with_consistency(mut self, consistency: String) -> Self {
     //     self.consistency = Some(consistency);
     //     self
@@ -167,6 +172,7 @@ impl Mount {
     //     self.bind_options = Some(bind_options);
     // }
 
+    // #[must_use]
     // pub fn with_bind_options(mut self, bind_options: crate::models::MountBindOptions) -> Self {
     //     self.bind_options = Some(bind_options);
     //     self
@@ -184,6 +190,7 @@ impl Mount {
     //     self.volume_options = Some(volume_options);
     // }
 
+    // #[must_use]
     // pub fn with_volume_options(
     //     mut self,
     //     volume_options: crate::models::MountVolumeOptions,
@@ -204,6 +211,7 @@ impl Mount {
     //     self.tmpfs_options = Some(tmpfs_options);
     // }
 
+    // #[must_use]
     // pub fn with_tmpfs_options(mut self, tmpfs_options: crate::models::MountTmpfsOptions) -> Self {
     //     self.tmpfs_options = Some(tmpfs_options);
     //     self

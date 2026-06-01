@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SwarmInfo {
     /// Unique identifier of for this node in the swarm.
     #[serde(rename = "NodeID", skip_serializing_if = "Option::is_none")]
@@ -62,6 +62,7 @@ impl SwarmInfo {
         self.node_id = Some(node_id);
     }
 
+    #[must_use]
     pub fn with_node_id(mut self, node_id: String) -> Self {
         self.node_id = Some(node_id);
         self
@@ -79,6 +80,7 @@ impl SwarmInfo {
         self.node_addr = Some(node_addr);
     }
 
+    #[must_use]
     pub fn with_node_addr(mut self, node_addr: String) -> Self {
         self.node_addr = Some(node_addr);
         self
@@ -98,6 +100,7 @@ impl SwarmInfo {
         self.local_node_state = Some(local_node_state);
     }
 
+    #[must_use]
     pub fn with_local_node_state(
         mut self,
         //TODO: This change was due to SwarmInfo, Local Node Stat returning String, instead of STATE. So the Swagger is not matching with api.
@@ -122,6 +125,7 @@ impl SwarmInfo {
         self.control_available = Some(control_available);
     }
 
+    #[must_use]
     pub fn with_control_available(mut self, control_available: bool) -> Self {
         self.control_available = Some(control_available);
         self
@@ -139,6 +143,7 @@ impl SwarmInfo {
         self.error = Some(error);
     }
 
+    #[must_use]
     pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
@@ -156,6 +161,7 @@ impl SwarmInfo {
         self.remote_managers = Some(remote_managers);
     }
 
+    #[must_use]
     pub fn with_remote_managers(mut self, remote_managers: Vec<crate::models::PeerNode>) -> Self {
         self.remote_managers = Some(remote_managers);
         self
@@ -173,6 +179,7 @@ impl SwarmInfo {
         self.nodes = Some(nodes);
     }
 
+    #[must_use]
     pub fn with_nodes(mut self, nodes: i32) -> Self {
         self.nodes = Some(nodes);
         self
@@ -190,6 +197,7 @@ impl SwarmInfo {
         self.managers = Some(managers);
     }
 
+    #[must_use]
     pub fn with_managers(mut self, managers: i32) -> Self {
         self.managers = Some(managers);
         self
@@ -207,6 +215,7 @@ impl SwarmInfo {
         self.cluster = Some(cluster);
     }
 
+    #[must_use]
     pub fn with_cluster(mut self, cluster: crate::models::ClusterInfo) -> Self {
         self.cluster = Some(cluster);
         self

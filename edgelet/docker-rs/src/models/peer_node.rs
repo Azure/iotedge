@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PeerNode {
     /// Unique identifier of for this node in the swarm.
     #[serde(rename = "NodeID", skip_serializing_if = "Option::is_none")]
@@ -36,6 +36,7 @@ impl PeerNode {
         self.node_id = Some(node_id);
     }
 
+    #[must_use]
     pub fn with_node_id(mut self, node_id: String) -> Self {
         self.node_id = Some(node_id);
         self
@@ -53,6 +54,7 @@ impl PeerNode {
         self.addr = Some(addr);
     }
 
+    #[must_use]
     pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self

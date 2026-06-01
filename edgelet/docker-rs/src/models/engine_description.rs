@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct EngineDescription {
     #[serde(rename = "EngineVersion", skip_serializing_if = "Option::is_none")]
     engine_version: Option<String>,
@@ -37,6 +37,7 @@ impl EngineDescription {
         self.engine_version = Some(engine_version);
     }
 
+    #[must_use]
     pub fn with_engine_version(mut self, engine_version: String) -> Self {
         self.engine_version = Some(engine_version);
         self
@@ -54,6 +55,7 @@ impl EngineDescription {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -71,6 +73,7 @@ impl EngineDescription {
         self.plugins = Some(plugins);
     }
 
+    #[must_use]
     pub fn with_plugins(mut self, plugins: Vec<crate::models::EngineDescriptionPlugins>) -> Self {
         self.plugins = Some(plugins);
         self

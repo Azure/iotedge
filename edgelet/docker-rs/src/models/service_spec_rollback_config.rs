@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ServiceSpecRollbackConfig {
     /// Maximum number of tasks to be rolled back in one iteration (0 means unlimited parallelism).
     #[serde(rename = "Parallelism", skip_serializing_if = "Option::is_none")]
@@ -52,6 +52,7 @@ impl ServiceSpecRollbackConfig {
         self.parallelism = Some(parallelism);
     }
 
+    #[must_use]
     pub fn with_parallelism(mut self, parallelism: i64) -> Self {
         self.parallelism = Some(parallelism);
         self
@@ -69,6 +70,7 @@ impl ServiceSpecRollbackConfig {
         self.delay = Some(delay);
     }
 
+    #[must_use]
     pub fn with_delay(mut self, delay: i64) -> Self {
         self.delay = Some(delay);
         self
@@ -86,6 +88,7 @@ impl ServiceSpecRollbackConfig {
         self.failure_action = Some(failure_action);
     }
 
+    #[must_use]
     pub fn with_failure_action(mut self, failure_action: String) -> Self {
         self.failure_action = Some(failure_action);
         self
@@ -103,6 +106,7 @@ impl ServiceSpecRollbackConfig {
         self.monitor = Some(monitor);
     }
 
+    #[must_use]
     pub fn with_monitor(mut self, monitor: i64) -> Self {
         self.monitor = Some(monitor);
         self
@@ -120,6 +124,7 @@ impl ServiceSpecRollbackConfig {
         self.max_failure_ratio = Some(max_failure_ratio);
     }
 
+    #[must_use]
     pub fn with_max_failure_ratio(mut self, max_failure_ratio: f32) -> Self {
         self.max_failure_ratio = Some(max_failure_ratio);
         self
@@ -137,6 +142,7 @@ impl ServiceSpecRollbackConfig {
         self.order = Some(order);
     }
 
+    #[must_use]
     pub fn with_order(mut self, order: String) -> Self {
         self.order = Some(order);
         self

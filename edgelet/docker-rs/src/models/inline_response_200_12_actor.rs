@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse20012Actor {
     /// The ID of the object emitting the event
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
@@ -33,6 +33,7 @@ impl InlineResponse20012Actor {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -50,6 +51,7 @@ impl InlineResponse20012Actor {
         self.attributes = Some(attributes);
     }
 
+    #[must_use]
     pub fn with_attributes(
         mut self,
         attributes: ::std::collections::HashMap<String, String>,

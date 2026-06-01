@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ExecStartConfig {
     /// Detach from the command.
     #[serde(rename = "Detach", skip_serializing_if = "Option::is_none")]
@@ -33,6 +33,7 @@ impl ExecStartConfig {
         self.detach = Some(detach);
     }
 
+    #[must_use]
     pub fn with_detach(mut self, detach: bool) -> Self {
         self.detach = Some(detach);
         self
@@ -50,6 +51,7 @@ impl ExecStartConfig {
         self.tty = Some(tty);
     }
 
+    #[must_use]
     pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self

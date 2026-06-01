@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct NodeStatus {
     #[serde(rename = "State", skip_serializing_if = "Option::is_none")]
     state: Option<crate::models::NodeState>,
@@ -38,6 +38,7 @@ impl NodeStatus {
         self.state = Some(state);
     }
 
+    #[must_use]
     pub fn with_state(mut self, state: crate::models::NodeState) -> Self {
         self.state = Some(state);
         self
@@ -55,6 +56,7 @@ impl NodeStatus {
         self.message = Some(message);
     }
 
+    #[must_use]
     pub fn with_message(mut self, message: String) -> Self {
         self.message = Some(message);
         self
@@ -72,6 +74,7 @@ impl NodeStatus {
         self.addr = Some(addr);
     }
 
+    #[must_use]
     pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self

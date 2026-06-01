@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Volume {
     /// Name of the volume.
     #[serde(rename = "Name")]
@@ -67,6 +67,7 @@ impl Volume {
         self.name = name;
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -80,6 +81,7 @@ impl Volume {
         self.driver = driver;
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = driver;
         self
@@ -93,6 +95,7 @@ impl Volume {
         self.mountpoint = mountpoint;
     }
 
+    #[must_use]
     pub fn with_mountpoint(mut self, mountpoint: String) -> Self {
         self.mountpoint = mountpoint;
         self
@@ -106,6 +109,7 @@ impl Volume {
         self.created_at = Some(created_at);
     }
 
+    #[must_use]
     pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
@@ -123,6 +127,7 @@ impl Volume {
         self.status = Some(status);
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: ::std::collections::HashMap<String, Value>) -> Self {
         self.status = Some(status);
         self
@@ -140,6 +145,7 @@ impl Volume {
         self.labels = labels;
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = labels;
         self
@@ -153,6 +159,7 @@ impl Volume {
         self.scope = scope;
     }
 
+    #[must_use]
     pub fn with_scope(mut self, scope: String) -> Self {
         self.scope = scope;
         self
@@ -166,6 +173,7 @@ impl Volume {
         self.options = options;
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = options;
         self
@@ -179,6 +187,7 @@ impl Volume {
         self.usage_data = Some(usage_data);
     }
 
+    #[must_use]
     pub fn with_usage_data(mut self, usage_data: crate::models::VolumeUsageData) -> Self {
         self.usage_data = Some(usage_data);
         self

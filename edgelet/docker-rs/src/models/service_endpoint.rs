@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ServiceEndpoint {
     #[serde(rename = "Spec", skip_serializing_if = "Option::is_none")]
     spec: Option<crate::models::EndpointSpec>,
@@ -34,6 +34,7 @@ impl ServiceEndpoint {
         self.spec = Some(spec);
     }
 
+    #[must_use]
     pub fn with_spec(mut self, spec: crate::models::EndpointSpec) -> Self {
         self.spec = Some(spec);
         self
@@ -51,6 +52,7 @@ impl ServiceEndpoint {
         self.ports = Some(ports);
     }
 
+    #[must_use]
     pub fn with_ports(mut self, ports: Vec<crate::models::EndpointPortConfig>) -> Self {
         self.ports = Some(ports);
         self
@@ -71,6 +73,7 @@ impl ServiceEndpoint {
         self.virtual_i_ps = Some(virtual_i_ps);
     }
 
+    #[must_use]
     pub fn with_virtual_i_ps(
         mut self,
         virtual_i_ps: Vec<crate::models::ServiceEndpointVirtualIPs>,

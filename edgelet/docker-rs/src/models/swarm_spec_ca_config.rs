@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SwarmSpecCaConfig {
     /// The duration node certificates are issued for.
     #[serde(rename = "NodeCertExpiry", skip_serializing_if = "Option::is_none")]
@@ -48,6 +48,7 @@ impl SwarmSpecCaConfig {
         self.node_cert_expiry = Some(node_cert_expiry);
     }
 
+    #[must_use]
     pub fn with_node_cert_expiry(mut self, node_cert_expiry: i64) -> Self {
         self.node_cert_expiry = Some(node_cert_expiry);
         self
@@ -68,6 +69,7 @@ impl SwarmSpecCaConfig {
         self.external_c_as = Some(external_c_as);
     }
 
+    #[must_use]
     pub fn with_external_c_as(
         mut self,
         external_c_as: Vec<crate::models::SwarmSpecCaConfigExternalCAs>,
@@ -88,6 +90,7 @@ impl SwarmSpecCaConfig {
         self.signing_ca_cert = Some(signing_ca_cert);
     }
 
+    #[must_use]
     pub fn with_signing_ca_cert(mut self, signing_ca_cert: String) -> Self {
         self.signing_ca_cert = Some(signing_ca_cert);
         self
@@ -105,6 +108,7 @@ impl SwarmSpecCaConfig {
         self.signing_ca_key = Some(signing_ca_key);
     }
 
+    #[must_use]
     pub fn with_signing_ca_key(mut self, signing_ca_key: String) -> Self {
         self.signing_ca_key = Some(signing_ca_key);
         self
@@ -122,6 +126,7 @@ impl SwarmSpecCaConfig {
         self.force_rotate = Some(force_rotate);
     }
 
+    #[must_use]
     pub fn with_force_rotate(mut self, force_rotate: i32) -> Self {
         self.force_rotate = Some(force_rotate);
         self

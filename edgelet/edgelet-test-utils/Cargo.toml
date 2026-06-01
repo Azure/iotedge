@@ -2,21 +2,27 @@
 name = "edgelet-test-utils"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
+edition = "2024"
 publish = false
-edition = "2021"
+
 
 [dependencies]
-anyhow = "1"
-async-trait = "0.1"
-http = "0.2"
-hyper = "0.14"
-nix = "0.26"
-serde = "1"
-tokio = "1"
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+http = { workspace = true }
+hyper = { workspace = true }
+hyper-util = { workspace = true }
+nix = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+tower-service = { workspace = true }
+
+aziot-certd-config = { workspace = true }
+cert-renewal = { workspace = true }
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
 
-aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
-cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+[lints]
+workspace = true

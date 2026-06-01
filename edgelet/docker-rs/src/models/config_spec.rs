@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ConfigSpec {
     /// User-defined name of the config.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
@@ -37,6 +37,7 @@ impl ConfigSpec {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -54,6 +55,7 @@ impl ConfigSpec {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -71,6 +73,7 @@ impl ConfigSpec {
         self.data = Some(data);
     }
 
+    #[must_use]
     pub fn with_data(mut self, data: String) -> Self {
         self.data = Some(data);
         self

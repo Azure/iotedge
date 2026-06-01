@@ -1,9 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::let_unit_value, clippy::similar_names)]
-
 use std::ffi::OsString;
 use std::io;
 use std::path::PathBuf;
@@ -11,10 +7,10 @@ use std::process;
 
 use anyhow::Context;
 use clap::builder::TypedValueParser;
-use clap::{crate_description, crate_name, Arg, Command};
+use clap::{Arg, Command, crate_description, crate_name};
 use url::Url;
 
-use edgelet_core::{parse_since, LogOptions, LogTail};
+use edgelet_core::{LogOptions, LogTail, parse_since};
 use support_bundle::OutputLocation;
 
 use iotedge::{
@@ -509,7 +505,7 @@ async fn run() -> anyhow::Result<()> {
         ("list", _) => List::new(runtime()?, io::stdout()).execute().await,
         ("restart", args) => {
             Restart::new(
-                args.get_one::<String>("MODULE").unwrap().to_string(),
+                args.get_one::<String>("MODULE").unwrap().clone(),
                 runtime()?,
                 io::stdout(),
             )
@@ -517,7 +513,7 @@ async fn run() -> anyhow::Result<()> {
             .await
         }
         ("logs", args) => {
-            let id = args.get_one::<String>("MODULE").unwrap().to_string();
+            let id = args.get_one::<String>("MODULE").unwrap().clone();
             let follow = args.get_flag("follow");
             let tail = args
                 .get_one::<String>("tail")

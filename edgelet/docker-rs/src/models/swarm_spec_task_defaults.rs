@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SwarmSpecTaskDefaults {
     #[serde(rename = "LogDriver", skip_serializing_if = "Option::is_none")]
     log_driver: Option<crate::models::SwarmSpecTaskDefaultsLogDriver>,
@@ -29,6 +29,7 @@ impl SwarmSpecTaskDefaults {
         self.log_driver = Some(log_driver);
     }
 
+    #[must_use]
     pub fn with_log_driver(
         mut self,
         log_driver: crate::models::SwarmSpecTaskDefaultsLogDriver,

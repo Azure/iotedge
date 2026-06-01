@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Resources {
     /// An integer value representing this container's relative CPU weight versus other containers.
     #[serde(rename = "CpuShares", skip_serializing_if = "Option::is_none")]
@@ -157,6 +157,7 @@ impl Resources {
         self.cpu_shares = Some(cpu_shares);
     }
 
+    #[must_use]
     pub fn with_cpu_shares(mut self, cpu_shares: i32) -> Self {
         self.cpu_shares = Some(cpu_shares);
         self
@@ -174,6 +175,7 @@ impl Resources {
         self.memory = Some(memory);
     }
 
+    #[must_use]
     pub fn with_memory(mut self, memory: i32) -> Self {
         self.memory = Some(memory);
         self
@@ -191,6 +193,7 @@ impl Resources {
         self.cgroup_parent = Some(cgroup_parent);
     }
 
+    #[must_use]
     pub fn with_cgroup_parent(mut self, cgroup_parent: String) -> Self {
         self.cgroup_parent = Some(cgroup_parent);
         self
@@ -208,6 +211,7 @@ impl Resources {
         self.blkio_weight = Some(blkio_weight);
     }
 
+    #[must_use]
     pub fn with_blkio_weight(mut self, blkio_weight: i32) -> Self {
         self.blkio_weight = Some(blkio_weight);
         self
@@ -228,6 +232,7 @@ impl Resources {
         self.blkio_weight_device = Some(blkio_weight_device);
     }
 
+    #[must_use]
     pub fn with_blkio_weight_device(
         mut self,
         blkio_weight_device: Vec<crate::models::ResourcesBlkioWeightDevice>,
@@ -251,6 +256,7 @@ impl Resources {
         self.blkio_device_read_bps = Some(blkio_device_read_bps);
     }
 
+    #[must_use]
     pub fn with_blkio_device_read_bps(
         mut self,
         blkio_device_read_bps: Vec<crate::models::ThrottleDevice>,
@@ -274,6 +280,7 @@ impl Resources {
         self.blkio_device_write_bps = Some(blkio_device_write_bps);
     }
 
+    #[must_use]
     pub fn with_blkio_device_write_bps(
         mut self,
         blkio_device_write_bps: Vec<crate::models::ThrottleDevice>,
@@ -297,6 +304,7 @@ impl Resources {
         self.blkio_device_read_i_ops = Some(blkio_device_read_i_ops);
     }
 
+    #[must_use]
     pub fn with_blkio_device_read_i_ops(
         mut self,
         blkio_device_read_i_ops: Vec<crate::models::ThrottleDevice>,
@@ -320,6 +328,7 @@ impl Resources {
         self.blkio_device_write_i_ops = Some(blkio_device_write_i_ops);
     }
 
+    #[must_use]
     pub fn with_blkio_device_write_i_ops(
         mut self,
         blkio_device_write_i_ops: Vec<crate::models::ThrottleDevice>,
@@ -340,6 +349,7 @@ impl Resources {
         self.cpu_period = Some(cpu_period);
     }
 
+    #[must_use]
     pub fn with_cpu_period(mut self, cpu_period: i64) -> Self {
         self.cpu_period = Some(cpu_period);
         self
@@ -357,6 +367,7 @@ impl Resources {
         self.cpu_quota = Some(cpu_quota);
     }
 
+    #[must_use]
     pub fn with_cpu_quota(mut self, cpu_quota: i64) -> Self {
         self.cpu_quota = Some(cpu_quota);
         self
@@ -374,6 +385,7 @@ impl Resources {
         self.cpu_realtime_period = Some(cpu_realtime_period);
     }
 
+    #[must_use]
     pub fn with_cpu_realtime_period(mut self, cpu_realtime_period: i64) -> Self {
         self.cpu_realtime_period = Some(cpu_realtime_period);
         self
@@ -391,6 +403,7 @@ impl Resources {
         self.cpu_realtime_runtime = Some(cpu_realtime_runtime);
     }
 
+    #[must_use]
     pub fn with_cpu_realtime_runtime(mut self, cpu_realtime_runtime: i64) -> Self {
         self.cpu_realtime_runtime = Some(cpu_realtime_runtime);
         self
@@ -408,6 +421,7 @@ impl Resources {
         self.cpuset_cpus = Some(cpuset_cpus);
     }
 
+    #[must_use]
     pub fn with_cpuset_cpus(mut self, cpuset_cpus: String) -> Self {
         self.cpuset_cpus = Some(cpuset_cpus);
         self
@@ -425,6 +439,7 @@ impl Resources {
         self.cpuset_mems = Some(cpuset_mems);
     }
 
+    #[must_use]
     pub fn with_cpuset_mems(mut self, cpuset_mems: String) -> Self {
         self.cpuset_mems = Some(cpuset_mems);
         self
@@ -442,6 +457,7 @@ impl Resources {
         self.devices = Some(devices);
     }
 
+    #[must_use]
     pub fn with_devices(mut self, devices: Vec<crate::models::DeviceMapping>) -> Self {
         self.devices = Some(devices);
         self
@@ -459,6 +475,7 @@ impl Resources {
         self.device_cgroup_rules = Some(device_cgroup_rules);
     }
 
+    #[must_use]
     pub fn with_device_cgroup_rules(mut self, device_cgroup_rules: Vec<String>) -> Self {
         self.device_cgroup_rules = Some(device_cgroup_rules);
         self
@@ -476,6 +493,7 @@ impl Resources {
         self.disk_quota = Some(disk_quota);
     }
 
+    #[must_use]
     pub fn with_disk_quota(mut self, disk_quota: i64) -> Self {
         self.disk_quota = Some(disk_quota);
         self
@@ -493,6 +511,7 @@ impl Resources {
         self.kernel_memory = Some(kernel_memory);
     }
 
+    #[must_use]
     pub fn with_kernel_memory(mut self, kernel_memory: i64) -> Self {
         self.kernel_memory = Some(kernel_memory);
         self
@@ -510,6 +529,7 @@ impl Resources {
         self.memory_reservation = Some(memory_reservation);
     }
 
+    #[must_use]
     pub fn with_memory_reservation(mut self, memory_reservation: i64) -> Self {
         self.memory_reservation = Some(memory_reservation);
         self
@@ -527,6 +547,7 @@ impl Resources {
         self.memory_swap = Some(memory_swap);
     }
 
+    #[must_use]
     pub fn with_memory_swap(mut self, memory_swap: i64) -> Self {
         self.memory_swap = Some(memory_swap);
         self
@@ -544,6 +565,7 @@ impl Resources {
         self.memory_swappiness = Some(memory_swappiness);
     }
 
+    #[must_use]
     pub fn with_memory_swappiness(mut self, memory_swappiness: i64) -> Self {
         self.memory_swappiness = Some(memory_swappiness);
         self
@@ -561,6 +583,7 @@ impl Resources {
         self.nano_cp_us = Some(nano_cp_us);
     }
 
+    #[must_use]
     pub fn with_nano_cp_us(mut self, nano_cp_us: i64) -> Self {
         self.nano_cp_us = Some(nano_cp_us);
         self
@@ -578,6 +601,7 @@ impl Resources {
         self.oom_kill_disable = Some(oom_kill_disable);
     }
 
+    #[must_use]
     pub fn with_oom_kill_disable(mut self, oom_kill_disable: bool) -> Self {
         self.oom_kill_disable = Some(oom_kill_disable);
         self
@@ -595,6 +619,7 @@ impl Resources {
         self.pids_limit = Some(pids_limit);
     }
 
+    #[must_use]
     pub fn with_pids_limit(mut self, pids_limit: i64) -> Self {
         self.pids_limit = Some(pids_limit);
         self
@@ -612,6 +637,7 @@ impl Resources {
         self.ulimits = Some(ulimits);
     }
 
+    #[must_use]
     pub fn with_ulimits(mut self, ulimits: Vec<crate::models::ResourcesUlimits>) -> Self {
         self.ulimits = Some(ulimits);
         self
@@ -629,6 +655,7 @@ impl Resources {
         self.cpu_count = Some(cpu_count);
     }
 
+    #[must_use]
     pub fn with_cpu_count(mut self, cpu_count: i64) -> Self {
         self.cpu_count = Some(cpu_count);
         self
@@ -646,6 +673,7 @@ impl Resources {
         self.cpu_percent = Some(cpu_percent);
     }
 
+    #[must_use]
     pub fn with_cpu_percent(mut self, cpu_percent: i64) -> Self {
         self.cpu_percent = Some(cpu_percent);
         self
@@ -663,6 +691,7 @@ impl Resources {
         self.io_maximum_i_ops = Some(io_maximum_i_ops);
     }
 
+    #[must_use]
     pub fn with_io_maximum_i_ops(mut self, io_maximum_i_ops: i64) -> Self {
         self.io_maximum_i_ops = Some(io_maximum_i_ops);
         self
@@ -680,6 +709,7 @@ impl Resources {
         self.io_maximum_bandwidth = Some(io_maximum_bandwidth);
     }
 
+    #[must_use]
     pub fn with_io_maximum_bandwidth(mut self, io_maximum_bandwidth: i64) -> Self {
         self.io_maximum_bandwidth = Some(io_maximum_bandwidth);
         self

@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SwarmSpecTaskDefaultsLogDriver {
     /// The log driver to use as a default for new tasks.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
@@ -36,6 +36,7 @@ impl SwarmSpecTaskDefaultsLogDriver {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -53,6 +54,7 @@ impl SwarmSpecTaskDefaultsLogDriver {
         self.options = Some(options);
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self

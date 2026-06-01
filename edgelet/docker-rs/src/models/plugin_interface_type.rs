@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PluginInterfaceType {
     #[serde(rename = "Prefix")]
     prefix: String,
@@ -34,6 +34,7 @@ impl PluginInterfaceType {
         self.prefix = prefix;
     }
 
+    #[must_use]
     pub fn with_prefix(mut self, prefix: String) -> Self {
         self.prefix = prefix;
         self
@@ -47,6 +48,7 @@ impl PluginInterfaceType {
         self.capability = capability;
     }
 
+    #[must_use]
     pub fn with_capability(mut self, capability: String) -> Self {
         self.capability = capability;
         self
@@ -60,6 +62,7 @@ impl PluginInterfaceType {
         self.version = version;
     }
 
+    #[must_use]
     pub fn with_version(mut self, version: String) -> Self {
         self.version = version;
         self

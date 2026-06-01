@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 
 use edgelet_core::{self, UrlExt};
 use edgelet_settings::RuntimeSettings;
@@ -45,8 +45,8 @@ impl ConnectManagementUri {
             .starts_with("/azureiotedge-diagnostics:")
         {
             check.parent_hostname.as_ref().map_or_else(
-                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
-                |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
+                || format!("mcr.microsoft.com{}", check.diagnostics_image_name),
+                |upstream_hostname| format!("{upstream_hostname}{}", check.diagnostics_image_name),
             )
         } else {
             check.diagnostics_image_name.clone()
@@ -68,32 +68,38 @@ impl ConnectManagementUri {
             args.push(Cow::Owned(format!("{name}={value}").into()));
         }
 
-        match (connect_management_uri.scheme(), listen_management_uri.scheme()) {
-        ("http", "http") => (),
+        match (
+            connect_management_uri.scheme(),
+            listen_management_uri.scheme(),
+        ) {
+            ("http", "http") => (),
 
-        ("unix", "unix" | "fd") => {
-            args.push(Cow::Borrowed(OsStr::new("-v")));
+            ("unix", "unix" | "fd") => {
+                args.push(Cow::Borrowed(OsStr::new("-v")));
 
-            let socket_path =
-                connect_management_uri.to_uds_file_path()
-                .context("Could not parse connect.management_uri: does not represent a valid file path")?;
+                let socket_path = connect_management_uri.to_uds_file_path().context(
+                    "Could not parse connect.management_uri: does not represent a valid file path",
+                )?;
 
-            let socket_path =
-                socket_path.to_str()
-                .ok_or_else(|| anyhow!("Could not parse connect.management_uri: file path is not valid utf-8"))?;
+                let socket_path = socket_path.to_str().ok_or_else(|| {
+                    anyhow!("Could not parse connect.management_uri: file path is not valid utf-8")
+                })?;
 
-            args.push(Cow::Owned(format!("{socket_path}:{socket_path}").into()));
-        },
+                args.push(Cow::Owned(format!("{socket_path}:{socket_path}").into()));
+            }
 
-        (scheme1, scheme2) if scheme1 != scheme2 => return Err(anyhow!(
-                "configuration has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
-                scheme1, scheme2,
-            )),
+            (scheme1, scheme2) if scheme1 != scheme2 => {
+                return Err(anyhow!(
+                    "configuration has invalid combination of schemes for connect.management_uri ({scheme1:?}) and listen.management_uri ({scheme2:?})"
+                ));
+            }
 
-        (scheme, _) => return Err(anyhow!(
-            "Could not parse connect.management_uri: scheme {} is invalid", scheme,
-        )),
-    }
+            (scheme, _) => {
+                return Err(anyhow!(
+                    "Could not parse connect.management_uri: scheme {scheme} is invalid"
+                ));
+            }
+        }
 
         args.extend(vec![
             Cow::Borrowed(OsStr::new(&diagnostics_image_name)),

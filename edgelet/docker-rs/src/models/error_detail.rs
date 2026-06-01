@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ErrorDetail {
     #[serde(rename = "code", skip_serializing_if = "Option::is_none")]
     code: Option<i32>,
@@ -31,6 +31,7 @@ impl ErrorDetail {
         self.code = Some(code);
     }
 
+    #[must_use]
     pub fn with_code(mut self, code: i32) -> Self {
         self.code = Some(code);
         self
@@ -48,6 +49,7 @@ impl ErrorDetail {
         self.message = Some(message);
     }
 
+    #[must_use]
     pub fn with_message(mut self, message: String) -> Self {
         self.message = Some(message);
         self

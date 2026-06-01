@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse20010 {
     /// The status of the authentication
     #[serde(rename = "Status")]
@@ -33,6 +33,7 @@ impl InlineResponse20010 {
         self.status = status;
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: String) -> Self {
         self.status = status;
         self
@@ -46,6 +47,7 @@ impl InlineResponse20010 {
         self.identity_token = Some(identity_token);
     }
 
+    #[must_use]
     pub fn with_identity_token(mut self, identity_token: String) -> Self {
         self.identity_token = Some(identity_token);
         self

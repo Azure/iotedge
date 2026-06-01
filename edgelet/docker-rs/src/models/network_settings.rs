@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct NetworkSettings {
     /// Name of the network'a bridge (for example, `docker0`).
     #[serde(rename = "Bridge", skip_serializing_if = "Option::is_none")]
@@ -41,13 +41,11 @@ pub struct NetworkSettings {
     /// SandboxKey identifies the sandbox
     #[serde(rename = "SandboxKey", skip_serializing_if = "Option::is_none")]
     sandbox_key: Option<String>,
-    ///
     #[serde(
         rename = "SecondaryIPAddresses",
         skip_serializing_if = "Option::is_none"
     )]
     secondary_ip_addresses: Option<Vec<crate::models::Address>>,
-    ///
     #[serde(
         rename = "SecondaryIPv6Addresses",
         skip_serializing_if = "Option::is_none"
@@ -114,6 +112,7 @@ impl NetworkSettings {
         self.bridge = Some(bridge);
     }
 
+    #[must_use]
     pub fn with_bridge(mut self, bridge: String) -> Self {
         self.bridge = Some(bridge);
         self
@@ -131,6 +130,7 @@ impl NetworkSettings {
         self.sandbox_id = Some(sandbox_id);
     }
 
+    #[must_use]
     pub fn with_sandbox_id(mut self, sandbox_id: String) -> Self {
         self.sandbox_id = Some(sandbox_id);
         self
@@ -148,6 +148,7 @@ impl NetworkSettings {
         self.hairpin_mode = Some(hairpin_mode);
     }
 
+    #[must_use]
     pub fn with_hairpin_mode(mut self, hairpin_mode: bool) -> Self {
         self.hairpin_mode = Some(hairpin_mode);
         self
@@ -165,6 +166,7 @@ impl NetworkSettings {
         self.link_local_i_pv6_address = Some(link_local_i_pv6_address);
     }
 
+    #[must_use]
     pub fn with_link_local_i_pv6_address(mut self, link_local_i_pv6_address: String) -> Self {
         self.link_local_i_pv6_address = Some(link_local_i_pv6_address);
         self
@@ -182,6 +184,7 @@ impl NetworkSettings {
         self.link_local_i_pv6_prefix_len = Some(link_local_i_pv6_prefix_len);
     }
 
+    #[must_use]
     pub fn with_link_local_i_pv6_prefix_len(mut self, link_local_i_pv6_prefix_len: i32) -> Self {
         self.link_local_i_pv6_prefix_len = Some(link_local_i_pv6_prefix_len);
         self
@@ -199,6 +202,7 @@ impl NetworkSettings {
         self.ports = Some(ports);
     }
 
+    #[must_use]
     pub fn with_ports(mut self, ports: crate::models::PortMap) -> Self {
         self.ports = Some(ports);
         self
@@ -216,6 +220,7 @@ impl NetworkSettings {
         self.sandbox_key = Some(sandbox_key);
     }
 
+    #[must_use]
     pub fn with_sandbox_key(mut self, sandbox_key: String) -> Self {
         self.sandbox_key = Some(sandbox_key);
         self
@@ -236,6 +241,7 @@ impl NetworkSettings {
         self.secondary_ip_addresses = Some(secondary_ip_addresses);
     }
 
+    #[must_use]
     pub fn with_secondary_ip_addresses(
         mut self,
         secondary_ip_addresses: Vec<crate::models::Address>,
@@ -259,6 +265,7 @@ impl NetworkSettings {
         self.secondary_i_pv6_addresses = Some(secondary_i_pv6_addresses);
     }
 
+    #[must_use]
     pub fn with_secondary_i_pv6_addresses(
         mut self,
         secondary_i_pv6_addresses: Vec<crate::models::Address>,
@@ -279,6 +286,7 @@ impl NetworkSettings {
         self.endpoint_id = Some(endpoint_id);
     }
 
+    #[must_use]
     pub fn with_endpoint_id(mut self, endpoint_id: String) -> Self {
         self.endpoint_id = Some(endpoint_id);
         self
@@ -296,6 +304,7 @@ impl NetworkSettings {
         self.gateway = Some(gateway);
     }
 
+    #[must_use]
     pub fn with_gateway(mut self, gateway: String) -> Self {
         self.gateway = Some(gateway);
         self
@@ -313,6 +322,7 @@ impl NetworkSettings {
         self.global_i_pv6_address = Some(global_i_pv6_address);
     }
 
+    #[must_use]
     pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> Self {
         self.global_i_pv6_address = Some(global_i_pv6_address);
         self
@@ -330,6 +340,7 @@ impl NetworkSettings {
         self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
     }
 
+    #[must_use]
     pub fn with_global_i_pv6_prefix_len(mut self, global_i_pv6_prefix_len: i32) -> Self {
         self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
         self
@@ -347,6 +358,7 @@ impl NetworkSettings {
         self.ip_address = Some(ip_address);
     }
 
+    #[must_use]
     pub fn with_ip_address(mut self, ip_address: String) -> Self {
         self.ip_address = Some(ip_address);
         self
@@ -364,6 +376,7 @@ impl NetworkSettings {
         self.ip_prefix_len = Some(ip_prefix_len);
     }
 
+    #[must_use]
     pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> Self {
         self.ip_prefix_len = Some(ip_prefix_len);
         self
@@ -381,6 +394,7 @@ impl NetworkSettings {
         self.i_pv6_gateway = Some(i_pv6_gateway);
     }
 
+    #[must_use]
     pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> Self {
         self.i_pv6_gateway = Some(i_pv6_gateway);
         self
@@ -398,6 +412,7 @@ impl NetworkSettings {
         self.mac_address = Some(mac_address);
     }
 
+    #[must_use]
     pub fn with_mac_address(mut self, mac_address: String) -> Self {
         self.mac_address = Some(mac_address);
         self
@@ -418,6 +433,7 @@ impl NetworkSettings {
         self.networks = Some(networks);
     }
 
+    #[must_use]
     pub fn with_networks(
         mut self,
         networks: ::std::collections::HashMap<String, crate::models::EndpointSettings>,

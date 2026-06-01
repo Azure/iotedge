@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct IdResponse {
     /// The id of the newly created object.
     #[serde(rename = "Id")]
@@ -30,6 +30,7 @@ impl IdResponse {
         self.id = id;
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = id;
         self

@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct NodeDescription {
     #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]
     hostname: Option<String>,
@@ -43,6 +43,7 @@ impl NodeDescription {
         self.hostname = Some(hostname);
     }
 
+    #[must_use]
     pub fn with_hostname(mut self, hostname: String) -> Self {
         self.hostname = Some(hostname);
         self
@@ -60,6 +61,7 @@ impl NodeDescription {
         self.platform = Some(platform);
     }
 
+    #[must_use]
     pub fn with_platform(mut self, platform: crate::models::Platform) -> Self {
         self.platform = Some(platform);
         self
@@ -77,6 +79,7 @@ impl NodeDescription {
         self.resources = Some(resources);
     }
 
+    #[must_use]
     pub fn with_resources(mut self, resources: crate::models::ResourceObject) -> Self {
         self.resources = Some(resources);
         self
@@ -94,6 +97,7 @@ impl NodeDescription {
         self.engine = Some(engine);
     }
 
+    #[must_use]
     pub fn with_engine(mut self, engine: crate::models::EngineDescription) -> Self {
         self.engine = Some(engine);
         self
@@ -111,6 +115,7 @@ impl NodeDescription {
         self.tls_info = Some(tls_info);
     }
 
+    #[must_use]
     pub fn with_tls_info(mut self, tls_info: crate::models::TlsInfo) -> Self {
         self.tls_info = Some(tls_info);
         self

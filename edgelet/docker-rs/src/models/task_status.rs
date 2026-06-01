@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskStatus {
     #[serde(rename = "Timestamp", skip_serializing_if = "Option::is_none")]
     timestamp: Option<String>,
@@ -40,6 +40,7 @@ impl TaskStatus {
         self.timestamp = Some(timestamp);
     }
 
+    #[must_use]
     pub fn with_timestamp(mut self, timestamp: String) -> Self {
         self.timestamp = Some(timestamp);
         self
@@ -57,6 +58,7 @@ impl TaskStatus {
         self.state = Some(state);
     }
 
+    #[must_use]
     pub fn with_state(mut self, state: crate::models::TaskState) -> Self {
         self.state = Some(state);
         self
@@ -74,6 +76,7 @@ impl TaskStatus {
         self.message = Some(message);
     }
 
+    #[must_use]
     pub fn with_message(mut self, message: String) -> Self {
         self.message = Some(message);
         self
@@ -91,6 +94,7 @@ impl TaskStatus {
         self.err = Some(err);
     }
 
+    #[must_use]
     pub fn with_err(mut self, err: String) -> Self {
         self.err = Some(err);
         self
@@ -111,6 +115,7 @@ impl TaskStatus {
         self.container_status = Some(container_status);
     }
 
+    #[must_use]
     pub fn with_container_status(
         mut self,
         container_status: crate::models::TaskStatusContainerStatus,

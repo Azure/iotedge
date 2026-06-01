@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Network {
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
@@ -64,6 +64,7 @@ impl Network {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -81,6 +82,7 @@ impl Network {
         self.id = Some(id);
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
@@ -98,6 +100,7 @@ impl Network {
         self.created = Some(created);
     }
 
+    #[must_use]
     pub fn with_created(mut self, created: String) -> Self {
         self.created = Some(created);
         self
@@ -115,6 +118,7 @@ impl Network {
         self.scope = Some(scope);
     }
 
+    #[must_use]
     pub fn with_scope(mut self, scope: String) -> Self {
         self.scope = Some(scope);
         self
@@ -132,6 +136,7 @@ impl Network {
         self.driver = Some(driver);
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
@@ -149,6 +154,7 @@ impl Network {
         self.enable_i_pv6 = Some(enable_i_pv6);
     }
 
+    #[must_use]
     pub fn with_enable_i_pv6(mut self, enable_i_pv6: bool) -> Self {
         self.enable_i_pv6 = Some(enable_i_pv6);
         self
@@ -166,6 +172,7 @@ impl Network {
         self.IPAM = Some(IPAM);
     }
 
+    #[must_use]
     pub fn with_IPAM(mut self, IPAM: crate::models::Ipam) -> Self {
         self.IPAM = Some(IPAM);
         self
@@ -183,6 +190,7 @@ impl Network {
         self.internal = Some(internal);
     }
 
+    #[must_use]
     pub fn with_internal(mut self, internal: bool) -> Self {
         self.internal = Some(internal);
         self
@@ -200,6 +208,7 @@ impl Network {
         self.attachable = Some(attachable);
     }
 
+    #[must_use]
     pub fn with_attachable(mut self, attachable: bool) -> Self {
         self.attachable = Some(attachable);
         self
@@ -217,6 +226,7 @@ impl Network {
         self.ingress = Some(ingress);
     }
 
+    #[must_use]
     pub fn with_ingress(mut self, ingress: bool) -> Self {
         self.ingress = Some(ingress);
         self
@@ -237,6 +247,7 @@ impl Network {
         self.containers = Some(containers);
     }
 
+    #[must_use]
     pub fn with_containers(
         mut self,
         containers: ::std::collections::HashMap<String, crate::models::NetworkContainer>,
@@ -259,6 +270,7 @@ impl Network {
         self.options = Some(options);
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
@@ -276,6 +288,7 @@ impl Network {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self

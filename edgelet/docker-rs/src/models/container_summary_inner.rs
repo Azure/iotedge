@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContainerSummaryInner {
     /// The ID of this container
     #[serde(rename = "Id", skip_serializing_if = "Option::is_none")]
@@ -82,6 +82,7 @@ impl ContainerSummaryInner {
         self.id = Some(id);
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
@@ -99,6 +100,7 @@ impl ContainerSummaryInner {
         self.names = Some(names);
     }
 
+    #[must_use]
     pub fn with_names(mut self, names: Vec<String>) -> Self {
         self.names = Some(names);
         self
@@ -116,6 +118,7 @@ impl ContainerSummaryInner {
         self.image = Some(image);
     }
 
+    #[must_use]
     pub fn with_image(mut self, image: String) -> Self {
         self.image = Some(image);
         self
@@ -133,6 +136,7 @@ impl ContainerSummaryInner {
         self.image_id = Some(image_id);
     }
 
+    #[must_use]
     pub fn with_image_id(mut self, image_id: String) -> Self {
         self.image_id = Some(image_id);
         self
@@ -150,6 +154,7 @@ impl ContainerSummaryInner {
         self.command = Some(command);
     }
 
+    #[must_use]
     pub fn with_command(mut self, command: String) -> Self {
         self.command = Some(command);
         self
@@ -167,6 +172,7 @@ impl ContainerSummaryInner {
         self.created = Some(created);
     }
 
+    #[must_use]
     pub fn with_created(mut self, created: i64) -> Self {
         self.created = Some(created);
         self
@@ -184,6 +190,7 @@ impl ContainerSummaryInner {
         self.ports = Some(ports);
     }
 
+    #[must_use]
     pub fn with_ports(mut self, ports: Vec<crate::models::Port>) -> Self {
         self.ports = Some(ports);
         self
@@ -201,6 +208,7 @@ impl ContainerSummaryInner {
         self.size_rw = Some(size_rw);
     }
 
+    #[must_use]
     pub fn with_size_rw(mut self, size_rw: i64) -> Self {
         self.size_rw = Some(size_rw);
         self
@@ -218,6 +226,7 @@ impl ContainerSummaryInner {
         self.size_root_fs = Some(size_root_fs);
     }
 
+    #[must_use]
     pub fn with_size_root_fs(mut self, size_root_fs: i64) -> Self {
         self.size_root_fs = Some(size_root_fs);
         self
@@ -235,6 +244,7 @@ impl ContainerSummaryInner {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -252,6 +262,7 @@ impl ContainerSummaryInner {
         self.state = Some(state);
     }
 
+    #[must_use]
     pub fn with_state(mut self, state: String) -> Self {
         self.state = Some(state);
         self
@@ -269,6 +280,7 @@ impl ContainerSummaryInner {
         self.status = Some(status);
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
@@ -286,6 +298,7 @@ impl ContainerSummaryInner {
         self.host_config = Some(host_config);
     }
 
+    #[must_use]
     pub fn with_host_config(
         mut self,
         host_config: crate::models::ContainerSummaryInnerHostConfig,
@@ -309,6 +322,7 @@ impl ContainerSummaryInner {
         self.network_settings = Some(network_settings);
     }
 
+    #[must_use]
     pub fn with_network_settings(
         mut self,
         network_settings: crate::models::ContainerSummaryInnerNetworkSettings,
@@ -329,6 +343,7 @@ impl ContainerSummaryInner {
         self.mounts = Some(mounts);
     }
 
+    #[must_use]
     pub fn with_mounts(mut self, mounts: Vec<crate::models::Mount>) -> Self {
         self.mounts = Some(mounts);
         self

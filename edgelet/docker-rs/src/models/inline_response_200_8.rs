@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse2008 {
     #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
     description: Option<String>,
@@ -40,6 +40,7 @@ impl InlineResponse2008 {
         self.description = Some(description);
     }
 
+    #[must_use]
     pub fn with_description(mut self, description: String) -> Self {
         self.description = Some(description);
         self
@@ -57,6 +58,7 @@ impl InlineResponse2008 {
         self.is_official = Some(is_official);
     }
 
+    #[must_use]
     pub fn with_is_official(mut self, is_official: bool) -> Self {
         self.is_official = Some(is_official);
         self
@@ -74,6 +76,7 @@ impl InlineResponse2008 {
         self.is_automated = Some(is_automated);
     }
 
+    #[must_use]
     pub fn with_is_automated(mut self, is_automated: bool) -> Self {
         self.is_automated = Some(is_automated);
         self
@@ -91,6 +94,7 @@ impl InlineResponse2008 {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -108,6 +112,7 @@ impl InlineResponse2008 {
         self.star_count = Some(star_count);
     }
 
+    #[must_use]
     pub fn with_star_count(mut self, star_count: i32) -> Self {
         self.star_count = Some(star_count);
         self

@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct NodeSpec {
     /// Name for the node.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
@@ -41,6 +41,7 @@ impl NodeSpec {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -58,6 +59,7 @@ impl NodeSpec {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -75,6 +77,7 @@ impl NodeSpec {
         self.role = Some(role);
     }
 
+    #[must_use]
     pub fn with_role(mut self, role: String) -> Self {
         self.role = Some(role);
         self
@@ -92,6 +95,7 @@ impl NodeSpec {
         self.availability = Some(availability);
     }
 
+    #[must_use]
     pub fn with_availability(mut self, availability: String) -> Self {
         self.availability = Some(availability);
         self

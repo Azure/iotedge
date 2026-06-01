@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PluginSettings {
     #[serde(rename = "Mounts")]
     mounts: Vec<crate::models::PluginMount>,
@@ -45,6 +45,7 @@ impl PluginSettings {
         self.mounts = mounts;
     }
 
+    #[must_use]
     pub fn with_mounts(mut self, mounts: Vec<crate::models::PluginMount>) -> Self {
         self.mounts = mounts;
         self
@@ -58,6 +59,7 @@ impl PluginSettings {
         self.env = env;
     }
 
+    #[must_use]
     pub fn with_env(mut self, env: Vec<String>) -> Self {
         self.env = env;
         self
@@ -71,6 +73,7 @@ impl PluginSettings {
         self.args = args;
     }
 
+    #[must_use]
     pub fn with_args(mut self, args: Vec<String>) -> Self {
         self.args = args;
         self
@@ -84,6 +87,7 @@ impl PluginSettings {
         self.devices = devices;
     }
 
+    #[must_use]
     pub fn with_devices(mut self, devices: Vec<crate::models::PluginDevice>) -> Self {
         self.devices = devices;
         self

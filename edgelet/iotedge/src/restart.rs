@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::io::Write;
 use std::sync::{Arc, Mutex};
+use std::{fmt::Write as _, io::Write};
 
 use anyhow::Context;
 
@@ -36,14 +36,16 @@ where
         // A stop request must be sent to workload socket manager first.
         // To properly restart, both the stop and start APIs must be called.
         if let Err(err) = self.runtime.stop(&self.id, None).await {
-            output.push_str(&format!(
-                "warn: {} was not stopped gracefully: {err}\n",
+            writeln!(
+                output,
+                "warn: {} was not stopped gracefully: {err}",
                 self.id
-            ));
+            )
+            .context(Error::WriteToStdout)?;
         }
 
         self.runtime.start(&self.id).await?;
-        output.push_str(&format!("Restarted {}\n", self.id));
+        writeln!(output, "Restarted {}\n", self.id).context(Error::WriteToStdout)?;
 
         let write = self.output.clone();
         let mut w = write.lock().unwrap();

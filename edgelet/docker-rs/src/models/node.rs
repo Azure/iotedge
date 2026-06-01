@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Node {
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
@@ -51,6 +51,7 @@ impl Node {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -68,6 +69,7 @@ impl Node {
         self.version = Some(version);
     }
 
+    #[must_use]
     pub fn with_version(mut self, version: crate::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
@@ -85,6 +87,7 @@ impl Node {
         self.created_at = Some(created_at);
     }
 
+    #[must_use]
     pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
@@ -102,6 +105,7 @@ impl Node {
         self.updated_at = Some(updated_at);
     }
 
+    #[must_use]
     pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
@@ -119,6 +123,7 @@ impl Node {
         self.spec = Some(spec);
     }
 
+    #[must_use]
     pub fn with_spec(mut self, spec: crate::models::NodeSpec) -> Self {
         self.spec = Some(spec);
         self
@@ -136,6 +141,7 @@ impl Node {
         self.description = Some(description);
     }
 
+    #[must_use]
     pub fn with_description(mut self, description: crate::models::NodeDescription) -> Self {
         self.description = Some(description);
         self
@@ -153,6 +159,7 @@ impl Node {
         self.status = Some(status);
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: crate::models::NodeStatus) -> Self {
         self.status = Some(status);
         self
@@ -170,6 +177,7 @@ impl Node {
         self.manager_status = Some(manager_status);
     }
 
+    #[must_use]
     pub fn with_manager_status(mut self, manager_status: crate::models::ManagerStatus) -> Self {
         self.manager_status = Some(manager_status);
         self

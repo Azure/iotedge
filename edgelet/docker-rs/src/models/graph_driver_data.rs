@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphDriverData {
     #[serde(rename = "Name")]
     name: String,
@@ -31,6 +31,7 @@ impl GraphDriverData {
         self.name = name;
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -44,6 +45,7 @@ impl GraphDriverData {
         self.data = Some(data);
     }
 
+    #[must_use]
     pub fn with_data(mut self, data: ::std::collections::HashMap<String, String>) -> Self {
         self.data = Some(data);
         self

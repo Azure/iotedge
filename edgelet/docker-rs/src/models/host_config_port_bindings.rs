@@ -36,7 +36,7 @@ use serde_json::Value;
 // - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] BTreeMap` property
 //   and is commented out as much as possible. Also copy this devnote there for future readers.
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct HostConfigPortBindings {
     // /// The host IP address
     // #[serde(rename = "HostIp", skip_serializing_if = "Option::is_none")]
@@ -63,6 +63,7 @@ impl HostConfigPortBindings {
     //     self.host_ip = Some(host_ip);
     // }
 
+    // #[must_use]
     // pub fn with_host_ip(mut self, host_ip: String) -> Self {
     //     self.host_ip = Some(host_ip);
     //     self
@@ -80,6 +81,7 @@ impl HostConfigPortBindings {
         self.host_port = Some(host_port);
     }
 
+    #[must_use]
     pub fn with_host_port(mut self, host_port: String) -> Self {
         self.host_port = Some(host_port);
         self

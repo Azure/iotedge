@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Port {
     #[serde(rename = "IP", skip_serializing_if = "Option::is_none")]
     IP: Option<String>,
@@ -24,17 +24,17 @@ pub struct Port {
     #[serde(rename = "PublicPort", skip_serializing_if = "Option::is_none")]
     public_port: Option<i32>,
     #[serde(rename = "Type")]
-    _type: String,
+    r#type: String,
 }
 
 impl Port {
     /// An open port on a container
-    pub fn new(private_port: i32, _type: String) -> Self {
+    pub fn new(private_port: i32, r#type: String) -> Self {
         Port {
             IP: None,
             private_port,
             public_port: None,
-            _type,
+            r#type,
         }
     }
 
@@ -42,6 +42,7 @@ impl Port {
         self.IP = Some(IP);
     }
 
+    #[must_use]
     pub fn with_IP(mut self, IP: String) -> Self {
         self.IP = Some(IP);
         self
@@ -59,6 +60,7 @@ impl Port {
         self.private_port = private_port;
     }
 
+    #[must_use]
     pub fn with_private_port(mut self, private_port: i32) -> Self {
         self.private_port = private_port;
         self
@@ -72,6 +74,7 @@ impl Port {
         self.public_port = Some(public_port);
     }
 
+    #[must_use]
     pub fn with_public_port(mut self, public_port: i32) -> Self {
         self.public_port = Some(public_port);
         self
@@ -85,16 +88,17 @@ impl Port {
         self.public_port = None;
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = _type;
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = r#type;
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = _type;
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = r#type;
         self
     }
 
-    pub fn _type(&self) -> &String {
-        &self._type
+    pub fn r#type(&self) -> &String {
+        &self.r#type
     }
 }

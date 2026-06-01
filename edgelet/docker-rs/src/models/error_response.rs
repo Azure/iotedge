@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ErrorResponse {
     /// The error message.
     #[serde(rename = "message")]
@@ -30,6 +30,7 @@ impl ErrorResponse {
         self.message = message;
     }
 
+    #[must_use]
     pub fn with_message(mut self, message: String) -> Self {
         self.message = message;
         self

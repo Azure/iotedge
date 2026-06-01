@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse2004 {
     /// Exit code of the container
     #[serde(rename = "StatusCode")]
@@ -27,6 +27,7 @@ impl InlineResponse2004 {
         self.status_code = status_code;
     }
 
+    #[must_use]
     pub fn with_status_code(mut self, status_code: i32) -> Self {
         self.status_code = status_code;
         self

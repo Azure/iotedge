@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse2006 {
     /// Disk space reclaimed in bytes
     #[serde(rename = "SpaceReclaimed", skip_serializing_if = "Option::is_none")]
@@ -29,6 +29,7 @@ impl InlineResponse2006 {
         self.space_reclaimed = Some(space_reclaimed);
     }
 
+    #[must_use]
     pub fn with_space_reclaimed(mut self, space_reclaimed: i64) -> Self {
         self.space_reclaimed = Some(space_reclaimed);
         self

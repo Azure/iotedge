@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse2001 {
     /// The ps column titles
     #[serde(rename = "Titles", skip_serializing_if = "Option::is_none")]
@@ -33,6 +33,7 @@ impl InlineResponse2001 {
         self.titles = Some(titles);
     }
 
+    #[must_use]
     pub fn with_titles(mut self, titles: Vec<String>) -> Self {
         self.titles = Some(titles);
         self
@@ -50,6 +51,7 @@ impl InlineResponse2001 {
         self.processes = Some(processes);
     }
 
+    #[must_use]
     pub fn with_processes(mut self, processes: Vec<Vec<String>>) -> Self {
         self.processes = Some(processes);
         self

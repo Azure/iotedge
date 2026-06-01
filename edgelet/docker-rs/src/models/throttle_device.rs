@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ThrottleDevice {
     /// Device path
     #[serde(rename = "Path", skip_serializing_if = "Option::is_none")]
@@ -33,6 +33,7 @@ impl ThrottleDevice {
         self.path = Some(path);
     }
 
+    #[must_use]
     pub fn with_path(mut self, path: String) -> Self {
         self.path = Some(path);
         self
@@ -50,6 +51,7 @@ impl ThrottleDevice {
         self.rate = Some(rate);
     }
 
+    #[must_use]
     pub fn with_rate(mut self, rate: i64) -> Self {
         self.rate = Some(rate);
         self

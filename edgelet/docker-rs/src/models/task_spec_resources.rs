@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskSpecResources {
     /// Define resources limits.
     #[serde(rename = "Limits", skip_serializing_if = "Option::is_none")]
@@ -36,6 +36,7 @@ impl TaskSpecResources {
         self.limits = Some(limits);
     }
 
+    #[must_use]
     pub fn with_limits(mut self, limits: crate::models::ResourceObject) -> Self {
         self.limits = Some(limits);
         self
@@ -53,6 +54,7 @@ impl TaskSpecResources {
         self.reservation = Some(reservation);
     }
 
+    #[must_use]
     pub fn with_reservation(mut self, reservation: crate::models::ResourceObject) -> Self {
         self.reservation = Some(reservation);
         self

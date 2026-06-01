@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ServiceUpdateResponse {
     /// Optional warning messages
     #[serde(rename = "Warnings", skip_serializing_if = "Option::is_none")]
@@ -27,6 +27,7 @@ impl ServiceUpdateResponse {
         self.warnings = Some(warnings);
     }
 
+    #[must_use]
     pub fn with_warnings(mut self, warnings: Vec<String>) -> Self {
         self.warnings = Some(warnings);
         self

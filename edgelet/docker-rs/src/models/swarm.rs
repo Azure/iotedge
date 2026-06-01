@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Swarm {
     /// The ID of the swarm.
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
@@ -56,6 +56,7 @@ impl Swarm {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -73,6 +74,7 @@ impl Swarm {
         self.version = Some(version);
     }
 
+    #[must_use]
     pub fn with_version(mut self, version: crate::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
@@ -90,6 +92,7 @@ impl Swarm {
         self.created_at = Some(created_at);
     }
 
+    #[must_use]
     pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
@@ -107,6 +110,7 @@ impl Swarm {
         self.updated_at = Some(updated_at);
     }
 
+    #[must_use]
     pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
@@ -124,6 +128,7 @@ impl Swarm {
         self.spec = Some(spec);
     }
 
+    #[must_use]
     pub fn with_spec(mut self, spec: crate::models::SwarmSpec) -> Self {
         self.spec = Some(spec);
         self
@@ -141,6 +146,7 @@ impl Swarm {
         self.tls_info = Some(tls_info);
     }
 
+    #[must_use]
     pub fn with_tls_info(mut self, tls_info: crate::models::TlsInfo) -> Self {
         self.tls_info = Some(tls_info);
         self
@@ -158,6 +164,7 @@ impl Swarm {
         self.root_rotation_in_progress = Some(root_rotation_in_progress);
     }
 
+    #[must_use]
     pub fn with_root_rotation_in_progress(mut self, root_rotation_in_progress: bool) -> Self {
         self.root_rotation_in_progress = Some(root_rotation_in_progress);
         self
@@ -175,6 +182,7 @@ impl Swarm {
         self.join_tokens = Some(join_tokens);
     }
 
+    #[must_use]
     pub fn with_join_tokens(mut self, join_tokens: crate::models::JoinTokens) -> Self {
         self.join_tokens = Some(join_tokens);
         self

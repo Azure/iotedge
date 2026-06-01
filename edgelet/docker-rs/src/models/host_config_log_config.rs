@@ -13,10 +13,10 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct HostConfigLogConfig {
     #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
-    _type: Option<String>,
+    r#type: Option<String>,
     #[serde(rename = "Config", skip_serializing_if = "Option::is_none")]
     config: Option<::std::collections::HashMap<String, String>>,
 }
@@ -25,32 +25,34 @@ impl HostConfigLogConfig {
     /// The logging configuration for this container
     pub fn new() -> Self {
         HostConfigLogConfig {
-            _type: None,
+            r#type: None,
             config: None,
         }
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = Some(_type);
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = Some(r#type);
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = Some(_type);
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = Some(r#type);
         self
     }
 
-    pub fn _type(&self) -> Option<&str> {
-        self._type.as_ref().map(AsRef::as_ref)
+    pub fn r#type(&self) -> Option<&str> {
+        self.r#type.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn reset__type(&mut self) {
-        self._type = None;
+    pub fn reset_type(&mut self) {
+        self.r#type = None;
     }
 
     pub fn set_config(&mut self, config: ::std::collections::HashMap<String, String>) {
         self.config = Some(config);
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: ::std::collections::HashMap<String, String>) -> Self {
         self.config = Some(config);
         self

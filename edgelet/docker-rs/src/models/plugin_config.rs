@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PluginConfig {
     /// Docker Version used to create the plugin
     #[serde(rename = "DockerVersion", skip_serializing_if = "Option::is_none")]
@@ -91,6 +91,7 @@ impl PluginConfig {
         self.docker_version = Some(docker_version);
     }
 
+    #[must_use]
     pub fn with_docker_version(mut self, docker_version: String) -> Self {
         self.docker_version = Some(docker_version);
         self
@@ -108,6 +109,7 @@ impl PluginConfig {
         self.description = description;
     }
 
+    #[must_use]
     pub fn with_description(mut self, description: String) -> Self {
         self.description = description;
         self
@@ -121,6 +123,7 @@ impl PluginConfig {
         self.documentation = documentation;
     }
 
+    #[must_use]
     pub fn with_documentation(mut self, documentation: String) -> Self {
         self.documentation = documentation;
         self
@@ -134,6 +137,7 @@ impl PluginConfig {
         self.interface = interface;
     }
 
+    #[must_use]
     pub fn with_interface(mut self, interface: crate::models::PluginConfigInterface) -> Self {
         self.interface = interface;
         self
@@ -147,6 +151,7 @@ impl PluginConfig {
         self.entrypoint = entrypoint;
     }
 
+    #[must_use]
     pub fn with_entrypoint(mut self, entrypoint: Vec<String>) -> Self {
         self.entrypoint = entrypoint;
         self
@@ -160,6 +165,7 @@ impl PluginConfig {
         self.work_dir = work_dir;
     }
 
+    #[must_use]
     pub fn with_work_dir(mut self, work_dir: String) -> Self {
         self.work_dir = work_dir;
         self
@@ -173,6 +179,7 @@ impl PluginConfig {
         self.user = Some(user);
     }
 
+    #[must_use]
     pub fn with_user(mut self, user: crate::models::PluginConfigUser) -> Self {
         self.user = Some(user);
         self
@@ -190,6 +197,7 @@ impl PluginConfig {
         self.network = network;
     }
 
+    #[must_use]
     pub fn with_network(mut self, network: crate::models::PluginConfigNetwork) -> Self {
         self.network = network;
         self
@@ -203,6 +211,7 @@ impl PluginConfig {
         self.linux = linux;
     }
 
+    #[must_use]
     pub fn with_linux(mut self, linux: crate::models::PluginConfigLinux) -> Self {
         self.linux = linux;
         self
@@ -216,6 +225,7 @@ impl PluginConfig {
         self.propagated_mount = propagated_mount;
     }
 
+    #[must_use]
     pub fn with_propagated_mount(mut self, propagated_mount: String) -> Self {
         self.propagated_mount = propagated_mount;
         self
@@ -229,6 +239,7 @@ impl PluginConfig {
         self.ipc_host = ipc_host;
     }
 
+    #[must_use]
     pub fn with_ipc_host(mut self, ipc_host: bool) -> Self {
         self.ipc_host = ipc_host;
         self
@@ -242,6 +253,7 @@ impl PluginConfig {
         self.pid_host = pid_host;
     }
 
+    #[must_use]
     pub fn with_pid_host(mut self, pid_host: bool) -> Self {
         self.pid_host = pid_host;
         self
@@ -255,6 +267,7 @@ impl PluginConfig {
         self.mounts = mounts;
     }
 
+    #[must_use]
     pub fn with_mounts(mut self, mounts: Vec<crate::models::PluginMount>) -> Self {
         self.mounts = mounts;
         self
@@ -268,6 +281,7 @@ impl PluginConfig {
         self.env = env;
     }
 
+    #[must_use]
     pub fn with_env(mut self, env: Vec<crate::models::PluginEnv>) -> Self {
         self.env = env;
         self
@@ -281,6 +295,7 @@ impl PluginConfig {
         self.args = args;
     }
 
+    #[must_use]
     pub fn with_args(mut self, args: crate::models::PluginConfigArgs) -> Self {
         self.args = args;
         self
@@ -294,6 +309,7 @@ impl PluginConfig {
         self.rootfs = Some(rootfs);
     }
 
+    #[must_use]
     pub fn with_rootfs(mut self, rootfs: crate::models::PluginConfigRootfs) -> Self {
         self.rootfs = Some(rootfs);
         self

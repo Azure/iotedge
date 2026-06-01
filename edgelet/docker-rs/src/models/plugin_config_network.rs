@@ -11,27 +11,28 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PluginConfigNetwork {
     #[serde(rename = "Type")]
-    _type: String,
+    r#type: String,
 }
 
 impl PluginConfigNetwork {
-    pub fn new(_type: String) -> Self {
-        PluginConfigNetwork { _type }
+    pub fn new(r#type: String) -> Self {
+        PluginConfigNetwork { r#type }
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = _type;
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = r#type;
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = _type;
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = r#type;
         self
     }
 
-    pub fn _type(&self) -> &String {
-        &self._type
+    pub fn r#type(&self) -> &String {
+        &self.r#type
     }
 }

@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RestartPolicy {
     /// - Empty string means not to restart - `always` Always restart - `unless-stopped` Restart always except when the user has manually stopped the container - `on-failure` Restart only when the container exit code is non-zero
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
@@ -36,6 +36,7 @@ impl RestartPolicy {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -53,6 +54,7 @@ impl RestartPolicy {
         self.maximum_retry_count = Some(maximum_retry_count);
     }
 
+    #[must_use]
     pub fn with_maximum_retry_count(mut self, maximum_retry_count: i32) -> Self {
         self.maximum_retry_count = Some(maximum_retry_count);
         self

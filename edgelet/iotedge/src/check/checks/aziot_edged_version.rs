@@ -1,13 +1,16 @@
 use std::time::Duration;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
+use bytes::Bytes;
+use http_body_util::{BodyExt as _, Empty};
+use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use regex::Regex;
 use semver::Version;
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 use crate::error::{Error, FetchLatestVersionsReason};
 
-const AKA_MS_HTTP_REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
+const AKA_MS_HTTP_REQUEST_TIMEOUT: Duration = Duration::from_mins(5);
 
 #[derive(Default, serde::Serialize)]
 pub(crate) struct AziotEdgedVersion {
@@ -49,7 +52,8 @@ impl AziotEdgedVersion {
 
         let connector = http_common::MaybeProxyConnector::new(proxy, None, &[])
             .context("could not initialize HTTP connector")?;
-        let client: hyper::Client<_, hyper::Body> = hyper::Client::builder().build(connector);
+        let client: Client<_, Empty<Bytes>> =
+            Client::builder(TokioExecutor::new()).build(connector);
 
         let mut uri: hyper::Uri = Self::URI
             .parse()
@@ -99,9 +103,12 @@ impl AziotEdgedVersion {
                 }
 
                 hyper::StatusCode::OK => {
-                    let body = hyper::body::aggregate(res.into_body())
+                    let body = res
+                        .into_body()
+                        .collect()
                         .await
-                        .context("could not read HTTP response")?;
+                        .context("could not read HTTP response")?
+                        .aggregate();
                     let body = serde_json::from_reader(hyper::body::Buf::reader(body))
                         .context("could not read HTTP response")?;
                     break body;
@@ -111,7 +118,7 @@ impl AziotEdgedVersion {
                     return Err(Error::FetchLatestVersions(
                         FetchLatestVersionsReason::ResponseStatusCode(status_code),
                     )
-                    .into())
+                    .into());
                 }
             }
         };
@@ -142,7 +149,7 @@ impl AziotEdgedVersion {
         let captures = aziot_edged_version_regex
             .captures(output.trim())
             .ok_or_else(|| {
-                anyhow!("output {:?} does not match expected format", output,)
+                anyhow!("output {output:?} does not match expected format")
                     .context("Could not parse output of aziot-edged --version")
             })?;
         let version = captures
@@ -170,7 +177,7 @@ impl AziotEdgedVersion {
             // parsing the major and minor versions anyway, so we can just truncate the version string.
             let actual_semver = Version::parse(
                 actual_version
-                    .split(|c| c == '-' || c == '~')
+                    .split(['-', '~'])
                     .next()
                     .unwrap_or(&actual_version),
             )
@@ -214,13 +221,10 @@ impl AziotEdgedVersion {
         check.additional_info.aziot_edged_version = Some(actual_version.clone());
 
         if actual_version != expected_version {
-            return Ok(CheckResult::Warning(
-            anyhow!(
-                "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
+            return Ok(CheckResult::Warning(anyhow!(
+                "Installed IoT Edge daemon has version {actual_version} but {expected_version} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
-                actual_version, expected_version,
-            ),
-        ));
+            )));
         }
 
         Ok(CheckResult::Ok)

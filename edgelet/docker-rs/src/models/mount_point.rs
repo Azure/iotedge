@@ -13,10 +13,10 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct MountPoint {
     #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
-    _type: Option<String>,
+    r#type: Option<String>,
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     #[serde(rename = "Source", skip_serializing_if = "Option::is_none")]
@@ -37,7 +37,7 @@ impl MountPoint {
     /// A mount point inside a container
     pub fn new() -> Self {
         MountPoint {
-            _type: None,
+            r#type: None,
             name: None,
             source: None,
             destination: None,
@@ -48,27 +48,29 @@ impl MountPoint {
         }
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = Some(_type);
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = Some(r#type);
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = Some(_type);
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = Some(r#type);
         self
     }
 
-    pub fn _type(&self) -> Option<&str> {
-        self._type.as_ref().map(AsRef::as_ref)
+    pub fn r#type(&self) -> Option<&str> {
+        self.r#type.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn reset__type(&mut self) {
-        self._type = None;
+    pub fn reset_type(&mut self) {
+        self.r#type = None;
     }
 
     pub fn set_name(&mut self, name: String) {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -86,6 +88,7 @@ impl MountPoint {
         self.source = Some(source);
     }
 
+    #[must_use]
     pub fn with_source(mut self, source: String) -> Self {
         self.source = Some(source);
         self
@@ -103,6 +106,7 @@ impl MountPoint {
         self.destination = Some(destination);
     }
 
+    #[must_use]
     pub fn with_destination(mut self, destination: String) -> Self {
         self.destination = Some(destination);
         self
@@ -120,6 +124,7 @@ impl MountPoint {
         self.driver = Some(driver);
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
@@ -137,6 +142,7 @@ impl MountPoint {
         self.mode = Some(mode);
     }
 
+    #[must_use]
     pub fn with_mode(mut self, mode: String) -> Self {
         self.mode = Some(mode);
         self
@@ -154,6 +160,7 @@ impl MountPoint {
         self.RW = Some(RW);
     }
 
+    #[must_use]
     pub fn with_RW(mut self, RW: bool) -> Self {
         self.RW = Some(RW);
         self
@@ -171,6 +178,7 @@ impl MountPoint {
         self.propagation = Some(propagation);
     }
 
+    #[must_use]
     pub fn with_propagation(mut self, propagation: String) -> Self {
         self.propagation = Some(propagation);
         self

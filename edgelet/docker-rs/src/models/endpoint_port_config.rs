@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct EndpointPortConfig {
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
@@ -43,6 +43,7 @@ impl EndpointPortConfig {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -60,6 +61,7 @@ impl EndpointPortConfig {
         self.protocol = Some(protocol);
     }
 
+    #[must_use]
     pub fn with_protocol(mut self, protocol: String) -> Self {
         self.protocol = Some(protocol);
         self
@@ -77,6 +79,7 @@ impl EndpointPortConfig {
         self.target_port = Some(target_port);
     }
 
+    #[must_use]
     pub fn with_target_port(mut self, target_port: i32) -> Self {
         self.target_port = Some(target_port);
         self
@@ -94,6 +97,7 @@ impl EndpointPortConfig {
         self.published_port = Some(published_port);
     }
 
+    #[must_use]
     pub fn with_published_port(mut self, published_port: i32) -> Self {
         self.published_port = Some(published_port);
         self
@@ -111,6 +115,7 @@ impl EndpointPortConfig {
         self.publish_mode = Some(publish_mode);
     }
 
+    #[must_use]
     pub fn with_publish_mode(mut self, publish_mode: String) -> Self {
         self.publish_mode = Some(publish_mode);
         self

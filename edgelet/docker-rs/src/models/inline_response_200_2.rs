@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse2002 {
     /// Path to file that has changed
     #[serde(rename = "Path")]
@@ -30,6 +30,7 @@ impl InlineResponse2002 {
         self.path = path;
     }
 
+    #[must_use]
     pub fn with_path(mut self, path: String) -> Self {
         self.path = path;
         self
@@ -43,6 +44,7 @@ impl InlineResponse2002 {
         self.kind = kind;
     }
 
+    #[must_use]
     pub fn with_kind(mut self, kind: i32) -> Self {
         self.kind = kind;
         self

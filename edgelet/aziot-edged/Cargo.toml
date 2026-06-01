@@ -2,23 +2,29 @@
 name = "aziot-edged"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
+edition = "2024"
 publish = false
-edition = "2021"
 description = "The aziot-edged is the main binary for the IoT edge daemon."
 homepage = "https://aka.ms/iotedge"
 license = "MIT"
 
+
 [dependencies]
-base64 = "0.21"
-chrono = "0.4"
-clap = { version = "4", features = ["cargo", "string"] }
-futures-util = "0.3"
-log = "0.4"
-serde_json = "1"
-sha2 = "0.10"
-serde = "1"
-tokio = { version = "1", features = ["macros", "parking_lot", "rt-multi-thread", "signal", "sync", "time"] }
-url = "2"
+base64 = { workspace = true }
+clap = { workspace = true }
+futures-util = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+
+aziot-identity-client-async = { workspace = true }
+aziot-identity-common = { workspace = true }
+aziot-identity-common-http = { workspace = true }
+http-common = { workspace = true }
+logger = { workspace = true }
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
@@ -28,9 +34,6 @@ edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-image-cleanup = { path = "../edgelet-image-cleanup" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-logger = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+[lints]
+workspace = true

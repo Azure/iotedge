@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct MountVolumeOptions {
     /// Populate volume with data from the target.
     #[serde(rename = "NoCopy", skip_serializing_if = "Option::is_none")]
@@ -39,6 +39,7 @@ impl MountVolumeOptions {
         self.no_copy = Some(no_copy);
     }
 
+    #[must_use]
     pub fn with_no_copy(mut self, no_copy: bool) -> Self {
         self.no_copy = Some(no_copy);
         self
@@ -56,6 +57,7 @@ impl MountVolumeOptions {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -76,6 +78,7 @@ impl MountVolumeOptions {
         self.driver_config = Some(driver_config);
     }
 
+    #[must_use]
     pub fn with_driver_config(
         mut self,
         driver_config: crate::models::MountVolumeOptionsDriverConfig,

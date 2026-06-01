@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TlsInfo {
     /// The root CA certificate(s) that are used to validate leaf TLS certificates
     #[serde(rename = "TrustRoot", skip_serializing_if = "Option::is_none")]
@@ -43,6 +43,7 @@ impl TlsInfo {
         self.trust_root = Some(trust_root);
     }
 
+    #[must_use]
     pub fn with_trust_root(mut self, trust_root: String) -> Self {
         self.trust_root = Some(trust_root);
         self
@@ -60,6 +61,7 @@ impl TlsInfo {
         self.cert_issuer_subject = Some(cert_issuer_subject);
     }
 
+    #[must_use]
     pub fn with_cert_issuer_subject(mut self, cert_issuer_subject: String) -> Self {
         self.cert_issuer_subject = Some(cert_issuer_subject);
         self
@@ -77,6 +79,7 @@ impl TlsInfo {
         self.cert_issuer_public_key = Some(cert_issuer_public_key);
     }
 
+    #[must_use]
     pub fn with_cert_issuer_public_key(mut self, cert_issuer_public_key: String) -> Self {
         self.cert_issuer_public_key = Some(cert_issuer_public_key);
         self

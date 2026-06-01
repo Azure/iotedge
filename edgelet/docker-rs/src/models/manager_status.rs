@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ManagerStatus {
     #[serde(rename = "Leader", skip_serializing_if = "Option::is_none")]
     leader: Option<bool>,
@@ -38,6 +38,7 @@ impl ManagerStatus {
         self.leader = Some(leader);
     }
 
+    #[must_use]
     pub fn with_leader(mut self, leader: bool) -> Self {
         self.leader = Some(leader);
         self
@@ -55,6 +56,7 @@ impl ManagerStatus {
         self.reachability = Some(reachability);
     }
 
+    #[must_use]
     pub fn with_reachability(mut self, reachability: crate::models::Reachability) -> Self {
         self.reachability = Some(reachability);
         self
@@ -72,6 +74,7 @@ impl ManagerStatus {
         self.addr = Some(addr);
     }
 
+    #[must_use]
     pub fn with_addr(mut self, addr: String) -> Self {
         self.addr = Some(addr);
         self

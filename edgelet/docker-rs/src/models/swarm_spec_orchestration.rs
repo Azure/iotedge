@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SwarmSpecOrchestration {
     /// The number of historic tasks to keep per instance or node. If negative, never remove completed or failed tasks.
     #[serde(
@@ -35,6 +35,7 @@ impl SwarmSpecOrchestration {
         self.task_history_retention_limit = Some(task_history_retention_limit);
     }
 
+    #[must_use]
     pub fn with_task_history_retention_limit(mut self, task_history_retention_limit: i64) -> Self {
         self.task_history_retention_limit = Some(task_history_retention_limit);
         self

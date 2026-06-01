@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse200 {
     /// The ID of the container
     #[serde(rename = "Id", skip_serializing_if = "Option::is_none")]
@@ -108,6 +108,7 @@ impl InlineResponse200 {
         self.id = Some(id);
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
@@ -125,6 +126,7 @@ impl InlineResponse200 {
         self.created = Some(created);
     }
 
+    #[must_use]
     pub fn with_created(mut self, created: String) -> Self {
         self.created = Some(created);
         self
@@ -142,6 +144,7 @@ impl InlineResponse200 {
         self.path = Some(path);
     }
 
+    #[must_use]
     pub fn with_path(mut self, path: String) -> Self {
         self.path = Some(path);
         self
@@ -159,6 +162,7 @@ impl InlineResponse200 {
         self.args = Some(args);
     }
 
+    #[must_use]
     pub fn with_args(mut self, args: Vec<String>) -> Self {
         self.args = Some(args);
         self
@@ -176,6 +180,7 @@ impl InlineResponse200 {
         self.state = Some(state);
     }
 
+    #[must_use]
     pub fn with_state(mut self, state: crate::models::InlineResponse200State) -> Self {
         self.state = Some(state);
         self
@@ -193,6 +198,7 @@ impl InlineResponse200 {
         self.image = Some(image);
     }
 
+    #[must_use]
     pub fn with_image(mut self, image: String) -> Self {
         self.image = Some(image);
         self
@@ -210,6 +216,7 @@ impl InlineResponse200 {
         self.resolv_conf_path = Some(resolv_conf_path);
     }
 
+    #[must_use]
     pub fn with_resolv_conf_path(mut self, resolv_conf_path: String) -> Self {
         self.resolv_conf_path = Some(resolv_conf_path);
         self
@@ -227,6 +234,7 @@ impl InlineResponse200 {
         self.hostname_path = Some(hostname_path);
     }
 
+    #[must_use]
     pub fn with_hostname_path(mut self, hostname_path: String) -> Self {
         self.hostname_path = Some(hostname_path);
         self
@@ -244,6 +252,7 @@ impl InlineResponse200 {
         self.hosts_path = Some(hosts_path);
     }
 
+    #[must_use]
     pub fn with_hosts_path(mut self, hosts_path: String) -> Self {
         self.hosts_path = Some(hosts_path);
         self
@@ -261,6 +270,7 @@ impl InlineResponse200 {
         self.log_path = Some(log_path);
     }
 
+    #[must_use]
     pub fn with_log_path(mut self, log_path: String) -> Self {
         self.log_path = Some(log_path);
         self
@@ -278,6 +288,7 @@ impl InlineResponse200 {
         self.node = Some(node);
     }
 
+    #[must_use]
     pub fn with_node(mut self, node: Value) -> Self {
         self.node = Some(node);
         self
@@ -295,6 +306,7 @@ impl InlineResponse200 {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -312,6 +324,7 @@ impl InlineResponse200 {
         self.restart_count = Some(restart_count);
     }
 
+    #[must_use]
     pub fn with_restart_count(mut self, restart_count: i32) -> Self {
         self.restart_count = Some(restart_count);
         self
@@ -329,6 +342,7 @@ impl InlineResponse200 {
         self.driver = Some(driver);
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
@@ -346,6 +360,7 @@ impl InlineResponse200 {
         self.mount_label = Some(mount_label);
     }
 
+    #[must_use]
     pub fn with_mount_label(mut self, mount_label: String) -> Self {
         self.mount_label = Some(mount_label);
         self
@@ -363,6 +378,7 @@ impl InlineResponse200 {
         self.process_label = Some(process_label);
     }
 
+    #[must_use]
     pub fn with_process_label(mut self, process_label: String) -> Self {
         self.process_label = Some(process_label);
         self
@@ -380,6 +396,7 @@ impl InlineResponse200 {
         self.app_armor_profile = Some(app_armor_profile);
     }
 
+    #[must_use]
     pub fn with_app_armor_profile(mut self, app_armor_profile: String) -> Self {
         self.app_armor_profile = Some(app_armor_profile);
         self
@@ -397,6 +414,7 @@ impl InlineResponse200 {
         self.exec_i_ds = Some(exec_i_ds);
     }
 
+    #[must_use]
     pub fn with_exec_i_ds(mut self, exec_i_ds: Vec<String>) -> Self {
         self.exec_i_ds = Some(exec_i_ds);
         self
@@ -414,6 +432,7 @@ impl InlineResponse200 {
         self.host_config = Some(host_config);
     }
 
+    #[must_use]
     pub fn with_host_config(mut self, host_config: crate::models::HostConfig) -> Self {
         self.host_config = Some(host_config);
         self
@@ -431,6 +450,7 @@ impl InlineResponse200 {
         self.graph_driver = Some(graph_driver);
     }
 
+    #[must_use]
     pub fn with_graph_driver(mut self, graph_driver: crate::models::GraphDriverData) -> Self {
         self.graph_driver = Some(graph_driver);
         self
@@ -448,6 +468,7 @@ impl InlineResponse200 {
         self.size_rw = Some(size_rw);
     }
 
+    #[must_use]
     pub fn with_size_rw(mut self, size_rw: i64) -> Self {
         self.size_rw = Some(size_rw);
         self
@@ -465,6 +486,7 @@ impl InlineResponse200 {
         self.size_root_fs = Some(size_root_fs);
     }
 
+    #[must_use]
     pub fn with_size_root_fs(mut self, size_root_fs: i64) -> Self {
         self.size_root_fs = Some(size_root_fs);
         self
@@ -482,6 +504,7 @@ impl InlineResponse200 {
         self.mounts = Some(mounts);
     }
 
+    #[must_use]
     pub fn with_mounts(mut self, mounts: Vec<crate::models::MountPoint>) -> Self {
         self.mounts = Some(mounts);
         self
@@ -499,6 +522,7 @@ impl InlineResponse200 {
         self.config = Some(config);
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: crate::models::ContainerConfig) -> Self {
         self.config = Some(config);
         self
@@ -516,6 +540,7 @@ impl InlineResponse200 {
         self.network_settings = Some(network_settings);
     }
 
+    #[must_use]
     pub fn with_network_settings(
         mut self,
         network_settings: crate::models::NetworkSettings,

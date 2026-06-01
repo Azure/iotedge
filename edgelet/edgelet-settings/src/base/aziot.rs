@@ -9,6 +9,7 @@ pub enum AutoReprovisioningMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+#[expect(clippy::struct_field_names)]
 pub struct Endpoints {
     aziot_certd_url: url::Url,
     aziot_keyd_url: url::Url,

@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ImageMetadata {
     #[serde(rename = "LastTagTime", skip_serializing_if = "Option::is_none")]
     last_tag_time: Option<String>,
@@ -28,6 +28,7 @@ impl ImageMetadata {
         self.last_tag_time = Some(last_tag_time);
     }
 
+    #[must_use]
     pub fn with_last_tag_time(mut self, last_tag_time: String) -> Self {
         self.last_tag_time = Some(last_tag_time);
         self

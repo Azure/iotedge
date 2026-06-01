@@ -1,7 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
 use anyhow::Context;
-use hyper::Uri;
+use bytes::Bytes;
+use http_body_util::Empty;
+use hyper::{Uri, body::Incoming};
 use url::Url;
 
 use edgelet_core::{
@@ -121,7 +123,7 @@ impl ModuleRuntime for MgmtClient {
         unimplemented!()
     }
 
-    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body> {
+    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<Incoming> {
         let uri = {
             let mut query = ::url::form_urlencoded::Serializer::new(String::new());
             query
@@ -141,7 +143,7 @@ impl ModuleRuntime for MgmtClient {
         let req = hyper::Request::builder()
             .method(hyper::Method::GET)
             .uri(uri)
-            .body(hyper::Body::empty())
+            .body(Empty::<Bytes>::new())
             .expect("could not build hyper::Request");
         let client = self.connector.clone().into_client();
         let resp = client.request(req).await.context(Error::ModuleRuntime)?;

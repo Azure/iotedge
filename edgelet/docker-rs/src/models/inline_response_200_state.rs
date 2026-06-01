@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse200State {
     /// The status of the container. For example, `\"running\"` or `\"exited\"`.
     #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]
@@ -70,6 +70,7 @@ impl InlineResponse200State {
         self.status = Some(status);
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
@@ -87,6 +88,7 @@ impl InlineResponse200State {
         self.running = Some(running);
     }
 
+    #[must_use]
     pub fn with_running(mut self, running: bool) -> Self {
         self.running = Some(running);
         self
@@ -104,6 +106,7 @@ impl InlineResponse200State {
         self.paused = Some(paused);
     }
 
+    #[must_use]
     pub fn with_paused(mut self, paused: bool) -> Self {
         self.paused = Some(paused);
         self
@@ -121,6 +124,7 @@ impl InlineResponse200State {
         self.restarting = Some(restarting);
     }
 
+    #[must_use]
     pub fn with_restarting(mut self, restarting: bool) -> Self {
         self.restarting = Some(restarting);
         self
@@ -138,6 +142,7 @@ impl InlineResponse200State {
         self.oom_killed = Some(oom_killed);
     }
 
+    #[must_use]
     pub fn with_oom_killed(mut self, oom_killed: bool) -> Self {
         self.oom_killed = Some(oom_killed);
         self
@@ -155,6 +160,7 @@ impl InlineResponse200State {
         self.dead = Some(dead);
     }
 
+    #[must_use]
     pub fn with_dead(mut self, dead: bool) -> Self {
         self.dead = Some(dead);
         self
@@ -172,6 +178,7 @@ impl InlineResponse200State {
         self.pid = Some(pid);
     }
 
+    #[must_use]
     pub fn with_pid(mut self, pid: i32) -> Self {
         self.pid = Some(pid);
         self
@@ -189,6 +196,7 @@ impl InlineResponse200State {
         self.exit_code = Some(exit_code);
     }
 
+    #[must_use]
     pub fn with_exit_code(mut self, exit_code: i64) -> Self {
         self.exit_code = Some(exit_code);
         self
@@ -206,6 +214,7 @@ impl InlineResponse200State {
         self.error = Some(error);
     }
 
+    #[must_use]
     pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
@@ -223,6 +232,7 @@ impl InlineResponse200State {
         self.started_at = Some(started_at);
     }
 
+    #[must_use]
     pub fn with_started_at(mut self, started_at: String) -> Self {
         self.started_at = Some(started_at);
         self
@@ -240,6 +250,7 @@ impl InlineResponse200State {
         self.finished_at = Some(finished_at);
     }
 
+    #[must_use]
     pub fn with_finished_at(mut self, finished_at: String) -> Self {
         self.finished_at = Some(finished_at);
         self

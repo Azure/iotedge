@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Config {
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
@@ -40,6 +40,7 @@ impl Config {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -57,6 +58,7 @@ impl Config {
         self.version = Some(version);
     }
 
+    #[must_use]
     pub fn with_version(mut self, version: crate::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
@@ -74,6 +76,7 @@ impl Config {
         self.created_at = Some(created_at);
     }
 
+    #[must_use]
     pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
@@ -91,6 +94,7 @@ impl Config {
         self.updated_at = Some(updated_at);
     }
 
+    #[must_use]
     pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
@@ -108,6 +112,7 @@ impl Config {
         self.spec = Some(spec);
     }
 
+    #[must_use]
     pub fn with_spec(mut self, spec: crate::models::ConfigSpec) -> Self {
         self.spec = Some(spec);
         self

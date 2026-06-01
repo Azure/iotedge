@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PluginConfigInterface {
     #[serde(rename = "Types")]
     types: Vec<crate::models::PluginInterfaceType>,
@@ -31,6 +31,7 @@ impl PluginConfigInterface {
         self.types = types;
     }
 
+    #[must_use]
     pub fn with_types(mut self, types: Vec<crate::models::PluginInterfaceType>) -> Self {
         self.types = types;
         self
@@ -44,6 +45,7 @@ impl PluginConfigInterface {
         self.socket = socket;
     }
 
+    #[must_use]
     pub fn with_socket(mut self, socket: String) -> Self {
         self.socket = socket;
         self

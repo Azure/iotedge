@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Container1 {
     /// The ID or name of the container to disconnect from the network.
     #[serde(rename = "Container", skip_serializing_if = "Option::is_none")]
@@ -33,6 +33,7 @@ impl Container1 {
         self.container = Some(container);
     }
 
+    #[must_use]
     pub fn with_container(mut self, container: String) -> Self {
         self.container = Some(container);
         self
@@ -50,6 +51,7 @@ impl Container1 {
         self.force = Some(force);
     }
 
+    #[must_use]
     pub fn with_force(mut self, force: bool) -> Self {
         self.force = Some(force);
         self

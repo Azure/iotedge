@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Container {
     /// The ID or name of the container to connect to the network.
     #[serde(rename = "Container", skip_serializing_if = "Option::is_none")]
@@ -32,6 +32,7 @@ impl Container {
         self.container = Some(container);
     }
 
+    #[must_use]
     pub fn with_container(mut self, container: String) -> Self {
         self.container = Some(container);
         self
@@ -49,6 +50,7 @@ impl Container {
         self.endpoint_config = Some(endpoint_config);
     }
 
+    #[must_use]
     pub fn with_endpoint_config(
         mut self,
         endpoint_config: crate::models::EndpointSettings,

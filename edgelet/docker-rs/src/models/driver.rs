@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Driver {
     /// Name of the driver.
     #[serde(rename = "Name")]
@@ -36,6 +36,7 @@ impl Driver {
         self.name = name;
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -49,6 +50,7 @@ impl Driver {
         self.options = Some(options);
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self

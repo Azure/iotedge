@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PluginsInfo {
     /// Names of available volume-drivers, and network-driver plugins.
     #[serde(rename = "Volume", skip_serializing_if = "Option::is_none")]
@@ -44,6 +44,7 @@ impl PluginsInfo {
         self.volume = Some(volume);
     }
 
+    #[must_use]
     pub fn with_volume(mut self, volume: Vec<String>) -> Self {
         self.volume = Some(volume);
         self
@@ -61,6 +62,7 @@ impl PluginsInfo {
         self.network = Some(network);
     }
 
+    #[must_use]
     pub fn with_network(mut self, network: Vec<String>) -> Self {
         self.network = Some(network);
         self
@@ -78,6 +80,7 @@ impl PluginsInfo {
         self.authorization = Some(authorization);
     }
 
+    #[must_use]
     pub fn with_authorization(mut self, authorization: Vec<String>) -> Self {
         self.authorization = Some(authorization);
         self
@@ -95,6 +98,7 @@ impl PluginsInfo {
         self.log = Some(log);
     }
 
+    #[must_use]
     pub fn with_log(mut self, log: Vec<String>) -> Self {
         self.log = Some(log);
         self

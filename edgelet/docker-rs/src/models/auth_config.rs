@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct AuthConfig {
     #[serde(rename = "username", skip_serializing_if = "Option::is_none")]
     username: Option<String>,
@@ -37,6 +37,7 @@ impl AuthConfig {
         self.username = Some(username);
     }
 
+    #[must_use]
     pub fn with_username(mut self, username: String) -> Self {
         self.username = Some(username);
         self
@@ -54,6 +55,7 @@ impl AuthConfig {
         self.password = Some(password);
     }
 
+    #[must_use]
     pub fn with_password(mut self, password: String) -> Self {
         self.password = Some(password);
         self
@@ -71,6 +73,7 @@ impl AuthConfig {
         self.email = Some(email);
     }
 
+    #[must_use]
     pub fn with_email(mut self, email: String) -> Self {
         self.email = Some(email);
         self
@@ -88,6 +91,7 @@ impl AuthConfig {
         self.serveraddress = Some(serveraddress);
     }
 
+    #[must_use]
     pub fn with_serveraddress(mut self, serveraddress: String) -> Self {
         self.serveraddress = Some(serveraddress);
         self

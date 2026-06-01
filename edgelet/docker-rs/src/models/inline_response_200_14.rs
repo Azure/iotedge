@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse20014 {
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
     ID: Option<String>,
@@ -53,6 +53,7 @@ impl InlineResponse20014 {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -70,6 +71,7 @@ impl InlineResponse20014 {
         self.running = Some(running);
     }
 
+    #[must_use]
     pub fn with_running(mut self, running: bool) -> Self {
         self.running = Some(running);
         self
@@ -87,6 +89,7 @@ impl InlineResponse20014 {
         self.exit_code = Some(exit_code);
     }
 
+    #[must_use]
     pub fn with_exit_code(mut self, exit_code: i32) -> Self {
         self.exit_code = Some(exit_code);
         self
@@ -104,6 +107,7 @@ impl InlineResponse20014 {
         self.process_config = Some(process_config);
     }
 
+    #[must_use]
     pub fn with_process_config(mut self, process_config: crate::models::ProcessConfig) -> Self {
         self.process_config = Some(process_config);
         self
@@ -121,6 +125,7 @@ impl InlineResponse20014 {
         self.open_stdin = Some(open_stdin);
     }
 
+    #[must_use]
     pub fn with_open_stdin(mut self, open_stdin: bool) -> Self {
         self.open_stdin = Some(open_stdin);
         self
@@ -138,6 +143,7 @@ impl InlineResponse20014 {
         self.open_stderr = Some(open_stderr);
     }
 
+    #[must_use]
     pub fn with_open_stderr(mut self, open_stderr: bool) -> Self {
         self.open_stderr = Some(open_stderr);
         self
@@ -155,6 +161,7 @@ impl InlineResponse20014 {
         self.open_stdout = Some(open_stdout);
     }
 
+    #[must_use]
     pub fn with_open_stdout(mut self, open_stdout: bool) -> Self {
         self.open_stdout = Some(open_stdout);
         self
@@ -172,6 +179,7 @@ impl InlineResponse20014 {
         self.container_id = Some(container_id);
     }
 
+    #[must_use]
     pub fn with_container_id(mut self, container_id: String) -> Self {
         self.container_id = Some(container_id);
         self
@@ -189,6 +197,7 @@ impl InlineResponse20014 {
         self.pid = Some(pid);
     }
 
+    #[must_use]
     pub fn with_pid(mut self, pid: i32) -> Self {
         self.pid = Some(pid);
         self

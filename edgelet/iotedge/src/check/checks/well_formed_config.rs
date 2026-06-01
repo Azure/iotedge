@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use edgelet_settings::{Settings, CONFIG_FILE_DEFAULT, UPSTREAM_PARENT_KEYWORD};
+use edgelet_settings::{CONFIG_FILE_DEFAULT, Settings, UPSTREAM_PARENT_KEYWORD};
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 use crate::error::Error;
@@ -57,13 +57,12 @@ impl WellFormedConfig {
             }
         };
 
-        if let Some(parent_hostname) = check.parent_hostname.as_ref() {
-            if let Some(image_tail) = check
+        if let Some(parent_hostname) = check.parent_hostname.as_ref()
+            && let Some(image_tail) = check
                 .diagnostics_image_name
                 .strip_prefix(UPSTREAM_PARENT_KEYWORD)
-            {
-                check.diagnostics_image_name = format!("{parent_hostname}{image_tail}");
-            }
+        {
+            check.diagnostics_image_name = format!("{parent_hostname}{image_tail}");
         }
 
         check.settings = Some(settings);

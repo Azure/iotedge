@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskSpecPlacementSpread {
     /// label descriptor, such as engine.labels.az
     #[serde(rename = "SpreadDescriptor", skip_serializing_if = "Option::is_none")]
@@ -29,6 +29,7 @@ impl TaskSpecPlacementSpread {
         self.spread_descriptor = Some(spread_descriptor);
     }
 
+    #[must_use]
     pub fn with_spread_descriptor(mut self, spread_descriptor: String) -> Self {
         self.spread_descriptor = Some(spread_descriptor);
         self

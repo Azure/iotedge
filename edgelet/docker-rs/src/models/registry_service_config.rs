@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct RegistryServiceConfig {
     /// List of IP ranges to which nondistributable artifacts can be pushed, using the CIDR syntax [RFC 4632](https://tools.ietf.org/html/4632).  Some images (for example, Windows base images) contain artifacts whose distribution is restricted by license. When these images are pushed to a registry, restricted artifacts are not included.  This configuration override this behavior, and enables the daemon to push nondistributable artifacts to all registries whose resolved IP address is within the subnet described by the CIDR syntax.  This option is useful when pushing images containing nondistributable artifacts to a registry on an air-gapped network so hosts on that network can pull the images without connecting to another server.  > **Warning**: Nondistributable artifacts typically have restrictions > on how and where they can be distributed and shared. Only use this > feature to push artifacts to private registries and ensure that you > are in compliance with any terms that cover redistributing > nondistributable artifacts.
     #[serde(
@@ -60,6 +60,7 @@ impl RegistryServiceConfig {
             Some(allow_nondistributable_artifacts_cid_rs);
     }
 
+    #[must_use]
     pub fn with_allow_nondistributable_artifacts_cid_rs(
         mut self,
         allow_nondistributable_artifacts_cid_rs: Vec<String>,
@@ -87,6 +88,7 @@ impl RegistryServiceConfig {
             Some(allow_nondistributable_artifacts_hostnames);
     }
 
+    #[must_use]
     pub fn with_allow_nondistributable_artifacts_hostnames(
         mut self,
         allow_nondistributable_artifacts_hostnames: Vec<String>,
@@ -110,6 +112,7 @@ impl RegistryServiceConfig {
         self.insecure_registry_cid_rs = Some(insecure_registry_cid_rs);
     }
 
+    #[must_use]
     pub fn with_insecure_registry_cid_rs(mut self, insecure_registry_cid_rs: Vec<String>) -> Self {
         self.insecure_registry_cid_rs = Some(insecure_registry_cid_rs);
         self
@@ -130,6 +133,7 @@ impl RegistryServiceConfig {
         self.index_configs = Some(index_configs);
     }
 
+    #[must_use]
     pub fn with_index_configs(
         mut self,
         index_configs: ::std::collections::HashMap<String, crate::models::IndexInfo>,
@@ -152,6 +156,7 @@ impl RegistryServiceConfig {
         self.mirrors = Some(mirrors);
     }
 
+    #[must_use]
     pub fn with_mirrors(mut self, mirrors: Vec<String>) -> Self {
         self.mirrors = Some(mirrors);
         self

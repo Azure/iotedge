@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse20020 {
     #[serde(rename = "Descriptor")]
     descriptor: crate::models::InlineResponse20020Descriptor,
@@ -35,6 +35,7 @@ impl InlineResponse20020 {
         self.descriptor = descriptor;
     }
 
+    #[must_use]
     pub fn with_descriptor(
         mut self,
         descriptor: crate::models::InlineResponse20020Descriptor,
@@ -51,6 +52,7 @@ impl InlineResponse20020 {
         self.platforms = platforms;
     }
 
+    #[must_use]
     pub fn with_platforms(
         mut self,
         platforms: Vec<crate::models::InlineResponse20020Platforms>,

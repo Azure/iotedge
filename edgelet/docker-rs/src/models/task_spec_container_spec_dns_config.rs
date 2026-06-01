@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskSpecContainerSpecDnsConfig {
     /// The IP addresses of the name servers.
     #[serde(rename = "Nameservers", skip_serializing_if = "Option::is_none")]
@@ -40,6 +40,7 @@ impl TaskSpecContainerSpecDnsConfig {
         self.nameservers = Some(nameservers);
     }
 
+    #[must_use]
     pub fn with_nameservers(mut self, nameservers: Vec<String>) -> Self {
         self.nameservers = Some(nameservers);
         self
@@ -57,6 +58,7 @@ impl TaskSpecContainerSpecDnsConfig {
         self.search = Some(search);
     }
 
+    #[must_use]
     pub fn with_search(mut self, search: Vec<String>) -> Self {
         self.search = Some(search);
         self
@@ -74,6 +76,7 @@ impl TaskSpecContainerSpecDnsConfig {
         self.options = Some(options);
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: Vec<String>) -> Self {
         self.options = Some(options);
         self

@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Body2 {
     /// Listen address used for inter-manager communication if the node gets promoted to manager, as well as determining the networking interface used for the VXLAN Tunnel Endpoint (VTEP).
     #[serde(rename = "ListenAddr", skip_serializing_if = "Option::is_none")]
@@ -45,6 +45,7 @@ impl Body2 {
         self.listen_addr = Some(listen_addr);
     }
 
+    #[must_use]
     pub fn with_listen_addr(mut self, listen_addr: String) -> Self {
         self.listen_addr = Some(listen_addr);
         self
@@ -62,6 +63,7 @@ impl Body2 {
         self.advertise_addr = Some(advertise_addr);
     }
 
+    #[must_use]
     pub fn with_advertise_addr(mut self, advertise_addr: String) -> Self {
         self.advertise_addr = Some(advertise_addr);
         self
@@ -79,6 +81,7 @@ impl Body2 {
         self.data_path_addr = Some(data_path_addr);
     }
 
+    #[must_use]
     pub fn with_data_path_addr(mut self, data_path_addr: String) -> Self {
         self.data_path_addr = Some(data_path_addr);
         self
@@ -96,6 +99,7 @@ impl Body2 {
         self.remote_addrs = Some(remote_addrs);
     }
 
+    #[must_use]
     pub fn with_remote_addrs(mut self, remote_addrs: String) -> Self {
         self.remote_addrs = Some(remote_addrs);
         self
@@ -113,6 +117,7 @@ impl Body2 {
         self.join_token = Some(join_token);
     }
 
+    #[must_use]
     pub fn with_join_token(mut self, join_token: String) -> Self {
         self.join_token = Some(join_token);
         self

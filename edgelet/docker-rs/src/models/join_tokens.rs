@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct JoinTokens {
     /// The token workers can use to join the swarm.
     #[serde(rename = "Worker", skip_serializing_if = "Option::is_none")]
@@ -36,6 +36,7 @@ impl JoinTokens {
         self.worker = Some(worker);
     }
 
+    #[must_use]
     pub fn with_worker(mut self, worker: String) -> Self {
         self.worker = Some(worker);
         self
@@ -53,6 +54,7 @@ impl JoinTokens {
         self.manager = Some(manager);
     }
 
+    #[must_use]
     pub fn with_manager(mut self, manager: String) -> Self {
         self.manager = Some(manager);
         self

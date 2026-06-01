@@ -1,16 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(rust_2018_idioms, warnings)]
-#![allow(
-    dead_code,
-    non_snake_case,
-    renamed_and_removed_lints,
-    unused_imports,
-    unused_mut
+#![expect(
+    clippy::doc_link_with_quotes,
+    clippy::doc_markdown,
+    clippy::empty_line_after_doc_comments,
+    clippy::new_without_default,
+    clippy::struct_field_names
 )]
-#![allow(clippy::all, clippy::pedantic)]
 #![cfg(not(tarpaulin_include))]
+
 pub mod apis;
+
+#[expect(non_snake_case)]
 pub mod models;
 
 pub use apis::{DockerApi, DockerApiClient};

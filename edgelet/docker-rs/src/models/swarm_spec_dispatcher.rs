@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SwarmSpecDispatcher {
     /// The delay for an agent to send a heartbeat to the dispatcher.
     #[serde(rename = "HeartbeatPeriod", skip_serializing_if = "Option::is_none")]
@@ -32,6 +32,7 @@ impl SwarmSpecDispatcher {
         self.heartbeat_period = Some(heartbeat_period);
     }
 
+    #[must_use]
     pub fn with_heartbeat_period(mut self, heartbeat_period: i64) -> Self {
         self.heartbeat_period = Some(heartbeat_period);
         self

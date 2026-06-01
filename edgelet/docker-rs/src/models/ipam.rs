@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Clone, Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Ipam {
     /// Name of the IPAM driver to use.
     #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
@@ -37,6 +37,7 @@ impl Ipam {
         self.driver = Some(driver);
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
@@ -54,6 +55,7 @@ impl Ipam {
         self.config = Some(config);
     }
 
+    #[must_use]
     pub fn with_config(mut self, config: Vec<::std::collections::HashMap<String, String>>) -> Self {
         self.config = Some(config);
         self
@@ -71,6 +73,7 @@ impl Ipam {
         self.options = Some(options);
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self

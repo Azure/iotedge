@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ServiceSpec {
     /// Name of the service.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
@@ -55,6 +55,7 @@ impl ServiceSpec {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -72,6 +73,7 @@ impl ServiceSpec {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -89,6 +91,7 @@ impl ServiceSpec {
         self.task_template = Some(task_template);
     }
 
+    #[must_use]
     pub fn with_task_template(mut self, task_template: crate::models::TaskSpec) -> Self {
         self.task_template = Some(task_template);
         self
@@ -106,6 +109,7 @@ impl ServiceSpec {
         self.mode = Some(mode);
     }
 
+    #[must_use]
     pub fn with_mode(mut self, mode: crate::models::ServiceSpecMode) -> Self {
         self.mode = Some(mode);
         self
@@ -123,6 +127,7 @@ impl ServiceSpec {
         self.update_config = Some(update_config);
     }
 
+    #[must_use]
     pub fn with_update_config(
         mut self,
         update_config: crate::models::ServiceSpecUpdateConfig,
@@ -146,6 +151,7 @@ impl ServiceSpec {
         self.rollback_config = Some(rollback_config);
     }
 
+    #[must_use]
     pub fn with_rollback_config(
         mut self,
         rollback_config: crate::models::ServiceSpecRollbackConfig,
@@ -166,6 +172,7 @@ impl ServiceSpec {
         self.networks = Some(networks);
     }
 
+    #[must_use]
     pub fn with_networks(mut self, networks: Vec<crate::models::TaskSpecNetworks>) -> Self {
         self.networks = Some(networks);
         self
@@ -183,6 +190,7 @@ impl ServiceSpec {
         self.endpoint_spec = Some(endpoint_spec);
     }
 
+    #[must_use]
     pub fn with_endpoint_spec(mut self, endpoint_spec: crate::models::EndpointSpec) -> Self {
         self.endpoint_spec = Some(endpoint_spec);
         self

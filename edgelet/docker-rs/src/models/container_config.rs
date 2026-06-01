@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContainerConfig {
     /// The hostname to use for the container, as a valid RFC 1123 hostname.
     #[serde(rename = "Hostname", skip_serializing_if = "Option::is_none")]
@@ -118,6 +118,7 @@ impl ContainerConfig {
         self.hostname = Some(hostname);
     }
 
+    #[must_use]
     pub fn with_hostname(mut self, hostname: String) -> Self {
         self.hostname = Some(hostname);
         self
@@ -135,6 +136,7 @@ impl ContainerConfig {
         self.domainname = Some(domainname);
     }
 
+    #[must_use]
     pub fn with_domainname(mut self, domainname: String) -> Self {
         self.domainname = Some(domainname);
         self
@@ -152,6 +154,7 @@ impl ContainerConfig {
         self.user = Some(user);
     }
 
+    #[must_use]
     pub fn with_user(mut self, user: String) -> Self {
         self.user = Some(user);
         self
@@ -169,6 +172,7 @@ impl ContainerConfig {
         self.attach_stdin = Some(attach_stdin);
     }
 
+    #[must_use]
     pub fn with_attach_stdin(mut self, attach_stdin: bool) -> Self {
         self.attach_stdin = Some(attach_stdin);
         self
@@ -186,6 +190,7 @@ impl ContainerConfig {
         self.attach_stdout = Some(attach_stdout);
     }
 
+    #[must_use]
     pub fn with_attach_stdout(mut self, attach_stdout: bool) -> Self {
         self.attach_stdout = Some(attach_stdout);
         self
@@ -203,6 +208,7 @@ impl ContainerConfig {
         self.attach_stderr = Some(attach_stderr);
     }
 
+    #[must_use]
     pub fn with_attach_stderr(mut self, attach_stderr: bool) -> Self {
         self.attach_stderr = Some(attach_stderr);
         self
@@ -220,6 +226,7 @@ impl ContainerConfig {
         self.exposed_ports = Some(exposed_ports);
     }
 
+    #[must_use]
     pub fn with_exposed_ports(
         mut self,
         exposed_ports: ::std::collections::HashMap<String, Value>,
@@ -240,6 +247,7 @@ impl ContainerConfig {
         self.tty = Some(tty);
     }
 
+    #[must_use]
     pub fn with_tty(mut self, tty: bool) -> Self {
         self.tty = Some(tty);
         self
@@ -257,6 +265,7 @@ impl ContainerConfig {
         self.open_stdin = Some(open_stdin);
     }
 
+    #[must_use]
     pub fn with_open_stdin(mut self, open_stdin: bool) -> Self {
         self.open_stdin = Some(open_stdin);
         self
@@ -274,6 +283,7 @@ impl ContainerConfig {
         self.stdin_once = Some(stdin_once);
     }
 
+    #[must_use]
     pub fn with_stdin_once(mut self, stdin_once: bool) -> Self {
         self.stdin_once = Some(stdin_once);
         self
@@ -291,6 +301,7 @@ impl ContainerConfig {
         self.env = Some(env);
     }
 
+    #[must_use]
     pub fn with_env(mut self, env: Vec<String>) -> Self {
         self.env = Some(env);
         self
@@ -308,6 +319,7 @@ impl ContainerConfig {
         self.healthcheck = Some(healthcheck);
     }
 
+    #[must_use]
     pub fn with_healthcheck(mut self, healthcheck: crate::models::HealthConfig) -> Self {
         self.healthcheck = Some(healthcheck);
         self
@@ -325,6 +337,7 @@ impl ContainerConfig {
         self.args_escaped = Some(args_escaped);
     }
 
+    #[must_use]
     pub fn with_args_escaped(mut self, args_escaped: bool) -> Self {
         self.args_escaped = Some(args_escaped);
         self
@@ -342,6 +355,7 @@ impl ContainerConfig {
         self.image = Some(image);
     }
 
+    #[must_use]
     pub fn with_image(mut self, image: String) -> Self {
         self.image = Some(image);
         self
@@ -359,6 +373,7 @@ impl ContainerConfig {
         self.volumes = Some(volumes);
     }
 
+    #[must_use]
     pub fn with_volumes(mut self, volumes: ::std::collections::HashMap<String, Value>) -> Self {
         self.volumes = Some(volumes);
         self
@@ -376,6 +391,7 @@ impl ContainerConfig {
         self.working_dir = Some(working_dir);
     }
 
+    #[must_use]
     pub fn with_working_dir(mut self, working_dir: String) -> Self {
         self.working_dir = Some(working_dir);
         self
@@ -393,6 +409,7 @@ impl ContainerConfig {
         self.network_disabled = Some(network_disabled);
     }
 
+    #[must_use]
     pub fn with_network_disabled(mut self, network_disabled: bool) -> Self {
         self.network_disabled = Some(network_disabled);
         self
@@ -410,6 +427,7 @@ impl ContainerConfig {
         self.mac_address = Some(mac_address);
     }
 
+    #[must_use]
     pub fn with_mac_address(mut self, mac_address: String) -> Self {
         self.mac_address = Some(mac_address);
         self
@@ -427,6 +445,7 @@ impl ContainerConfig {
         self.on_build = Some(on_build);
     }
 
+    #[must_use]
     pub fn with_on_build(mut self, on_build: Vec<String>) -> Self {
         self.on_build = Some(on_build);
         self
@@ -444,6 +463,7 @@ impl ContainerConfig {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -461,6 +481,7 @@ impl ContainerConfig {
         self.stop_signal = Some(stop_signal);
     }
 
+    #[must_use]
     pub fn with_stop_signal(mut self, stop_signal: String) -> Self {
         self.stop_signal = Some(stop_signal);
         self
@@ -478,6 +499,7 @@ impl ContainerConfig {
         self.stop_timeout = Some(stop_timeout);
     }
 
+    #[must_use]
     pub fn with_stop_timeout(mut self, stop_timeout: i32) -> Self {
         self.stop_timeout = Some(stop_timeout);
         self
@@ -495,6 +517,7 @@ impl ContainerConfig {
         self.shell = Some(shell);
     }
 
+    #[must_use]
     pub fn with_shell(mut self, shell: Vec<String>) -> Self {
         self.shell = Some(shell);
         self

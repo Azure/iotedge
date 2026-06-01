@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct BuildInfo {
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
     id: Option<String>,
@@ -46,6 +46,7 @@ impl BuildInfo {
         self.id = Some(id);
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: String) -> Self {
         self.id = Some(id);
         self
@@ -63,6 +64,7 @@ impl BuildInfo {
         self.stream = Some(stream);
     }
 
+    #[must_use]
     pub fn with_stream(mut self, stream: String) -> Self {
         self.stream = Some(stream);
         self
@@ -80,6 +82,7 @@ impl BuildInfo {
         self.error = Some(error);
     }
 
+    #[must_use]
     pub fn with_error(mut self, error: String) -> Self {
         self.error = Some(error);
         self
@@ -97,6 +100,7 @@ impl BuildInfo {
         self.error_detail = Some(error_detail);
     }
 
+    #[must_use]
     pub fn with_error_detail(mut self, error_detail: crate::models::ErrorDetail) -> Self {
         self.error_detail = Some(error_detail);
         self
@@ -114,6 +118,7 @@ impl BuildInfo {
         self.status = Some(status);
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: String) -> Self {
         self.status = Some(status);
         self
@@ -131,6 +136,7 @@ impl BuildInfo {
         self.progress = Some(progress);
     }
 
+    #[must_use]
     pub fn with_progress(mut self, progress: String) -> Self {
         self.progress = Some(progress);
         self
@@ -148,6 +154,7 @@ impl BuildInfo {
         self.progress_detail = Some(progress_detail);
     }
 
+    #[must_use]
     pub fn with_progress_detail(mut self, progress_detail: crate::models::ProgressDetail) -> Self {
         self.progress_detail = Some(progress_detail);
         self

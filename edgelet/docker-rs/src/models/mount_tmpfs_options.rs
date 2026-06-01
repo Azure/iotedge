@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct MountTmpfsOptions {
     /// The size for the tmpfs mount in bytes.
     #[serde(rename = "SizeBytes", skip_serializing_if = "Option::is_none")]
@@ -36,6 +36,7 @@ impl MountTmpfsOptions {
         self.size_bytes = Some(size_bytes);
     }
 
+    #[must_use]
     pub fn with_size_bytes(mut self, size_bytes: i64) -> Self {
         self.size_bytes = Some(size_bytes);
         self
@@ -53,6 +54,7 @@ impl MountTmpfsOptions {
         self.mode = Some(mode);
     }
 
+    #[must_use]
     pub fn with_mode(mut self, mode: i32) -> Self {
         self.mode = Some(mode);
         self

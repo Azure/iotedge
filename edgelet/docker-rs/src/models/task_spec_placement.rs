@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskSpecPlacement {
     /// An array of constraints.
     #[serde(rename = "Constraints", skip_serializing_if = "Option::is_none")]
@@ -37,6 +37,7 @@ impl TaskSpecPlacement {
         self.constraints = Some(constraints);
     }
 
+    #[must_use]
     pub fn with_constraints(mut self, constraints: Vec<String>) -> Self {
         self.constraints = Some(constraints);
         self
@@ -57,6 +58,7 @@ impl TaskSpecPlacement {
         self.preferences = Some(preferences);
     }
 
+    #[must_use]
     pub fn with_preferences(
         mut self,
         preferences: Vec<crate::models::TaskSpecPlacementPreferences>,
@@ -77,6 +79,7 @@ impl TaskSpecPlacement {
         self.platforms = Some(platforms);
     }
 
+    #[must_use]
     pub fn with_platforms(mut self, platforms: Vec<crate::models::Platform>) -> Self {
         self.platforms = Some(platforms);
         self

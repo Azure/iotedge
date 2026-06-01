@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct NetworkConfig {
     /// The network's name.
     #[serde(rename = "Name")]
@@ -65,6 +65,7 @@ impl NetworkConfig {
         self.name = name;
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = name;
         self
@@ -78,6 +79,7 @@ impl NetworkConfig {
         self.check_duplicate = Some(check_duplicate);
     }
 
+    #[must_use]
     pub fn with_check_duplicate(mut self, check_duplicate: bool) -> Self {
         self.check_duplicate = Some(check_duplicate);
         self
@@ -95,6 +97,7 @@ impl NetworkConfig {
         self.driver = Some(driver);
     }
 
+    #[must_use]
     pub fn with_driver(mut self, driver: String) -> Self {
         self.driver = Some(driver);
         self
@@ -112,6 +115,7 @@ impl NetworkConfig {
         self.internal = Some(internal);
     }
 
+    #[must_use]
     pub fn with_internal(mut self, internal: bool) -> Self {
         self.internal = Some(internal);
         self
@@ -129,6 +133,7 @@ impl NetworkConfig {
         self.attachable = Some(attachable);
     }
 
+    #[must_use]
     pub fn with_attachable(mut self, attachable: bool) -> Self {
         self.attachable = Some(attachable);
         self
@@ -146,6 +151,7 @@ impl NetworkConfig {
         self.ingress = Some(ingress);
     }
 
+    #[must_use]
     pub fn with_ingress(mut self, ingress: bool) -> Self {
         self.ingress = Some(ingress);
         self
@@ -163,6 +169,7 @@ impl NetworkConfig {
         self.IPAM = Some(IPAM);
     }
 
+    #[must_use]
     pub fn with_IPAM(mut self, IPAM: crate::models::Ipam) -> Self {
         self.IPAM = Some(IPAM);
         self
@@ -180,6 +187,7 @@ impl NetworkConfig {
         self.enable_i_pv6 = Some(enable_i_pv6);
     }
 
+    #[must_use]
     pub fn with_enable_i_pv6(mut self, enable_i_pv6: bool) -> Self {
         self.enable_i_pv6 = Some(enable_i_pv6);
         self
@@ -197,6 +205,7 @@ impl NetworkConfig {
         self.options = Some(options);
     }
 
+    #[must_use]
     pub fn with_options(mut self, options: ::std::collections::HashMap<String, String>) -> Self {
         self.options = Some(options);
         self
@@ -214,6 +223,7 @@ impl NetworkConfig {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self

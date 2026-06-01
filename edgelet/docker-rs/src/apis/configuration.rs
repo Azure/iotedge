@@ -9,7 +9,7 @@ impl Default for Configuration {
         Configuration {
             base_path: "http://localhost/v1.34".to_owned(),
             user_agent: Some("edgelet/0.1.0".to_owned()),
-            uri_composer: Box::new(|base_path, path| Ok(format!("{}{}", base_path, path).parse()?)),
+            uri_composer: Box::new(|base_path, path| Ok(format!("{base_path}{path}").parse()?)),
         }
     }
 }

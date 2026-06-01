@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContainerSummaryInnerHostConfig {
     #[serde(rename = "NetworkMode", skip_serializing_if = "Option::is_none")]
     network_mode: Option<String>,
@@ -26,6 +26,7 @@ impl ContainerSummaryInnerHostConfig {
         self.network_mode = Some(network_mode);
     }
 
+    #[must_use]
     pub fn with_network_mode(mut self, network_mode: String) -> Self {
         self.network_mode = Some(network_mode);
         self

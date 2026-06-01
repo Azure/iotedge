@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskSpecContainerSpecConfigs {
     #[serde(rename = "File", skip_serializing_if = "Option::is_none")]
     file: Option<crate::models::TaskSpecContainerSpecFile1>,
@@ -36,6 +36,7 @@ impl TaskSpecContainerSpecConfigs {
         self.file = Some(file);
     }
 
+    #[must_use]
     pub fn with_file(mut self, file: crate::models::TaskSpecContainerSpecFile1) -> Self {
         self.file = Some(file);
         self
@@ -53,6 +54,7 @@ impl TaskSpecContainerSpecConfigs {
         self.config_id = Some(config_id);
     }
 
+    #[must_use]
     pub fn with_config_id(mut self, config_id: String) -> Self {
         self.config_id = Some(config_id);
         self
@@ -70,6 +72,7 @@ impl TaskSpecContainerSpecConfigs {
         self.config_name = Some(config_name);
     }
 
+    #[must_use]
     pub fn with_config_name(mut self, config_name: String) -> Self {
         self.config_name = Some(config_name);
         self

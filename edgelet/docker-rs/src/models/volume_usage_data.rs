@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct VolumeUsageData {
     /// Amount of disk space used by the volume (in bytes). This information is only available for volumes created with the `\"local\"` volume driver. For volumes created with other volume drivers, this field is set to `-1` (\"not available\")
     #[serde(rename = "Size")]
@@ -33,6 +33,7 @@ impl VolumeUsageData {
         self.size = size;
     }
 
+    #[must_use]
     pub fn with_size(mut self, size: i32) -> Self {
         self.size = size;
         self
@@ -46,6 +47,7 @@ impl VolumeUsageData {
         self.ref_count = ref_count;
     }
 
+    #[must_use]
     pub fn with_ref_count(mut self, ref_count: i32) -> Self {
         self.ref_count = ref_count;
         self

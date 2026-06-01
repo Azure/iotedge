@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GenericResourcesInnerDiscreteResourceSpec {
     #[serde(rename = "Kind", skip_serializing_if = "Option::is_none")]
     kind: Option<String>,
@@ -31,6 +31,7 @@ impl GenericResourcesInnerDiscreteResourceSpec {
         self.kind = Some(kind);
     }
 
+    #[must_use]
     pub fn with_kind(mut self, kind: String) -> Self {
         self.kind = Some(kind);
         self
@@ -48,6 +49,7 @@ impl GenericResourcesInnerDiscreteResourceSpec {
         self.value = Some(value);
     }
 
+    #[must_use]
     pub fn with_value(mut self, value: i64) -> Self {
         self.value = Some(value);
         self

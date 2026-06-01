@@ -11,10 +11,10 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct EngineDescriptionPlugins {
     #[serde(rename = "Type", skip_serializing_if = "Option::is_none")]
-    _type: Option<String>,
+    r#type: Option<String>,
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,
 }
@@ -22,32 +22,34 @@ pub struct EngineDescriptionPlugins {
 impl EngineDescriptionPlugins {
     pub fn new() -> Self {
         EngineDescriptionPlugins {
-            _type: None,
+            r#type: None,
             name: None,
         }
     }
 
-    pub fn set__type(&mut self, _type: String) {
-        self._type = Some(_type);
+    pub fn set_type(&mut self, r#type: String) {
+        self.r#type = Some(r#type);
     }
 
-    pub fn with__type(mut self, _type: String) -> Self {
-        self._type = Some(_type);
+    #[must_use]
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = Some(r#type);
         self
     }
 
-    pub fn _type(&self) -> Option<&str> {
-        self._type.as_ref().map(AsRef::as_ref)
+    pub fn r#type(&self) -> Option<&str> {
+        self.r#type.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn reset__type(&mut self) {
-        self._type = None;
+    pub fn reset_type(&mut self) {
+        self.r#type = None;
     }
 
     pub fn set_name(&mut self, name: String) {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self

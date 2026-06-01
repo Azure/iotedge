@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct MountBindOptions {
     /// A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`.
     #[serde(rename = "Propagation", skip_serializing_if = "Option::is_none")]
@@ -30,6 +30,7 @@ impl MountBindOptions {
         self.propagation = Some(propagation);
     }
 
+    #[must_use]
     pub fn with_propagation(mut self, propagation: String) -> Self {
         self.propagation = Some(propagation);
         self

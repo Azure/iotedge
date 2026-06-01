@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ServiceSpecMode {
     #[serde(rename = "Replicated", skip_serializing_if = "Option::is_none")]
     replicated: Option<crate::models::ServiceSpecModeReplicated>,
@@ -34,6 +34,7 @@ impl ServiceSpecMode {
         self.replicated = Some(replicated);
     }
 
+    #[must_use]
     pub fn with_replicated(mut self, replicated: crate::models::ServiceSpecModeReplicated) -> Self {
         self.replicated = Some(replicated);
         self
@@ -51,6 +52,7 @@ impl ServiceSpecMode {
         self.global = Some(global);
     }
 
+    #[must_use]
     pub fn with_global(mut self, global: Value) -> Self {
         self.global = Some(global);
         self

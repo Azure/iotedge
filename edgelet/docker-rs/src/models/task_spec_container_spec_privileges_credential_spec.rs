@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskSpecContainerSpecPrivilegesCredentialSpec {
     /// Load credential spec from this file. The file is read by the daemon, and must be present in the `CredentialSpecs` subdirectory in the docker data directory, which defaults to `C:\\ProgramData\\Docker\\` on Windows.  For example, specifying `spec.json` loads `C:\\ProgramData\\Docker\\CredentialSpecs\\spec.json`.  <p><br /></p>  > **Note**: `CredentialSpec.File` and `CredentialSpec.Registry` are mutually exclusive.
     #[serde(rename = "File", skip_serializing_if = "Option::is_none")]
@@ -36,6 +36,7 @@ impl TaskSpecContainerSpecPrivilegesCredentialSpec {
         self.file = Some(file);
     }
 
+    #[must_use]
     pub fn with_file(mut self, file: String) -> Self {
         self.file = Some(file);
         self
@@ -53,6 +54,7 @@ impl TaskSpecContainerSpecPrivilegesCredentialSpec {
         self.registry = Some(registry);
     }
 
+    #[must_use]
     pub fn with_registry(mut self, registry: String) -> Self {
         self.registry = Some(registry);
         self

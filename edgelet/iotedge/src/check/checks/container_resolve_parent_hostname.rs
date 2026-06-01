@@ -33,7 +33,7 @@ impl ContainerResolveParentHostname {
         };
 
         let parent_hostname = if let Some(hub_hostname) = check.parent_hostname.as_ref() {
-            hub_hostname.to_string()
+            hub_hostname.clone()
         } else {
             return Ok(CheckResult::Ignored);
         };
@@ -48,8 +48,8 @@ impl ContainerResolveParentHostname {
             .starts_with("/azureiotedge-diagnostics:")
         {
             check.parent_hostname.as_ref().map_or_else(
-                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
-                |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
+                || format!("mcr.microsoft.com{}", check.diagnostics_image_name),
+                |upstream_hostname| format!("{upstream_hostname}{}", check.diagnostics_image_name),
             )
         } else {
             check.diagnostics_image_name.clone()

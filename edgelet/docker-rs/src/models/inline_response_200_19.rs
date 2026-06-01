@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InlineResponse20019 {
     /// The swarm's unlock key.
     #[serde(rename = "UnlockKey", skip_serializing_if = "Option::is_none")]
@@ -27,6 +27,7 @@ impl InlineResponse20019 {
         self.unlock_key = Some(unlock_key);
     }
 
+    #[must_use]
     pub fn with_unlock_key(mut self, unlock_key: String) -> Self {
         self.unlock_key = Some(unlock_key);
         self

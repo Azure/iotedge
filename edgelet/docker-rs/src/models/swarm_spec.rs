@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SwarmSpec {
     /// Name of the swarm.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
@@ -54,6 +54,7 @@ impl SwarmSpec {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -71,6 +72,7 @@ impl SwarmSpec {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -88,6 +90,7 @@ impl SwarmSpec {
         self.orchestration = Some(orchestration);
     }
 
+    #[must_use]
     pub fn with_orchestration(
         mut self,
         orchestration: crate::models::SwarmSpecOrchestration,
@@ -108,6 +111,7 @@ impl SwarmSpec {
         self.raft = Some(raft);
     }
 
+    #[must_use]
     pub fn with_raft(mut self, raft: crate::models::SwarmSpecRaft) -> Self {
         self.raft = Some(raft);
         self
@@ -125,6 +129,7 @@ impl SwarmSpec {
         self.dispatcher = Some(dispatcher);
     }
 
+    #[must_use]
     pub fn with_dispatcher(mut self, dispatcher: crate::models::SwarmSpecDispatcher) -> Self {
         self.dispatcher = Some(dispatcher);
         self
@@ -142,6 +147,7 @@ impl SwarmSpec {
         self.ca_config = Some(ca_config);
     }
 
+    #[must_use]
     pub fn with_ca_config(mut self, ca_config: crate::models::SwarmSpecCaConfig) -> Self {
         self.ca_config = Some(ca_config);
         self
@@ -162,6 +168,7 @@ impl SwarmSpec {
         self.encryption_config = Some(encryption_config);
     }
 
+    #[must_use]
     pub fn with_encryption_config(
         mut self,
         encryption_config: crate::models::SwarmSpecEncryptionConfig,
@@ -182,6 +189,7 @@ impl SwarmSpec {
         self.task_defaults = Some(task_defaults);
     }
 
+    #[must_use]
     pub fn with_task_defaults(
         mut self,
         task_defaults: crate::models::SwarmSpecTaskDefaults,

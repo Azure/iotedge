@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ImageDeleteResponseItem {
     /// The image ID of an image that was untagged
     #[serde(rename = "Untagged", skip_serializing_if = "Option::is_none")]
@@ -33,6 +33,7 @@ impl ImageDeleteResponseItem {
         self.untagged = Some(untagged);
     }
 
+    #[must_use]
     pub fn with_untagged(mut self, untagged: String) -> Self {
         self.untagged = Some(untagged);
         self
@@ -50,6 +51,7 @@ impl ImageDeleteResponseItem {
         self.deleted = Some(deleted);
     }
 
+    #[must_use]
     pub fn with_deleted(mut self, deleted: String) -> Self {
         self.deleted = Some(deleted);
         self

@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct PluginConfigUser {
     #[serde(rename = "UID", skip_serializing_if = "Option::is_none")]
     UID: Option<i32>,
@@ -31,6 +31,7 @@ impl PluginConfigUser {
         self.UID = Some(UID);
     }
 
+    #[must_use]
     pub fn with_UID(mut self, UID: i32) -> Self {
         self.UID = Some(UID);
         self
@@ -48,6 +49,7 @@ impl PluginConfigUser {
         self.GID = Some(GID);
     }
 
+    #[must_use]
     pub fn with_GID(mut self, GID: i32) -> Self {
         self.GID = Some(GID);
         self

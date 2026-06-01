@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ObjectVersion {
     #[serde(rename = "Index", skip_serializing_if = "Option::is_none")]
     index: Option<i32>,
@@ -29,6 +29,7 @@ impl ObjectVersion {
         self.index = Some(index);
     }
 
+    #[must_use]
     pub fn with_index(mut self, index: i32) -> Self {
         self.index = Some(index);
         self

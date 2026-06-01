@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use http_body_util::{BodyExt as _, combinators::BoxBody};
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
@@ -72,7 +74,11 @@ where
                 .map_err(|err| edgelet_http::error::runtime_error(&*runtime, &err))?
         };
 
-        let res = http_common::server::response::chunked(hyper::StatusCode::OK, logs, "text/plain");
+        let res = hyper::Response::builder()
+            .status(hyper::StatusCode::OK)
+            .header(hyper::header::CONTENT_TYPE, "text/plain")
+            .body(BoxBody::new(logs.map_err(Into::into)))
+            .expect("cannot fail to build hyper response");
         Ok(res)
     }
 

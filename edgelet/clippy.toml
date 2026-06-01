@@ -1,0 +1,13 @@
+disallowed-macros = [
+    { path = "futures::pin_mut", reason = "use std::pin::pin! instead" },
+    { path = "futures_util::pin_mut", reason = "use std::pin::pin! instead" },
+]
+
+disallowed-methods = [
+    { path = "futures_util::future::pending", reason = "use std::future::pending instead" },
+    { path = "futures_util::future::ready", reason = "use std::future::ready instead" },
+]
+
+doc-valid-idents = [
+    "IoT",
+]

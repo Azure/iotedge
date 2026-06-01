@@ -13,7 +13,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TaskSpecContainerSpecPrivileges {
     #[serde(rename = "CredentialSpec", skip_serializing_if = "Option::is_none")]
     credential_spec: Option<crate::models::TaskSpecContainerSpecPrivilegesCredentialSpec>,
@@ -37,6 +37,7 @@ impl TaskSpecContainerSpecPrivileges {
         self.credential_spec = Some(credential_spec);
     }
 
+    #[must_use]
     pub fn with_credential_spec(
         mut self,
         credential_spec: crate::models::TaskSpecContainerSpecPrivilegesCredentialSpec,
@@ -62,6 +63,7 @@ impl TaskSpecContainerSpecPrivileges {
         self.se_linux_context = Some(se_linux_context);
     }
 
+    #[must_use]
     pub fn with_se_linux_context(
         mut self,
         se_linux_context: crate::models::TaskSpecContainerSpecPrivilegesSeLinuxContext,

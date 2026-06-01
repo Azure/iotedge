@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Task {
     /// The ID of the task.
     #[serde(rename = "ID", skip_serializing_if = "Option::is_none")]
@@ -72,6 +72,7 @@ impl Task {
         self.ID = Some(ID);
     }
 
+    #[must_use]
     pub fn with_ID(mut self, ID: String) -> Self {
         self.ID = Some(ID);
         self
@@ -89,6 +90,7 @@ impl Task {
         self.version = Some(version);
     }
 
+    #[must_use]
     pub fn with_version(mut self, version: crate::models::ObjectVersion) -> Self {
         self.version = Some(version);
         self
@@ -106,6 +108,7 @@ impl Task {
         self.created_at = Some(created_at);
     }
 
+    #[must_use]
     pub fn with_created_at(mut self, created_at: String) -> Self {
         self.created_at = Some(created_at);
         self
@@ -123,6 +126,7 @@ impl Task {
         self.updated_at = Some(updated_at);
     }
 
+    #[must_use]
     pub fn with_updated_at(mut self, updated_at: String) -> Self {
         self.updated_at = Some(updated_at);
         self
@@ -140,6 +144,7 @@ impl Task {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -157,6 +162,7 @@ impl Task {
         self.labels = Some(labels);
     }
 
+    #[must_use]
     pub fn with_labels(mut self, labels: ::std::collections::HashMap<String, String>) -> Self {
         self.labels = Some(labels);
         self
@@ -174,6 +180,7 @@ impl Task {
         self.spec = Some(spec);
     }
 
+    #[must_use]
     pub fn with_spec(mut self, spec: crate::models::TaskSpec) -> Self {
         self.spec = Some(spec);
         self
@@ -191,6 +198,7 @@ impl Task {
         self.service_id = Some(service_id);
     }
 
+    #[must_use]
     pub fn with_service_id(mut self, service_id: String) -> Self {
         self.service_id = Some(service_id);
         self
@@ -208,6 +216,7 @@ impl Task {
         self.slot = Some(slot);
     }
 
+    #[must_use]
     pub fn with_slot(mut self, slot: i32) -> Self {
         self.slot = Some(slot);
         self
@@ -225,6 +234,7 @@ impl Task {
         self.node_id = Some(node_id);
     }
 
+    #[must_use]
     pub fn with_node_id(mut self, node_id: String) -> Self {
         self.node_id = Some(node_id);
         self
@@ -245,6 +255,7 @@ impl Task {
         self.assigned_generic_resources = Some(assigned_generic_resources);
     }
 
+    #[must_use]
     pub fn with_assigned_generic_resources(
         mut self,
         assigned_generic_resources: crate::models::GenericResources,
@@ -265,6 +276,7 @@ impl Task {
         self.status = Some(status);
     }
 
+    #[must_use]
     pub fn with_status(mut self, status: crate::models::TaskStatus) -> Self {
         self.status = Some(status);
         self
@@ -282,6 +294,7 @@ impl Task {
         self.desired_state = Some(desired_state);
     }
 
+    #[must_use]
     pub fn with_desired_state(mut self, desired_state: crate::models::TaskState) -> Self {
         self.desired_state = Some(desired_state);
         self

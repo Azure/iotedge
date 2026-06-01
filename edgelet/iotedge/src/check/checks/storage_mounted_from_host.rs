@@ -1,6 +1,9 @@
 //! Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath and Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
 
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::LazyLock,
+};
 
 use anyhow::Context;
 use regex::Regex;
@@ -70,11 +73,10 @@ async fn storage_mounted_from_host<'a>(
     storage_directory_out: &'a mut Option<PathBuf>,
     container_directories_out: &'a mut Option<Vec<PathBuf>>,
 ) -> anyhow::Result<CheckResult> {
-    lazy_static::lazy_static! {
-        static ref STORAGE_FOLDER_ENV_VAR_KEY_REGEX: Regex =
-            Regex::new("(?i)^storagefolder=(.*)")
-            .expect("This hard-coded regex is expected to be valid.");
-    }
+    static STORAGE_FOLDER_ENV_VAR_KEY_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new("(?i)^storagefolder=(.*)")
+            .expect("This hard-coded regex is expected to be valid.")
+    });
 
     let Some(docker_host_arg) = &check.docker_host_arg else {
         return Ok(CheckResult::Skipped);

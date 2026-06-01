@@ -11,7 +11,7 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ResourcesUlimits {
     /// Name of ulimit
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
@@ -37,6 +37,7 @@ impl ResourcesUlimits {
         self.name = Some(name);
     }
 
+    #[must_use]
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
@@ -54,6 +55,7 @@ impl ResourcesUlimits {
         self.soft = Some(soft);
     }
 
+    #[must_use]
     pub fn with_soft(mut self, soft: i32) -> Self {
         self.soft = Some(soft);
         self
@@ -71,6 +73,7 @@ impl ResourcesUlimits {
         self.hard = Some(hard);
     }
 
+    #[must_use]
     pub fn with_hard(mut self, hard: i32) -> Self {
         self.hard = Some(hard);
         self
