@@ -584,7 +584,9 @@ where
             .await
             .context(Error::Docker)
             .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
-        system_info.server_version.clone_from(&docker_info.server_version);
+        system_info
+            .server_version
+            .clone_from(&docker_info.server_version);
         system_info.total_memory = Some(total_memory);
         system_info.merge_additional(self.additional_info.clone());
 
