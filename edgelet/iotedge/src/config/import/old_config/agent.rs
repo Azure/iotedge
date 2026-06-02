@@ -30,7 +30,7 @@ pub(crate) struct DockerConfig {
     #[serde(rename = "imageHash")]
     pub(crate) image_id: Option<String>,
 
-    #[serde(default = "ContainerCreateBody::new")]
+    #[serde(default)]
     pub(crate) create_options: ContainerCreateBody,
 
     #[serde(skip_serializing_if = "Option::is_none")]

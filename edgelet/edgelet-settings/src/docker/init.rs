@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::collections::btree_map::Entry;
+
 use crate::RuntimeSettings;
 
 pub(crate) fn agent_spec(
@@ -23,12 +25,9 @@ pub(crate) fn agent_spec(
 fn agent_vol_mount(
     settings: &mut crate::docker::Settings,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let create_options = settings.agent().config().create_options().clone();
-    let host_config = create_options
-        .host_config()
-        .cloned()
-        .unwrap_or_else(docker::models::HostConfig::new);
-    let mut binds = host_config.binds().map_or_else(Vec::new, ToOwned::to_owned);
+    let mut create_options = settings.agent().config().create_options().clone();
+    let host_config = create_options.host_config.get_or_insert_default();
+    let binds = host_config.binds.get_or_insert_default();
 
     let mgmt_uri = settings.connect().management_uri();
 
@@ -64,9 +63,6 @@ fn agent_vol_mount(
     }
 
     if !binds.is_empty() {
-        let host_config = host_config.with_binds(binds);
-        let create_options = create_options.with_host_config(host_config);
-
         settings
             .agent_mut()
             .config_mut()
@@ -85,24 +81,16 @@ fn agent_env(settings: &mut crate::docker::Settings) {
 }
 
 fn agent_networking(settings: &mut crate::docker::Settings) {
-    let network_id = settings.moby_runtime().network().name().to_string();
+    let network_id = settings.moby_runtime().network().name().to_owned();
 
-    let create_options = settings.agent().config().create_options().clone();
+    let mut create_options = settings.agent().config().create_options().clone();
 
-    let mut network_config = create_options
-        .networking_config()
-        .cloned()
-        .unwrap_or_else(docker::models::ContainerCreateBodyNetworkingConfig::new);
+    let network_config = create_options.networking_config.get_or_insert_default();
 
-    let mut endpoints_config = network_config
-        .endpoints_config()
-        .cloned()
-        .unwrap_or_default();
+    let endpoints_config = network_config.endpoints_config.get_or_insert_default();
 
-    if !endpoints_config.contains_key(network_id.as_str()) {
-        endpoints_config.insert(network_id, docker::models::EndpointSettings::new());
-        network_config = network_config.with_endpoints_config(endpoints_config);
-        let create_options = create_options.with_networking_config(network_config);
+    if let Entry::Vacant(entry) = endpoints_config.entry(network_id) {
+        entry.insert(Default::default());
 
         settings
             .agent_mut()
@@ -112,9 +100,9 @@ fn agent_networking(settings: &mut crate::docker::Settings) {
 }
 
 fn agent_labels(settings: &mut crate::docker::Settings) {
-    let create_options = settings.agent().config().create_options().clone();
+    let mut create_options = settings.agent().config().create_options().clone();
 
-    let mut labels = create_options.labels().cloned().unwrap_or_default();
+    let labels = create_options.labels.get_or_insert_default();
 
     // IoT Edge reserves the label prefix "net.azure-devices.edge" for its own purposes
     // so we'll simply overwrite any matching labels created by the user.
@@ -131,8 +119,6 @@ fn agent_labels(settings: &mut crate::docker::Settings) {
         "net.azure-devices.edge.owner".to_string(),
         "Microsoft.Azure.Devices.Edge.Agent".to_string(),
     );
-
-    let create_options = create_options.with_labels(labels);
 
     settings
         .agent_mut()

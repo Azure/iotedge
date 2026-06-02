@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::convert::Infallible;
 
 use bytes::Bytes;
@@ -94,6 +96,7 @@ pub trait DockerApi {
         from_src: &'a str,
         repo: &'a str,
         tag: &'a str,
+        message: &'a str,
         input_image: &'a str,
         x_registry_auth: &'a str,
         platform: &'a str,
@@ -111,13 +114,14 @@ pub trait DockerApi {
         name: &'a str,
         force: bool,
         no_prune: bool,
-    ) -> BoxFutureResult<'a, Vec<models::ImageDeleteResponseItem>>;
+    ) -> BoxFutureResult<'a, ()>;
 
     fn container_create<'a>(
         &'a self,
         name: &'a str,
+        platform: &'a str,
         body: models::ContainerCreateBody,
-    ) -> BoxFutureResult<'a, models::InlineResponse201>;
+    ) -> BoxFutureResult<'a, ()>;
 
     fn container_delete<'a>(
         &'a self,
@@ -131,7 +135,7 @@ pub trait DockerApi {
         &'a self,
         id: &'a str,
         size: bool,
-    ) -> BoxFutureResult<'a, models::InlineResponse200>;
+    ) -> BoxFutureResult<'a, models::ContainerInspectResponse>;
 
     fn container_list<'a>(
         &'a self,
@@ -151,13 +155,14 @@ pub trait DockerApi {
         &'a self,
         id: &'a str,
         stream: bool,
+        one_shot: bool,
     ) -> BoxFutureResult<'a, serde_json::Value>;
     fn container_stop<'a>(&'a self, id: &'a str, timeout: Option<i32>) -> BoxFutureResult<'a, ()>;
     fn container_top<'a>(
         &'a self,
         id: &'a str,
         ps_args: &'a str,
-    ) -> BoxFutureResult<'a, models::InlineResponse2001>;
+    ) -> BoxFutureResult<'a, models::ContainerTopResponse>;
 
     fn container_logs<'a>(
         &'a self,
@@ -171,12 +176,12 @@ pub trait DockerApi {
         tail: &'a str,
     ) -> BoxFutureResult<'a, Incoming>;
 
-    fn network_create(
-        &self,
-        network_config: models::NetworkConfig,
-    ) -> BoxFutureResult<'_, models::InlineResponse2011>;
+    fn network_create(&self, network_config: models::NetworkConfig) -> BoxFutureResult<'_, ()>;
 
-    fn network_list<'a>(&'a self, filters: &'a str) -> BoxFutureResult<'a, Vec<models::Network>>;
+    fn network_list<'a>(
+        &'a self,
+        filters: &'a str,
+    ) -> BoxFutureResult<'a, Vec<serde::de::IgnoredAny>>;
 }
 
 macro_rules! api_call {
@@ -284,7 +289,7 @@ where
     }
 
     api_call! {
-        image_delete : delete "/images/{name}" -> Vec<models::ImageDeleteResponseItem> ;
+        image_delete : delete "/images/{name}" ;
         path : [ name: &'a str ] ;
         query : [ "force" = (force: bool), "noprune" = (no_prune: bool)] ;
         ok : [OK]
@@ -297,8 +302,8 @@ where
     }
 
     api_call! {
-        container_create : post "/containers/create" -> models::InlineResponse201 ;
-        query : [ "name" = (name: &'a str) ] ;
+        container_create : post "/containers/create" ;
+        query : [ "name" = (name: &'a str), "platform" = (platform: &'a str) ] ;
         body : models::ContainerCreateBody ;
         ok : [CREATED]
     }
@@ -318,7 +323,7 @@ where
     }
 
     api_call! {
-        container_inspect : get "/containers/{id}/json" -> models::InlineResponse200 ;
+        container_inspect : get "/containers/{id}/json" -> models::ContainerInspectResponse ;
         path : [ id: &'a str ] ;
         query : [ "size" = (size: bool) ] ;
         ok : [OK]
@@ -345,7 +350,7 @@ where
     api_call! {
         container_stats : get "/containers/{id}/stats" -> serde_json::Value ;
         path : [ id: &'a str ] ;
-        query : [ "stream" = (stream: bool) ] ;
+        query : [ "stream" = (stream: bool), "one-shot" = (one_shot: bool) ] ;
         ok : [OK]
     }
 
@@ -357,20 +362,20 @@ where
     }
 
     api_call! {
-        container_top : get "/containers/{id}/top" -> models::InlineResponse2001 ;
+        container_top : get "/containers/{id}/top" -> models::ContainerTopResponse ;
         path : [ id: &'a str ] ;
         query : [ "ps_args" = (ps_args: &'a str) ] ;
         ok : [OK]
     }
 
     api_call! {
-        network_create : post "/networks/create" -> models::InlineResponse2011 ;
+        network_create : post "/networks/create" ;
         body : models::NetworkConfig ;
         ok : [CREATED]
     }
 
     api_call! {
-        network_list : get "/networks" -> Vec<models::Network> ;
+        network_list : get "/networks" -> Vec<serde::de::IgnoredAny> ;
         query : [ "filters" = (filters: &'a str) ] ;
         ok : [OK]
     }
@@ -382,6 +387,7 @@ where
             "fromSrc" = (from_src: &'a str),
             "repo" = (repo: &'a str),
             "tag" = (tag: &'a str),
+            "message" = (message: &'a str),
             "platform" = (platform: &'a str)
         ] ;
         header : [
@@ -456,7 +462,7 @@ mod tests {
         let client = DockerApiClient::new(JsonConnector::ok(&payload));
         assert!(
             client
-                .image_create("", "", "", "", "", "", "")
+                .image_create("", "", "", "", "", "", "", "")
                 .await
                 .is_ok()
         );
@@ -475,7 +481,7 @@ mod tests {
         let client = DockerApiClient::new(JsonConnector::ok(&payload));
         assert_eq!(
             client
-                .image_create("", "", "", "", "", "", "")
+                .image_create("", "", "", "", "", "", "", "")
                 .await
                 .unwrap_err()
                 .downcast::<ApiError>()
@@ -500,7 +506,7 @@ mod tests {
         let client = DockerApiClient::new(JsonConnector::ok(&payload));
         assert_eq!(
             client
-                .image_create("", "", "", "", "", "", "")
+                .image_create("", "", "", "", "", "", "", "")
                 .await
                 .unwrap_err()
                 .downcast::<ApiError>()
@@ -534,7 +540,7 @@ mod tests {
             .unwrap()
         );
         let client = DockerApiClient::new(JsonConnector::ok(&payload));
-        assert!(client.images_list(false, "", false).await.is_ok());
+        _ = client.images_list(false, "", false).await.unwrap();
     }
 
     #[tokio::test]

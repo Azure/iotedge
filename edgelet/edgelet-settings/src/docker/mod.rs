@@ -195,7 +195,7 @@ mod tests {
         assert_eq!(env.get("DeF").map(AsRef::as_ref), Some("VAluE2"));
 
         let create_options = settings.agent().config().create_options();
-        assert_eq!(create_options.hostname(), Some("VAluE3"));
+        assert_eq!(create_options.hostname.as_deref(), Some("VAluE3"));
     }
 
     #[test]
@@ -266,9 +266,11 @@ mod tests {
         let create_options = settings.agent().config().create_options();
         assert!(
             create_options
-                .networking_config()
+                .networking_config
+                .as_ref()
                 .unwrap()
-                .endpoints_config()
+                .endpoints_config
+                .as_ref()
                 .unwrap()
                 .contains_key(DEFAULT_NETWORKID)
         );
@@ -285,7 +287,7 @@ mod tests {
 
         let settings = Settings::new().unwrap();
         let create_options = settings.agent().config().create_options();
-        let labels = create_options.labels().unwrap();
+        let labels = create_options.labels.as_ref().unwrap();
         assert_eq!(
             labels.get("net.azure-devices.edge.create-options"),
             Some(&"{}".to_string())
