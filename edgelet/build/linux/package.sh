@@ -51,10 +51,6 @@ case "$PACKAGE_OS" in
         esac
         ;;
 
-    'debian11')
-        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/debian:bullseye-slim'
-        ;;
-
     'debian12')
         DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/debian:bookworm-slim'
         ;;

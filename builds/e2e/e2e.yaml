@@ -45,56 +45,6 @@ jobs:
           serviceConnection: '$(az.subscription)'
 
 ################################################################################
-  - job: debian_11_arm32v7
-################################################################################
-    displayName: Debian 11 arm32v7 (minimal)
-    dependsOn:
-    - Token
-    - ContainerRegistryCredentials
-    condition: succeeded('Token')
-
-    pool:
-      name: $(pool.custom.name)
-      demands: deb11-e2e-tests
-
-    variables:
-      os: linux
-      arch: arm32v7
-      identityArtifactName: aziot-identity-debian11-arm32v7
-      artifactName: iotedged-debian11-arm32v7
-      dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
-      rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
-      rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
-      rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
-      sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
-      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
-      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
-      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
-      minimal: true
-
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-      parameters:
-        containerRegistryServer: '$(containerRegistryServer)'
-        containerRegistryUsername: '$(containerRegistryUsername)'
-        dpsIdScope: '$(dps.idScope)'
-        eventHubName: '$(eventhub.name)'
-        eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
-        iotHubHostName: '$(iothub.hostname)'
-        iotHubResourceId: '$(iothub.resourceid)'
-        rootCaCertificate: '$(rootCaCertificate)'
-        rootCaKey: '$(rootCaKey)'
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
-      parameters:
-        azureSubscription: '$(az.subscription)'
-        containerRegistryPassword: '$(containerRegistryPassword)'
-        dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
-        rootCaPassword: '$(rootCaPassword)'
-        sas_uri: '$(sas_uri)'
-
-################################################################################
   - job: debian_12_amd64
 ################################################################################
     displayName: Debian 12 amd64
