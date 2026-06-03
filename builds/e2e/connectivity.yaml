@@ -306,8 +306,8 @@ jobs:
         - agent-osbits -equals 32
         - run-connectivity -equals true
     variables:
-      identity.artifact.name: 'aziot-identity-debian11-arm32v7'
-      edgelet.artifact.name: 'iotedged-debian11-arm32v7'
+      identity.artifact.name: 'aziot-identity-debian12-arm32v7'
+      edgelet.artifact.name: 'iotedged-debian12-arm32v7'
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       cr.server: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
       cr.username: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
