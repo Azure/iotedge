@@ -4,7 +4,7 @@ use anyhow::Context;
 use hyper_util::client::legacy::connect::Connect;
 
 use docker::apis::{DockerApi, DockerApiClient};
-use docker::models::InlineResponse200State;
+use docker::models::ContainerInspectResponseState;
 use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
 use edgelet_settings::DockerConfig;
 use edgelet_utils::ensure_not_empty;
@@ -53,15 +53,15 @@ fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
 }
 
 pub fn runtime_state(
-    id: Option<&str>,
-    response_state: Option<&InlineResponse200State>,
+    id: Option<String>,
+    response_state: Option<ContainerInspectResponseState>,
 ) -> ModuleRuntimeState {
     response_state.map_or_else(ModuleRuntimeState::default, |state| {
         let status = state
-            .status()
-            .and_then(|status| match status {
+            .status
+            .and_then(|status| match &*status {
                 "created" | "paused" | "restarting" => Some(ModuleStatus::Stopped),
-                "removing" | "exited" => status_from_exit_code(state.exit_code()),
+                "removing" | "exited" => status_from_exit_code(state.exit_code),
                 "dead" => Some(ModuleStatus::Dead),
                 "running" => Some(ModuleStatus::Running),
                 _ => None,
@@ -69,21 +69,21 @@ pub fn runtime_state(
             .unwrap_or_default();
         ModuleRuntimeState::default()
             .with_status(status)
-            .with_exit_code(state.exit_code())
+            .with_exit_code(state.exit_code)
             .with_started_at(
                 state
-                    .started_at()
+                    .started_at
                     .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
                     .and_then(|started_at| started_at.parse().ok()),
             )
             .with_finished_at(
                 state
-                    .finished_at()
+                    .finished_at
                     .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
                     .and_then(|finished_at| finished_at.parse().ok()),
             )
-            .with_image_id(id.map(ToOwned::to_owned))
-            .with_pid(state.pid())
+            .with_image_id(id)
+            .with_pid(state.pid)
     })
 }
 
@@ -114,6 +114,6 @@ where
             .context(Error::Docker)
             .context(Error::ModuleOperation(ModuleOperation::RuntimeState))?;
 
-        Ok(runtime_state(inspect.id(), inspect.state()))
+        Ok(runtime_state(inspect.id, inspect.state))
     }
 }

@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -9,7 +10,7 @@ pub struct DockerConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     image_hash: Option<String>,
 
-    #[serde(default = "docker::models::ContainerCreateBody::new")]
+    #[serde(default)]
     create_options: docker::models::ContainerCreateBody,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -111,15 +112,11 @@ impl DockerConfig {
             self.image = format!("{parent_hostname}{rest}");
         }
 
-        let Some(auth) = &self.auth else { return };
-
-        if let Some(serveraddress) = auth.serveraddress()
-            && let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD)
+        if let Some(auth) = &mut self.auth
+            && let Some(server_address) = &auth.server_address
+            && let Some(rest) = server_address.strip_prefix(UPSTREAM_PARENT_KEYWORD)
         {
-            let url = rest.to_string();
-            if let Some(auth) = &mut self.auth {
-                auth.set_serveraddress(format!("{parent_hostname}{url}"));
-            }
+            auth.server_address = Some(format!("{parent_hostname}{rest}"));
         }
     }
 }
@@ -133,19 +130,12 @@ mod tests {
 
     #[test]
     fn empty_image_fails() {
-        DockerConfig::new(String::new(), ContainerCreateBody::new(), None, None, true).unwrap_err();
+        DockerConfig::new(String::new(), Default::default(), None, None, true).unwrap_err();
     }
 
     #[test]
     fn white_space_image_fails() {
-        DockerConfig::new(
-            "    ".to_string(),
-            ContainerCreateBody::new(),
-            None,
-            None,
-            true,
-        )
-        .unwrap_err();
+        DockerConfig::new("    ".to_string(), Default::default(), None, None, true).unwrap_err();
     }
 
     #[test]
@@ -157,12 +147,20 @@ mod tests {
         let mut port_bindings = std::collections::BTreeMap::new();
         port_bindings.insert(
             "27017/tcp".to_string(),
-            vec![HostConfigPortBindings::new().with_host_port("27017".to_string())],
+            vec![HostConfigPortBindings {
+                host_port: Some("27017".to_string()),
+                ..Default::default()
+            }],
         );
 
-        let create_options = ContainerCreateBody::new()
-            .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
-            .with_labels(labels);
+        let create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                port_bindings: Some(port_bindings),
+                ..Default::default()
+            }),
+            labels: Some(labels),
+            ..Default::default()
+        };
 
         let config = DockerConfig::new("ubuntu".to_string(), create_options, None, None, true)
             .unwrap()
@@ -202,17 +200,27 @@ mod tests {
         let mut port_bindings = std::collections::BTreeMap::new();
         port_bindings.insert(
             "27017/tcp".to_string(),
-            vec![HostConfigPortBindings::new().with_host_port("27017".to_string())],
+            vec![HostConfigPortBindings {
+                host_port: Some("27017".to_string()),
+                ..Default::default()
+            }],
         );
 
-        let create_options = ContainerCreateBody::new()
-            .with_host_config(HostConfig::new().with_port_bindings(port_bindings))
-            .with_labels(labels);
+        let create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                port_bindings: Some(port_bindings),
+                ..Default::default()
+            }),
+            labels: Some(labels),
+            ..Default::default()
+        };
 
-        let auth_config = AuthConfig::new()
-            .with_username("username".to_string())
-            .with_password("password".to_string())
-            .with_serveraddress("repo.azurecr.io".to_string());
+        let auth_config = AuthConfig {
+            username: Some("username".to_string()),
+            password: Some("password".to_string()),
+            server_address: Some("repo.azurecr.io".to_string()),
+            ..Default::default()
+        };
 
         let config = DockerConfig::new(
             "ubuntu".to_string(),
@@ -289,25 +297,39 @@ mod tests {
 
         let config = serde_json::from_str::<DockerConfig>(&input_json.to_string()).unwrap();
         assert_eq!(config.image, "ubuntu");
-        assert_eq!(&config.create_options.labels().unwrap()["k1"], "v1");
-        assert_eq!(&config.create_options.labels().unwrap()["k2"], "v2");
+        assert_eq!(config.create_options.labels.as_ref().unwrap()["k1"], "v1");
+        assert_eq!(config.create_options.labels.as_ref().unwrap()["k2"], "v2");
 
         let port_binding = &config
             .create_options
-            .host_config()
+            .host_config
+            .as_ref()
             .unwrap()
-            .port_bindings()
+            .port_bindings
+            .as_ref()
             .unwrap()["27017/tcp"];
         assert_eq!(
-            port_binding.iter().next().unwrap().host_port().unwrap(),
+            port_binding
+                .iter()
+                .next()
+                .unwrap()
+                .host_port
+                .as_ref()
+                .unwrap(),
             "27017"
         );
 
-        assert_eq!("username", config.auth().unwrap().username().unwrap());
-        assert_eq!("password", config.auth().unwrap().password().unwrap());
+        assert_eq!(
+            "username",
+            config.auth().unwrap().username.as_ref().unwrap()
+        );
+        assert_eq!(
+            "password",
+            config.auth().unwrap().password.as_ref().unwrap()
+        );
         assert_eq!(
             "repo.azurecr.io",
-            config.auth().unwrap().serveraddress().unwrap()
+            config.auth().unwrap().server_address.as_ref().unwrap()
         );
     }
 
@@ -334,17 +356,25 @@ mod tests {
 
         let config: DockerConfig = serde_json::from_str(&input_json.to_string()).unwrap();
         assert_eq!(config.image, "ubuntu");
-        assert_eq!(&config.create_options.labels().unwrap()["k1"], "v1");
-        assert_eq!(&config.create_options.labels().unwrap()["k2"], "v2");
+        assert_eq!(&config.create_options.labels.as_ref().unwrap()["k1"], "v1");
+        assert_eq!(&config.create_options.labels.as_ref().unwrap()["k2"], "v2");
 
         let port_binding = &config
             .create_options
-            .host_config()
+            .host_config
+            .as_ref()
             .unwrap()
-            .port_bindings()
+            .port_bindings
+            .as_ref()
             .unwrap()["27017/tcp"];
         assert_eq!(
-            port_binding.iter().next().unwrap().host_port().unwrap(),
+            port_binding
+                .iter()
+                .next()
+                .unwrap()
+                .host_port
+                .as_ref()
+                .unwrap(),
             "27017"
         );
     }

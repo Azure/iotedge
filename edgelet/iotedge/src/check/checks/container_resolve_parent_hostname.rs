@@ -61,18 +61,17 @@ impl ContainerResolveParentHostname {
 
         let mut args = vec!["run".to_owned(), "--rm".to_owned()];
 
-        settings
+        for host in settings
             .agent()
             .config()
             .create_options()
-            .host_config()
-            .and_then(docker::models::HostConfig::extra_hosts)
-            .iter()
-            .for_each(|extra_hosts| {
-                extra_hosts
-                    .iter()
-                    .for_each(|host| args.push(format!("--add-host={host}")));
-            });
+            .host_config
+            .as_ref()
+            .and_then(|host_config| host_config.extra_hosts.as_deref())
+            .unwrap_or_default()
+        {
+            args.push(format!("--add-host={host}"));
+        }
 
         args.extend(vec![
             diagnostics_image_name,

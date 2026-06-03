@@ -85,10 +85,11 @@ async fn storage_mounted_from_host<'a>(
     let inspect_result = inspect_container(docker_host_arg, container_name).await?;
 
     let temp_dir = inspect_result
-        .config()
-        .and_then(docker::models::ContainerConfig::env)
-        .into_iter()
-        .flatten()
+        .config
+        .as_ref()
+        .and_then(|container_config| container_config.env.as_deref())
+        .unwrap_or_default()
+        .iter()
         .find_map(|env| {
             STORAGE_FOLDER_ENV_VAR_KEY_REGEX
                 .captures(env)
@@ -103,15 +104,16 @@ async fn storage_mounted_from_host<'a>(
     *storage_directory_out = Some(storage_directory.clone());
 
     let mounted_directories = inspect_result
-        .mounts()
-        .into_iter()
+        .mounts
+        .iter()
         .flatten()
-        .filter_map(|mount| mount.destination().map(PathBuf::from));
+        .filter_map(|mount| mount.destination.as_deref().map(PathBuf::from));
 
     let volume_directories = inspect_result
-        .config()
-        .and_then(docker::models::ContainerConfig::volumes)
-        .map(std::collections::HashMap::keys)
+        .config
+        .as_ref()
+        .and_then(|container_config| container_config.volumes.as_ref())
+        .map(std::collections::BTreeMap::keys)
         .into_iter()
         .flatten()
         .map(PathBuf::from);
@@ -139,12 +141,12 @@ async fn storage_mounted_from_host<'a>(
 async fn inspect_container(
     docker_host_arg: &str,
     name: &str,
-) -> anyhow::Result<docker::models::InlineResponse200> {
+) -> anyhow::Result<docker::models::ContainerInspectResponse> {
     super::docker(docker_host_arg, &["inspect", name])
         .await
         .map_err(|(_, err)| err)
         .and_then(|output| {
-            let (inspect_result,): (docker::models::InlineResponse200,) =
+            let (inspect_result,): (docker::models::ContainerInspectResponse,) =
                 serde_json::from_slice(&output)
                     .context("Could not parse result of docker inspect")?;
             Ok(inspect_result)

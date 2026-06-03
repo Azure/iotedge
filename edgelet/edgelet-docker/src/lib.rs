@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-// mod client;
 mod error;
 mod image_prune_data;
 mod module;

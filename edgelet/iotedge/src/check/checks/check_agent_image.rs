@@ -63,20 +63,20 @@ impl CheckAgentImage {
             .agent()
             .config()
             .auth()
-            .and_then(docker::models::AuthConfig::serveraddress);
+            .and_then(|auth_config| auth_config.server_address.as_ref());
 
         if let (Some(username), Some(password), Some(server_address)) = (
             &settings
                 .agent()
                 .config()
                 .auth()
-                .and_then(docker::models::AuthConfig::username),
+                .and_then(|auth_config| auth_config.username.as_ref()),
             &settings
                 .agent()
                 .config()
                 .auth()
-                .and_then(docker::models::AuthConfig::password),
-            &server_address,
+                .and_then(|auth_config| auth_config.password.as_ref()),
+            server_address,
         ) {
             super::docker(
                 docker_host_arg,
