@@ -25,8 +25,10 @@ case "$PACKAGE_OS" in
         # Converts debian versioning to rpm version
         # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
         RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
-        RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2)"
+        RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2-)"
         if [ -n "$RPM_TAG" ]; then
+            # handle the case of a prerelease snapshot, e.g. 1.6.0~rc1~20260610.3 -> 1.6.0~rc1^20260610.3
+            RPM_TAG="${RPM_TAG/\~/^}"
             RPM_RELEASE="0.$REVISION.$RPM_TAG"
         else
             RPM_RELEASE="$REVISION"
@@ -49,8 +51,10 @@ case "$PACKAGE_OS" in
         # Converts debian versioning to rpm version
         # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
         RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
-        RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2)"
+        RPM_TAG="$(echo "$VERSION" | cut -s -d"~" -f2-)"
         if [ -n "$RPM_TAG" ]; then
+            # handle the case of a prerelease snapshot, e.g. 1.6.0~rc1~20260610.3 -> 1.6.0~rc1^20260610.3
+            RPM_TAG="${RPM_TAG/\~/^}"
             RPM_RELEASE="0.$REVISION.$RPM_TAG"
         else
             RPM_RELEASE="$REVISION"
