@@ -16,6 +16,12 @@ DOCKER_VOLUME_MOUNTS=''
 
 case "$PACKAGE_OS" in
     'redhat8')
+        # RPM does not allow `-` in package version, which we want for RC versions like '1.6.0-rc.1'.
+        # Upstream recommendation is to use ~ instead, ie '1.6.0~rc1'.
+        #
+        # Ref: https://docs.fedoraproject.org/en-US/packaging-guidelines/Versioning/#_handling_non_sorting_versions_with_tilde_dot_and_caret
+        VERSION="${VERSION//-rc./\~rc}"
+
         # Converts debian versioning to rpm version
         # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
         RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
@@ -34,6 +40,12 @@ case "$PACKAGE_OS" in
         ;;
 
     'redhat9')
+        # RPM does not allow `-` in package version, which we want for RC versions like '1.6.0-rc.1'.
+        # Upstream recommendation is to use ~ instead, ie '1.6.0~rc1'.
+        #
+        # Ref: https://docs.fedoraproject.org/en-US/packaging-guidelines/Versioning/#_handling_non_sorting_versions_with_tilde_dot_and_caret
+        VERSION="${VERSION//-rc./\~rc}"
+
         # Converts debian versioning to rpm version
         # deb 1.0.1~dev100 ~> rpm 1.0.1-0.1.dev100
         RPM_VERSION="$(echo "$VERSION" | cut -d"~" -f1)"
