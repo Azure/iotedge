@@ -72,6 +72,12 @@ IIS_VERSION=$(
     rpm -qp --queryformat '%{Version}' $(ls /src/aziot-identity-service-*.$PackageExtension.$ARCH.rpm | head -1)
 )
 
+# RPM does not allow `-` in package version, which we want for RC versions like '1.6.0-rc.1'.
+# Upstream recommendation is to use ~ instead, ie '1.6.0~rc1'.
+#
+# Ref: https://docs.fedoraproject.org/en-US/packaging-guidelines/Versioning/#_handling_non_sorting_versions_with_tilde_dot_and_caret
+VERSION="${VERSION//-rc./\~rc}"
+
 # Update versions in specfiles
 pushd "$BUILD_REPOSITORY_LOCALPATH"
 sed -i "s/@@VERSION@@/$VERSION/g" $BUILD_REPOSITORY_LOCALPATH/builds/mariner/SPECS/aziot-edge/aziot-edge.signatures.json

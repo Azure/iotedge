@@ -348,7 +348,7 @@ stages:
               # aziot-edge package script expects to query the version from the identity package in the root source directory
               os_dirs='$(os)$(os_version)/$(arch)'
               os_suffix='$(os_id)$(os_version).$(AZURELINUX_ARCH)'
-              sudo cp iot-identity-service/packages/$os_dirs/aziot-identity-service-$packageVersion-1.$os_suffix.rpm .
+              sudo cp iot-identity-service/packages/$os_dirs/aziot-identity-service-[1-9]*.$os_suffix.rpm .
             displayName: Create aziot-identity packages
           - task: CopyFiles@2
             displayName: Copy aziot-identity build logs to artifact staging
