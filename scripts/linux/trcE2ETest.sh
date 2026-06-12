@@ -14,60 +14,59 @@ function usage() {
     echo ' -artifactImageBuildNumber                Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
     echo " -containerRegistry                       Host address of container registry."
     echo " -containerRegistryUsername               Username of container registry."
-    echo ' -containerRegistryPassword               Password of given username for container registory.'
-    echo ' -iotHubConnectionString                  IoT hub connection string for creating edge device.'
-    echo ' -eventHubConnectionString                Event hub connection string for receive D2C messages.'
+    echo ' -containerRegistryPassword               Password of given username for container registry.'
+    echo ' -iotHubHostName                          Hostname of IoT hub where edge device will be created.'
+    echo ' -eventHubNamespace                       Fully qualified event hub namespace to receive D2C messages.'
+    echo ' -eventHubName                            Event hub name to receive D2C messages.'
     echo ' -eventHubConsumerGroupId                 Event hub consumer group for receive D2C messages.'
     echo ' -testDuration                            Connectivity test duration'
     echo ' -testStartDelay                          Tests start after delay for applicable modules'
-    echo ' -networkControllerFrequency              Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"'
+    echo ' -networkControllerFrequency              Frequency for controlling the network with offlineFrequency, onlineFrequency, runsCount. Example "00:05:00 00:05:00 6"'
     echo ' -networkControllerRunProfile             Online, Offline, SatelliteGood or Cellular3G'
     echo ' -logAnalyticsWorkspaceId                 Log Analytics Workspace Id'
     echo ' -logAnalyticsSharedKey                   Log Analytics shared key'
     echo ' -logAnalyticsLogType                     Log Analytics log type'
     echo ' -verificationDelay                       Delay before starting the verification after test finished'
     echo ' -upstreamProtocol                        Upstream protocol used to connect to IoT Hub'
-    echo ' -deploymentTestUpdatePeriod              duration of updating deployment of target module in deployment test'
+    echo ' -deploymentTestUpdatePeriod              Duration of updating deployment of target module in deployment test'
     echo ' -timeForReportingGeneration              Time reserved for report generation'
-    echo ' -waitForTestComplete                     Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
+    echo ' -waitForTestComplete                     Wait for test to complete if this parameter is provided. Otherwise it will finish once deployment is done.'
     echo ' -metricsEndpointsCSV                     Csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs            Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget                     Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
     echo ' -deploymentFileName                      Deployment file name'
-    echo ' -EdgeHubRestartTestRestartPeriod         EdgeHub restart period (must be greater than 1 minutes)'
+    echo ' -EdgeHubRestartTestRestartPeriod         EdgeHub restart period (must be greater than 1 minute)'
     echo ' -EdgeHubRestartTestSdkOperationTimeout   SDK retry timeout'
     echo ' -blobStorageAccountUriWithSasToken       Azure storage account blob store SAS Uri.'
     echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
+    echo ' -customEdgeAgentImage                    Custom edge agent image to use instead of the artifact build image.'
+    echo ' -customEdgeHubImage                      Custom edge hub image to use instead of the artifact build image.'
     echo ' -testRuntimeLogLevel                     RuntimeLogLevel given to Quickstart, which is given to edgeAgent and edgeHub.'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
     echo ' -twinUpdateSize                          Specifies the char count (i.e. size) of each twin update.'
-    echo " -testName                                Name of test to run. Either 'LongHaul' or 'Connectivity'"
-    echo ' -connectManagementUri                    Customize connect management socket'
-    echo ' -connectWorkloadUri                      Customize connect workload socket'
-    echo ' -listenManagementUri                     Customize listen management socket'
-    echo ' -listenWorkloadUri                       Customize listen workload socket'
-    echo ' -desiredModulesToRestartCSV              CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
-    echo ' -restartIntervalInMins                   Value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
-    echo ' -sendReportFrequency                     Value for long haul specifying how often TRC will send reports to LogAnalytics.'
-    echo " -testMode                                Test mode for TestResultCoordinator to start up with correct settings. Value is either 'LongHaul' or 'Connectivity'."
     echo " -topology                                Configuration telling the TRC which topology tests are running in."
     echo " -repoPath                                Path of the checked-out iotedge repository for getting the deployment file."
-    echo " -clientModuleTransportType               Value for contrained long haul specifying transport type for all client modules."
     echo " -trackingId                              Tracking id used to tag test events. Needed if running nested tests and test events are sent to TRC from L4 node. Otherwise generated."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     echo ' -packageType                             Package type to be used [deb, rpm]'
+    echo ' -devOpsAccessToken                       Azure DevOps access token used to check for build cancellation and to refresh the OIDC token.'
+    echo ' -devOpsBuildId                           Azure DevOps build ID used to check for build cancellation.'
+    echo ' -tenantId                                Azure Tenant ID used by test modules to authenticate to the IoT hub'"'"'s control plane.'
+    echo ' -clientId                                Azure Client ID used by test modules to authenticate to the IoT hub'"'"'s control plane.'
+    echo ' -serviceConnectionId                     Azure DevOps service connection ID used to request OIDC token refreshes.'
+    echo ' -oidcRequestUri                          URI used to request OIDC tokens from Azure DevOps.'
     exit 1;
 }
 
 function print_error() {
-    local message=$1
+    local message="$1"
     local red='\033[0;31m'
     local color_reset='\033[0m'
     echo -e "${red}$message${color_reset}"
 }
 
 function print_highlighted_message() {
-    local message=$1
+    local message="$1"
     local cyan='\033[0;36m'
     local color_reset='\033[0m'
     echo -e "${cyan}$message${color_reset}"
@@ -93,7 +92,7 @@ function get_artifact_file() {
     case "$fileType" in
         'aziot_edge' ) filter="aziot-edge*.$PACKAGE_TYPE";;
         'aziot_is' ) filter="aziot-identity-service*.$PACKAGE_TYPE";;
-        'quickstart' ) filter="core-linux/IotEdgeQuickstart.linux*.tar.gz";;
+        'quickstart' ) filter="core-linux/IotEdgeQuickstart";;
         *) print_error "Unknown file type: $fileType"; exit 1;;
     esac
 
@@ -141,6 +140,74 @@ function stop_aziot_edge() {
     systemctl stop aziot-keyd aziot-certd aziot-identityd aziot-edged || true
 }
 
+function refresh_oidc_token() {
+    local token_file="$1"
+    local oidc_request_uri="$2"
+    local service_connection_id="$3"
+    local devops_access_token="$4"
+
+    local response # assignment on same line as local decl causes curl exit code to be lost
+    response=$(curl \
+        --fail \
+        --show-error \
+        --silent \
+        --header 'Content-Length: 0' \
+        --header 'Content-Type: application/json' \
+        --header "Authorization: bearer $devops_access_token" \
+        --request POST \
+        "${oidc_request_uri}?api-version=7.1&serviceConnectionId=${service_connection_id}" \
+        2>&1)
+    if [[ $? -ne 0 ]]; then
+        print_error "OIDC token refresh failed at $(date): $response"
+        exit 1
+    fi
+
+    local new_token=$(echo "$response" | jq -r '.oidcToken')
+    if [[ -n "$new_token" && "$new_token" != 'null' ]]; then
+        echo "$new_token" > "$token_file"
+        print_highlighted_message "OIDC token refreshed at $(date)"
+    else
+        print_error "OIDC token refresh failed at $(date): No token in response"
+        exit 1
+    fi
+}
+
+TOKEN_REFRESH_PID=''
+
+function refresh_oidc_token_loop() {
+    local token_file="$1"
+    local oidc_request_uri="$2"
+    local service_connection_id="$3"
+    local devops_access_token="$4"
+    local interval_secs=2700  # 45 minutes
+
+    print_highlighted_message "OIDC token refresh loop started (interval: ${interval_secs}s, service connection: $service_connection_id)"
+
+    while true; do
+        sleep "$interval_secs"
+        refresh_oidc_token "$token_file" "$oidc_request_uri" "$service_connection_id" "$devops_access_token"
+    done
+
+    print_highlighted_message "OIDC token refresh loop ending"
+}
+
+function start_token_refresh() {
+    local token_file="$1"
+    refresh_oidc_token_loop "$token_file" "$OIDC_REQUEST_URI" "$SERVICE_CONNECTION_ID" "$DEVOPS_ACCESS_TOKEN" &
+    TOKEN_REFRESH_PID=$!
+    print_highlighted_message "OIDC token refresh background process started (PID: $TOKEN_REFRESH_PID)"
+}
+
+function stop_token_refresh() {
+    if [[ -n "$TOKEN_REFRESH_PID" ]]; then
+        kill "$TOKEN_REFRESH_PID" 2>&1 || true
+        TOKEN_REFRESH_PID=''
+        print_highlighted_message "OIDC token refresh background process stopped"
+    else
+        print_highlighted_message "OIDC token refresh background process not found"
+    fi
+}
+
 function parse_result() {
     found_test_passed="$(docker logs testResultCoordinator 2>&1 | sed -n '/Test summary/,/"TestResultReports"/p' | grep '"IsPassed": true')"
 
@@ -158,9 +225,11 @@ function prepare_test_from_artifacts() {
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
-    echo 'Extract quickstart to working folder'
-    mkdir -p "$quickstart_working_folder"
-    tar -C "$quickstart_working_folder" -xzf "$(get_artifact_file "$E2E_TEST_DIR" quickstart)"
+    echo "Create federated token file for OIDC authentication to IoT Hub at $working_folder/oidc.json"
+    # Initialize the OIDC token file
+    refresh_oidc_token "$working_folder/oidc.json" "$OIDC_REQUEST_URI" "$SERVICE_CONNECTION_ID" "$DEVOPS_ACCESS_TOKEN"
+    # Start the background process to refresh the OIDC token periodically
+    start_token_refresh "$working_folder/oidc.json"
 
     echo "Copy deployment artifact $DEPLOYMENT_FILE_NAME to $deployment_working_file"
     cp "$REPO_PATH/e2e_deployment_files/$DEPLOYMENT_FILE_NAME" "$deployment_working_file"
@@ -171,12 +240,15 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<Container_Registry>@$CONTAINER_REGISTRY@g" "$deployment_working_file"
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
-    sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
+    sed -i -e "s@<IotHubHostname>@$IOT_HUB_HOSTNAME@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$TRACKING_ID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
+    sed -i -e "s@<AzureTenantId>@$AZURE_TENANT_ID@g" "$deployment_working_file"
+    sed -i -e "s@<AzureClientId>@$AZURE_CLIENT_ID@g" "$deployment_working_file"
+    sed -i -e "s@<AzureFederatedTokenFile>@$working_folder/oidc.json@g" "$deployment_working_file"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
@@ -189,7 +261,8 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
 
     sed -i -e "s@<TestResultCoordinator.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.EventHubNamespace>@$EVENTHUB_NAMESPACE@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.EventHubName>@$EVENTHUB_NAME@g" "$deployment_working_file"
     sed -i -e "s@<OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
@@ -212,45 +285,16 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
 
-    sed -i -e "s@<TestMode>@$TEST_MODE@g" "$deployment_working_file"
     sed -i -e "s@<Topology>@$TOPOLOGY@g" "$deployment_working_file"
 
     sed -i -e "s@<LogRotationMaxFile>@$log_rotation_max_file@g" "$deployment_working_file"
     sed -i -e "s@<LogRotationMaxFileEdgeHub>@$log_rotation_max_file_edgehub@g" "$deployment_working_file"
 
-    if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
-        sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
-        sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
-        sed -i -e "s@<SendReportFrequency>@$SEND_REPORT_FREQUENCY@g" "$deployment_working_file"
-
-        if [ "$image_architecture_label" = 'arm32v7' ] ||
-            [ "$image_architecture_label" = 'arm64v8' ]; then
-            sed -i -e "s@<EdgeAgentMemoryThreshold>@$EDGE_AGENT_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<EdgeHubMemoryThreshold>@$EDGE_HUB_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<LoadGenMemoryThreshold>@$LOAD_GEN_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<RelayerMemoryThreshold>@$RELAYER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<TwinTesterMemoryThreshold>@$TWIN_TESTER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<DirectMethodSenderMemoryThreshold>@$DIRECT_METHOD_SENDER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<DirectMethodReceiverMemoryThreshold>@$DIRECT_METHOD_RECEIVER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<TrcMemoryThreshold>@$TRC_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<NetworkControllerMemoryThreshold>@$NETWORK_CONTROLLER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<MetricsCollectorMemoryThreshold>@$METRICS_COLLECTOR_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<ModuleRestarterMemoryThreshold>@$MODULE_RESTARTER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-
-            sed -i -e "s@<EdgeHubMqttEnabled>@$EDGE_HUB_MQTT_ENABLED@g" "$deployment_working_file"
-            sed -i -e "s@<EdgeHubAmqpEnabled>@$EDGE_HUB_AMQP_ENABLED@g" "$deployment_working_file"
-
-            sed -i -e "s@<ClientModuleTransportType>@$CLIENT_MODULE_TRANSPORT_TYPE@g" "$deployment_working_file"
-        fi
-    fi
-
-    if [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
-        sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
-        sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
-        sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
-        sed -i -e "s@<EdgeHubRestartTest.SdkOperationTimeout>@$RESTART_TEST_SDK_OPERATION_TIMEOUT@g" "$deployment_working_file"
-        sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
-    fi
+    sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
+    sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeHubRestartTest.SdkOperationTimeout>@$RESTART_TEST_SDK_OPERATION_TIMEOUT@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
 }
 
 function clean_up() {
@@ -360,133 +404,118 @@ function process_args() {
             CONTAINER_REGISTRY_PASSWORD="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 7 ]; then
-            IOT_HUB_CONNECTION_STRING="$arg"
+            IOT_HUB_HOSTNAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 8 ]; then
-            EVENTHUB_CONNECTION_STRING="$arg"
+            EVENTHUB_NAMESPACE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 9 ]; then
-            EVENT_HUB_CONSUMER_GROUP_ID="$arg"
+            EVENTHUB_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 10 ]; then
-            TEST_DURATION="$arg"
+            EVENT_HUB_CONSUMER_GROUP_ID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 11 ]; then
-            TEST_START_DELAY="$arg"
+            TEST_DURATION="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 12 ]; then
-            NETWORK_CONTROLLER_FREQUENCIES=($arg)
+            TEST_START_DELAY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 13 ]; then
-            NETWORK_CONTROLLER_RUNPROFILE="$arg"
+            NETWORK_CONTROLLER_FREQUENCIES=($arg)
             saveNextArg=0
         elif [ $saveNextArg -eq 14 ]; then
-            LOG_ANALYTICS_WORKSPACEID="$arg"
+            NETWORK_CONTROLLER_RUNPROFILE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 15 ]; then
-            LOG_ANALYTICS_SHAREDKEY="$arg"
+            LOG_ANALYTICS_WORKSPACEID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 16 ]; then
-            LOG_ANALYTICS_LOGTYPE="$arg"
+            LOG_ANALYTICS_SHAREDKEY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 17 ]; then
-            VERIFICATION_DELAY="$arg"
+            LOG_ANALYTICS_LOGTYPE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 18 ]; then
-            UPSTREAM_PROTOCOL="$arg"
+            VERIFICATION_DELAY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 19 ]; then
-            DEPLOYMENT_TEST_UPDATE_PERIOD="$arg"
+            UPSTREAM_PROTOCOL="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 20 ]; then
-            TIME_FOR_REPORT_GENERATION="$arg"
+            DEPLOYMENT_TEST_UPDATE_PERIOD="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 21 ]; then
-            METRICS_ENDPOINTS_CSV="$arg"
+            TIME_FOR_REPORT_GENERATION="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 22 ]; then
-            METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
+            METRICS_ENDPOINTS_CSV="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 23 ]; then
-            METRICS_UPLOAD_TARGET="$arg"
+            METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 24 ]; then
-            BLOB_STORE_SAS="$arg"
+            METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 25 ]; then
-            DEVOPS_ACCESS_TOKEN="$arg"
+            BLOB_STORE_SAS="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 26 ]; then
-            DEVOPS_BUILDID="$arg"
+            DEVOPS_ACCESS_TOKEN="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 27 ]; then
-            DEPLOYMENT_FILE_NAME="$arg"
+            DEVOPS_BUILDID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 28 ]; then
-            RESTART_TEST_RESTART_PERIOD="$arg"
+            DEPLOYMENT_FILE_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 29 ]; then
-            RESTART_TEST_SDK_OPERATION_TIMEOUT="$arg"
+            RESTART_TEST_RESTART_PERIOD="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 30 ]; then
-            EDGE_RUNTIME_BUILD_NUMBER="$arg"
+            RESTART_TEST_SDK_OPERATION_TIMEOUT="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 31 ]; then
-            CUSTOM_EDGE_AGENT_IMAGE="$arg"
+            EDGE_RUNTIME_BUILD_NUMBER="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 32 ]; then
-            CUSTOM_EDGE_HUB_IMAGE="$arg"
+            CUSTOM_EDGE_AGENT_IMAGE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 33 ]; then
-            TEST_RUNTIME_LOG_LEVEL="$arg"
+            CUSTOM_EDGE_HUB_IMAGE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 34 ]; then
-            TEST_INFO="$arg"
+            TEST_RUNTIME_LOG_LEVEL="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 35 ]; then
+            TEST_INFO="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 36 ]; then
             TWIN_UPDATE_SIZE="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 36 ]; then
-            TEST_NAME="$arg"
-            saveNextArg=0
         elif [ $saveNextArg -eq 37 ]; then
-            CONNECT_MANAGEMENT_URI="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 38 ]; then
-            CONNECT_WORKLOAD_URI="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 39 ]; then
-            LISTEN_MANAGEMENT_URI="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 40 ]; then
-            LISTEN_WORKLOAD_URI="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 41 ]; then
-            DESIRED_MODULES_TO_RESTART_CSV="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 42 ]; then
-            RESTART_INTERVAL_IN_MINS="$arg"
-            saveNextArg=0;
-        elif [ $saveNextArg -eq 43 ]; then
-            SEND_REPORT_FREQUENCY="$arg"
-            saveNextArg=0;
-        elif [ $saveNextArg -eq 44 ]; then
-            TEST_MODE="$arg"
-            saveNextArg=0;
-        elif [ $saveNextArg -eq 45 ]; then
             REPO_PATH="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 46 ]; then
-            CLIENT_MODULE_TRANSPORT_TYPE="$arg"
-            saveNextArg=0;
-        elif [ $saveNextArg -eq 47 ]; then
+        elif [ $saveNextArg -eq 38 ]; then
             TRACKING_ID="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 48 ]; then
+        elif [ $saveNextArg -eq 39 ]; then
             TOPOLOGY="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 49 ]; then
+        elif [ $saveNextArg -eq 40 ]; then
             PACKAGE_TYPE="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 41 ]; then
+            AZURE_TENANT_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 42 ]; then
+            AZURE_CLIENT_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 43 ]; then
+            SERVICE_CONNECTION_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 44 ]; then
+            OIDC_REQUEST_URI="$arg"
             saveNextArg=0
         else
             case "$arg" in
@@ -497,52 +526,46 @@ function process_args() {
                 '-containerRegistry' ) saveNextArg=4;;
                 '-containerRegistryUsername' ) saveNextArg=5;;
                 '-containerRegistryPassword' ) saveNextArg=6;;
-                '-iotHubConnectionString' ) saveNextArg=7;;
-                '-eventHubConnectionString' ) saveNextArg=8;;
-                '-eventHubConsumerGroupId' ) saveNextArg=9;;
-                '-testDuration' ) saveNextArg=10;;
-                '-testStartDelay' ) saveNextArg=11;;
-                '-networkControllerFrequency' ) saveNextArg=12;;
-                '-networkControllerRunProfile' ) saveNextArg=13;;
-                '-logAnalyticsWorkspaceId' ) saveNextArg=14;;
-                '-logAnalyticsSharedKey' ) saveNextArg=15;;
-                '-logAnalyticsLogType' ) saveNextArg=16;;
-                '-verificationDelay' ) saveNextArg=17;;
-                '-upstreamProtocol' ) saveNextArg=18;;
-                '-deploymentTestUpdatePeriod' ) saveNextArg=19;;
-                '-timeForReportingGeneration' ) saveNextArg=20;;
-                '-metricsEndpointsCSV' ) saveNextArg=21;;
-                '-metricsScrapeFrequencyInSecs' ) saveNextArg=22;;
-                '-metricsUploadTarget' ) saveNextArg=23;;
-                '-blobStorageAccountUriWithSasToken' ) saveNextArg=24;;
-                '-devOpsAccessToken' ) saveNextArg=25;;
-                '-devOpsBuildId' ) saveNextArg=26;;
-                '-deploymentFileName' ) saveNextArg=27;;
-                '-EdgeHubRestartTestRestartPeriod' ) saveNextArg=28;;
-                '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=29;;
-                '-edgeRuntimeBuildNumber' ) saveNextArg=30;;
-                '-customEdgeAgentImage' ) saveNextArg=31;;
-                '-customEdgeHubImage' ) saveNextArg=32;;
-                '-testRuntimeLogLevel' ) saveNextArg=33;;
-                '-testInfo' ) saveNextArg=34;;
-                '-twinUpdateSize' ) saveNextArg=35;;
-                '-testName' ) saveNextArg=36;;
-                '-connectManagementUri' ) saveNextArg=37;;
-                '-connectWorkloadUri' ) saveNextArg=38;;
-                '-listenManagementUri' ) saveNextArg=39;;
-                '-listenWorkloadUri' ) saveNextArg=40;;
-                '-desiredModulesToRestartCSV' ) saveNextArg=41;;
-                '-restartIntervalInMins' ) saveNextArg=42;;
-                '-sendReportFrequency' ) saveNextArg=43;;
-                '-testMode' ) saveNextArg=44;;
-                '-repoPath' ) saveNextArg=45;;
-                '-clientModuleTransportType' ) saveNextArg=46;;
-                '-trackingId' ) saveNextArg=47;;
-                '-topology' ) saveNextArg=48;;
-                '-packageType' ) saveNextArg=49;;
+                '-iotHubHostName' ) saveNextArg=7;;
+                '-eventHubNamespace' ) saveNextArg=8;;
+                '-eventHubName' ) saveNextArg=9;;
+                '-eventHubConsumerGroupId' ) saveNextArg=10;;
+                '-testDuration' ) saveNextArg=11;;
+                '-testStartDelay' ) saveNextArg=12;;
+                '-networkControllerFrequency' ) saveNextArg=13;;
+                '-networkControllerRunProfile' ) saveNextArg=14;;
+                '-logAnalyticsWorkspaceId' ) saveNextArg=15;;
+                '-logAnalyticsSharedKey' ) saveNextArg=16;;
+                '-logAnalyticsLogType' ) saveNextArg=17;;
+                '-verificationDelay' ) saveNextArg=18;;
+                '-upstreamProtocol' ) saveNextArg=19;;
+                '-deploymentTestUpdatePeriod' ) saveNextArg=20;;
+                '-timeForReportingGeneration' ) saveNextArg=21;;
+                '-metricsEndpointsCSV' ) saveNextArg=22;;
+                '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
+                '-metricsUploadTarget' ) saveNextArg=24;;
+                '-blobStorageAccountUriWithSasToken' ) saveNextArg=25;;
+                '-devOpsAccessToken' ) saveNextArg=26;;
+                '-devOpsBuildId' ) saveNextArg=27;;
+                '-deploymentFileName' ) saveNextArg=28;;
+                '-EdgeHubRestartTestRestartPeriod' ) saveNextArg=29;;
+                '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=30;;
+                '-edgeRuntimeBuildNumber' ) saveNextArg=31;;
+                '-customEdgeAgentImage' ) saveNextArg=32;;
+                '-customEdgeHubImage' ) saveNextArg=33;;
+                '-testRuntimeLogLevel' ) saveNextArg=34;;
+                '-testInfo' ) saveNextArg=35;;
+                '-twinUpdateSize' ) saveNextArg=36;;
+                '-repoPath' ) saveNextArg=37;;
+                '-trackingId' ) saveNextArg=38;;
+                '-topology' ) saveNextArg=39;;
+                '-packageType' ) saveNextArg=40;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
-
+                '-tenantId' ) saveNextArg=41;;
+                '-clientId' ) saveNextArg=42;;
+                '-serviceConnectionId' ) saveNextArg=43;;
+                '-oidcRequestUri' ) saveNextArg=44;;
                 * )
                     echo "Unsupported argument: $saveNextArg $arg"
                     usage
@@ -554,11 +577,13 @@ function process_args() {
     # Required parameters
     [[ -z "$RELEASE_LABEL" ]] && { print_error 'Release label is required.'; exit 1; }
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
+    [[ -z "$CONTAINER_REGISTRY" ]] && { print_error 'Container registry is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
-    [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
-    [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
+    [[ -z "$EVENTHUB_NAMESPACE" ]] && { print_error 'Event hub namespace is required'; exit 1; }
+    [[ -z "$EVENTHUB_NAME" ]] && { print_error 'Event hub name is required'; exit 1; }
+    [[ -z "$IOT_HUB_HOSTNAME" ]] && { print_error 'IoT hub hostname is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_LOGTYPE" ]] && { print_error 'Log analytics log type is required'; exit 1; }
@@ -568,12 +593,15 @@ function process_args() {
     [[ -z "$BLOB_STORE_SAS" ]] && { print_error 'Blob Store SAS Uri is required'; exit 1; }
     [[ -z "$TEST_INFO" ]] && { print_error 'Test info is required'; exit 1; }
     [[ -z "$REPO_PATH" ]] && { print_error 'Repo path is required'; exit 1; }
-    [[ (-z "${TEST_NAME,,}") || ("${TEST_NAME,,}" != "${LONGHAUL_TEST_NAME,,}" && "${TEST_NAME,,}" != "${CONNECTIVITY_TEST_NAME,,}") ]] && { print_error 'Invalid test name'; exit 1; }
-    [[ (-z "${CLIENT_MODULE_TRANSPORT_TYPE,,}") && ("${image_architecture_label,,}" == "arm32v7" || "${image_architecture_label,,}" == "arm64v8") ]] && { print_error 'Arm platform needs to run with client module transport type set'; exit 1; }
+    [[ -z "$AZURE_TENANT_ID" ]] && { print_error 'Azure Tenant ID is required'; exit 1; }
+    [[ -z "$AZURE_CLIENT_ID" ]] && { print_error 'Azure Client ID is required'; exit 1; }
+    [[ -z "$OIDC_REQUEST_URI" ]] && { print_error 'OIDC request URI is required.'; exit 1; }
+    [[ -z "$SERVICE_CONNECTION_ID" ]] && { print_error 'Service connection ID is required.'; exit 1; }
+    [[ -z "$DEVOPS_ACCESS_TOKEN" ]] && { print_error 'DevOps access token is required.'; exit 1; }
 
     echo 'Required parameters are provided'
 
-    if [ -z "$TRACKING_ID"]; then
+    if [ -z "$TRACKING_ID" ]; then
         TRACKING_ID=$(cat /proc/sys/kernel/random/uuid)
     fi
 }
@@ -629,8 +657,6 @@ function run_connectivity_test() {
 
     SECONDS=0
 
-    NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
-
     DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
     DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
     TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
@@ -638,55 +664,25 @@ function run_connectivity_test() {
     echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
     echo "Trusted CA certs=$TRUSTED_CA_CERTS"
 
-    if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
-        PARENT_HOSTNAME=$(printenv E2E_parentHostname)
-        PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
-
-        echo "Running with nested Edge."
-        echo "Parent hostname=$PARENT_HOSTNAME"
-        echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
-
-        "$quickstart_working_folder/IotEdgeQuickstart" \
+    "$(get_artifact_file $E2E_TEST_DIR quickstart)" \
         -d "$device_id" \
         -a "$E2E_TEST_DIR/artifacts/" \
-        -c "$IOT_HUB_CONNECTION_STRING" \
-        -e "$EVENTHUB_CONNECTION_STRING" \
+        --iothub-hostname "$IOT_HUB_HOSTNAME" \
+        --event-hub-namespace "$EVENTHUB_NAMESPACE" \
+        --event-hub-name "$EVENTHUB_NAME" \
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
-        --parent-hostname "$PARENT_HOSTNAME" \
-        --parent-edge-device "$PARENT_EDGE_DEVICE" \
-        --device_ca_cert "$DEVICE_CA_CERT" \
-        --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
-        --trusted_ca_certs "$TRUSTED_CA_CERTS" \
-        --initialize-with-agent-artifact true \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
+        --device_ca_cert "$DEVICE_CA_CERT" \
+        --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
+        --trusted_ca_certs "$TRUSTED_CA_CERTS" \
         --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
         --no-verify \
         --overwrite-packages && funcRet=$? || funcRet=$?
-    else
-        "$quickstart_working_folder/IotEdgeQuickstart" \
-            -d "$device_id" \
-            -a "$E2E_TEST_DIR/artifacts/" \
-            -c "$IOT_HUB_CONNECTION_STRING" \
-            -e "$EVENTHUB_CONNECTION_STRING" \
-            -r "$CONTAINER_REGISTRY" \
-            -u "$CONTAINER_REGISTRY_USERNAME" \
-            -p "$CONTAINER_REGISTRY_PASSWORD" \
-            -n "$(hostname)" \
-            -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-            --leave-running=All \
-            -l "$deployment_working_file" \
-            --device_ca_cert "$DEVICE_CA_CERT" \
-            --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
-            --trusted_ca_certs "$TRUSTED_CA_CERTS" \
-            --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
-            --no-verify \
-            --overwrite-packages && funcRet=$? || funcRet=$?
-    fi
 
     local elapsed_time
     elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
@@ -755,150 +751,6 @@ function run_connectivity_test() {
     return $testExitCode
 }
 
-function run_longhaul_test() {
-    print_highlighted_message "Run Long Haul test for $image_architecture_label"
-    test_setup
-
-	NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
-
-	local hash
-	hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
-	local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$hash"
-
-    test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
-    print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
-
-    SECONDS=0
-
-    local ret=0
-
-    DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
-    DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
-    TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
-    echo "Device CA cert=$DEVICE_CA_CERT"
-    echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
-    echo "Trusted CA certs=$TRUSTED_CA_CERTS"
-
-    if [[ -z "$BYPASS_EDGE_INSTALLATION" ]]; then
-        BYPASS_EDGE_INSTALLATION=--overwrite-packages
-    fi
-
-    if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
-        HOSTNAME=$(printenv E2E_hostname)
-        PARENT_HOSTNAME=$(printenv E2E_parentHostname)
-        PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
-
-        echo "Running with nested Edge."
-        echo "HostName=$HOSTNAME"
-        echo "ParentHostName=$PARENT_HOSTNAME"
-        echo "ParentEdgeDevice=$PARENT_EDGE_DEVICE"
-
-        "$quickstart_working_folder/IotEdgeQuickstart" \
-            -d "$device_id" \
-            -a "$E2E_TEST_DIR/artifacts/" \
-            -c "$IOT_HUB_CONNECTION_STRING" \
-            -e "$EVENTHUB_CONNECTION_STRING" \
-            -r "$CONTAINER_REGISTRY" \
-            -u "$CONTAINER_REGISTRY_USERNAME" \
-            -p "$CONTAINER_REGISTRY_PASSWORD" \
-            -n "$HOSTNAME" \
-            --parent-hostname "$PARENT_HOSTNAME" \
-            --parent-edge-device "$PARENT_EDGE_DEVICE" \
-            --device_ca_cert "$DEVICE_CA_CERT" \
-            --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
-            --trusted_ca_certs "$TRUSTED_CA_CERTS" \
-            -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-            --initialize-with-agent-artifact "true" \
-            --leave-running=All \
-            -l "$deployment_working_file" \
-            --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
-            --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
-            --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
-            --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
-            --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-            $BYPASS_EDGE_INSTALLATION \
-            --no-verify && ret=$? || ret=$?
-    else
-        "$quickstart_working_folder/IotEdgeQuickstart" \
-            -d "$device_id" \
-            -a "$E2E_TEST_DIR/artifacts/" \
-            -c "$IOT_HUB_CONNECTION_STRING" \
-            -e "$EVENTHUB_CONNECTION_STRING" \
-            -r "$CONTAINER_REGISTRY" \
-            -u "$CONTAINER_REGISTRY_USERNAME" \
-            -p "$CONTAINER_REGISTRY_PASSWORD" \
-            -n "$(hostname)" \
-            -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-            --initialize-with-agent-artifact "true" \
-            --leave-running=All \
-            -l "$deployment_working_file" \
-            --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
-            --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
-            --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
-            --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
-            --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-            --device_ca_cert "$DEVICE_CA_CERT" \
-            --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
-            --trusted_ca_certs "$TRUSTED_CA_CERTS" \
-            $PACKAGE_TYPE_ARG \
-            $BYPASS_EDGE_INSTALLATION \
-            --no-verify && ret=$? || ret=$?
-    fi
-
-    local elapsed_seconds=$SECONDS
-    test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
-
-    if [ $ret -ne 0 ]; then
-        elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds")"
-        print_highlighted_message "Test completed at $test_end_time, took $elapsed_time."
-
-        print_error "Deploy longhaul test failed."
-
-        print_deployment_logs
-    fi
-
-    return $ret
-}
-
-function configure_longhaul_settings() {
-    DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
-    RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-240}"
-    NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
-
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        log_upload_enabled=true
-        log_rotation_max_file="125"
-        log_rotation_max_file_edgehub="400"
-    fi
-    if [ "$image_architecture_label" = 'arm32v7' ] ||
-        [ "$image_architecture_label" = 'arm64v8' ]; then
-        log_upload_enabled=false
-        log_rotation_max_file="7"
-        log_rotation_max_file_edgehub="30"
-
-        MB_CONSTANT=$((1024 * 1024))
-        EDGE_AGENT_MEMORY_THRESHOLD=$((70 * $MB_CONSTANT))
-        EDGE_HUB_MEMORY_THRESHOLD=$((140 * $MB_CONSTANT))
-        LOAD_GEN_MEMORY_THRESHOLD=$((40 * $MB_CONSTANT))
-        RELAYER_MEMORY_THRESHOLD=$((30 * $MB_CONSTANT))
-        TWIN_TESTER_MEMORY_THRESHOLD=$((70 * $MB_CONSTANT))
-        DIRECT_METHOD_SENDER_MEMORY_THRESHOLD=$((30 * $MB_CONSTANT))
-        DIRECT_METHOD_RECEIVER_MEMORY_THRESHOLD=$((40 * $MB_CONSTANT))
-        TRC_MEMORY_THRESHOLD=$((200 * $MB_CONSTANT))
-        NETWORK_CONTROLLER_MEMORY_THRESHOLD=$((10 * $MB_CONSTANT))
-        METRICS_COLLECTOR_MEMORY_THRESHOLD=$((55 * $MB_CONSTANT))
-        MODULE_RESTARTER_MEMORY_THRESHOLD=$((30 * $MB_CONSTANT))
-
-        if [ "${CLIENT_MODULE_TRANSPORT_TYPE,,}" = 'amqp' ]; then
-            EDGE_HUB_MQTT_ENABLED="false"
-            EDGE_HUB_AMQP_ENABLED="true"
-        else
-            EDGE_HUB_MQTT_ENABLED="true"
-            EDGE_HUB_AMQP_ENABLED="false"
-        fi
-    fi
-}
-
 function configure_connectivity_settings() {
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
     TEST_DURATION="${TEST_DURATION:-01:00:00}"
@@ -920,8 +772,7 @@ function configure_connectivity_settings() {
     log_upload_enabled=false
 }
 
-LONGHAUL_TEST_NAME="LongHaul"
-CONNECTIVITY_TEST_NAME="Connectivity"
+trap stop_token_refresh EXIT
 
 is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
 if [ "$is_build_canceled" -eq '1' ]; then
@@ -932,7 +783,6 @@ fi
 image_architecture_label=$(get_image_architecture_label)
 process_args "$@"
 
-CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 DEPLOYMENT_TEST_UPDATE_PERIOD="${DEPLOYMENT_TEST_UPDATE_PERIOD:-00:03:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
@@ -946,7 +796,6 @@ TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:02:00}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 
 working_folder="$E2E_TEST_DIR/working"
-quickstart_working_folder="$working_folder/quickstart"
 
 if [ -z $PACKAGE_TYPE ]; then
     echo 'Package type not specifed default to .deb'
@@ -980,21 +829,17 @@ TEST_INFO="$TEST_INFO,NetworkControllerOnlineFrequency=${NETWORK_CONTROLLER_FREQ
 TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIES[2]}"
 
 testRet=0
-if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
-    configure_longhaul_settings
+configure_connectivity_settings
 
-    run_longhaul_test && testRet=$? || testRet=$?
-elif [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
-    configure_connectivity_settings
-
-    is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
-    if [ "$is_build_canceled" -eq '1' ]; then
-        print_highlighted_message "build is canceled."
-        exit 3
-    fi
-
-    run_connectivity_test && testRet=$? || testRet=$?
+is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
+if [ "$is_build_canceled" -eq '1' ]; then
+    print_highlighted_message "build is canceled."
+    exit 3
 fi
+
+run_connectivity_test && testRet=$? || testRet=$?
+
+stop_token_refresh
 
 echo "Test exit with result code $testRet"
 exit $testRet

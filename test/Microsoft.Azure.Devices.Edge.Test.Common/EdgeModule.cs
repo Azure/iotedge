@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                         data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                        resultBody = Encoding.UTF8.GetString(data.Body);
+                        resultBody = data.EventBody.ToString();
                         Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
                         return devId != null && devId.ToString().Equals(this.deviceId)
                                                 && modId != null && modId.ToString().Equals(this.Id)
@@ -119,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             },
             "Received events from device '{Device}' on Event Hub '{EventHub}'",
             this.deviceId,
-            this.iotHub.EntityPath);
+            this.iotHub.EventHubName);
 
         public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token) => Profiler.Run(
             () => this.iotHub.UpdateTwinAsync(this.deviceId, this.Id, patch, token),

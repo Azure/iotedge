@@ -1,3 +1,210 @@
+# 1.5.40 (2026-05-13)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.39 (2026-04-16)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.38 (2026-04-15)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.37 (2026-03-11)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.36 (2026-02-11)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.35 (2026-01-31)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.34 (2026-01-28)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.33 (2026-01-15)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.32 (2025-12-12)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.31 (2025-11-20)
+
+## Edge Agent
+### Bug fixes
+- Update module memory metric calculation based on dockerd recommendations ( [9097fc0](https://github.com/Azure/iotedge/commit/9097fc040d3a40ef073fd5ba735b4d15acaf3a27) )
+
+# 1.5.30 (2025-11-11)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.29 (2025-10-15)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.28 (2025-10-09)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.27 (2025-09-10)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.26 (2025-08-26)
+
+## Edge Agent
+### Bug fixes
+* Introduce `UseOfflineCheck` environment variable to help Edge Agent start without network connectivity ( [ce63def](https://github.com/Azure/iotedge/commit/ce63defcaae3eda64e2ec4c176c169dae14b0ab4), [8d74df0](https://github.com/Azure/iotedge/commit/8d74df08f6d07aa5babdecc364f34b3e2e746022) )
+
+
+# 1.5.25 (2025-08-06)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.24 (2025-07-22)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.23 (2025-07-16)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.22 (2025-07-09)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
+# 1.5.21 (2025-06-19)
+
+## Edge Agent
+### Bug fixes
+* Introduce configurable timeout value for module request throttling ( [f219589](https://github.com/Azure/iotedge/commit/f219589cb505fee044781158e570e0871b03f137) )
+
+## Edge Hub
+### Bug fixes
+* Keep Edge hub container fd limits consistent across Docker versions ( [95b87fc](https://github.com/Azure/iotedge/commit/95b87fca32a6759ec2c68b09e8b7e7a6f756fb6f) )
+
+## aziot-edge
+### OS support
+* Add support for Azure Linux 3.0 ( [03cd85d](https://github.com/Azure/iotedge/commit/03cd85d6c093f34c033d8f0e924aa89da459db28) )
+* Remove support for Ubuntu 20.04 ( [7645449](https://github.com/Azure/iotedge/commit/7645449b8bbdc80862d681a693a1601d1880ea9a) )
+
+## aziot-identity-service
+### OS support
+* Add support for Azure Linux 3.0 ( [0452db3](https://github.com/Azure/iot-identity-service/commit/0452db3f15c4e7d0ee21acf545a314e18ff866d2) )
+* Remove support for Ubuntu 20.04 ( [31a213c](https://github.com/Azure/iot-identity-service/commit/31a213ced93685884d93ce8ee4b8bc346abdb06d) )
+
+### Bug fixes
+* Handle network errors from parent Edge hub ( [0c33b7b](https://github.com/Azure/iot-identity-service/commit/0c33b7b80a3fff060aa3e8e1ba226901e4154b6a) )
+* Enable service sockets in systemd for Azure Linux ( [e62c0e3](https://github.com/Azure/iot-identity-service/commit/e62c0e3d06930dbcf33e1c951e3c5d2a32663bc6) )
+
 # 1.5.20 (2025-05-19)
 
 Only Docker images are updated in this release. The daemon remains at version 1.5.16.
@@ -795,7 +1002,7 @@ retry = "4%"
 To enable the certificate renewal feature, changes were made to consolidate and improve IoT Edge's certificate management system. There are some important differences in 1.3 compared to 1.2:
 - All modules restart when Edge CA certificate is renewed. This is necessary so that each module receives the updated trust bundle with the new CA certificate. By default, and when there's no specific `auto_renew` configuration, Edge CA renews at 80% certificate lifetime and so modules would restart at that time.
 - The device identity certificate no longer renews when reprovisioned within 1 day of certificate expiry. This old behavior in 1.2 is removed because it causes authentication errors with IoT Hub or DPS when using X.509 thumbprint authentication, since the new certificate comes with a new thumbprint that the user must manually update in Azure. In 1.3, device identity automatic renewal must be explicitly enabled similar to example above and should only be used with DPS X.509 CA authentication.
-- The device identity certificate no longer renews when reprovisioned after certificate expiry. The reason for this change is same as above: device identity certificates do not renew by default since it causes issues with X.509 thumbprint authentication. 
+- The device identity certificate no longer renews when reprovisioned after certificate expiry. The reason for this change is same as above: device identity certificates do not renew by default since it causes issues with X.509 thumbprint authentication.
 
 ## OS support
 * Adding RedHat Enterprise Linux 8 for AMD and Intel 64-bit architectures.
@@ -812,7 +1019,7 @@ We recommend using Bullseye instead of Buster as the host OS.  Seccomp on Buster
 
 If you need to use Buster, then apply the following workaround to change the default seccomp profile for Moby's `defaultAction` to `SCMP_ACT_TRACE`:
 1. Make sure you are runing latest docker and latest seccomp package from oldstable channel
-2. Download [Moby's default seccomp profile](https://github.com/moby/moby/blob/master/profiles/seccomp/default.json) and put it somewhere. 
+2. Download [Moby's default seccomp profile](https://github.com/moby/moby/blob/master/profiles/seccomp/default.json) and put it somewhere.
 4. On line 2 change the value for _defaultAction_ from `SCMP_ACT_ERRNO` to `SCMP_ACT_TRACE`
 5. Edit file _/etc/systemd/system/multi-user.target.wants/docker.service_ to have it contain: `--seccomp-profile=/path/to/default.json`
 6. Restart your container engine by running:

@@ -62,7 +62,7 @@
             "restartPolicy": "always",
             "startupOrder": 2,
             "settings": {
-              "image": "registry:latest",
+              "image": "mcr.microsoft.com/oss/v2/docker/registry:v3.0.0",
               "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"5000\/tcp\": [{\"HostPort\": \"5000\"}]}}}"
             },
             "env": {

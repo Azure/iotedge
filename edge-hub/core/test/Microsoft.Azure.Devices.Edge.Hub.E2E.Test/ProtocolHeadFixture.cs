@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
+    using global::Azure.Identity;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -66,23 +67,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task StartProtocolHead()
         {
-            string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");
+            string certificateValue = SecretsHelper.GetSecret("IotHubMqttHeadCert");
             byte[] cert = Convert.FromBase64String(certificateValue);
             var certificate = new X509Certificate2(cert);
 
             // TODO for now this is empty as will suffice for SAS X.509 thumbprint auth but we will need other CA certs for X.509 CA validation
             var trustBundle = new List<X509Certificate2>();
 
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+            string edgeDeviceConnectionString = SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
 
             // TODO - After IoTHub supports MQTT, remove this and move to using MQTT for upstream connections
             await ConnectToIotHub(edgeDeviceConnectionString);
 
             // Set edgeHub connection string to config
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
             string edgeDeviceId = ConnectionStringHelper.GetDeviceId(edgeDeviceConnectionString);
             string iothub = ConnectionStringHelper.GetHostName(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            RegistryManager rm = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             var edgeHubModule = await rm.GetModuleAsync(edgeDeviceId, "$edgeHub");
             if (edgeHubModule.Authentication.Type == AuthenticationType.None)
             {

@@ -7,7 +7,6 @@ namespace Modules.Test.TestResultCoordinator
     using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod.Connectivity;
-    using global::TestResultCoordinator.Reports.DirectMethod.LongHaul;
     using global::TestResultCoordinator.Reports.EdgeHubRestartTest;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -54,13 +53,12 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Theory]
-        [InlineData(true, true, true, true, true, true, true, true, true, 0)]
-        [InlineData(false, false, true, true, true, true, true, true, true, 2)]
-        [InlineData(true, true, true, true, false, true, true, false, false, 3)]
-        [InlineData(true, false, true, false, true, true, true, false, true, 3)]
-        [InlineData(true, false, false, false, false, true, true, false, false, 6)]
-        [InlineData(false, false, false, false, false, true, true, false, false, 7)]
-        [InlineData(false, false, false, false, false, false, false, false, false, 9)]
+        [InlineData(true, true, true, true, true, true, true, 0)]
+        [InlineData(false, false, true, true, true, true, true, 2)]
+        [InlineData(true, true, true, true, false, false, false, 3)]
+        [InlineData(true, false, true, false, true, false, true, 3)]
+        [InlineData(true, false, false, false, false, false, false, 6)]
+        [InlineData(false, false, false, false, false, false, false, 7)]
 
         public async Task TestGenerateTestResultReportsAsync_ReportGeneration(
             bool throwExceptionForTestReport1,
@@ -70,21 +68,17 @@ namespace Modules.Test.TestResultCoordinator
             bool throwExceptionForTestReport5,
             bool throwExceptionForTestReport6,
             bool throwExceptionForTestReport7,
-            bool throwExceptionForTestReport8,
-            bool throwExceptionForTestReport9,
             int expectedReportCount)
         {
             var mockLogger = new Mock<ILogger>();
             var mockTestReportGeneratorFactory = new Mock<ITestReportGeneratorFactory>();
 
             string trackingId = "fakeTrackingId";
-            var countingReportMetadata = new CountingReportMetadata(TestDescription, "CountingExpectedSource", "CountingAcutalSource", TestOperationResultType.Messages, TestReportType.CountingReport, false);
+            var countingReportMetadata = new CountingReportMetadata(TestDescription, "CountingExpectedSource", "CountingAcutalSource", TestOperationResultType.Messages, TestReportType.CountingReport);
             var twinCountingReportMetadata = new TwinCountingReportMetadata(TestDescription, "TwinExpectedSource", "TwinActualSource", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
             var deploymentReportMetadata = new DeploymentTestReportMetadata(TestDescription, "DeploymentExpectedSource", "DeploymentActualSource");
             var directMethodConnectivityReportMetadata = new DirectMethodConnectivityReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
             var directMethodConnectivityReportMetadataWithoutReceiverSource = new DirectMethodConnectivityReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
-            var directMethodLongHaulReportMetadata = new DirectMethodLongHaulReportMetadata(TestDescription, "DirectMethodSenderSource", "DirectMethodReceiverSource");
-            var directMethodLongHaulReportMetadataWithoutReceiverSource = new DirectMethodLongHaulReportMetadata(TestDescription, "DirectMethodSenderSource", "DirectMethodReceiverSource");
             var edgeHubRestartMessageReportMetadata = new EdgeHubRestartMessageReportMetadata(TestDescription, "edgeHubRestartTester1.EdgeHubRestartMessage", "relayer1.receive");
             var edgeHubRestartDirectMethodReportMetadata = new EdgeHubRestartDirectMethodReportMetadata(TestDescription, "edgeHubRestartTester1.EdgeHubRestartDirectMethod", "directMethodReceiver1.receive");
 
@@ -109,21 +103,13 @@ namespace Modules.Test.TestResultCoordinator
             var mockTestReportGenerator7 = new Mock<ITestResultReportGenerator>();
             mockTestReportGenerator7.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport7));
 
-            var mockTestReportGenerator8 = new Mock<ITestResultReportGenerator>();
-            mockTestReportGenerator8.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport8));
-
-            var mockTestReportGenerator9 = new Mock<ITestResultReportGenerator>();
-            mockTestReportGenerator9.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport9));
-
             mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, countingReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator1.Object));
             mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, twinCountingReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator2.Object));
             mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, deploymentReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator3.Object));
             mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, directMethodConnectivityReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator4.Object));
             mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, directMethodConnectivityReportMetadataWithoutReceiverSource)).Returns(Task.FromResult(mockTestReportGenerator5.Object));
-            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, directMethodLongHaulReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator6.Object));
-            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, directMethodLongHaulReportMetadataWithoutReceiverSource)).Returns(Task.FromResult(mockTestReportGenerator7.Object));
-            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, edgeHubRestartMessageReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator8.Object));
-            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, edgeHubRestartDirectMethodReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator9.Object));
+            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, edgeHubRestartMessageReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator6.Object));
+            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, edgeHubRestartDirectMethodReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator7.Object));
 
             ITestResultReport[] reports = await TestReportUtil.GenerateTestResultReportsAsync(
                 trackingId,
@@ -134,8 +120,6 @@ namespace Modules.Test.TestResultCoordinator
                     deploymentReportMetadata,
                     directMethodConnectivityReportMetadata,
                     directMethodConnectivityReportMetadataWithoutReceiverSource,
-                    directMethodLongHaulReportMetadata,
-                    directMethodLongHaulReportMetadataWithoutReceiverSource,
                     edgeHubRestartMessageReportMetadata,
                     edgeHubRestartDirectMethodReportMetadata
                 },
@@ -228,7 +212,6 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(TestReportType.CountingReport, reportMetadata.TestReportType);
             Assert.Equal("loadGen1.send", reportMetadata.ExpectedSource);
             Assert.Equal("relayer1.receive", reportMetadata.ActualSource);
-            Assert.False(reportMetadata.LongHaulEventHubMode);
         }
 
         [Fact]
@@ -239,7 +222,6 @@ namespace Modules.Test.TestResultCoordinator
                     ""reportMetadata"": {
                         ""TestDescription"": ""messages | local | amqp"",
                         ""TestReportType"": ""CountingReport"",
-                        ""LongHaulEventHubMode"": ""true"",
                         ""TestOperationResultType"": ""Messages"",
                         ""ExpectedSource"": ""loadGen1.send"",
                         ""ActualSource"": ""relayer1.receive""
@@ -256,7 +238,6 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(TestReportType.CountingReport, reportMetadata.TestReportType);
             Assert.Equal("loadGen1.send", reportMetadata.ExpectedSource);
             Assert.Equal("relayer1.receive", reportMetadata.ActualSource);
-            Assert.True(reportMetadata.LongHaulEventHubMode);
         }
 
         [Fact]
@@ -337,31 +318,6 @@ namespace Modules.Test.TestResultCoordinator
             Assert.True(reportMetadata.ReceiverSource.HasValue);
             reportMetadata.ReceiverSource.ForEach(x => Assert.Equal("directMethodReceiver1.receive", x));
             Assert.Equal(new TimeSpan(0, 0, 0, 0, 5), reportMetadata.TolerancePeriod);
-        }
-
-        [Fact]
-        public void ParseReportMetadataList_ParseDirectMethodLongHaulTestReportMetadata()
-        {
-            const string testDataJson =
-                @"{
-                    ""reportMetadata"": {
-                        ""TestDescription"": ""direct method | cloud | amqp"",
-                        ""TestReportType"": ""DirectMethodLongHaulReport"",
-                        ""SenderSource"": ""directMethodSender1.send"",
-                        ""ReceiverSource"": ""directMethodReceiver1.receive""
-                    }
-                }";
-
-            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
-
-            Assert.Single(results);
-            var reportMetadata = results[0] as DirectMethodLongHaulReportMetadata;
-            Assert.NotNull(reportMetadata);
-            Assert.Equal("direct method | cloud | amqp", reportMetadata.TestDescription);
-            Assert.Equal(TestOperationResultType.DirectMethod, reportMetadata.TestOperationResultType);
-            Assert.Equal(TestReportType.DirectMethodLongHaulReport, reportMetadata.TestReportType);
-            Assert.Equal("directMethodSender1.send", reportMetadata.SenderSource);
-            Assert.Equal("directMethodReceiver1.receive", reportMetadata.ReceiverSource);
         }
 
         [Fact]
@@ -542,9 +498,7 @@ namespace Modules.Test.TestResultCoordinator
             {
                 return Task.FromResult<ITestResultReport>(new CountingReport(
                   "mock",
-                  TestMode.Connectivity,
                   Topology.SingleNode,
-                  false,
                   "mock",
                   "mock",
                   "mock",
@@ -558,7 +512,6 @@ namespace Modules.Test.TestResultCoordinator
                   new List<TestOperationResult>(),
                   new List<TestOperationResult>(),
                   new List<TestOperationResult>(),
-                  Option.None<EventHubSpecificReportComponents>(),
                   Option.None<DateTime>()));
             }
 

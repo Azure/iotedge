@@ -74,7 +74,7 @@ stages:
           mkdir $(Build.ArtifactStagingDirectory)/core-linux && \
           mv $(Build.BinariesDirectory)/publish/{CACertificates,scripts} $(Build.ArtifactStagingDirectory)/core-linux
           if $INCLUDE_QUICKSTART; then
-            mv $(Build.BinariesDirectory)/publish/{e2e_deployment_files,e2e_test_files,IotEdgeQuickstart*,LeafDevice*} $(Build.ArtifactStagingDirectory)/core-linux
+            mv $(Build.BinariesDirectory)/publish/{e2e_deployment_files,e2e_test_files,IotEdgeQuickstart*} $(Build.ArtifactStagingDirectory)/core-linux
           fi
         displayName: Move/stage test file artifacts
         env:
@@ -271,17 +271,6 @@ stages:
           app: load-gen
           platforms: $(platforms)
           version: $(Build.BuildNumber)
-
-    - job: BuildImageTestAnalyzer
-      steps:
-      - template: image-linux.yaml
-        parameters:
-          displayName: Test Analyzer
-          name: azureiotedge-analyzer
-          app: TestAnalyzer
-          version: $(Build.BuildNumber)
-          use_rocksdb: true
-          platforms: $(platforms)
 
       # Functions Sample - Only supported on amd64
     - job: BuildImageFunctionsSample

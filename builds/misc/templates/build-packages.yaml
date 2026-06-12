@@ -50,20 +50,6 @@ parameters:
             identity: iot-identity-service/packages/debian12/aarch64
             iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
       - os:
-          container: mcr.microsoft.com/mirror/docker/library/ubuntu:20.04
-          identity: ubuntu:20.04
-          iotedge: ubuntu20.04
-        targets:
-          - arch: amd64
-            identity: iot-identity-service/packages/ubuntu2004/amd64
-            iotedged: edgelet/target/release
-          - arch: arm32v7
-            identity: iot-identity-service/packages/ubuntu2004/arm32v7
-            iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-          - arch: aarch64
-            identity: iot-identity-service/packages/ubuntu2004/aarch64
-            iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-      - os:
           container: mcr.microsoft.com/mirror/docker/library/ubuntu:22.04
           identity: ubuntu:22.04
           iotedge: ubuntu22.04
@@ -247,6 +233,9 @@ stages:
               sudo snap refresh
               sudo snap install snapcraft --classic
               lxd init --minimal
+              # Create a runtime directory for this user.
+              sudo mkdir -p /run/user/$(id -u)
+              sudo chown $(id -u):$(id -g) /run/user/$(id -u)
             displayName: Set up build environment for snaps
           - bash: |
               set -xeuo pipefail
@@ -303,26 +292,6 @@ stages:
         timeoutInMinutes: 90
         strategy:
           matrix:
-            2.0-amd64:
-              agent-pool: $(pool.linux.name)
-              agent-image: agent-aziotedge-ubuntu-22.04-msmoby
-              arch: amd64
-              os: mariner
-              os_id: cm
-              os_version: 2
-              release_tag: 2.0-stable
-              target.identity: iot-identity-service/packages/mariner2/amd64
-              target.iotedged: builds/mariner2/out/RPMS/x86_64
-            2.0-aarch64:
-              agent-pool: $(pool.linux.arm.name)
-              agent-image: agent-aziotedge-ubuntu-22.04-arm64-msmoby
-              arch: aarch64
-              os: mariner
-              os_id: cm
-              os_version: 2
-              release_tag: 2.0-stable
-              target.identity: iot-identity-service/packages/mariner2/aarch64
-              target.iotedged: builds/mariner2/out/RPMS/aarch64
             3.0-amd64:
               agent-pool: $(pool.linux.name)
               agent-image: agent-aziotedge-ubuntu-22.04-msmoby

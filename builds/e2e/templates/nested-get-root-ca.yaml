@@ -17,5 +17,5 @@ steps:
         sudo update-ca-certificates
 
         #clean up
-        sudo rm tar -xjvf rootCA.tar.bz2
+        sudo rm rootCA.tar.bz2
         sudo rm -r ./certs

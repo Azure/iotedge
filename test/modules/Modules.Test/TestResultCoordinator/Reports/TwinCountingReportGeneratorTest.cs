@@ -185,17 +185,13 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
         {
-            bool brokerEnabled = false;
-
             var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
                     TestDescription,
-                    TestMode.Connectivity,
                     Topology.SingleNode,
-                    brokerEnabled,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -203,8 +199,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     resultType,
                     new SimpleTestOperationResultComparer(),
-                    UnmatchedResultsMaxSize,
-                    false));
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("resultType", ex.Message);
         }
@@ -255,7 +250,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public async Task TestCreateReportAsyncWithEmptyResults()
         {
-            bool brokerEnabled = false;
             string expectedSource = "expectedSource";
             string actualSource = "actualSource";
             int batchSize = 10;
@@ -267,9 +261,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             var reportGenerator = new CountingReportGenerator(
                 TestDescription,
-                TestMode.Connectivity,
                 Topology.SingleNode,
-                brokerEnabled,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults.GetAsyncEnumerator(),
@@ -277,8 +269,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 actualResults.GetAsyncEnumerator(),
                 "resultType1",
                 new SimpleTestOperationResultComparer(),
-                UnmatchedResultsMaxSize,
-                false);
+                UnmatchedResultsMaxSize);
 
             var report = (CountingReport)await reportGenerator.CreateReportAsync();
 

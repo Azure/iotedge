@@ -59,10 +59,6 @@ case "$PACKAGE_OS" in
         DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/debian:bookworm-slim'
         ;;
 
-    'ubuntu20.04')
-        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:20.04'
-        ;;
-
     'ubuntu22.04')
         DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:22.04'
         ;;
@@ -174,38 +170,22 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         '
         ;;
 
-    ubuntu20.04.amd64|ubuntu22.04.amd64|ubuntu24.04.amd64)
+    ubuntu22.04.amd64|ubuntu24.04.amd64)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
             libcurl4-openssl-dev libssl-dev pkg-config uuid-dev'
-        case "$PACKAGE_OS" in
-            ubuntu20.04)
-                transitional_packages='dh-systemd'
-                ;;
-            *)
-                transitional_packages=''
-                ;;
-        esac
         SETUP_COMMAND=$"
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
             apt-get update &&
             apt-get upgrade -y &&
-            apt-get install -y --no-install-recommends $packages $transitional_packages &&
+            apt-get install -y --no-install-recommends $packages &&
         "
         ;;
 
-    ubuntu20.04.arm32v7|ubuntu22.04.arm32v7)
+    ubuntu22.04.arm32v7)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc g++ \
             gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libcurl4-openssl-dev:armhf \
             libssl-dev:armhf uuid-dev:armhf'
-        case "$PACKAGE_OS" in
-            ubuntu20.04)
-                transitional_packages='dh-systemd'
-                ;;
-            *)
-                transitional_packages=''
-                ;;
-        esac
         SETUP_COMMAND=$"
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
@@ -222,7 +202,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             dpkg --add-architecture armhf &&
             apt-get update &&
             apt-get upgrade -y &&
-            apt-get install -y --no-install-recommends $packages $transitional_packages &&
+            apt-get install -y --no-install-recommends $packages &&
             mkdir -p ~/.cargo &&
             echo '[target.armv7-unknown-linux-gnueabihf]' > ~/.cargo/config &&
             echo 'linker = \"arm-linux-gnueabihf-gcc\"' >> ~/.cargo/config &&
@@ -262,18 +242,10 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
         "
         ;;
 
-    ubuntu20.04.aarch64|ubuntu22.04.aarch64)
+    ubuntu22.04.aarch64)
         packages='binutils build-essential ca-certificates curl debhelper file git make gcc \
             g++ gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libcurl4-openssl-dev:arm64 \
             libssl-dev:arm64 uuid-dev:arm64'
-        case "$PACKAGE_OS" in
-            ubuntu20.04)
-                transitional_packages='dh-systemd'
-                ;;
-            *)
-                transitional_packages=''
-                ;;
-        esac
         SETUP_COMMAND=$"
             export DEBIAN_FRONTEND=noninteractive
             export TZ=UTC
@@ -290,7 +262,7 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             dpkg --add-architecture arm64 &&
             apt-get update &&
             apt-get upgrade -y &&
-            apt-get install -y --no-install-recommends $packages $transitional_packages &&
+            apt-get install -y --no-install-recommends $packages &&
             mkdir -p ~/.cargo &&
             echo '[target.aarch64-unknown-linux-gnu]' > ~/.cargo/config &&
             echo 'linker = \"aarch64-linux-gnu-gcc\"' >> ~/.cargo/config &&

@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     {
         static readonly string[] Versions = new string[] { "2018-06-28", "2019-01-30", "2019-10-22", "2021-12-07" };
         readonly Uri serverUrl;
+        readonly int clientPermitTimeout = 300;
         readonly EdgeletFixture edgeletFixture;
 
         public static IEnumerable<object[]> VersionMap => GetVersionMap();
@@ -85,14 +86,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             // Unsupported client.
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2019-02-30";
-            Assert.Throws<InvalidOperationException>(() => new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>()));
+            Assert.Throws<InvalidOperationException>(() => new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>(), this.clientPermitTimeout));
         }
 
         [Theory]
         [MemberData(nameof(VersionMap))]
         public async Task ProductInfoTest(string serverApiVersion, string clientApiVersion)
         {
-            ModuleManagementHttpClient mm = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>());
+            ModuleManagementHttpClient mm = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>(), this.clientPermitTimeout);
 
             Assert.Equal("EdgeAgent (kernel=foo;architecture=bar;version=baz;server_version=;kernel_version=;operating_system=;cpus=0;total_memory=0;virtualized=;)", await mm.GetProductInfoAsync(CancellationToken.None, "EdgeAgent"));
         }
@@ -102,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task IdentityTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
-            IIdentityManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>());
+            IIdentityManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>(), this.clientPermitTimeout);
 
             // Act
             Identity identity1 = await client.CreateIdentityAsync("Foo", Constants.ModuleIdentityEdgeManagedByValue);
@@ -177,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task ModulesTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
-            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>());
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>(), this.clientPermitTimeout);
             var moduleSpec = new ModuleSpec("Module1", "Docker", ImagePullPolicy.OnCreate, JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
 
             // Act
@@ -259,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                 ImagePullPolicy.OnCreate,
                 JObject.Parse("{ \"image\": \"testimage\" }"),
                 new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
-            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>());
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>(), this.clientPermitTimeout);
             await client.PrepareUpdateAsync(moduleSpec);
         }
 
@@ -268,7 +269,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task ModuleLogsTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
-            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>());
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>(), this.clientPermitTimeout);
 
             // Act
             Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<string>(), Option.None<string>(),  Option.Some(false), CancellationToken.None);
@@ -285,7 +286,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task Test_ReprovisionDevice_ShouldSucceed(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
-            IDeviceManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>());
+            IDeviceManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, Option.None<TimeSpan>(), this.clientPermitTimeout);
 
             // Act and Assert
             await client.ReprovisionDeviceAsync();

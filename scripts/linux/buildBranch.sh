@@ -177,26 +177,6 @@ publish_quickstart()
         .
 }
 
-publish_leafdevice()
-{
-    local rid="$1"
-    echo "Publishing LeafDevice for '$rid'"
-    $DOTNET_ROOT_PATH/dotnet publish \
-        -c $CONFIGURATION \
-        -f $DOTNET_RUNTIME \
-        -p:DotNet_Runtime=$DOTNET_RUNTIME \
-        -r $rid \
-        $ROOT_FOLDER/smoke/LeafDevice
-    if [ $? -gt 0 ]; then
-        RES=1
-    fi
-
-    tar \
-        -C "$ROOT_FOLDER/smoke/LeafDevice/bin/$CONFIGURATION/$DOTNET_RUNTIME/$rid/publish/" \
-        -czf "$PUBLISH_FOLDER/LeafDevice.$rid.tar.gz" \
-        .
-}
-
 build_solution()
 {
     echo "Building IoT Edge solution"
@@ -229,7 +209,6 @@ publish_app "Microsoft.Azure.Devices.Edge.Azure.Monitor"
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 
 publish_app "load-gen"
-publish_app "TestAnalyzer"
 publish_app "DirectMethodSender"
 publish_app "DirectMethodReceiver"
 publish_app "ModuleRestarter"
@@ -250,9 +229,6 @@ if [ "$SKIP_QUICKSTART" -ne 1 ]; then
     publish_quickstart linux-arm
     publish_quickstart linux-x64
     publish_quickstart linux-arm64
-    publish_leafdevice linux-arm
-    publish_leafdevice linux-x64
-    publish_leafdevice linux-arm64
 
     publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
     publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER

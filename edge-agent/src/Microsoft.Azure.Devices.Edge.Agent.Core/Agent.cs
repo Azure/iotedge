@@ -5,9 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Net.Sockets;
     using System.Runtime.ExceptionServices;
     using System.Threading;
     using System.Threading.Tasks;
+    using Akka;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
@@ -31,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
         readonly IEncryptionProvider encryptionProvider;
         readonly IDeploymentMetrics deploymentMetrics;
+        Option<OfflineCheckInfo> offlineCheckInfo;
         IEnvironment environment;
         DeploymentConfigInfo currentConfig;
         DeploymentStatus status;
@@ -46,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             DeploymentConfigInfo initialDeployedConfigInfo,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IDeploymentMetrics deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            Option<OfflineCheckInfo> offlineCheckInfo)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
@@ -60,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
             this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
+            this.offlineCheckInfo = offlineCheckInfo;
             this.status = DeploymentStatus.Unknown;
             Events.AgentCreated();
         }
@@ -74,7 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEntityStore<string, string> configStore,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
             IEncryptionProvider encryptionProvider,
-            IDeploymentMetrics deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            Option<OfflineCheckInfo> offlineCheckInfo)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -106,7 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 deploymentConfigInfo.GetOrElse(DeploymentConfigInfo.Empty),
                 deploymentConfigInfoSerde,
                 encryptionProvider,
-                deploymentMetrics);
+                deploymentMetrics,
+                offlineCheckInfo);
             return agent;
         }
 
@@ -202,9 +209,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     }
                 }
 
-                await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
+                if (await this.IsServiceAvailableViaTcpAsync())
+                {
+                    await this.reporter.ReportAsync(token, moduleSetToReport, await this.environment.GetRuntimeInfoAsync(), this.currentConfig.Version, this.status);
+                }
+
                 Events.FinishedReconcile();
             }
+        }
+
+        async Task<bool> IsServiceAvailableViaTcpAsync()
+        {
+            return await this.offlineCheckInfo.Match<Task<bool>>(
+                async (info) =>
+                {
+                    try
+                    {
+                        using var tcpClient = new TcpClient();
+                        await tcpClient.ConnectAsync(info.Address, info.Port);
+                        return true;
+                    }
+                    catch (Exception)
+                    {
+                        return false;
+                    }
+                },
+                () => Task.FromResult(true));
         }
 
         public async Task HandleShutdown(CancellationToken token)

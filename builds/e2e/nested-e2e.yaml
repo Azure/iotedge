@@ -34,22 +34,35 @@ stages:
 - stage: LockAgents
   jobs:
   - template: templates/lock-test-agents.yaml
-    parameters:
-      upstream.protocol: 'mqtt'
 
 - stage: RunNestedTests
   dependsOn: LockAgents
   jobs:
-  - template: templates/get-storage-uri.yaml
+  - template: templates/e2e-secrets.yaml
     parameters:
       azureSubscription: $(az.subscription)
+      keyVaultName: $(kv.name)
+  - job: ContainerRegistryCredentials
+    displayName: 'Get ACR Credentials'
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-22.04-msmoby
+    steps:
+      - template: templates/acr-credentials.yaml
+        parameters:
+          acrName: $(cr.name)
+          crossJobVariables: true
+          serviceConnection: $(az.subscription)
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
+      iotHubHostName: $(iothub.hostname)
       upstream.protocol: mqtt
       test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_mqtt.json'
   - job:  SetupVM_and_RunTest_level3
     dependsOn:
       - Token
+      - ContainerRegistryCredentials
       - SetupVM_level5_mqtt
       - SetupVM_level4_mqtt
     displayName: Set up and run tests
@@ -64,30 +77,51 @@ stages:
       arch: amd64
       identityArtifactName: aziot-identity-ubuntu24.04-amd64
       artifactName: iotedged-ubuntu24.04-amd64
+      dpsGroupKeySymmetric: $[ dependencies.Token.outputs['secrets.dpsGroupKeySymmetric'] ]
+      rootCaCertificate: $[ dependencies.Token.outputs['secrets.rootCaCertificate'] ]
+      rootCaKey: $[ dependencies.Token.outputs['secrets.rootCaKey'] ]
+      rootCaPassword: $[ dependencies.Token.outputs['secrets.rootCaPassword'] ]
       sas_uri: $[ dependencies.Token.outputs['generate.sas_uri'] ]
       nestededge: true
+      containerRegistryServer: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrServer'] ]
+      containerRegistryUsername: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrUsername'] ]
+      containerRegistryPassword: $[ dependencies.ContainerRegistryCredentials.outputs['acrgen.acrPassword'] ]
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
+        - status -equals locked_$(Build.BuildId)_L3
     steps:
       - template: templates/nested-get-secrets.yaml
       - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-get-device-name.yaml
       - template: templates/e2e-setup.yaml
+        parameters:
+          containerRegistryServer: '$(containerRegistryServer)'
+          containerRegistryUsername: '$(containerRegistryUsername)'
+          eventHubName: '$(eventhub.name)'
+          eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+          iotHubHostName: '$(iothub.hostname)'
+          iotHubResourceId: '$(iothub.resourceid)'
+          rootCaCertificate: '$(rootCaCertificate)'
+          rootCaKey: '$(rootCaKey)'
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
-          test_type: nestededge_mqtt
+          azureSubscription: '$(az.subscription)'
+          containerRegistryPassword: '$(containerRegistryPassword)'
+          dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
+          rootCaPassword: '$(rootCaPassword)'
           sas_uri: $(sas_uri)
+          test_type: nestededge_mqtt
       - template: templates/nested-deploy-config.yaml
         parameters:
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
+          containerRegistryPassword: $(containerRegistryPassword)
           deviceId: $(lvl5DeviceId)
           deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
           changeDeployConfigOnly: true
@@ -95,6 +129,9 @@ stages:
           name: 5
       - template: templates/nested-deploy-config.yaml
         parameters:
+          containerRegistryServer: $(containerRegistryServer)
+          containerRegistryUsername: $(containerRegistryUsername)
+          containerRegistryPassword: $(containerRegistryPassword)
           deviceId: $(parentDeviceId)
           deploymentFile: nestededge_middleLayer_e2e_amqp.json
           changeDeployConfigOnly: true
@@ -102,10 +139,12 @@ stages:
           name: 4
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
-          IotHubConnectionString: '$(IotHub-ConnStr)'
-          test_type: nestededge_amqp
+          azureSubscription: '$(az.subscription)'
+          containerRegistryPassword: '$(containerRegistryPassword)'
+          dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
+          rootCaPassword: '$(rootCaPassword)'
           sas_uri: $(sas_uri)
+          test_type: nestededge_amqp
 
 - stage: Cleanup
   condition: always()
@@ -129,7 +168,7 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_L$(level)_mqtt
+        - status -equals locked_$(Build.BuildId)_L$(level)
     steps:
       - template: templates/e2e-clean-all-images.yaml
 

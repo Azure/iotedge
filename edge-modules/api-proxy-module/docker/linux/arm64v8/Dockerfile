@@ -2,7 +2,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
-FROM arm64v8/nginx:1.25
+FROM arm64v8/nginx:1.28
 WORKDIR /app
 
 RUN apt-get update && \
@@ -22,6 +22,15 @@ RUN chown -R nginx:nginx /app && \
     chown -R nginx:nginx /var/log/nginx
 RUN touch /var/run/nginx.pid && \
         chown -R nginx:nginx /var/run/nginx.pid
+
+# The api-proxy-release pipeline in ADO uses PublishPipelineArtifact and DownloadPipelineArtifact tasks
+# to shuttle the binary between jobs (one compiles the binary and the other uses it to build the Docker image).
+# These tasks round-trip the file through a .zip container so the binary loses its +x mode bits.
+# So we fix up the mode manually.
+#
+# The build-image.yaml pipeline doesn't have this problem because it uses PublishBuildArtifacts and DownloadBuildArtifacts
+# with `storeAsTar: true` and `extractTars: true`, so the round-tripping happens in a .tar that preserves the mode bits.
+RUN chmod 0755 /app/api-proxy-module
 
 
 USER nginx

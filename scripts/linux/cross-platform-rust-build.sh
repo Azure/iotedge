@@ -72,7 +72,11 @@ case "$PACKAGE_OS" in
         ;;
 
     'alpine')
-        DOCKER_IMAGE='mcr.microsoft.com/mirror/docker/library/ubuntu:20.04'
+        ALPINE_VERSION=$(
+            sed -n '0,/^FROM/{s/^FROM [^:]*:\([^ ]*\).*/\1/p;}' \
+                $BUILD_REPOSITORY_LOCALPATH/edge-modules/api-proxy-module/docker/linux/amd64/Dockerfile
+        )
+        DOCKER_IMAGE="rust:alpine$ALPINE_VERSION"
         ;;       
 esac
 
@@ -83,65 +87,12 @@ fi
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
     alpine.amd64)
-        RUST_TARGET='x86_64-unknown-linux-musl'
-        # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/main/Dockerfile.
         SETUP_COMMAND=$'
-            export DEBIAN_FRONTEND=noninteractive
-            OPENSSL_VERSION=1.1.1i
-            apt-get update && \
-            apt-get install -y \
-                build-essential \
-                cmake \
-                curl \
-                file \
-                git \
-                musl-dev \
-                musl-tools \
-                libpq-dev \
-                libsqlite-dev \
-                libssl-dev \
-                linux-libc-dev \
-                pkgconf \
-                sudo \
-                xutils-dev \
-                gcc-multilib-arm-linux-gnueabihf \
-                && \
-            apt-get clean && rm -rf /var/lib/apt/lists/* && \
-            useradd rust --user-group --create-home --shell /bin/bash --groups sudo && \
-            echo "Building OpenSSL" && \
-            ls /usr/include/linux && \
-            sudo mkdir -p /usr/local/musl/include && \
-            sudo ln -s /usr/include/linux /usr/local/musl/include/linux && \
-            sudo ln -s /usr/include/x86_64-linux-gnu/asm /usr/local/musl/include/asm && \
-            sudo ln -s /usr/include/asm-generic /usr/local/musl/include/asm-generic && \
-            cd /tmp && \
-            short_version="$(echo "$OPENSSL_VERSION" | sed s\'/[a-z]$//\' )" && \
-            curl -fLO "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz" || \
-                curl -fLO "https://www.openssl.org/source/old/$short_version/openssl-$OPENSSL_VERSION.tar.gz" && \
-            tar xvzf "openssl-$OPENSSL_VERSION.tar.gz" && cd "openssl-$OPENSSL_VERSION" && \
-            env CC=musl-gcc ./Configure no-shared no-zlib -fPIC --prefix=/usr/local/musl -DOPENSSL_NO_SECURE_MEMORY linux-x86_64 && \
-            env C_INCLUDE_PATH=/usr/local/musl/include/ make depend && \
-            env C_INCLUDE_PATH=/usr/local/musl/include/ make && \
-            sudo make install && \
-            sudo rm /usr/local/musl/include/linux /usr/local/musl/include/asm /usr/local/musl/include/asm-generic && \
-            rm -r /tmp/*
-            export OPENSSL_DIR=/usr/local/musl/
-            export OPENSSL_INCLUDE_DIR=/usr/local/musl/include/
-            export DEP_OPENSSL_INCLUDE=/usr/local/musl/include/
-            export OPENSSL_LIB_DIR=/usr/local/musl/lib/
-            export OPENSSL_STATIC=1
-            export PQ_LIB_STATIC_X86_64_UNKNOWN_LINUX_MUSL=1
-            export PG_CONFIG_X86_64_UNKNOWN_LINUX_GNU=/usr/bin/pg_config
-            export PKG_CONFIG_ALLOW_CROSS=true
-            export PKG_CONFIG_ALL_STATIC=true
-            export LIBZ_SYS_STATIC=1
-            export TARGET=musl
-            cd /project/$BUILD_PATH &&
-            echo \'Installing rustup\' &&
-            curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
-            . ~/.cargo/env &&
+            apk update &&
+            apk add --no-cache make musl-dev pkgconfig openssl-dev &&
         '
         MAKE_FLAGS="'CARGOFLAGS=$CARGOFLAGS --target x86_64-unknown-linux-musl'"
+        MAKE_FLAGS="$MAKE_FLAGS 'RUSTFLAGS=-C target-feature=-crt-static'"
         MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/x86_64-unknown-linux-musl/release'"
         MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=strip'"        
         ;;
@@ -230,9 +181,7 @@ docker run --rm \
     "$DOCKER_IMAGE" \
     sh -c "
         set -e &&
-
         cat /etc/os-release &&
-
         $SETUP_COMMAND
         cd /project/$BUILD_PATH &&
         # build artifacts

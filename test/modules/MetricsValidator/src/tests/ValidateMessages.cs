@@ -45,10 +45,7 @@ namespace MetricsValidator.Tests
                 const string input = "FromSelf";
                 const string output = "ToSelf";
 
-                // Setup reciever
-                TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
-                tcs.SetResult(MessageResponse.Completed);
-                await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
+                TaskCompletionSource<MessageResponse> tcs;
 
                 // This will assert the queue clears
                 async Task WaitForQueueToClear(string name)
@@ -78,6 +75,7 @@ namespace MetricsValidator.Tests
                 async Task FillAndEmptyQueue(int n)
                 {
                     tcs = new TaskCompletionSource<MessageResponse>();
+                    await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
                     await this.SendMessages(n, cancellationToken, endpoint: output);
                     reporter.Assert($"Empty Queue Test: Queue increases to {n}", n, await this.GetQueueLength(cancellationToken, input));
 
@@ -91,6 +89,7 @@ namespace MetricsValidator.Tests
                 async Task FillAndAbandon(int n)
                 {
                     tcs = new TaskCompletionSource<MessageResponse>();
+                    await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
                     await this.SendMessages(n, cancellationToken, endpoint: output);
                     reporter.Assert($"Abandon Queue Test: Queue increases to {n}", n, await this.GetQueueLength(cancellationToken, input));
 
@@ -108,6 +107,7 @@ namespace MetricsValidator.Tests
                 async Task FillAndEmptyBatch(int n, int m)
                 {
                     tcs = new TaskCompletionSource<MessageResponse>();
+                    await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
                     await this.SendMessageBatches(n, m, cancellationToken, endpoint: output);
                     reporter.Assert($"Empty Queue Test: Queue increases to {n * m} for {n} batches of {m}", n * m, await this.GetQueueLength(cancellationToken, input));
 

@@ -192,7 +192,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public static void AddMetricsValidatorConfig(this EdgeConfigBuilder builder, string image)
         {
-            builder.AddModule(Metrics.ValidatorModuleName, image);
+            builder.AddModule(Metrics.ValidatorModuleName, image)
+                .WithEnvironment(new[]
+                {
+                    ("ClientTransportType", Client.TransportType.Amqp_Tcp_Only.ToString())
+                });
 
             builder.GetModule(ConfigModuleName.EdgeHub)
                 .WithDesiredProperties(new Dictionary<string, object>
