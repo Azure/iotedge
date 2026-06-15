@@ -43,7 +43,7 @@ where
         log::info!("Starting management API...");
 
         if let Err(err) = incoming.serve(service, shutdown_rx).await {
-            log::error!("Failed to serve management socket: {}", err);
+            log::error!("Failed to serve management socket: {err}");
         }
 
         tasks.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);

@@ -52,10 +52,7 @@ where
             .decode_utf8()
             .ok()?;
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         let api = super::CertApi::new(
             service.key_client.clone(),
@@ -115,8 +112,8 @@ where
     type PutBody = serde::de::IgnoredAny;
 }
 
-fn server_cert_extensions(
-) -> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
+fn server_cert_extensions()
+-> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
     let mut csr_extensions = openssl::stack::Stack::new()?;
 
     let mut ext_key_usage = openssl::x509::extension::ExtendedKeyUsage::new();
@@ -130,10 +127,13 @@ fn server_cert_extensions(
 
 #[cfg(test)]
 mod tests {
-    use crate::module::cert::CertificateResponse;
+    use http_body_util::BodyExt as _;
+
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    use crate::module::cert::CertificateResponse;
 
     const TEST_PATH: &str = "/modules/testModule/genid/1/certificate/server";
 
@@ -164,10 +164,10 @@ mod tests {
         test_route_err!("/modules/testModule/genid//certificate/server");
 
         // Extra character at beginning of URI
-        test_route_err!(&format!("a{}", TEST_PATH));
+        test_route_err!(&format!("a{TEST_PATH}"));
 
         // Extra character at end of URI
-        test_route_err!(&format!("{}a", TEST_PATH));
+        test_route_err!(&format!("{TEST_PATH}a"));
     }
 
     #[tokio::test]
@@ -188,12 +188,11 @@ mod tests {
         }
 
         let response = post(route).await.unwrap();
-        let body_bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let cert_response = serde_json::from_str::<CertificateResponse>(
-            &String::from_utf8(body_bytes.to_vec()).unwrap(),
-        )
-        .unwrap()
-        .certificate;
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let cert_response =
+            serde_json::from_str::<CertificateResponse>(&String::from_utf8(body.to_vec()).unwrap())
+                .unwrap()
+                .certificate;
 
         let cert = openssl::x509::X509::from_pem(cert_response.as_bytes())
             .map_err(|_| edgelet_http::error::server_error("failed to parse cert"));

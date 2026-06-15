@@ -77,7 +77,7 @@ impl Source for YamlFileSource {
     }
 }
 
-/// Identical to https://github.com/mehcode/config-rs/blob/0.8.0/src/file/format/yaml.rs#L32-L68
+/// Identical to <https://github.com/mehcode/config-rs/blob/0.8.0/src/file/format/yaml.rs#L32-L68>
 /// except that it does not lower-case hash keys.
 ///
 /// Unfortunately the `ValueKind` enum used by the `Value` constructor is not exported from the crate.

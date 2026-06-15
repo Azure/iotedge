@@ -1,3 +1,23 @@
+# 1.6.0-rc.1 (2026/06/10)
+
+This is an unsupported prerelease, and may ONLY be used for evaluation purposes in non-production environments.
+
+## Edge Agent
+* Upgrade to .NET 10 and update Azure IoT SDKs ( [0e32eab](https://github.com/Azure/iotedge/commit/0e32eab34acd76c53655469a7ee6fbdea59787c1) )
+
+## Edge Hub
+* Upgrade to .NET 10 and update Azure IoT SDKs ( [0e32eab](https://github.com/Azure/iotedge/commit/0e32eab34acd76c53655469a7ee6fbdea59787c1) )
+
+## aziot-edge
+* Remove support for Debian 11 (support continues in 1.5 through August 2026) ( [1a5311a](https://github.com/Azure/iotedge/commit/1a5311a200addfbe839aff6cf08bdf253043f360) )
+* Update Docker Engine API version to v1.41 ( [efc41c1](https://github.com/Azure/iotedge/commit/efc41c1882b36291aab3415df1f6181c82c9d281) )
+* Update Rust to v1.95 and all deps to latest versions ( [a43c9b7](https://github.com/Azure/iotedge/commit/a43c9b754a6791a0c670b0c36e8b892e6a0e27a0) )
+
+## aziot-identity-service
+* Fix endless reparsing of config if it's modified once after startup ( [945d77e](https://github.com/Azure/iot-identity-service/commit/945d77e47d7d8b6742997ea3362a2067ef4ebf6f) )
+* Update Rust to v1.95 and all deps to latest versions ( [3fc8a14](https://github.com/Azure/iot-identity-service/commit/3fc8a1441971ee315dcbfa31a0e1e17e994ef8bf) )
+* Remove support for Mariner 2.0 ( [0ef551c](https://github.com/Azure/iot-identity-service/commit/0ef551cfd30c1bc403016a2ba8c08ce6356a5c89) )
+
 # 1.5.40 (2026-05-13)
 
 Only Docker images are updated in this release. The daemon remains at version 1.5.21.

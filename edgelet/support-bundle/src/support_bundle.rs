@@ -5,7 +5,7 @@ use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
 use anyhow::Context;
-use zip::{write::FileOptions, CompressionMethod, ZipWriter};
+use zip::{CompressionMethod, ZipWriter, write::FileOptions};
 
 use edgelet_core::{LogOptions, ModuleRuntime};
 
@@ -44,14 +44,14 @@ pub async fn make_bundle(
     verbose: bool,
     iothub_hostname: Option<String>,
     runtime: &impl ModuleRuntime,
-) -> anyhow::Result<(Box<dyn Read + Send>, u64)> {
+) -> anyhow::Result<(Box<dyn Read + Send + Sync>, u64)> {
     match output_location {
         OutputLocation::File(location) => {
             let buffer = File::create(&location).context(Error::SupportBundle)?;
-            let mut zip_writer = ZipWriter::new(buffer);
+            let zip_writer = ZipWriter::new(buffer);
 
             let (reader, size) = write_all(
-                &mut zip_writer,
+                zip_writer,
                 log_options,
                 include_ms_only,
                 verbose,
@@ -64,10 +64,10 @@ pub async fn make_bundle(
         }
         OutputLocation::Memory => {
             let buffer = Box::new(Cursor::new(Vec::new()));
-            let mut zip_writer = ZipWriter::new(buffer);
+            let zip_writer = ZipWriter::new(buffer);
 
             let (reader, size) = write_all(
-                &mut zip_writer,
+                zip_writer,
                 log_options,
                 include_ms_only,
                 verbose,
@@ -82,7 +82,7 @@ pub async fn make_bundle(
 }
 
 async fn write_all<W>(
-    mut zip_writer: &mut ZipWriter<W>,
+    mut zip_writer: ZipWriter<W>,
     log_options: LogOptions,
     include_ms_only: bool,
     verbose: bool,
@@ -113,17 +113,25 @@ where
         write_logs(runtime, &module_name, &log_options, &mut zip_writer).await?;
 
         // write module inspect
-        write_inspect(&module_name, zip_writer, &file_options, verbose).await?;
+        write_inspect(&module_name, &mut zip_writer, &file_options, verbose).await?;
     }
 
     // Get all docker network inspects
     for network_name in get_docker_networks().await? {
-        write_network_inspect(&network_name, zip_writer, &file_options, verbose).await?;
+        write_network_inspect(&network_name, &mut zip_writer, &file_options, verbose).await?;
     }
 
     // Get logs for system modules
     for (name, unit) in SYSTEM_MODULES {
-        write_system_log(name, unit, &log_options, zip_writer, &file_options, verbose).await?;
+        write_system_log(
+            name,
+            unit,
+            &log_options,
+            &mut zip_writer,
+            &file_options,
+            verbose,
+        )
+        .await?;
     }
 
     // Finilize buffer and set cursur to 0 for reading.

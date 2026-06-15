@@ -44,10 +44,7 @@ where
             .decode_utf8()
             .ok()?;
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             client: service.identity.clone(),
@@ -64,7 +61,7 @@ where
         let client = self.client.lock().await;
 
         match client.delete_identity(&self.module_id).await {
-            Ok(_) => Ok(http_common::server::response::no_content()),
+            Ok(()) => Ok(http_common::server::response::no_content()),
             Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
         }
     }
@@ -92,6 +89,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt as _;
+
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
@@ -144,7 +143,7 @@ mod tests {
         route.client = client.clone();
 
         let response = route.put(serde::de::IgnoredAny).await.unwrap();
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
         let _response: crate::identity::Identity = serde_json::from_slice(&body).unwrap();
 
         // Delete Identity

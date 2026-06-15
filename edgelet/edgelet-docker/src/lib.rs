@@ -1,18 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
-#![allow(
-    clippy::default_trait_access,
-    clippy::missing_errors_doc,
-    clippy::missing_panics_doc,
-    clippy::module_name_repetitions,
-    clippy::must_use_candidate,
-    clippy::too_many_lines,
-    clippy::use_self
-)]
-
-// mod client;
 mod error;
 mod image_prune_data;
 mod module;
@@ -21,7 +8,7 @@ mod runtime;
 pub use error::Error;
 pub use image_prune_data::ImagePruneData;
 pub use module::{DockerModule, MODULE_TYPE};
-pub use runtime::{init_client, DockerModuleRuntime};
+pub use runtime::{DockerModuleRuntime, init_client};
 
 use tokio::sync::mpsc::UnboundedSender;
 

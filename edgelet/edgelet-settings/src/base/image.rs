@@ -20,7 +20,7 @@ pub struct ImagePruneSettings {
     )]
     /// minimum (unused) image "age" to be eligible for garbage collection
     image_age_cleanup_threshold: Duration,
-    /// time in "HH::MM" format when cleanup job runs
+    /// time in "HH:MM" format when cleanup job runs
     #[serde(default, with = "hhmm_as_minutes")]
     cleanup_time: u64,
     // is image garbage collection enabled
@@ -66,12 +66,12 @@ impl ImagePruneSettings {
 
 // 1 day
 fn default_cleanup_recurrence() -> Duration {
-    Duration::from_secs(60 * 60 * 24)
+    Duration::from_hours(24)
 }
 
 // 7 days
 fn default_image_age_cleanup_threshold() -> Duration {
-    Duration::from_secs(60 * 60 * 24 * 7)
+    Duration::from_hours(24 * 7)
 }
 
 fn default_enabled() -> bool {
@@ -82,10 +82,11 @@ fn validate_recurrence<'de, D>(de: D) -> Result<Duration, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
-    const MIN_CLEANUP_RECURRENCE: u128 = 60 * 60 * 24 * 1_000_000_000; // 1 day in nanoseconds
+    const MIN_CLEANUP_RECURRENCE: u128 = Duration::from_hours(24).as_nanos();
+
     let recurrence: Duration = humantime_serde::deserialize(de)?;
 
-    if (recurrence.as_nanos() % MIN_CLEANUP_RECURRENCE) != 0 {
+    if !recurrence.as_nanos().is_multiple_of(MIN_CLEANUP_RECURRENCE) {
         return Err(<D::Error as serde::de::Error>::invalid_value(
             serde::de::Unexpected::Other(&format!("{recurrence:?}")),
             &"duration that is a multiple of days",

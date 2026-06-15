@@ -237,9 +237,7 @@ mod tests {
 
     #[test]
     fn into_module_status() {
-        let timestamp = chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
-        let timestamp =
-            chrono::DateTime::<chrono::offset::Utc>::from_utc(timestamp, chrono::offset::Utc);
+        let timestamp = chrono::DateTime::from_timestamp(0, 0).unwrap();
 
         // Running module
         let status = ModuleRuntimeState::default()
@@ -286,9 +284,7 @@ mod tests {
         Vec<(edgelet_test_utils::runtime::Module, ModuleRuntimeState)>,
         chrono::DateTime<chrono::offset::Utc>,
     ) {
-        let timestamp = chrono::NaiveDateTime::from_timestamp_opt(0, 0).unwrap();
-        let timestamp =
-            chrono::DateTime::<chrono::offset::Utc>::from_utc(timestamp, chrono::offset::Utc);
+        let timestamp = chrono::DateTime::<chrono::offset::Utc>::from_timestamp(0, 0).unwrap();
 
         let modules = vec![
             // Running module

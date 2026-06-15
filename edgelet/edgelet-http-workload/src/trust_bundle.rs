@@ -74,10 +74,7 @@ where
         let certificate = match (certificate, self.optional) {
             (Ok(certificate), _) => std::str::from_utf8(&certificate)
                 .map_err(|err| {
-                    edgelet_http::error::server_error(format!(
-                        "could not parse certificate: {}",
-                        err
-                    ))
+                    edgelet_http::error::server_error(format!("could not parse certificate: {err}"))
                 })?
                 .to_string(),
 
@@ -101,6 +98,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt as _;
+
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
@@ -153,7 +152,7 @@ mod tests {
             }
 
             let response = route.get().await.unwrap();
-            let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+            let body = response.into_body().collect().await.unwrap().to_bytes();
             let trust_bundle: super::TrustBundleResponse = serde_json::from_slice(&body).unwrap();
 
             assert_eq!(expected, trust_bundle.certificate);
@@ -169,7 +168,7 @@ mod tests {
         // Optional trust bundle: return empty string if cert doesn't exist.
         let route = test_route_ok!(super::MANIFEST_TRUST_BUNDLE_PATH);
         let response = route.get().await.unwrap();
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
         let trust_bundle: super::TrustBundleResponse = serde_json::from_slice(&body).unwrap();
         assert_eq!(String::new(), trust_bundle.certificate);
     }

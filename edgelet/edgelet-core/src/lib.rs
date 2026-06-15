@@ -1,21 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
-#![allow(
-    clippy::default_trait_access,
-    clippy::missing_errors_doc,
-    clippy::module_name_repetitions,
-    clippy::must_use_candidate,
-    clippy::too_many_lines,
-    clippy::use_self
-)]
-
 pub mod error;
 pub mod module;
 
 mod parse_since;
 mod virtualization;
+
+use std::sync::LazyLock;
 
 pub use error::Error;
 pub use module::{
@@ -27,18 +18,20 @@ pub use parse_since::parse_since;
 
 use std::path::{Path, PathBuf};
 
-use lazy_static::lazy_static;
 use url::Url;
 
-lazy_static! {
-    static ref VERSION: &'static str =
-        option_env!("VERSION").unwrap_or_else(|| include_str!("../../version.txt").trim());
-    static ref VERSION_WITH_SOURCE_VERSION: String = option_env!("VERSION")
-        .map(|version| option_env!("BUILD_SOURCEVERSION")
-            .map(|sha| format!("{version} ({sha})"))
-            .unwrap_or_else(|| version.to_string()))
-        .unwrap_or_else(|| include_str!("../../version.txt").trim().to_string());
-}
+static VERSION: LazyLock<&'static str> = LazyLock::new(|| {
+    option_env!("VERSION").unwrap_or_else(|| include_str!("../../version.txt").trim())
+});
+static VERSION_WITH_SOURCE_VERSION: LazyLock<String> = LazyLock::new(|| {
+    option_env!("VERSION")
+        .map(|version| {
+            option_env!("BUILD_SOURCEVERSION")
+                .map(|sha| format!("{version} ({sha})"))
+                .unwrap_or_else(|| version.to_string())
+        })
+        .unwrap_or_else(|| include_str!("../../version.txt").trim().to_string())
+});
 
 pub fn version() -> &'static str {
     &VERSION

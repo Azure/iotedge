@@ -35,10 +35,7 @@ where
             return None;
         }
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             runtime: service.runtime.clone(),
@@ -66,11 +63,8 @@ where
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
-        let body = match body {
-            Some(body) => body,
-            None => {
-                return Err(edgelet_http::error::bad_request("missing request body"));
-            }
+        let Some(body) = body else {
+            return Err(edgelet_http::error::bad_request("missing request body"));
         };
 
         let details =

@@ -1,3 +1,14 @@
+// Copyright (c) Microsoft. All rights reserved.
+
+use std::convert::Infallible;
+
+use bytes::Bytes;
+use http_body_util::{BodyExt as _, combinators::BoxBody};
+use hyper::body::Incoming;
+use hyper_util::{
+    client::legacy::{Client, connect::Connect},
+    rt::TokioExecutor,
+};
 use serde::Deserialize;
 
 use super::configuration::Configuration;
@@ -6,7 +17,7 @@ use crate::models;
 type BoxFutureResult<'a, T> =
     std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<T>> + Send + 'a>>;
 
-#[derive(Debug, serde_derive::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ApiError {
     #[serde(deserialize_with = "try_from_u16")]
@@ -16,7 +27,7 @@ pub struct ApiError {
 
 impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "HTTP {}: {}", &self.code, &self.message)
+        write!(f, "HTTP {}: {}", self.code, self.message)
     }
 }
 
@@ -31,9 +42,9 @@ where
 }
 
 impl ApiError {
-    async fn try_from_response(value: hyper::Response<hyper::Body>) -> anyhow::Result<Self> {
+    async fn try_from_response(value: hyper::Response<Incoming>) -> anyhow::Result<Self> {
         let (parts, body) = value.into_parts();
-        let error_bytes = hyper::body::to_bytes(body).await?;
+        let error_bytes = body.collect().await?.to_bytes();
         let error_str = String::from_utf8(error_bytes.to_vec())?;
         Ok(Self {
             code: parts.status,
@@ -54,21 +65,22 @@ impl ApiError {
 
 #[derive(Clone)]
 pub struct DockerApiClient<C> {
-    client: hyper::Client<C>,
+    client: Client<C, BoxBody<Bytes, Infallible>>,
     configuration: std::sync::Arc<Configuration>,
 }
 
 impl<C> DockerApiClient<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+    C: Clone + Connect + Send + Sync + 'static,
 {
     pub fn new(connector: C) -> Self {
         Self {
-            client: hyper::Client::builder().build(connector),
+            client: Client::builder(TokioExecutor::new()).build(connector),
             configuration: std::sync::Arc::new(Configuration::default()),
         }
     }
 
+    #[must_use]
     pub fn with_configuration(mut self, configuration: Configuration) -> Self {
         self.configuration = std::sync::Arc::new(configuration);
         self
@@ -84,6 +96,7 @@ pub trait DockerApi {
         from_src: &'a str,
         repo: &'a str,
         tag: &'a str,
+        message: &'a str,
         input_image: &'a str,
         x_registry_auth: &'a str,
         platform: &'a str,
@@ -101,13 +114,14 @@ pub trait DockerApi {
         name: &'a str,
         force: bool,
         no_prune: bool,
-    ) -> BoxFutureResult<'a, Vec<models::ImageDeleteResponseItem>>;
+    ) -> BoxFutureResult<'a, ()>;
 
     fn container_create<'a>(
         &'a self,
         name: &'a str,
+        platform: &'a str,
         body: models::ContainerCreateBody,
-    ) -> BoxFutureResult<'a, models::InlineResponse201>;
+    ) -> BoxFutureResult<'a, ()>;
 
     fn container_delete<'a>(
         &'a self,
@@ -121,7 +135,7 @@ pub trait DockerApi {
         &'a self,
         id: &'a str,
         size: bool,
-    ) -> BoxFutureResult<'a, models::InlineResponse200>;
+    ) -> BoxFutureResult<'a, models::ContainerInspectResponse>;
 
     fn container_list<'a>(
         &'a self,
@@ -141,13 +155,14 @@ pub trait DockerApi {
         &'a self,
         id: &'a str,
         stream: bool,
+        one_shot: bool,
     ) -> BoxFutureResult<'a, serde_json::Value>;
     fn container_stop<'a>(&'a self, id: &'a str, timeout: Option<i32>) -> BoxFutureResult<'a, ()>;
     fn container_top<'a>(
         &'a self,
         id: &'a str,
         ps_args: &'a str,
-    ) -> BoxFutureResult<'a, models::InlineResponse2001>;
+    ) -> BoxFutureResult<'a, models::ContainerTopResponse>;
 
     fn container_logs<'a>(
         &'a self,
@@ -159,14 +174,14 @@ pub trait DockerApi {
         until: Option<i32>,
         timestamps: bool,
         tail: &'a str,
-    ) -> BoxFutureResult<'a, hyper::Body>;
+    ) -> BoxFutureResult<'a, Incoming>;
 
-    fn network_create(
-        &self,
-        network_config: models::NetworkConfig,
-    ) -> BoxFutureResult<'_, models::InlineResponse2011>;
+    fn network_create(&self, network_config: models::NetworkConfig) -> BoxFutureResult<'_, ()>;
 
-    fn network_list<'a>(&'a self, filters: &'a str) -> BoxFutureResult<'a, Vec<models::Network>>;
+    fn network_list<'a>(
+        &'a self,
+        filters: &'a str,
+    ) -> BoxFutureResult<'a, Vec<serde::de::IgnoredAny>>;
 }
 
 macro_rules! api_call {
@@ -183,7 +198,7 @@ macro_rules! api_call {
                 .contains("application/json"),
             "expected JSON Content-Type"
         );
-        let response_bytes = ::hyper::body::to_bytes(body).await?;
+        let response_bytes = http_body_util::BodyExt::collect(body).await?.to_bytes();
         Ok(::serde_json::from_slice::<$output>(&response_bytes)?)
     }};
     (@inner maybe_output $response:ident => $transfer:ident $blk:block ; $($_output:ty)?) => {{
@@ -191,11 +206,11 @@ macro_rules! api_call {
         $blk
     }};
 
-    (@inner build_request $builder:ident) => { $builder.body(::hyper::Body::empty()) };
+    (@inner build_request $builder:ident) => { $builder.body(http_body_util::combinators::BoxBody::new(http_body_util::Empty::new())) };
     (@inner build_request $builder:ident $body:ident $_:ty) => {
         $builder
-            .header(::hyper::header::CONTENT_TYPE, "application/json")
-            .body(::hyper::Body::from(::serde_json::to_string(&$body)?))
+            .header(hyper::header::CONTENT_TYPE, "application/json")
+            .body(http_body_util::combinators::BoxBody::new(http_body_util::Full::new(serde_json::to_string(&$body)?.into())))
     };
 
     (@inner query $param:ident &$($_:lifetime)? str) => { $param };
@@ -236,7 +251,7 @@ macro_rules! api_call {
                     .finish();
                 let uri = (self.configuration.uri_composer)(
                     &self.configuration.base_path,
-                    &format!("{}?{}", format_args!($path), query)
+                    &format!("{}?{query}", format_args!($path))
                 )?;
 
                 let mut builder = ::hyper::Request::$method(&uri)
@@ -249,7 +264,7 @@ macro_rules! api_call {
                 let request = api_call!(@inner build_request builder $(body $btype)?)?;
 
                 let response = ::tokio::time::timeout(
-                    ::std::time::Duration::from_secs(60),
+                    std::time::Duration::from_mins(1),
                     self.client.request(request)
                 )
                 .await??;
@@ -266,7 +281,7 @@ macro_rules! api_call {
 
 impl<C> DockerApi for DockerApiClient<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+    C: Clone + Connect + Send + Sync + 'static,
 {
     api_call! {
         system_info : get "/info" -> models::SystemInfo ;
@@ -274,7 +289,7 @@ where
     }
 
     api_call! {
-        image_delete : delete "/images/{name}" -> Vec<models::ImageDeleteResponseItem> ;
+        image_delete : delete "/images/{name}" ;
         path : [ name: &'a str ] ;
         query : [ "force" = (force: bool), "noprune" = (no_prune: bool)] ;
         ok : [OK]
@@ -287,8 +302,8 @@ where
     }
 
     api_call! {
-        container_create : post "/containers/create" -> models::InlineResponse201 ;
-        query : [ "name" = (name: &'a str) ] ;
+        container_create : post "/containers/create" ;
+        query : [ "name" = (name: &'a str), "platform" = (platform: &'a str) ] ;
         body : models::ContainerCreateBody ;
         ok : [CREATED]
     }
@@ -308,7 +323,7 @@ where
     }
 
     api_call! {
-        container_inspect : get "/containers/{id}/json" -> models::InlineResponse200 ;
+        container_inspect : get "/containers/{id}/json" -> models::ContainerInspectResponse ;
         path : [ id: &'a str ] ;
         query : [ "size" = (size: bool) ] ;
         ok : [OK]
@@ -335,7 +350,7 @@ where
     api_call! {
         container_stats : get "/containers/{id}/stats" -> serde_json::Value ;
         path : [ id: &'a str ] ;
-        query : [ "stream" = (stream: bool) ] ;
+        query : [ "stream" = (stream: bool), "one-shot" = (one_shot: bool) ] ;
         ok : [OK]
     }
 
@@ -347,20 +362,20 @@ where
     }
 
     api_call! {
-        container_top : get "/containers/{id}/top" -> models::InlineResponse2001 ;
+        container_top : get "/containers/{id}/top" -> models::ContainerTopResponse ;
         path : [ id: &'a str ] ;
         query : [ "ps_args" = (ps_args: &'a str) ] ;
         ok : [OK]
     }
 
     api_call! {
-        network_create : post "/networks/create" -> models::InlineResponse2011 ;
+        network_create : post "/networks/create" ;
         body : models::NetworkConfig ;
         ok : [CREATED]
     }
 
     api_call! {
-        network_list : get "/networks" -> Vec<models::Network> ;
+        network_list : get "/networks" -> Vec<serde::de::IgnoredAny> ;
         query : [ "filters" = (filters: &'a str) ] ;
         ok : [OK]
     }
@@ -372,6 +387,7 @@ where
             "fromSrc" = (from_src: &'a str),
             "repo" = (repo: &'a str),
             "tag" = (tag: &'a str),
+            "message" = (message: &'a str),
             "platform" = (platform: &'a str)
         ] ;
         header : [
@@ -390,7 +406,7 @@ where
                 "expected JSON Content-Type"
             );
 
-            let response_bytes = hyper::body::to_bytes(body).await?;
+            let response_bytes = body.collect().await?.to_bytes();
             let mut last = serde_json::Deserializer::from_slice(&response_bytes)
                 .into_iter::<serde_json::Map<String, serde_json::Value>>()
                 .last()
@@ -414,7 +430,7 @@ where
     }
 
     api_call! {
-        container_logs : get "/containers/{id}/logs" -> hyper::Body ;
+        container_logs : get "/containers/{id}/logs" -> Incoming ;
         path : [ id: &'a str ] ;
         query : [
             "follow" = (follow: bool),
@@ -444,10 +460,12 @@ mod tests {
             serde_json::to_string(&serde_json::json!({"status":"STATUS"})).unwrap(),
         );
         let client = DockerApiClient::new(JsonConnector::ok(&payload));
-        assert!(client
-            .image_create("", "", "", "", "", "", "")
-            .await
-            .is_ok());
+        assert!(
+            client
+                .image_create("", "", "", "", "", "", "", "")
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]
@@ -463,7 +481,7 @@ mod tests {
         let client = DockerApiClient::new(JsonConnector::ok(&payload));
         assert_eq!(
             client
-                .image_create("", "", "", "", "", "", "")
+                .image_create("", "", "", "", "", "", "", "")
                 .await
                 .unwrap_err()
                 .downcast::<ApiError>()
@@ -488,7 +506,7 @@ mod tests {
         let client = DockerApiClient::new(JsonConnector::ok(&payload));
         assert_eq!(
             client
-                .image_create("", "", "", "", "", "", "")
+                .image_create("", "", "", "", "", "", "", "")
                 .await
                 .unwrap_err()
                 .downcast::<ApiError>()
@@ -522,7 +540,7 @@ mod tests {
             .unwrap()
         );
         let client = DockerApiClient::new(JsonConnector::ok(&payload));
-        assert!(client.images_list(false, "", false).await.is_ok());
+        _ = client.images_list(false, "", false).await.unwrap();
     }
 
     #[tokio::test]

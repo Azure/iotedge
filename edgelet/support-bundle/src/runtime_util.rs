@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::io::Write;
+use std::io::{self, Write};
 
 use anyhow::Context;
-use futures::TryStreamExt;
+use http_body::Body as _;
 
 use edgelet_core::{LogOptions, Module, ModuleRuntime};
 
@@ -45,7 +45,14 @@ pub async fn write_logs(
         .await
         .context(Error::Write)?;
 
-    while let Some(bytes) = logs.try_next().await.context(Error::Write)? {
+    while let Some(frame) =
+        futures_util::future::poll_fn(|cx| std::pin::Pin::new(&mut logs).poll_frame(cx)).await
+    {
+        let bytes = frame
+            .context(Error::Write)?
+            .into_data()
+            .map_err(|_| io::Error::from(io::ErrorKind::UnexpectedEof))
+            .context(Error::Write)?;
         // First 4 bytes represent stderr vs stdout, we currently don't display differently based on that.
         // Next 4 bytes represent length of chunk, rust already encodes this information in the slice.
         if bytes.len() > 8 {

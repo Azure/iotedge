@@ -43,9 +43,7 @@ impl ContainerEngineInstalled {
 
             scheme => {
                 return Err(anyhow!(
-                    "Could not communicate with container engine at {}. The scheme {} is invalid.",
-                    uri,
-                    scheme,
+                    "Could not communicate with container engine at {uri}. The scheme {scheme} is invalid."
                 ));
             }
         };
@@ -63,11 +61,11 @@ impl ContainerEngineInstalled {
                      Please check your moby-engine installation and ensure the service is running.",
                 );
 
-                if let Some(message) = message {
-                    if message.contains("Got permission denied") {
-                        error_message += "\nYou might need to run this command as root.";
-                        return Ok(CheckResult::Fatal(err.context(error_message)));
-                    }
+                if let Some(message) = message
+                    && message.contains("Got permission denied")
+                {
+                    error_message += "\nYou might need to run this command as root.";
+                    return Ok(CheckResult::Fatal(err.context(error_message)));
                 }
 
                 return Err(err.context(error_message));
@@ -77,10 +75,14 @@ impl ContainerEngineInstalled {
         check.docker_host_arg = Some(docker_host_arg);
 
         check.docker_server_version = Some(String::from_utf8_lossy(&output).trim().to_owned());
-        check.additional_info.docker_version = check.docker_server_version.clone();
+        check
+            .additional_info
+            .docker_version
+            .clone_from(&check.docker_server_version);
 
-        self.docker_host_arg = check.docker_host_arg.clone();
-        self.docker_server_version = check.docker_server_version.clone();
+        self.docker_host_arg.clone_from(&check.docker_host_arg);
+        self.docker_server_version
+            .clone_from(&check.docker_server_version);
 
         Ok(CheckResult::Ok)
     }

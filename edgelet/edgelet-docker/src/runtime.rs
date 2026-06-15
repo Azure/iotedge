@@ -6,13 +6,15 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{process, str};
 
 use anyhow::Context;
-use sysinfo::{CpuExt, DiskExt, PidExt, ProcessExt, System, SystemExt};
-use tokio::sync::mpsc::UnboundedSender;
+use hyper::body::Incoming;
+use hyper_util::client::legacy::connect::Connect;
+use sysinfo::{Disks, Process, System};
 use tokio::sync::Mutex;
+use tokio::sync::mpsc::UnboundedSender;
 use url::Url;
 
 use docker::apis::{Configuration, DockerApi, DockerApiClient};
-use docker::models::{ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig};
+use docker::models::{ContainerCreateBody, ContainerTopResponse, Ipam, NetworkConfig};
 use edgelet_core::{
     DiskInfo, LogOptions, Module, ModuleAction, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
     RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
@@ -24,7 +26,7 @@ use edgelet_utils::ensure_not_empty;
 use http_common::Connector;
 
 use crate::error::Error;
-use crate::module::{runtime_state, DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE};
+use crate::module::{DockerModule, MODULE_TYPE as DOCKER_MODULE_TYPE, runtime_state};
 use crate::{ImagePruneData, MakeModuleRuntime};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
@@ -77,7 +79,7 @@ impl<C> std::fmt::Debug for DockerModuleRuntime<C> {
 #[async_trait::async_trait]
 impl<C> ModuleRegistry for DockerModuleRuntime<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+    C: Clone + Connect + Send + Sync + 'static,
 {
     type Config = DockerConfig;
 
@@ -86,9 +88,9 @@ where
         let is_content_trust_enabled = false;
 
         if is_content_trust_enabled {
-            log::info!("Pulling image via digest {}...", image);
+            log::info!("Pulling image via digest {image}...");
         } else {
-            log::info!("Pulling image via tag {}...", image);
+            log::info!("Pulling image via tag {image}...");
         }
 
         let creds = match config.auth() {
@@ -103,38 +105,42 @@ where
         };
 
         self.client
-            .image_create(&image, "", "", "", "", &creds, "")
+            .image_create(&image, "", "", "", "", "", &creds, "")
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
                 Error::RegistryOperation(RegistryOperation::PullImage(image.clone()))
             })?;
 
-        log::info!("Successfully pulled image {}", image);
+        log::info!("Successfully pulled image {image}");
 
         // Now, get the image_id of the image we just pulled for image garbage collection in future
         match self.list_images().await {
             Ok(image_name_to_id) => {
                 if image_name_to_id.is_empty() {
-                    log::error!("No docker images present on device: {} was just pulled, but not found on device", image);
+                    log::error!(
+                        "No docker images present on device: {image} was just pulled, but not found on device"
+                    );
                 } else if let Some(image_id) = image_name_to_id.get(config.image()) {
                     self.image_use_data.record_image_use_timestamp(image_id)?;
                 } else {
-                    log::warn!("Could not retrieve image id. {} was not added to image garbage collection list and will not be garbage collected", image);
+                    log::warn!(
+                        "Could not retrieve image id. {image} was not added to image garbage collection list and will not be garbage collected"
+                    );
                 }
             }
-            Err(e) => log::error!("Could not get list of docker images: {}", e),
-        };
+            Err(e) => log::error!("Could not get list of docker images: {e}"),
+        }
 
         Ok(())
     }
 
     async fn remove(&self, name: &str) -> anyhow::Result<()> {
-        log::info!("Removing image {}...", name);
+        log::info!("Removing image {name}...");
 
         ensure_not_empty(name).with_context(|| {
             Error::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
@@ -145,14 +151,14 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
                 Error::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
             })?;
 
-        log::info!("Successfully removed image {}", name);
+        log::info!("Successfully removed image {name}");
         Ok(())
     }
 }
@@ -221,9 +227,9 @@ async fn create_network_if_missing(
     settings: &Settings,
     client: &DockerApiClient<Connector>,
 ) -> anyhow::Result<()> {
-    let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
+    let (enable_ipv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
     let network_id = settings.moby_runtime().network().name();
-    log::info!("Using runtime network id {}", network_id);
+    log::info!("Using runtime network id {network_id}");
 
     let filter = format!(r#"{{"name":{{"{network_id}":true}}}}"#);
     let existing_iotedge_networks = client
@@ -231,17 +237,16 @@ async fn create_network_if_missing(
         .await
         .context(Error::Docker)
         .map_err(|e| {
-            log::warn!("{:?}", e);
+            log::warn!("{e:?}");
             e
         })
         .context(Error::RuntimeOperation(RuntimeOperation::Init))?;
 
     if existing_iotedge_networks.is_empty() {
-        let mut network_config =
-            NetworkConfig::new(network_id.to_string()).with_enable_i_pv6(enable_i_pv6);
-
-        if let Some(ipam_config) = ipam {
-            network_config.set_IPAM(ipam_config);
+        let network_config = NetworkConfig {
+            name: network_id.to_owned(),
+            ipam,
+            enable_ipv6: Some(enable_ipv6),
         };
 
         client
@@ -249,7 +254,7 @@ async fn create_network_if_missing(
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .context(Error::RuntimeOperation(RuntimeOperation::Init))?;
@@ -267,24 +272,30 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
                 let config = ipam_config
                     .iter()
                     .map(|ipam_config| {
-                        let mut config_map = HashMap::new();
+                        let mut config_map = BTreeMap::new();
+
                         if let Some(gateway_config) = ipam_config.gateway() {
                             config_map.insert("Gateway".to_string(), gateway_config.to_string());
-                        };
+                        }
 
                         if let Some(subnet_config) = ipam_config.subnet() {
                             config_map.insert("Subnet".to_string(), subnet_config.to_string());
-                        };
+                        }
 
                         if let Some(ip_range_config) = ipam_config.ip_range() {
                             config_map.insert("IPRange".to_string(), ip_range_config.to_string());
-                        };
+                        }
 
                         config_map
                     })
                     .collect();
 
-                (ipv6, Some(Ipam::new().with_config(config)))
+                (
+                    ipv6,
+                    Some(Ipam {
+                        config: Some(config),
+                    }),
+                )
             },
         )
     } else {
@@ -295,7 +306,7 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
 #[async_trait::async_trait]
 impl<C> ModuleRuntime for DockerModuleRuntime<C>
 where
-    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+    C: Clone + Connect + Send + Sync + 'static,
 {
     type Config = DockerConfig;
     type Module = DockerModule<C>;
@@ -327,31 +338,29 @@ where
             log::info!("Creating image via tag {}...", &image);
         }
 
-        let create_options = module.config().create_options().clone();
-        let merged_env = merge_env(create_options.env(), module.env());
+        log::debug!("Creating container {} with image {image}...", module.name());
 
-        let mut labels = create_options.labels().cloned().unwrap_or_default();
+        let mut create_options = module.config().create_options().clone();
+
+        create_options.image = Some(image);
+
+        create_options.env = Some(merge_env(create_options.env.as_deref(), module.env()));
+
+        let labels = create_options.labels.get_or_insert_default();
         labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
         labels.insert(
             ORIGINAL_IMAGE_LABEL_KEY.to_string(),
             module.config().image().to_string(),
         );
 
-        log::debug!("Creating container {} with image {}", module.name(), image);
-
-        let create_options = create_options
-            .with_image(image)
-            .with_env(merged_env)
-            .with_labels(labels);
-
         // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
         // It contains the logic to add a container to the iot edge network only if a network is not already specified.
         self.client
-            .container_create(module.name(), create_options)
+            .container_create(module.name(), "", create_options)
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
@@ -374,7 +383,7 @@ where
     }
 
     async fn get(&self, id: &str) -> anyhow::Result<(Self::Module, ModuleRuntimeState)> {
-        log::debug!("Getting module {}...", id);
+        log::debug!("Getting module {id}...");
 
         ensure_not_empty(id)
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
@@ -387,28 +396,28 @@ where
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
 
         let name = response
-            .name()
+            .name
             .ok_or_else(|| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
         let name = name.trim_start_matches('/').to_owned();
 
-        let mut create_options = ContainerCreateBody::new();
+        let mut create_options = ContainerCreateBody::default();
         let mut image = name.clone();
 
-        if let Some(config) = response.config() {
-            if let Some(labels) = config.labels() {
-                // Conversion of HashMap to BTreeMap.
-                let mut btree_labels = std::collections::BTreeMap::new();
+        if let Some(config) = response.config
+            && let Some(labels) = config.labels
+        {
+            // Conversion of HashMap to BTreeMap.
+            let mut btree_labels = std::collections::BTreeMap::new();
 
-                for (key, value) in labels {
-                    btree_labels.insert(key.clone(), value.clone());
+            for (key, value) in labels {
+                btree_labels.insert(key.clone(), value.clone());
 
-                    if key == "net.azure-devices.edge.original-image" {
-                        image = value.clone();
-                    }
+                if key == "net.azure-devices.edge.original-image" {
+                    image = value;
                 }
-
-                create_options.set_labels(btree_labels);
             }
+
+            create_options.labels = Some(btree_labels);
         }
 
         let mut config = DockerConfig::new(
@@ -420,20 +429,20 @@ where
         )
         .map_err(|_| Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string())))?;
 
-        if let Some(image_hash) = response.image() {
-            config = config.with_image_hash(image_hash.to_string());
+        if let Some(image_hash) = response.image {
+            config = config.with_image_hash(image_hash.clone());
         }
 
         let module = DockerModule::new(self.client.clone(), name, config).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
         })?;
-        let state = runtime_state(response.id(), response.state());
+        let state = runtime_state(response.id, response.state);
 
         Ok((module, state))
     }
 
     async fn start(&self, id: &str) -> anyhow::Result<()> {
-        log::info!("Starting module {}...", id);
+        log::info!("Starting module {id}...");
 
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned()))
@@ -444,15 +453,12 @@ where
         self.create_socket_channel
             .send(ModuleAction::Start(id.to_string(), sender))
             .map_err(|_| {
-                log::error!("Could not notify workload manager, start of module: {}", id);
+                log::error!("Could not notify workload manager, start of module: {id}");
                 Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_string()))
             })?;
 
         receiver.await.map_err(|_| {
-            log::error!(
-                "Could not wait on workload manager response, start of module: {}",
-                id
-            );
+            log::error!("Could not wait on workload manager response, start of module: {id}");
             Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned()))
         })?;
 
@@ -461,14 +467,14 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned())))
     }
 
     async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> anyhow::Result<()> {
-        log::info!("Stopping module {}...", id);
+        log::info!("Stopping module {id}...");
 
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned()))
@@ -476,14 +482,14 @@ where
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
-            s if s > i32::max_value() as u64 => i32::max_value(),
+            s if s > i32::MAX as u64 => i32::MAX,
             s => s as i32,
         });
 
         self.create_socket_channel
             .send(ModuleAction::Stop(id.to_string()))
             .map_err(|_| {
-                log::error!("Could not notify workload manager, stop of module: {}", id);
+                log::error!("Could not notify workload manager, stop of module: {id}");
                 Error::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
             })?;
 
@@ -492,14 +498,14 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned())))
     }
 
     async fn restart(&self, id: &str) -> anyhow::Result<()> {
-        log::info!("Restarting module {}...", id);
+        log::info!("Restarting module {id}...");
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::RestartModule(id.to_owned()))
         })?;
@@ -509,7 +515,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
@@ -526,7 +532,7 @@ where
             .image_hash()
             .ok_or(Error::GetImageId())?;
 
-        log::info!("Removing module {}...", id);
+        log::info!("Removing module {id}...");
 
         ensure_not_empty(id).with_context(|| {
             Error::RuntimeOperation(RuntimeOperation::RemoveModule(id.to_owned()))
@@ -540,7 +546,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| {
@@ -554,10 +560,7 @@ where
         self.create_socket_channel
             .send(ModuleAction::Remove(id.to_string()))
             .map_err(|_| {
-                log::error!(
-                    "Could not notify workload manager, remove of module: {}",
-                    id
-                );
+                log::error!("Could not notify workload manager, remove of module: {id}");
                 anyhow::anyhow!(Error::RuntimeOperation(RuntimeOperation::GetModule(
                     id.to_string()
                 )))
@@ -581,7 +584,9 @@ where
             .await
             .context(Error::Docker)
             .context(Error::RuntimeOperation(RuntimeOperation::SystemInfo))?;
-        system_info.server_version = docker_info.server_version().map(ToOwned::to_owned);
+        system_info
+            .server_version
+            .clone_from(&docker_info.server_version);
         system_info.total_memory = Some(total_memory);
         system_info.merge_additional(self.additional_info.clone());
 
@@ -600,7 +605,7 @@ where
 
         let start_time = system_resources
             .process(sysinfo::Pid::from_u32(process::id()))
-            .map(ProcessExt::start_time)
+            .map(Process::start_time)
             .unwrap_or_default();
 
         let current_time = SystemTime::now()
@@ -608,20 +613,20 @@ where
             .unwrap_or_default()
             .as_secs();
 
-        let used_cpu = system_resources.global_cpu_info().cpu_usage();
+        let used_cpu = system_resources.global_cpu_usage();
         let total_memory = total_memory_bytes(&system_resources);
         let used_memory = used_memory_bytes(&system_resources);
 
-        let disks = system_resources
-            .disks()
+        let disks = Disks::new_with_refreshed_list()
+            .list()
             .iter()
             .map(|disk| {
                 DiskInfo::new(
                     disk.name().to_string_lossy().into_owned(),
                     disk.available_space(),
                     disk.total_space(),
-                    String::from_utf8_lossy(disk.file_system()).into_owned(),
-                    format!("{:?}", disk.type_()),
+                    disk.file_system().to_string_lossy().into_owned(),
+                    format!("{:?}", disk.kind()),
                 )
             })
             .collect();
@@ -634,7 +639,7 @@ where
         for module in modules {
             let stats = self
                 .client
-                .container_stats(module.name(), false)
+                .container_stats(module.name(), false, false)
                 .await
                 .context(Error::Docker)?;
 
@@ -646,7 +651,7 @@ where
         Ok(SystemResources::new(
             uptime,
             current_time - start_time,
-            used_cpu.into(),
+            used_cpu,
             used_memory,
             total_memory,
             disks,
@@ -675,40 +680,30 @@ where
             .context(Error::RuntimeOperation(RuntimeOperation::ListModules))?;
 
         let result = containers
-            .iter()
+            .into_iter()
             .flat_map(|container| {
                 DockerConfig::new(
-                    container.image().to_string(),
-                    ContainerCreateBody::new().with_labels(
-                        container
-                            .labels()
-                            .iter()
-                            .map(|(k, v)| (k.to_string(), v.to_string()))
-                            .collect(),
-                    ),
+                    container.image,
+                    ContainerCreateBody {
+                        labels: Some(container.labels),
+                        ..Default::default()
+                    },
                     None,
                     None,
                     self.allow_elevated_docker_permissions,
                 )
                 .map(|config| {
                     (
-                        container,
-                        config.with_image_hash(container.image_id().clone()),
+                        container
+                            .names
+                            .first()
+                            .map_or("Unknown", |s| &s[1..])
+                            .to_owned(),
+                        config.with_image_hash(container.image_id),
                     )
                 })
             })
-            .flat_map(|(container, config)| {
-                DockerModule::new(
-                    self.client.clone(),
-                    container
-                        .names()
-                        .iter()
-                        .next()
-                        .map_or("Unknown", |s| &s[1..])
-                        .to_string(),
-                    config,
-                )
-            })
+            .flat_map(|(name, config)| DockerModule::new(self.client.clone(), name, config))
             .collect();
 
         Ok(result)
@@ -742,24 +737,26 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .context(Error::RuntimeOperation(RuntimeOperation::ListImages))?;
 
-        let mut result: HashMap<String, String> = HashMap::new();
-        for image in images {
-            // an individual image id may be associated with multiple image names
-            for name in image.repo_tags() {
-                result.insert(name.clone(), image.id().clone());
-            }
-        }
-
+        let result = images
+            .into_iter()
+            .flat_map(|image| {
+                image
+                    .repo_tags
+                    .into_iter()
+                    .flatten()
+                    .map(move |name| (name, image.id.clone()))
+            })
+            .collect();
         Ok(result)
     }
 
-    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<hyper::Body> {
-        log::info!("Getting logs for module {}...", id);
+    async fn logs(&self, id: &str, options: &LogOptions) -> anyhow::Result<Incoming> {
+        log::info!("Getting logs for module {id}...");
 
         self.client
             .container_logs(
@@ -775,7 +772,7 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
     }
@@ -788,9 +785,9 @@ where
             remove.push(ModuleRuntime::remove(self, module.name()));
         }
 
-        for result in futures::future::join_all(remove).await {
+        for result in futures_util::future::join_all(remove).await {
             if let Err(err) = result {
-                log::warn!("Failed to remove module: {:?}", err);
+                log::warn!("Failed to remove module: {err:?}");
             }
         }
 
@@ -805,9 +802,9 @@ where
             stop.push(self.stop(module.name(), wait_before_kill));
         }
 
-        for result in futures::future::join_all(stop).await {
+        for result in futures_util::future::join_all(stop).await {
             if let Err(err) = result {
-                log::warn!("Failed to stop module: {:?}", err);
+                log::warn!("Failed to stop module: {err:?}");
             }
         }
 
@@ -821,12 +818,12 @@ where
             .await
             .context(Error::Docker)
             .map_err(|e| {
-                log::warn!("{:?}", e);
+                log::warn!("{e:?}");
                 e
             })
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned())))?;
 
-        let pids = parse_top_response::<Deserializer>(&top_response)
+        let pids = parse_top_response::<Deserializer>(top_response)
             .with_context(|| Error::RuntimeOperation(RuntimeOperation::TopModule(id.to_owned())))?;
 
         Ok(pids)
@@ -853,24 +850,21 @@ fn used_memory_bytes(system_resources: &System) -> u64 {
     system_resources.used_memory()
 }
 
-fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> Result<Vec<i32>, D::Error>
+fn parse_top_response<'de, D>(resp: ContainerTopResponse) -> Result<Vec<i32>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
     let titles = resp
-        .titles()
+        .titles
         .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
-    let pid_index = titles
-        .iter()
-        .position(|s| s.as_str() == "PID")
-        .ok_or_else(|| {
-            serde::de::Error::invalid_value(
-                serde::de::Unexpected::Seq,
-                &"array including the column title 'PID'",
-            )
-        })?;
+    let pid_index = titles.iter().position(|s| s == "PID").ok_or_else(|| {
+        serde::de::Error::invalid_value(
+            serde::de::Unexpected::Seq,
+            &"array including the column title 'PID'",
+        )
+    })?;
     let processes = resp
-        .processes()
+        .processes
         .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
     let pids = processes
         .iter()
@@ -902,16 +896,15 @@ fn unset_privileged(
     if allow_elevated_docker_permissions {
         return;
     }
-    if let Some(config) = create_options.host_config() {
-        if config.privileged() == Some(&true) || config.cap_add().map_or(0, Vec::len) != 0 {
-            log::warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
-            let mut config = config.clone();
+    if let Some(config) = &mut create_options.host_config
+        && (config.privileged == Some(true) || config.cap_add.as_ref().map_or(0, Vec::len) != 0)
+    {
+        log::warn!(
+            "Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service."
+        );
 
-            config.set_privileged(false);
-            config.reset_cap_add();
-
-            create_options.set_host_config(config);
-        }
+        config.privileged = Some(false);
+        config.cap_add = None;
     }
 }
 
@@ -929,59 +922,63 @@ fn drop_unsafe_privileges(
     // They must be explicitly enabled
     let mut caps_to_drop = vec!["CHOWN".to_owned(), "SETUID".to_owned()];
 
-    // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
-    #[allow(clippy::option_if_let_else)]
-    let host_config = if let Some(config) = create_options.host_config() {
-        // Don't drop caps that the user added explicitly
-        if let Some(cap_add) = config.cap_add() {
-            caps_to_drop.retain(|cap_drop| {
-                !(cap_add.contains(cap_drop) || cap_add.contains(&format!("CAP_{cap_drop}")))
-            });
-        }
-        // Add customer specified cap_drops
-        if let Some(cap_drop) = config.cap_drop() {
-            caps_to_drop.extend_from_slice(cap_drop);
-        }
+    let host_config = create_options.host_config.get_or_insert_default();
 
-        config.clone().with_cap_drop(caps_to_drop)
-    } else {
-        HostConfig::new().with_cap_drop(caps_to_drop)
-    };
+    // Don't drop caps that the user added explicitly
+    if let Some(cap_add) = &host_config.cap_add {
+        caps_to_drop.retain(|cap_drop| {
+            !(cap_add.contains(cap_drop) || cap_add.contains(&format!("CAP_{cap_drop}")))
+        });
+    }
 
-    create_options.set_host_config(host_config);
+    // Add customer specified cap_drops
+    if let Some(cap_drop) = &host_config.cap_drop {
+        caps_to_drop.extend_from_slice(cap_drop);
+    }
+
+    host_config.cap_drop = Some(caps_to_drop);
 }
 
 #[cfg(test)]
 mod tests {
     use std::process::{Command, Stdio};
 
+    use docker::models::HostConfig;
+
     use super::*;
 
     #[test]
     fn parse_top_response_returns_pid_array() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["PID".to_string()])
-            .with_processes(vec![vec!["123".to_string()]]);
+        let response = ContainerTopResponse {
+            titles: Some(vec!["PID".to_string()]),
+            processes: Some(vec![vec!["123".to_string()]]),
+        };
 
-        let pids = parse_top_response::<Deserializer>(&response);
+        let pids = parse_top_response::<Deserializer>(response);
 
         assert_eq!(vec![123], pids.unwrap());
     }
 
     #[test]
     fn parse_top_response_returns_error_when_titles_is_missing() {
-        let response = InlineResponse2001::new().with_processes(vec![vec!["123".to_string()]]);
+        let response = ContainerTopResponse {
+            processes: Some(vec![vec!["123".to_string()]]),
+            ..Default::default()
+        };
 
-        let pids = parse_top_response::<Deserializer>(&response);
+        let pids = parse_top_response::<Deserializer>(response);
 
         assert_eq!("missing field `Titles`", format!("{}", pids.unwrap_err()));
     }
 
     #[test]
     fn parse_top_response_returns_error_when_pid_title_is_missing() {
-        let response = InlineResponse2001::new().with_titles(vec!["Command".to_string()]);
+        let response = ContainerTopResponse {
+            titles: Some(vec!["Command".to_string()]),
+            ..Default::default()
+        };
 
-        let pids = parse_top_response::<Deserializer>(&response);
+        let pids = parse_top_response::<Deserializer>(response);
 
         assert_eq!(
             "invalid value: sequence, expected array including the column title 'PID'",
@@ -991,9 +988,12 @@ mod tests {
 
     #[test]
     fn parse_top_response_returns_error_when_processes_is_missing() {
-        let response = InlineResponse2001::new().with_titles(vec!["PID".to_string()]);
+        let response = ContainerTopResponse {
+            titles: Some(vec!["PID".to_string()]),
+            ..Default::default()
+        };
 
-        let pids = parse_top_response::<Deserializer>(&response);
+        let pids = parse_top_response::<Deserializer>(response);
 
         assert_eq!(
             "missing field `Processes`",
@@ -1003,11 +1003,12 @@ mod tests {
 
     #[test]
     fn parse_top_response_returns_error_when_process_pid_is_missing() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["Command".to_string(), "PID".to_string()])
-            .with_processes(vec![vec!["sh".to_string()]]);
+        let response = ContainerTopResponse {
+            titles: Some(vec!["Command".to_string(), "PID".to_string()]),
+            processes: Some(vec![vec!["sh".to_string()]]),
+        };
 
-        let pids = parse_top_response::<Deserializer>(&response);
+        let pids = parse_top_response::<Deserializer>(response);
 
         assert_eq!(
             "invalid length 1, expected at least 2 columns",
@@ -1017,11 +1018,12 @@ mod tests {
 
     #[test]
     fn parse_top_response_returns_error_when_process_pid_is_not_i32() {
-        let response = InlineResponse2001::new()
-            .with_titles(vec!["PID".to_string()])
-            .with_processes(vec![vec!["xyz".to_string()]]);
+        let response = ContainerTopResponse {
+            titles: Some(vec!["PID".to_string()]),
+            processes: Some(vec![vec!["xyz".to_string()]]),
+        };
 
-        let pids = parse_top_response::<Deserializer>(&response);
+        let pids = parse_top_response::<Deserializer>(response);
 
         assert_eq!(
             "invalid value: string \"xyz\", expected a process ID number",
@@ -1031,58 +1033,90 @@ mod tests {
 
     #[test]
     fn unset_privileged_works() {
-        let mut create_options =
-            ContainerCreateBody::new().with_host_config(HostConfig::new().with_privileged(true));
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                privileged: Some(true),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
 
         // Doesn't remove privileged
         unset_privileged(true, &mut create_options);
-        assert!(create_options.host_config().unwrap().privileged().unwrap());
+        assert!(
+            create_options
+                .host_config
+                .as_ref()
+                .unwrap()
+                .privileged
+                .unwrap()
+        );
+
         // Removes privileged
         unset_privileged(false, &mut create_options);
-        assert!(!create_options.host_config().unwrap().privileged().unwrap());
-        create_options.set_host_config(
-            HostConfig::new().with_cap_add(vec!["CAP1".to_owned(), "CAP2".to_owned()]),
+        assert!(
+            !create_options
+                .host_config
+                .as_ref()
+                .unwrap()
+                .privileged
+                .unwrap()
         );
+        create_options.host_config = Some(HostConfig {
+            cap_add: Some(vec!["CAP1".to_owned(), "CAP2".to_owned()]),
+            ..Default::default()
+        });
 
         // Doesn't remove caps
         unset_privileged(true, &mut create_options);
         assert_eq!(
-            create_options.host_config().unwrap().cap_add(),
-            Some(&vec!["CAP1".to_owned(), "CAP2".to_owned()])
+            create_options.host_config.as_ref().unwrap().cap_add,
+            Some(vec!["CAP1".to_owned(), "CAP2".to_owned()])
         );
 
         // Removes caps
         unset_privileged(false, &mut create_options);
-        assert_eq!(create_options.host_config().unwrap().cap_add(), None);
+        assert_eq!(create_options.host_config.as_ref().unwrap().cap_add, None);
     }
 
     #[test]
     fn drop_unsafe_privileges_works() {
-        let mut create_options = ContainerCreateBody::new().with_host_config(HostConfig::new());
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(Default::default()),
+            ..Default::default()
+        };
+
         // Do nothing if privileged is allowed
         drop_unsafe_privileges(true, &mut create_options);
-        assert_eq!(create_options.host_config().unwrap().cap_drop(), None);
+        assert_eq!(create_options.host_config.as_ref().unwrap().cap_drop, None);
+
         // Drops privileges by if privileged is false
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
-            create_options.host_config().unwrap().cap_drop(),
-            Some(&vec!["CHOWN".to_owned(), "SETUID".to_owned()])
+            create_options.host_config.as_ref().unwrap().cap_drop,
+            Some(vec!["CHOWN".to_owned(), "SETUID".to_owned()])
         );
+
         // Doesn't drop caps if specified
-        create_options
-            .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
+        create_options.host_config = Some(HostConfig {
+            cap_add: Some(vec!["CAP_CHOWN".to_owned()]),
+            ..Default::default()
+        });
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
-            create_options.host_config().unwrap().cap_drop(),
-            Some(&vec!["SETUID".to_owned()])
+            create_options.host_config.as_ref().unwrap().cap_drop,
+            Some(vec!["SETUID".to_owned()])
         );
 
         // Doesn't drop caps if specified without CAP_
-        create_options.set_host_config(HostConfig::new().with_cap_add(vec!["CHOWN".to_owned()]));
+        create_options.host_config = Some(HostConfig {
+            cap_add: Some(vec!["CHOWN".to_owned()]),
+            ..Default::default()
+        });
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
-            create_options.host_config().unwrap().cap_drop(),
-            Some(&vec!["SETUID".to_owned()])
+            create_options.host_config.as_ref().unwrap().cap_drop,
+            Some(vec!["SETUID".to_owned()])
         );
     }
 

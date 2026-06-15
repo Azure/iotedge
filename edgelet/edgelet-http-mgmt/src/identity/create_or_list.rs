@@ -58,10 +58,7 @@ where
             return None;
         }
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             client: service.identity.clone(),
@@ -86,7 +83,7 @@ where
             Err(err) => {
                 return Err(edgelet_http::error::server_error(err.to_string()));
             }
-        };
+        }
 
         let res = ListIdentitiesResponse { identities };
         let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
@@ -98,11 +95,8 @@ where
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
-        let body = match body {
-            Some(body) => body,
-            None => {
-                return Err(edgelet_http::error::bad_request("missing request body"));
-            }
+        let Some(body) = body else {
+            return Err(edgelet_http::error::bad_request("missing request body"));
         };
 
         let client = self.client.lock().await;
@@ -129,6 +123,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt as _;
+
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
@@ -181,7 +177,7 @@ mod tests {
             };
 
             let response = route.post(Some(body)).await.unwrap();
-            let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+            let body = response.into_body().collect().await.unwrap().to_bytes();
             let response: crate::identity::Identity = serde_json::from_slice(&body).unwrap();
 
             expected_identities.push(response);
@@ -192,7 +188,7 @@ mod tests {
         route.client = client.clone();
 
         let response = route.get().await.unwrap();
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
         let response: super::ListIdentitiesResponse = serde_json::from_slice(&body).unwrap();
 
         // Check that identities response contains the expected identities

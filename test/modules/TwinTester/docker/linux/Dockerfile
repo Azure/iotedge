@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/runtime:8.0-alpine
+FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine
 
 ARG EXE_DIR=.
 ARG TARGETPLATFORM

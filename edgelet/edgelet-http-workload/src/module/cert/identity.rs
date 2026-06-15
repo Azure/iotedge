@@ -42,10 +42,7 @@ where
             service.config.hub_name, service.config.device_id, module_id
         );
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         let api = super::CertApi::new(
             service.key_client.clone(),
@@ -84,8 +81,8 @@ where
     type PutBody = serde::de::IgnoredAny;
 }
 
-fn identity_cert_extensions(
-) -> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
+fn identity_cert_extensions()
+-> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
     let mut csr_extensions = openssl::stack::Stack::new()?;
 
     let mut ext_key_usage = openssl::x509::extension::ExtendedKeyUsage::new();
@@ -120,10 +117,10 @@ mod tests {
         test_route_err!("/modules//certificate/identity");
 
         // Extra character at beginning of URI
-        test_route_err!(&format!("a{}", TEST_PATH));
+        test_route_err!(&format!("a{TEST_PATH}"));
 
         // Extra character at end of URI
-        test_route_err!(&format!("{}a", TEST_PATH));
+        test_route_err!(&format!("{TEST_PATH}a"));
     }
 
     #[tokio::test]

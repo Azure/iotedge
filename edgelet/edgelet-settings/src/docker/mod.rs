@@ -137,14 +137,12 @@ mod tests {
     use std::time::Duration;
 
     use super::Settings;
-    use crate::docker::network;
-    use crate::RuntimeSettings;
     use crate::DEFAULT_NETWORKID;
+    use crate::RuntimeSettings;
+    use crate::docker::network;
 
     // Prevents multiple tests from modifying environment variables concurrently.
-    lazy_static::lazy_static! {
-        static ref ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::default();
-    }
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     static CONFIG_DIR: &str = "test-files/config.d";
 
@@ -161,7 +159,9 @@ mod tests {
     #[test]
     fn err_no_file() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
-        std::env::set_var("AZIOT_EDGED_CONFIG", "garbage");
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", "garbage");
+        }
         let settings = Settings::new();
         assert!(settings.is_err());
     }
@@ -170,8 +170,10 @@ mod tests {
     fn err_bad_file() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", BAD_SETTINGS);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", BAD_SETTINGS);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let settings = Settings::new();
         assert!(settings.is_err());
@@ -181,8 +183,10 @@ mod tests {
     fn case_sensitive() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_CASE_SENSITIVE);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_CASE_SENSITIVE);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let settings = Settings::new().unwrap();
 
@@ -191,15 +195,17 @@ mod tests {
         assert_eq!(env.get("DeF").map(AsRef::as_ref), Some("VAluE2"));
 
         let create_options = settings.agent().config().create_options();
-        assert_eq!(create_options.hostname(), Some("VAluE3"));
+        assert_eq!(create_options.hostname.as_deref(), Some("VAluE3"));
     }
 
     #[test]
     fn watchdog() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let settings = Settings::new().unwrap();
         let watchdog_settings = settings.watchdog();
@@ -210,8 +216,10 @@ mod tests {
     fn network_settings() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_NETWORK);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_NETWORK);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let settings = Settings::new().unwrap();
         let moby_runtime = settings.moby_runtime();
@@ -249,29 +257,37 @@ mod tests {
     fn networking_create_options() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let settings = Settings::new().unwrap();
         let create_options = settings.agent().config().create_options();
-        assert!(create_options
-            .networking_config()
-            .unwrap()
-            .endpoints_config()
-            .unwrap()
-            .contains_key(DEFAULT_NETWORKID));
+        assert!(
+            create_options
+                .networking_config
+                .as_ref()
+                .unwrap()
+                .endpoints_config
+                .as_ref()
+                .unwrap()
+                .contains_key(DEFAULT_NETWORKID)
+        );
     }
 
     #[test]
     fn agent_labels() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let settings = Settings::new().unwrap();
         let create_options = settings.agent().config().create_options();
-        let labels = create_options.labels().unwrap();
+        let labels = create_options.labels.as_ref().unwrap();
         assert_eq!(
             labels.get("net.azure-devices.edge.create-options"),
             Some(&"{}".to_string())
@@ -286,8 +302,10 @@ mod tests {
     fn image_garbage_collection() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_IMAGE_GC);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_IMAGE_GC);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let settings = Settings::new().unwrap();
         let image_prune_settings = settings.image_garbage_collection();
@@ -307,18 +325,20 @@ mod tests {
     fn image_garbage_collection_defaults() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let image_gc_settings = Settings::new().unwrap().image_garbage_collection().clone();
         assert!(image_gc_settings.is_enabled());
         assert_eq!(
             image_gc_settings.image_age_cleanup_threshold(),
-            Duration::from_secs(60 * 60 * 24 * 7)
+            Duration::from_hours(24 * 7)
         );
         assert_eq!(
             image_gc_settings.cleanup_recurrence(),
-            Duration::from_secs(60 * 60 * 24)
+            Duration::from_hours(24)
         );
         assert_eq!(image_gc_settings.cleanup_time(), 0);
     }
@@ -327,8 +347,10 @@ mod tests {
     fn content_trust_env() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_CONTENT_TRUST);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_CONTENT_TRUST);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let settings = Settings::new().unwrap();
         if let Some(content_trust_map) = settings
@@ -357,8 +379,10 @@ mod tests {
     fn content_trust_env_err() {
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-        std::env::set_var("AZIOT_EDGED_CONFIG", BAD_SETTINGS_CONTENT_TRUST);
-        std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", BAD_SETTINGS_CONTENT_TRUST);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
 
         let settings = Settings::new();
         assert!(settings.is_err());

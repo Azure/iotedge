@@ -30,7 +30,7 @@ pub(crate) async fn get_device_info(
     {
         reprovision(identity_client, cache_dir)
             .await
-            .map_err(|err| EdgedError::from_err("Reprovision on startup failed: {}", err))?;
+            .map_err(|err| EdgedError::from_err("Reprovision on startup failed", err))?;
     }
 
     loop {
@@ -54,7 +54,7 @@ pub(crate) async fn get_device_info(
                 }
             },
             Err(err) => {
-                log::warn!("Failed to obtain device identity: {}", err);
+                log::warn!("Failed to obtain device identity: {err}");
 
                 // Reprovision device if the device identity is unavailable, but only on errors
                 // returned by Identity Service itself. Errors such as connection timeouts and
@@ -64,7 +64,7 @@ pub(crate) async fn get_device_info(
                     log::info!("Requesting device reprovision");
 
                     if let Err(err) = reprovision(identity_client, cache_dir).await {
-                        log::warn!("Failed to reprovision: {}", err);
+                        log::warn!("Failed to reprovision: {err}");
                     }
                 } else {
                     log::warn!(
@@ -129,10 +129,7 @@ pub(crate) async fn reprovision(
     cache_dir: &std::path::Path,
 ) -> Result<(), std::io::Error> {
     if let Err(err) = std::fs::remove_dir_all(cache_dir) {
-        log::warn!(
-            "Failed to clear provisioning cache before reprovision: {}",
-            err
-        );
+        log::warn!("Failed to clear provisioning cache before reprovision: {err}");
     }
 
     identity_client.reprovision().await

@@ -1,30 +1,37 @@
 [package]
-authors = ["Azure IoT Edge Devs"]
-edition = "2021"
 name = "edgelet-docker"
-publish = false
 version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+edition = "2024"
+publish = false
+
 
 [dependencies]
-anyhow = "1"
-async-trait = "0.1"
-base64 = "0.21"
-chrono = "0.4"
-futures = "0.3"
-hex = "0.4"
-hyper = "0.14"
-log = "0.4"
-nix = "0.26"
-serde = "1"
-serde_json = "1"
-serial_test = "1"
-sysinfo = "0.28"
-thiserror = "1"
-tokio = { version = "1", features = ["parking_lot", "sync"] }
-url = "2"
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+futures-util = { workspace = true }
+hex = { workspace = true }
+hyper = { workspace = true }
+hyper-util = { workspace = true }
+log = { workspace = true }
+nix = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serial_test = { workspace = true }
+sysinfo = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+
+http-common = { workspace = true }
 
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings", features = ["settings-docker"] }
 edgelet-utils = { path = "../edgelet-utils" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+
+
+[lints]
+workspace = true
