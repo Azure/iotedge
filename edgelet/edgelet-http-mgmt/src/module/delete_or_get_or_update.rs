@@ -40,10 +40,7 @@ where
 
         let start = edgelet_http::find_query("start", query);
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             runtime: service.runtime.clone(),
@@ -60,7 +57,7 @@ where
         let runtime = self.runtime.lock().await;
 
         match runtime.remove(&self.module).await {
-            Ok(_) => Ok(http_common::server::response::no_content()),
+            Ok(()) => Ok(http_common::server::response::no_content()),
             Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
         }
     }
@@ -146,7 +143,7 @@ where
         let details = if start {
             match runtime.start(&self.module).await {
                 Ok(()) => log::info!("Successfully started module {}", self.module),
-                Err(err) => log::warn!("Failed to start module {}: {}", self.module, err),
+                Err(err) => log::warn!("Failed to start module {}: {err}", self.module),
             }
 
             edgelet_http::ModuleDetails::from_spec(&body, edgelet_core::ModuleStatus::Running)

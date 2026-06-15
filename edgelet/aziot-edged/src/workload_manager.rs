@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use edgelet_core::{module::ModuleAction, Error, UrlExt};
+use edgelet_core::{Error, UrlExt, module::ModuleAction};
 use edgelet_settings::uri::Listen;
 
 use crate::error::Error as EdgedError;
@@ -103,7 +103,7 @@ where
             log::info!("Starting workload API...");
 
             if let Err(err) = incoming.serve(service, shutdown_receiver).await {
-                log::error!("Failed to start workload API: {}", err);
+                log::error!("Failed to start workload API: {err}");
             }
 
             log::info!("Workload API stopped");
@@ -117,7 +117,7 @@ where
         module_id: &str,
         signal_socket_created: Option<tokio::sync::oneshot::Sender<()>>,
     ) -> Result<(), EdgedError> {
-        log::info!("Starting new listener for module {}", module_id);
+        log::info!("Starting new listener for module {module_id}");
         let workload_uri = self.get_listener_uri(module_id)?;
 
         self.spawn_listener(workload_uri, signal_socket_created, module_id, None)
@@ -127,7 +127,7 @@ where
     }
 
     fn stop_listener(&mut self, module_id: &str) {
-        log::info!("Stopping listener for module {}", module_id);
+        log::info!("Stopping listener for module {module_id}");
 
         let shutdown_sender = self.shutdown_senders.remove(module_id);
 
@@ -138,7 +138,7 @@ where
     }
 
     fn remove_listener(&mut self, module_id: &str) -> Result<(), EdgedError> {
-        log::info!("Removing listener for module {}", module_id);
+        log::info!("Removing listener for module {module_id}");
 
         // Try to stop the listener, just in case it was not stopped before
         self.stop_listener(module_id);
@@ -222,13 +222,13 @@ where
                             .start_listener(&module_id, Some(sender))
                             .await
                         {
-                            log::info!("Failed to start module {}, error {}", module_id, err);
+                            log::info!("Failed to start module {module_id}, error {err}");
                         }
                     }
                     ModuleAction::Stop(module_id) => workload_manager.stop_listener(&module_id),
                     ModuleAction::Remove(module_id) => {
                         if let Err(err) = workload_manager.remove_listener(&module_id) {
-                            log::info!("Failed to remove module {}, error {}", module_id, err);
+                            log::info!("Failed to remove module {module_id}, error {err}");
                         }
                     }
                 }
@@ -250,7 +250,10 @@ where
     M::Config: serde::Serialize,
 {
     if let Err(err) = shutdown_rx.await {
-        return  Err(EdgedError::from_err("Could wait on the stop signal, workload manager will continue but not shutdown properly", err));
+        return Err(EdgedError::from_err(
+            "Could wait on the stop signal, workload manager will continue but not shutdown properly",
+            err,
+        ));
     }
 
     let module_list = runtime

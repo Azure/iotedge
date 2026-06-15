@@ -116,7 +116,7 @@ steps:
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       dotnet build $testDir
   
-      $binDir = Convert-Path "$testDir/bin/Debug/net8.0"
+      $binDir = Convert-Path "$testDir/bin/Debug/net10.0"
       Write-Output "##vso[task.setvariable variable=binDir]$binDir"
     env:
       http_proxy: $(Agent.ProxyUrl)
@@ -236,27 +236,3 @@ steps:
 
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
-
-  - bash: |
-      set -euo pipefail
-
-      if ! systemctl cat docker.service >/dev/null 2>&1; then
-        # Apply the workaround differently for agents where Docker is installed as a snap
-        snap_docker_config='/var/snap/docker/current/config/daemon.json'
-        if [ -f $snap_docker_config ]; then
-          sudo snap stop docker
-          jq '. + { "min-api-version": "1.34" }' $snap_docker_config \
-            | sudo tee $snap_docker_config.tmp >/dev/null && sudo mv $snap_docker_config.tmp $snap_docker_config
-          sudo snap start docker
-        else
-          echo 'Docker service not found'
-        fi
-      else
-        echo 'Updating minimum Docker API version to 1.34'
-        sudo mkdir -p /etc/systemd/system/docker.service.d
-        echo -e '[Service]\nEnvironment=DOCKER_MIN_API_VERSION=1.34' \
-          | sudo tee /etc/systemd/system/docker.service.d/min-api-version.override.conf
-        sudo systemctl daemon-reload
-        sudo systemctl restart docker
-      fi
-    displayName: Update Docker's minimum API version to work around IoT Edge issue

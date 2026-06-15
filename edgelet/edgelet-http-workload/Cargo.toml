@@ -2,49 +2,54 @@
 name = "edgelet-http-workload"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
+edition = "2024"
 publish = false
-edition = "2021"
+
 
 [dependencies]
-async-trait = "0.1"
-base64 = "0.21"
-chrono = "0.4"
-futures-util = "0.3"
-http = "0.2"
-hyper = "0.14"
-log = "0.4"
-libc = "0.2"
-openssl = "0.10"
-percent-encoding = "2"
-regex = "1"
-serde = "1"
-serde_json = "1"
-tokio = { version = "1", features = ["parking_lot", "sync"] }
-url = "2"
+async-trait = { workspace = true }
+base64 = { workspace = true }
+bytes = { workspace = true }
+chrono = { workspace = true }
+http = { workspace = true }
+http-body-util = { workspace = true }
+hyper = { workspace = true }
+log = { workspace = true }
+libc = { workspace = true }
+openssl = { workspace = true }
+percent-encoding = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+
+aziot-cert-client-async = { workspace = true }
+aziot-cert-common-http = { workspace = true }
+aziot-certd-config = { workspace = true }
+aziot-identity-client-async = { workspace = true }
+aziot-identity-common = { workspace = true }
+aziot-identity-common-http = { workspace = true }
+aziot-key-client = { workspace = true }
+aziot-key-client-async = { workspace = true }
+aziot-key-common = { workspace = true }
+aziot-key-common-http = { workspace = true }
+aziot-key-openssl-engine = { workspace = true }
+cert-renewal = { workspace = true }
+http-common = { workspace = true }
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-settings = { path = "../edgelet-settings" }
 
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-
-aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-
-aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-
-cert-renewal = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 [dev-dependencies]
-nix = "0.26"
+nix = { workspace = true }
+
+test-common = { workspace = true }
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
-test-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+
+
+[lints]
+workspace = true

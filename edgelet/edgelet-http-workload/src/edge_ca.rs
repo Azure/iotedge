@@ -97,7 +97,7 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
             let key_client = self.key_client.lock().await;
 
             if self.rotate_key {
-                let key_id = format!("{}-temp", key_id);
+                let key_id = format!("{key_id}-temp");
 
                 if let Ok(key_handle) = key_client.load_key_pair(&key_id).await {
                     key_client.delete_key_pair(&key_handle).await.map_err(|_| {
@@ -150,10 +150,7 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
             // The temporary ID does not need to be persisted, so delete it after the cert is
             // succesfully created.
             if let Err(err) = cert_client.delete_cert(&self.temp_cert).await {
-                log::warn!(
-                    "Failed to delete temporary certificate created by cert renewal: {}",
-                    err
-                );
+                log::warn!("Failed to delete temporary certificate created by cert renewal: {err}");
             }
 
             new_cert
@@ -240,7 +237,7 @@ impl cert_renewal::CertInterface for EdgeCaRenewal {
             .renewal_tx
             .send(edgelet_core::WatchdogAction::EdgeCaRenewal)
         {
-            log::warn!("Failed to request module restart: {}", err);
+            log::warn!("Failed to request module restart: {err}");
         }
 
         Ok(())
@@ -280,8 +277,8 @@ pub(crate) fn keys(
     Ok((private_key, public_key))
 }
 
-pub(crate) fn extensions(
-) -> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
+pub(crate) fn extensions()
+-> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
     let mut csr_extensions = openssl::stack::Stack::new()?;
 
     let mut key_usage = openssl::x509::extension::KeyUsage::new();

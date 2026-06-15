@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use hyper::body::Incoming;
+
 #[derive(Clone, Default, serde::Deserialize, serde::Serialize)]
 pub struct Config {}
 
@@ -163,7 +165,7 @@ impl edgelet_core::ModuleRuntime for Runtime {
         &self,
         _id: &str,
         _options: &edgelet_core::LogOptions,
-    ) -> anyhow::Result<hyper::Body> {
+    ) -> anyhow::Result<Incoming> {
         unimplemented!()
     }
 

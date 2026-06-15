@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `redhat8`, `redhat9`, `debian11`, `debian12`, `ubuntu22.04`, or `ubuntu24.04`.
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `redhat8`, `redhat9`, `debian12`, `ubuntu22.04`, or `ubuntu24.04`.
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -67,7 +67,7 @@ dnf install -y \
     libcurl-devel libuuid-devel openssl-devel &&
 ```
 
-#### Debian 11-12
+#### Debian 12
 
 ```sh
 apt-get update

@@ -31,10 +31,6 @@ pub struct Config {
     pub imported_master_encryption_key: Option<std::path::PathBuf>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[cfg(contenttrust)]
-    pub manifest_trust_bundle_cert: Option<Url>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_info: Option<Url>,
 
     #[serde(
@@ -74,7 +70,7 @@ pub fn default_agent() -> edgelet_settings::ModuleSpec<edgelet_settings::DockerC
         /* config */
         edgelet_settings::DockerConfig::new(
             /* image */ "mcr.microsoft.com/azureiotedge-agent:1.5".to_owned(),
-            /* create_options */ docker::models::ContainerCreateBody::new(),
+            /* create_options */ Default::default(),
             /* digest */ None,
             /* auth */ None,
             /* allow_elevated_docker_permissions */ true,

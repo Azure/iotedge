@@ -36,10 +36,7 @@ where
             .decode_utf8()
             .ok()?;
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             runtime: service.runtime.clone(),
@@ -54,11 +51,8 @@ where
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
-        let body = match body {
-            Some(body) => body,
-            None => {
-                return Err(edgelet_http::error::bad_request("missing request body"));
-            }
+        let Some(body) = body else {
+            return Err(edgelet_http::error::bad_request("missing request body"));
         };
 
         if body.name() != self.module {
@@ -97,9 +91,9 @@ mod tests {
         assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
 
         // Extra character at beginning of URI
-        test_route_err!(&format!("a{}", TEST_PATH));
+        test_route_err!(&format!("a{TEST_PATH}"));
 
         // Extra character at end of URI
-        test_route_err!(&format!("{}a", TEST_PATH));
+        test_route_err!(&format!("{TEST_PATH}a"));
     }
 }

@@ -57,7 +57,7 @@ where
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-        let err = anyhow::anyhow!("docker returned {}, stderr = {}", output.status, stderr,);
+        let err = anyhow::anyhow!("docker returned {}, stderr = {stderr}", output.status);
         return Err((Some(stderr), err));
     }
 

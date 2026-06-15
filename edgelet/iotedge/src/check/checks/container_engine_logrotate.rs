@@ -1,6 +1,6 @@
 use std::fs::File;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 
 use crate::check::{Check, CheckResult, Checker, CheckerMeta};
 
@@ -26,8 +26,7 @@ impl Checker for ContainerEngineLogrotate {
 
 impl ContainerEngineLogrotate {
     fn inner_execute(&mut self, check: &mut Check) -> anyhow::Result<CheckResult> {
-        const MESSAGE: &str =
-        "Container engine is not configured to rotate module logs which may cause it run out of disk space.\n\
+        const MESSAGE: &str = "Container engine is not configured to rotate module logs which may cause it run out of disk space.\n\
          Please see https://aka.ms/iotedge-prod-checklist-logs for best practices.\n\
          You can ignore this warning if you are setting log policy per module in the Edge deployment.";
 

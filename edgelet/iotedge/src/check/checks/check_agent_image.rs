@@ -33,7 +33,7 @@ impl CheckAgentImage {
 
         let parent_hostname: String;
         let upstream_hostname = if let Some(upstream_hostname) = check.parent_hostname.as_ref() {
-            parent_hostname = upstream_hostname.to_string();
+            parent_hostname = upstream_hostname.clone();
             &parent_hostname
         } else if let Some(iothub_hostname) = &check.iothub_hostname {
             iothub_hostname
@@ -63,20 +63,20 @@ impl CheckAgentImage {
             .agent()
             .config()
             .auth()
-            .and_then(docker::models::AuthConfig::serveraddress);
+            .and_then(|auth_config| auth_config.server_address.as_ref());
 
         if let (Some(username), Some(password), Some(server_address)) = (
             &settings
                 .agent()
                 .config()
                 .auth()
-                .and_then(docker::models::AuthConfig::username),
+                .and_then(|auth_config| auth_config.username.as_ref()),
             &settings
                 .agent()
                 .config()
                 .auth()
-                .and_then(docker::models::AuthConfig::password),
-            &server_address,
+                .and_then(|auth_config| auth_config.password.as_ref()),
+            server_address,
         ) {
             super::docker(
                 docker_host_arg,
@@ -120,12 +120,12 @@ fn check_agent_image_version_nested(agent_image: &str) -> CheckResult {
             .name("Minor")
             .and_then(|version| version.as_str().parse::<u32>().ok());
 
-        if let (Some(major), Some(minor)) = (major, minor) {
-            if major < 1 || (major == 1) && (minor < 2) {
-                return CheckResult::Failed(anyhow::anyhow!(
-                    "In nested Edge, edgeAgent version need to be 1.2 or above",
-                ));
-            }
+        if let (Some(major), Some(minor)) = (major, minor)
+            && (major < 1 || (major == 1) && (minor < 2))
+        {
+            return CheckResult::Failed(anyhow::anyhow!(
+                "In nested Edge, edgeAgent version need to be 1.2 or above",
+            ));
         }
     }
 

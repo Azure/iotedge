@@ -126,7 +126,9 @@ pub async fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>
     }
 
     if let Some(preloaded_master_encryption_key_bytes) = preloaded_master_encryption_key_bytes {
-        println!("Note: Imported master encryption key will be written to /var/secrets/aziot/keyd/imported-master-encryption-key");
+        println!(
+            "Note: Imported master encryption key will be written to /var/secrets/aziot/keyd/imported-master-encryption-key"
+        );
 
         common_config::create_dir_all("/var/secrets/aziot/keyd", &aziotks_user, 0o0700)
             .map_err(|err| format!("{err:?}"))?;
@@ -215,8 +217,6 @@ async fn execute_inner(
         allow_elevated_docker_permissions,
         auto_reprovisioning_mode,
         imported_master_encryption_key,
-        #[cfg(contenttrust)]
-            manifest_trust_bundle_cert: _,
         additional_info,
         iotedge_max_requests,
         aziot,
@@ -303,9 +303,8 @@ async fn execute_inner(
             let preloaded_master_encryption_key_bytes =
                 std::fs::read(&imported_master_encryption_key).map_err(|err| {
                     format!(
-                        "could not import master encryption key file {}: {}",
+                        "could not import master encryption key file {}: {err}",
                         imported_master_encryption_key.display(),
-                        err
                     )
                 })?;
             keyd_config.preloaded_keys.insert(

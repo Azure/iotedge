@@ -20,18 +20,14 @@ pub async fn auth_caller(
         let runtime = runtime.lock().await;
 
         runtime.module_top(module_name).await.map_err(|err| {
-            log::info!("Auth for {} failed: {}", module_name, err);
+            log::info!("Auth for {module_name} failed: {err}");
 
             crate::error::FORBIDDEN
         })
     }?;
 
     if !module_pids.contains(&pid) {
-        log::info!(
-            "Only {} is authorized for this endpoint; pid {} not authorized.",
-            module_name,
-            pid
-        );
+        log::info!("Only {module_name} is authorized for this endpoint; pid {pid} not authorized.");
 
         return Err(crate::error::FORBIDDEN);
     }

@@ -4,6 +4,12 @@ use std::io::{self, Read, Write};
 use std::pin::Pin;
 use std::task::{Context, Poll, Waker};
 
+use hyper_util::{
+    client::legacy::connect::{Connected, Connection},
+    rt::TokioIo,
+};
+use tower_service::Service;
+
 pub struct StaticStream {
     wrote: bool,
     bytes: io::Cursor<Vec<u8>>,
@@ -77,9 +83,9 @@ impl tokio::io::AsyncWrite for StaticStream {
     }
 }
 
-impl hyper::client::connect::Connection for StaticStream {
-    fn connected(&self) -> hyper::client::connect::Connected {
-        hyper::client::connect::Connected::new()
+impl Connection for StaticStream {
+    fn connected(&self) -> Connected {
+        Connected::new()
     }
 }
 
@@ -122,8 +128,8 @@ impl JsonConnector {
     }
 }
 
-impl hyper::service::Service<hyper::Uri> for JsonConnector {
-    type Response = StaticStream;
+impl Service<hyper::Uri> for JsonConnector {
+    type Response = TokioIo<StaticStream>;
     type Error = std::convert::Infallible;
     type Future = std::future::Ready<Result<Self::Response, Self::Error>>;
 
@@ -132,6 +138,6 @@ impl hyper::service::Service<hyper::Uri> for JsonConnector {
     }
 
     fn call(&mut self, _req: hyper::Uri) -> Self::Future {
-        std::future::ready(Ok(StaticStream::new(self.body.clone())))
+        std::future::ready(Ok(TokioIo::new(StaticStream::new(self.body.clone()))))
     }
 }

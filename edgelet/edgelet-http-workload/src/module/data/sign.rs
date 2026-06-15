@@ -59,10 +59,7 @@ where
             .decode_utf8()
             .ok()?;
 
-        let pid = match extensions.get::<Option<libc::pid_t>>().copied().flatten() {
-            Some(pid) => pid,
-            None => return None,
-        };
+        let pid = extensions.get::<Option<libc::pid_t>>().copied()??;
 
         Some(Route {
             key_client: service.key_client.clone(),
@@ -84,7 +81,7 @@ where
             None => {
                 return Err(edgelet_http::error::bad_request(
                     "missing parameter: request body",
-                ))
+                ));
             }
         };
 
@@ -121,8 +118,7 @@ async fn get_module_key(
 
         client.get_identity(module_id).await.map_err(|err| {
             edgelet_http::error::server_error(format!(
-                "failed to get module identity for {}: {}",
-                module_id, err
+                "failed to get module identity for {module_id}: {err}"
             ))
         })
     }?;
@@ -130,7 +126,7 @@ async fn get_module_key(
     let identity = match identity {
         aziot_identity_common::Identity::Aziot(identity) => identity,
         aziot_identity_common::Identity::Local(_) => {
-            return Err(edgelet_http::error::server_error("invalid identity type"))
+            return Err(edgelet_http::error::server_error("invalid identity type"));
         }
     };
 
@@ -144,6 +140,8 @@ async fn get_module_key(
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt as _;
+
     use http_common::server::Route;
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
@@ -164,10 +162,10 @@ mod tests {
         test_route_err!("/modules/testModule/genid//sign");
 
         // Extra character at beginning of URI
-        test_route_err!(&format!("a{}", TEST_PATH));
+        test_route_err!(&format!("a{TEST_PATH}"));
 
         // Extra character at end of URI
-        test_route_err!(&format!("{}a", TEST_PATH));
+        test_route_err!(&format!("{TEST_PATH}a"));
     }
 
     #[tokio::test]
@@ -211,7 +209,7 @@ mod tests {
 
         let route = test_route_ok!(TEST_PATH);
         let response = route.post(Some(body)).await.unwrap();
-        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
         let response: super::SignResponse = serde_json::from_slice(&body).unwrap();
         base64::Engine::decode(&engine, response.digest).unwrap();
     }
@@ -246,9 +244,11 @@ mod tests {
             identities.replace_with(|identities| {
                 identities.remove("testModule");
 
-                assert!(identities
-                    .insert("testModule".to_string(), identity)
-                    .is_none());
+                assert!(
+                    identities
+                        .insert("testModule".to_string(), identity)
+                        .is_none()
+                );
 
                 identities.to_owned()
             });
@@ -278,9 +278,11 @@ mod tests {
                 identity.auth = None;
                 let identity = aziot_identity_common::Identity::Aziot(identity);
 
-                assert!(identities
-                    .insert("testModule".to_string(), identity)
-                    .is_none());
+                assert!(
+                    identities
+                        .insert("testModule".to_string(), identity)
+                        .is_none()
+                );
 
                 identities.to_owned()
             });
@@ -313,9 +315,11 @@ mod tests {
 
                 let identity = aziot_identity_common::Identity::Aziot(identity);
 
-                assert!(identities
-                    .insert("testModule".to_string(), identity)
-                    .is_none());
+                assert!(
+                    identities
+                        .insert("testModule".to_string(), identity)
+                        .is_none()
+                );
 
                 identities.to_owned()
             });

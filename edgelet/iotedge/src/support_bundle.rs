@@ -5,7 +5,7 @@ use std::io::{copy, stdout};
 use anyhow::Context;
 
 use edgelet_core::{LogOptions, ModuleRuntime};
-use support_bundle::{make_bundle, OutputLocation};
+use support_bundle::{OutputLocation, make_bundle};
 
 use crate::error::Error;
 

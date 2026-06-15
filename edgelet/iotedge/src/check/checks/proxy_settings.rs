@@ -8,8 +8,7 @@ impl Checker for ProxySettings {
     fn meta(&self) -> CheckerMeta {
         CheckerMeta {
             id: "proxy-settings",
-            description:
-                "proxy settings are consistent in aziot-edged, aziot-identityd, moby daemon and config.toml",
+            description: "proxy settings are consistent in aziot-edged, aziot-identityd, moby daemon and config.toml",
         }
     }
 
@@ -48,13 +47,8 @@ impl ProxySettings {
             CheckResult::Ok
         } else {
             CheckResult::Warning(anyhow::anyhow!(
-                    "The proxy setting for IoT Edge Agent {:?}, IoT Edge Daemon {:?}, IoT Identity Daemon {:?}, and Moby {:?} may need to be identical.",
-                    edge_agent_proxy_uri,
-                    edge_daemon_proxy_uri,
-                    identity_daemon_proxy_uri,
-                    moby_proxy_uri
-                )
-            )
+                "The proxy setting for IoT Edge Agent {edge_agent_proxy_uri:?}, IoT Edge Daemon {edge_daemon_proxy_uri:?}, IoT Identity Daemon {identity_daemon_proxy_uri:?}, and Moby {moby_proxy_uri:?} may need to be identical.",
+            ))
         }
     }
 }

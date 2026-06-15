@@ -146,7 +146,7 @@ where
                 .as_ref()
                 .expect("auto renew config should exist if engine exists")
                 .policy
-                .to_owned();
+                .clone();
 
             let rotate_key = self
                 .config
@@ -172,7 +172,7 @@ where
                 interface,
             )
             .await
-            .map_err(|err| format!("failed to configure Edge CA auto renew: {}", err))?;
+            .map_err(|err| format!("failed to configure Edge CA auto renew: {err}"))?;
         } else {
             log::warn!(
                 "Auto renewal of the Edge CA is not configured. Edge CA will not be automatically renewed",
@@ -296,7 +296,7 @@ impl WorkloadConfig {
 
         let device_id = device_info.device_id.0.clone();
         let edge_ca_subject = settings.edge_ca_subject().clone().unwrap_or_else(|| {
-            aziot_certd_config::CertSubject::CommonName(format!("aziot-edge CA {}", device_id))
+            aziot_certd_config::CertSubject::CommonName(format!("aziot-edge CA {device_id}"))
         });
 
         WorkloadConfig {
