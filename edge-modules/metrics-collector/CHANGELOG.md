@@ -1,3 +1,10 @@
+# 1.2.38 (2026-06-12)
+
+This release supercedes v1.2.37. It syncs to a newer commit in 'main' that contains important changes to our test pipelines. There are no changes to the Metrics Collector product code.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
 # 1.2.37 (2026-06-10)
 
 The following Docker images were updated because their base images changed:
