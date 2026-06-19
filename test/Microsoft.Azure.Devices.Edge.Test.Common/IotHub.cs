@@ -67,20 +67,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         consumerOptions.ConnectionOptions.Proxy = p;
                     });
 
-                    var consumer = new EventHubConsumerClient(
-                        EventHubConsumerClient.DefaultConsumerGroupName,
-                        this.eventHubNamespace,
-                        this.eventHubName,
-                        new AzureCliCredential(),
-                        consumerOptions);
+                    return GetEventHubPartitionCountAsync();
 
-                    return consumer.GetPartitionIdsAsync()
-                        .ContinueWith(t => t.Result.Length)
-                        .ContinueWith(t =>
-                        {
-                            Task.WhenAll(consumer.CloseAsync(), t);
-                            return t.Result;
-                        });
+                    async Task<int> GetEventHubPartitionCountAsync()
+                    {
+                        await using var consumer = new EventHubConsumerClient(
+                            EventHubConsumerClient.DefaultConsumerGroupName,
+                            this.eventHubNamespace,
+                            this.eventHubName,
+                            new AzureCliCredential(),
+                            consumerOptions);
+
+                        string[] partitionIds = await consumer.GetPartitionIdsAsync();
+                        return partitionIds.Length;
+                    }
                 });
         }
 
