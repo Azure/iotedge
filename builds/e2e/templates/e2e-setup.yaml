@@ -3,7 +3,7 @@ parameters:
   containerRegistryUsername: ''
   dpsIdScope: 'optional'
   eventHubName: ''
-  eventHubFullyQualitifiedNamespace: ''
+  eventHubFullyQualifiedNamespace: ''
   iotHubHostName: ''
   iotHubResourceId: 'optional'
   rootCaCertificate: ''
@@ -168,7 +168,7 @@ steps:
   
       $context = @{
         eventHubName = '${{ parameters.eventHubName }}';
-        eventHubFullyQualitifiedNamespace = '${{ parameters.eventHubFullyQualitifiedNamespace }}';
+        eventHubFullyQualifiedNamespace = '${{ parameters.eventHubFullyQualifiedNamespace }}';
         iotHubHostName = '${{ parameters.iotHubHostName }}';
         nestededge = "$nestededge";
         dpsIdScope = '${{ parameters.dpsIdScope }}';
