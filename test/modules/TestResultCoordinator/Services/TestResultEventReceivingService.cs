@@ -39,19 +39,18 @@ namespace TestResultCoordinator.Services
 
             DateTime eventEnqueuedFrom = DateTime.UtcNow;
 
-            var consumer = new EventHubConsumerClient(
+            await using var consumer = new EventHubConsumerClient(
                 this.serviceSpecificSettings.ConsumerGroupName,
                 this.serviceSpecificSettings.EventHubNamespace,
                 this.serviceSpecificSettings.EventHubName,
                 new WorkloadIdentityCredential());
             int numPartitions = (await consumer.GetPartitionIdsAsync()).Length;
-            await consumer.CloseAsync();
 
             var handler = new PartitionReceiveHandler(Settings.Current.TrackingId, Settings.Current.DeviceId, this.storage);
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var receiver = new PartitionReceiver(
+                await using var receiver = new PartitionReceiver(
                     this.serviceSpecificSettings.ConsumerGroupName,
                     EventHubPartitionKeyResolver.ResolveToPartition(Settings.Current.DeviceId, numPartitions),
                     EventPosition.FromEnqueuedTime(eventEnqueuedFrom),
@@ -78,10 +77,6 @@ namespace TestResultCoordinator.Services
                 {
                     // This is expected when the service is stopping.
                     break;
-                }
-                finally
-                {
-                    await receiver.CloseAsync();
                 }
             }
 

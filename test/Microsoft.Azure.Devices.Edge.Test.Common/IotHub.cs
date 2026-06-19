@@ -222,7 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(2)); // substract 2 minutes to account for client/server drift
 
-            var receiver = new PartitionReceiver(
+            await using var receiver = new PartitionReceiver(
                 EventHubConsumerClient.DefaultConsumerGroupName,
                 EventHubPartitionKeyResolver.ResolveToPartition(deviceId, await this.eventHubPartitionCount.Value),
                 EventPosition.FromEnqueuedTime(seekTime),
@@ -252,13 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     // This is expected when the service is stopping.
                 }
-                finally
-                {
-                    await receiver.CloseAsync();
-                }
             }
-
-            await receiver.CloseAsync();
         }
 
         public async Task UpdateEdgeEnableStatus(string deviceId, bool enabled)

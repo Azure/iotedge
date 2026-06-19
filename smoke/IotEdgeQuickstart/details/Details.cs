@@ -383,14 +383,13 @@ namespace IotEdgeQuickstart.Details
                 consumerOptions.ConnectionOptions.Proxy = p;
             });
 
-            var consumer = new EventHubConsumerClient(
+            await using var consumer = new EventHubConsumerClient(
                 EventHubConsumerClient.DefaultConsumerGroupName,
                 this.eventHubNamespace,
                 this.eventHubName,
                 new AzureCliCredential(),
                 consumerOptions);
             int numPartitions = (await consumer.GetPartitionIdsAsync()).Length;
-            await consumer.CloseAsync();
 
             var receiverOptions = new PartitionReceiverOptions();
             this.proxy.ForEach(p =>
@@ -399,7 +398,7 @@ namespace IotEdgeQuickstart.Details
                 receiverOptions.ConnectionOptions.Proxy = p;
             });
 
-            var receiver = new PartitionReceiver(
+            await using var receiver = new PartitionReceiver(
                 EventHubConsumerClient.DefaultConsumerGroupName,
                 EventHubPartitionKeyResolver.ResolveToPartition(this.context.DeviceId, numPartitions),
                 EventPosition.FromEnqueuedTime(dataEnqueuedFrom),
@@ -440,7 +439,6 @@ namespace IotEdgeQuickstart.Details
                     }
                     finally
                     {
-                        await receiver.CloseAsync();
                         Console.WriteLine("VerifyDataOnIoTHub completed.");
                     }
                 }
