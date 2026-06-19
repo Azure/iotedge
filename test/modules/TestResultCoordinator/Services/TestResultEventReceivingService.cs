@@ -71,7 +71,16 @@ namespace TestResultCoordinator.Services
                 catch (Azure.Messaging.EventHubs.EventHubsException e) when (e.IsTransient)
                 {
                     this.logger.LogWarning(e, "Transient Event Hubs error; recreating receiver.");
-                    await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // Shutdown requested while waiting to recreate receiver.
+                        break;
+                    }
                 }
                 catch (TaskCanceledException)
                 {
