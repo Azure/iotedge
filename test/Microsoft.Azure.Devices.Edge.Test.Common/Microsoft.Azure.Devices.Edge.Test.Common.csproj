@@ -11,7 +11,7 @@
     <PackageReference Include="Azure.Identity" Version="1.17.1" />
     <PackageReference Include="Azure.Messaging.EventHubs" Version="5.12.2" />
     <PackageReference Include="Microsoft.Azure.Devices" Version="[1.42.0-edgeLts]" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="[1.43.1-edgeLts]" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="[1.43.2-edgeLts]" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />

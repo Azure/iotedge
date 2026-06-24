@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="[1.43.1-edgeLts]" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="[1.43.2-edgeLts]" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
   </ItemGroup>
 
