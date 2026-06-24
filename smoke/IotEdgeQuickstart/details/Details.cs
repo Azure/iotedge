@@ -383,22 +383,29 @@ namespace IotEdgeQuickstart.Details
                 consumerOptions.ConnectionOptions.Proxy = p;
             });
 
-            var consumer = new EventHubConsumerClient(
+            await using var consumer = new EventHubConsumerClient(
                 EventHubConsumerClient.DefaultConsumerGroupName,
                 this.eventHubNamespace,
                 this.eventHubName,
                 new AzureCliCredential(),
                 consumerOptions);
             int numPartitions = (await consumer.GetPartitionIdsAsync()).Length;
-            await consumer.CloseAsync();
 
-            var receiver = new PartitionReceiver(
+            var receiverOptions = new PartitionReceiverOptions();
+            this.proxy.ForEach(p =>
+            {
+                receiverOptions.ConnectionOptions.TransportType = EventHubsTransportType.AmqpWebSockets;
+                receiverOptions.ConnectionOptions.Proxy = p;
+            });
+
+            await using var receiver = new PartitionReceiver(
                 EventHubConsumerClient.DefaultConsumerGroupName,
                 EventHubPartitionKeyResolver.ResolveToPartition(this.context.DeviceId, numPartitions),
                 EventPosition.FromEnqueuedTime(dataEnqueuedFrom),
                 this.eventHubNamespace,
                 this.eventHubName,
-                new AzureCliCredential());
+                new AzureCliCredential(),
+                receiverOptions);
 
             Console.WriteLine($"Receiving events from device '{this.context.DeviceId}' on Event Hub '{this.eventHubName}' enqueued on or after {dataEnqueuedFrom}");
 
@@ -432,7 +439,6 @@ namespace IotEdgeQuickstart.Details
                     }
                     finally
                     {
-                        await receiver.CloseAsync();
                         Console.WriteLine("VerifyDataOnIoTHub completed.");
                     }
                 }

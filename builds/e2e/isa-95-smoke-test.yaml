@@ -327,7 +327,7 @@ stages:
           containerRegistryServer: '$(containerRegistryServer)'
           containerRegistryUsername: '$(containerRegistryUsername)'
           eventHubName: '$(eventhub.name)'
-          eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+          eventHubFullyQualifiedNamespace: '$(eventhub.namespace.fqdn)'
           iotHubHostName: '$(iothub.hostname)'
           rootCaCertificate: '$(rootCaCertificate)'
           rootCaKey: '$(rootCaKey)'
