@@ -39,19 +39,18 @@ namespace TestResultCoordinator.Services
 
             DateTime eventEnqueuedFrom = DateTime.UtcNow;
 
-            var consumer = new EventHubConsumerClient(
+            await using var consumer = new EventHubConsumerClient(
                 this.serviceSpecificSettings.ConsumerGroupName,
                 this.serviceSpecificSettings.EventHubNamespace,
                 this.serviceSpecificSettings.EventHubName,
                 new WorkloadIdentityCredential());
             int numPartitions = (await consumer.GetPartitionIdsAsync()).Length;
-            await consumer.CloseAsync();
 
             var handler = new PartitionReceiveHandler(Settings.Current.TrackingId, Settings.Current.DeviceId, this.storage);
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var receiver = new PartitionReceiver(
+                await using var receiver = new PartitionReceiver(
                     this.serviceSpecificSettings.ConsumerGroupName,
                     EventHubPartitionKeyResolver.ResolveToPartition(Settings.Current.DeviceId, numPartitions),
                     EventPosition.FromEnqueuedTime(eventEnqueuedFrom),
@@ -72,16 +71,21 @@ namespace TestResultCoordinator.Services
                 catch (Azure.Messaging.EventHubs.EventHubsException e) when (e.IsTransient)
                 {
                     this.logger.LogWarning(e, "Transient Event Hubs error; recreating receiver.");
-                    await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // Shutdown requested while waiting to recreate receiver.
+                        break;
+                    }
                 }
                 catch (TaskCanceledException)
                 {
                     // This is expected when the service is stopping.
                     break;
-                }
-                finally
-                {
-                    await receiver.CloseAsync();
                 }
             }
 
