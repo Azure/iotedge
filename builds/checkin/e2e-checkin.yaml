@@ -75,7 +75,7 @@ stages:
             containerRegistryUsername: '$(acrUsername)'
             dpsIdScope: '$(dps.idScope)'
             eventHubName: '$(eventhub.name)'
-            eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+            eventHubFullyQualifiedNamespace: '$(eventhub.namespace.fqdn)'
             iotHubHostName: '$(iothub.hostname)'
             iotHubResourceId: '$(iothub.resourceid)'
             rootCaCertificate: '$(rootCaCertificate)'

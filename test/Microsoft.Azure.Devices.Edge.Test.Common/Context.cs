@@ -91,8 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.DiagnosticsImage = Option.Maybe(Get("diagnosticsImage"));
             this.EventHubName = Get("eventHubName");
             Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.EventHubName), $"eventHubName is missing from environment or context.json.");
-            this.EventHubNamespace = Get("eventHubFullyQualitifiedNamespace");
-            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.EventHubNamespace), $"eventHubFullyQualitifiedNamespace is missing from environment or context.json.");
+            this.EventHubNamespace = Get("eventHubFullyQualifiedNamespace");
+            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.EventHubNamespace), $"eventHubFullyQualifiedNamespace is missing from environment or context.json.");
             this.LogFile = Option.Maybe(Get("logFile"));
             this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
             this.MethodSenderImage = Option.Maybe(Get("methodSenderImage"));
