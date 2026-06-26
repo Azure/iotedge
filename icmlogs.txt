@@ -1,0 +1,92 @@
+<6> 2025-05-22 11:03:52.031 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.DeviceConnectivityManager] - Entering disconnected state
+<6> 2025-05-22 11:03:52.096 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.ConnectivityAwareClient] - Cloud connection for mc-mlc/test01_mqtt_9min is False
+
+<6> 2025-05-22 11:03:52.096 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - Connection status for mc-mlc/test01_mqtt_9min changed to Disconnected
+<7> 2025-05-22 11:03:52.096 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - Invoking cloud connection lost event for mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:04:02.365 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.IDeviceScopeIdentitiesCache] - Getting service identity for mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:04:02.374 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.DeviceScopeAuthenticator] - Client mc-mlc/test01_mqtt_9min in device scope authenticated locally.
+<7> 2025-05-22 11:04:02.374 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.Authenticator] - Client mc-mlc/test01_mqtt_9min authentication successful
+<7> 2025-05-22 11:04:02.374 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Http.Controllers.HttpRequestAuthenticator] - Http Authentication succeeded for device with Id mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:04:02.375 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.Routing.RoutingEdgeHub] - Received method invoke call from mc-mlc/test01_mqtt_9min for mc-mlc/$edgeHub with correlation ID 43b6542b-9054-483a-9ffd-1c6aed1f3921
+<7> 2025-05-22 11:04:02.375 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Http.Controllers.TwinsController] - Received response from call to method dummy from device or module mc-mlc/$edgeHub. Method invoked by module mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:04:07.603 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.SubscriptionProcessor] - Processing subscriptions for client mc-mlc/test01_mqtt_9min on device connected to cloud.
+<7> 2025-05-22 11:04:07.603 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - Obtained cloud connection for device mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:04:07.603 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.SubscriptionProcessor] - Processing subscription Methods for client mc-mlc/test01_mqtt_9min.
+<05-22 11:04:07.619 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.Twin.StoringTwinManager] - Syncing stored reported properties to cloud in mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:04:07.620 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.Twin.StoringTwinManager] - Done syncing reported properties for mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:04:07.622 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.Twin.StoringTwinManager] - Not syncing twin on device connect for mc-mlc/test01_mqtt_9min as the twin does not exist in the store and client does not subscribe to twin change notifications
+<6> 2025-05-22 11:04:07.639 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.ConnectivityAwareClient] - Cloud connection for mc-mlc/test01_mqtt_9min is True
+<6> 2025-05-22 11:04:07.640 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - Connection status for mc-mlc/test01_mqtt_9min changed to ConnectionEstablished
+<7> 2025-05-22 11:04:07.640 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - Invoking cloud connection established event for mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:04:07.640 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.SubscriptionProcessor] - Client mc-mlc/test01_mqtt_9min connected to cloud, processing existing subscriptions.
+<6> 2025-05-22 11:04:07.640 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.SubscriptionProcessor] - Skipping mc-mlc/test01_mqtt_9min for subscription processing, as it is currently being processed.
+<7> 2025-05-22 11:04:07.662 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.ConnectivityAwareClient] - Operation SetMethodDefaultHandlerAsync succeeded for mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:04:07.663 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.InvokeMethodHandler] - Processing pending method invoke requests for client mc-mlc/test01_mqtt_9min.
+<7> 2025-05-22 11:04:07.834 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.CloudProxy] - Received call method from cloud for mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:04:07.834 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.Routing.RoutingEdgeHub] - Received method invoke call from upstream for mc-mlc/test01_mqtt_9min with correlation ID 2cb847b8-2c25-4ae4-a164-03db7e09a0f0
+<7> 2025-05-22 11:04:07.834 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.InvokeMethodHandler] - Invoking method ping on client mc-mlc/test01_mqtt_9min.
+<7> 2025-05-22 11:04:07.835 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.Device.DeviceMessageHandler] - Sent method invoke call from device/module mc-mlc/test01_mqtt_9min for mc-mlc/test01_mqtt_9min with correlation ID 2cb847b8-2c25-4ae4-a164-03db7e09a0f0
+<7> 2025-05-22 11:04:07.852 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - Cloud connection lost for mc-mlc/test01_mqtt_9min, closing client.
+<6> 2025-05-22 11:04:07.852 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8523706 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (InternalClient#56208282, SetMethodDefaultHandlerAsync, (MethodCallback#128520955, (null))).
+<6> 2025-05-22 11:04:07.852 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8525677 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (RetryDelegatingHandler#56975533, EnableMethodsAsync, (CancellationToken#10688298)).
+<6> 2025-05-22 11:04:07.854 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8547455 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (ErrorDelegatingHandler#19267163, ExecuteWithErrorHandlingAsync, ErrorDelegatingHandler.ExecuteWithErrorHandlingAsync).
+<6> 2025-05-22 11:04:07.855 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8549130 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (RetryDelegatingHandler#25674403, CloseAsync, (CancellationToken#54122650)).
+<6> 2025-05-22 11:04:07.856 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8560394 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (AmqpTransportHandler#4028380, CloseAsync, CloseAsync).
+<6> 2025-05-22 11:04:07.856 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8561770 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (AmqpUnit#55208630, CloseAsync, (00:01:00)).
+<6> 2025-05-22 11:04:07.856 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8565433 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (AmqpTransportHandler#5437257, EnableMethodsAsync, (CancellationToken#59922706)).
+<6> 2025-05-22 11:04:07.856 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8567695 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (AmqpSession#53636946,  source:session2986. operation:.Execute. detail:.BeginClose, AmqpLogOperationVerbose:).
+<6> 2025-05-22 11:04:07.857 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8575140 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (AmqpUnit#57651903, EnableMethodsAsync, (00:01:00)).
+<6> 2025-05-22 11:04:07.857 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8577483 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (AmqpUnit#57651903, EnsureSessionIsOpenAsync, (00:01:00)).
+<6> 2025-05-22 11:04:07.857 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8578356 [SDK] [Microsoft-Azure-Devices-Device-Client-Exit] (AmqpUnit#57651903, EnsureSessionIsOpenAsync, 00:01:00).
+<6> 2025-05-22 11:04:07.858 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8579561 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (RuntimeType#23640161, OpenReceivingAmqpLinkAsync, (DeviceIdentity#922514345)).
+<6> 2025-05-22 11:04:07.858 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8580717 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (InternalClient#56208282, SetMethodDefaultHandlerAsync, (MethodCallback#128520955, (null))).
+<6> 2025-05-22 11:04:07.858 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8584832 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (ReceivingAmqpLink#2547631,  source:receiver3012. operation:.Execute. detail:.BeginOpen, AmqpLogOperationVerbose:).
+<6> 2025-05-22 11:04:07.858 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8586585 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (ReceivingAmqpLink#2547631,  source:receiver3012. operation:.S:ATTACH. fromState:.Start. toState:.OpenSent, AmqpStateTransition:).
+<6> 2025-05-22 11:04:07.859 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8591050 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (SendingAmqpLink#39497507,  source:sender2987. operation:.Execute. detail:.BeginClose, AmqpLogOperationVerbose:).
+<6> 2025-05-22 11:04:07.861 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8615288 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (SendingAmqpLink#39497507,  source:sender2987. operation:.S:DETACH. fromState:.Opened. toState:.CloseSent, AmqpStateTransition:).
+<6> 2025-05-22 11:04:07.862 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8621106 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (SendingAmqpLink#39497507,  source:sender2987. name:.TelemetrySenderLink. handle:.0. action:.S:DETACH. error:., AmqpLinkDetach).
+<6> 2025-05-22 11:04:07.863 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8630328 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (RuntimeType#23640161, OpenSendingAmqpLinkAsync, (DeviceIdentity#922514345)).
+<6> 2025-05-22 11:04:07.863 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8635387 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (SendingAmqpLink#65156123,  source:sender3013. operation:.Execute. detail:.BeginOpen, AmqpLogOperationVerbose:).
+<6> 2025-05-22 11:04:07.863 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8636745 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (SendingAmqpLink#65156123,  source:sender3013. operation:.S:ATTACH. fromState:.Start. toState:.OpenSent, AmqpStateTransition:).
+<6> 2025-05-22 11:04:07.866 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8665272 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (ReceivingAmqpLink#19863748,  source:receiver2988. operation:.Execute. detail:.BeginClose, AmqpLogOperationVerbose:).
+<6> 2025-05-22 11:04:07.868 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8681820 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (ReceivingAmqpLink#19863748,  source:receiver2988. operation:.S:DETACH. fromState:.Opened. toState:.CloseSent, AmqpStateTransition:).
+<6> 2025-05-22 11:04:07.869 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8694152 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (ReceivingAmqpLink#19863748,  source:receiver2988. name:.MethodsReceiverLink. handle:.1. action:.S:DETACH. error:., AmqpLinkDetach).
+<6> 2025-05-22 11:04:07.869 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8698719 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (SendingAmqpLink#49650481,  source:sender2989. operation:.Execute. detail:.BeginClose, AmqpLogOperationVerbose:).
+<6> 2025-05-22 11:04:07.870 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8701177 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (SendingAmqpLink#49650481,  source:sender2989. operation:.S:DETACH. fromState:.Opened. toState:.CloseSent, AmqpStateTransition:).
+<6> 2025-05-22 11:04:07.871 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.8719047 [SDK] [Microsoft-Azure-Devices-Device-Client-Info] (SendingAmqpLink#49650481,  source:sender2989. name:.MethodsSenderLink. handle:.2. action:.S:DETACH. error:., AmqpLinkDetach).
+<7> 2025-05-22 11:04:07.961 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.ConnectivityAwareClient] - Received connection status changed callback with connection status Disabled and reason Client_Close for mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:04:07.963 +00:00 [INF] [EdgeHub] - 2025-05-22T11:04:07.9627127 [SDK] [Microsoft-Azure-Devices-Device-Client-Exit] (InternalClient#34252075, OnConnectionStatusChanged, Disabled, Client_Close).
+<6> 2025-05-22 11:04:07.973 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.CloudProxy] - Closing receiver in cloud proxy 1aa34bef-6b6c-4de0-b977-bb45439302be for mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:04:07.973 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.CloudProxy] - Closed cloud proxy 1aa34bef-6b6c-4de0-b977-bb45439302be for mc-mlc/test01_mqtt_9min
+
+<7> 2025-05-22 11:09:13.995 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.DeviceConnectivityManager] - Calling IotHub to test connectivity
+
+<6> 2025-05-22 11:12:03.116 +00:00 [INF] [EdgeHub] - "Closing connection for device: mc-mlc/test01_mqtt_9min, , "
+<6> 2025-05-22 11:12:03.117 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Mqtt.MessagingServiceClient] - Disposing MessagingServiceClient for device Id mc-mlc/test01_mqtt_9min because of exception - 
+<6> 2025-05-22 11:12:03.117 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Mqtt.DeviceProxy] - Setting device proxy inactive for device Id mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:12:03.118 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - Removing device connection for device mc-mlc/test01_mqtt_9min with removeCloudConnection flag 'True'.
+<6> 2025-05-22 11:12:03.118 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - Device connection removed for device mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:12:03.118 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.EdgeHubConnection] - Updating device mc-mlc/test01_mqtt_9min connection status to Disconnected
+<6> 2025-05-22 11:12:03.131 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.Device.DeviceMessageHandler] - Remove device connection for device mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:12:03.361 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.IDeviceScopeIdentitiesCache] - Getting service identity for mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:12:03.362 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.DeviceScopeAuthenticator] - Client mc-mlc/test01_mqtt_9min in device scope authenticated locally.
+<7> 2025-05-22 11:12:03.363 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.Authenticator] - Client mc-mlc/test01_mqtt_9min authentication successful
+<6> 2025-05-22 11:12:03.365 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Mqtt.DeviceIdentityProvider] - Successfully generated identity for clientId mc-mlc/test01_mqtt_9min and username dev-basapp-iot.azure-devices.net/mc-mlc/test01_mqtt_9min/?api-version=2021-04-12&DeviceClientType=azure-iot-device%2F1.18.3%20(node%20v14.19.1%3B%20Debian%2010.12%3B%20x64)
+<6> 2025-05-22 11:12:03.365 +00:00 [INF] [EdgeHub] - "ClientAuthenticated, mc-mlc/test01_mqtt_9min, 5e242ed4"
+<6> 2025-05-22 11:12:03.380 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - New device connection for device mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:12:03.381 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.SubscriptionProcessor] - Client mc-mlc/test01_mqtt_9min connected to edgeHub, processing existing subscriptions.
+<7> 2025-05-22 11:12:03.383 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.IDeviceScopeIdentitiesCache] - Getting service identity for mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:12:03.384 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.CloudConnection] - Creating cloud connection for client mc-mlc/test01_mqtt_9min using EdgeHub credentials
+<7> 2025-05-22 11:12:03.419 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.EdgeHubConnection] - Updating device mc-mlc/test01_mqtt_9min connection status to Connected
+<6> 2025-05-22 11:12:03.420 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.Device.DeviceMessageHandler] - Bind device proxy for device mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:12:03.420 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Mqtt.MessagingServiceClient] - Binding message channel for device Id mc-mlc/test01_mqtt_9min
+<7> 2025-05-22 11:12:03.421 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.Core.SubscriptionProcessor] - Adding subscription Methods for client mc-mlc/test01_mqtt_9min.
+<6> 2025-05-22 11:12:03.421 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.CloudConnection] - Attempting to connect to IoT Hub for client mc-mlc/test01_mqtt_9min via AMQP...
+<6> 2025-05-22 11:12:03.425 +00:00 [INF] [EdgeHub] - 2025-05-22T11:12:03.4252203 [SDK] [Microsoft-Azure-Devices-Device-Client-CreateFromConnectionString] (InternalClient#44377377, HostName=dev-basapp-iot.azure-devices.net;DeviceId=mc-mlc;ModuleId=test01_mqtt_9min, Amqp_Tcp_Only).
+<6> 2025-05-22 11:12:03.448 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.SubscriptionProcessor] - Processing pending subscriptions for mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:12:03.477 +00:00 [INF] [EdgeHub] - 2025-05-22T11:12:03.4770462 [SDK] [Microsoft-Azure-Devices-Device-Client-Enter] (AmqpIoTCbsTokenProvider#16684377, IotHubConnectionString.GetTokenAsync, (amqps://dev-basapp-iot.azure-devices.net:5671/, dev-basapp-iot.azure-devices.net/devices/mc-mlc/modules/test01_mqtt_9min)).
+<6> 2025-05-22 11:12:03.477 +00:00 [INF] [EdgeHub] - 2025-05-22T11:12:03.4773076 [SDK] [Microsoft-Azure-Devices-Device-Client-Exit] (AmqpIoTCbsTokenProvider#16684377, IotHubConnectionString.GetTokenAsync, amqps://dev-basapp-iot.azure-devices.net:5671/, dev-basapp-iot.azure-devices.net/devices/mc-mlc/modules/test01_mqtt_9min).
+<6> 2025-05-22 11:12:03.535 +00:00 [INF] [EdgeHub] - 2025-05-22T11:12:03.5359050 [SDK] [Microsoft-Azure-Devices-Device-Client-Associate] (AmqpSession#29346787,  session:session3033. link:.sender3034. localHandle:.0. remoteHandle:.0. linkName:.TelemetrySenderLink. role:.sender. source:.source(address:mc-mlc). target:.target(address:amqps://dev-basapp-iot.azure-devices.net:5671/devices/mc-mlc/modules/test01_mqtt_9min/messages/events), SendingAmqpLink#56929802, String#680765436).
+<7> 2025-05-22 11:12:03.615 +00:00 [DBG] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.ConnectivityAwareClient] - Received connection status changed callback with connection status Connected and reason Connection_Ok for mc-mlc/test01_mqtt_9min
+<6> 2025-05-22 11:12:03.628 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.CloudProxy.ConnectivityAwareClient] - Cloud connection for mc-mlc/test01_mqtt_9min is True
+<6> 2025-05-22 11:12:03.628 +00:00 [INF] [Microsoft.Azure.Devices.Edge.Hub.Core.ConnectionManager] - Connection status for mc-mlc/test01_mqtt_9min changed to ConnectionEstablished
