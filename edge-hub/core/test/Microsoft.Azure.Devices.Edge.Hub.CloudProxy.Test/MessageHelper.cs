@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using global::Azure.Messaging.EventHubs;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
 
     public static class MessageHelper
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         m =>
                             m.Properties.ContainsKey("id") &&
                             m.Properties["id"] as string == message.Properties["id"]);
-                    if (eventData == null || !message.Body.SequenceEqual(eventData.Body.Array))
+                    if (eventData == null || !message.Body.SequenceEqual(eventData.EventBody.ToArray()))
                     {
                         return false;
                     }

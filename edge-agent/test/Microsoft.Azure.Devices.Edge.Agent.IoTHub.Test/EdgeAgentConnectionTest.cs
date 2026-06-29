@@ -4,12 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.ComponentModel;
-    using System.Linq;
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
+    using global::Azure.Identity;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -29,7 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
-    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
     using ServiceClient = Microsoft.Azure.Devices.ServiceClient;
 
     public class EdgeAgentConnectionTest
@@ -207,9 +205,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
-        static IEdgeAgentConnection CreateEdgeAgentConnection(IotHubConnectionStringBuilder iotHubConnectionStringBuilder, string edgeDeviceId, Device edgeDevice)
+        static IEdgeAgentConnection CreateEdgeAgentConnection(string iotHubHostname, string edgeDeviceId, Device edgeDevice)
         {
-            string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
+            string edgeAgentConnectionString = $"HostName={iotHubHostname};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
             IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
                 edgeAgentConnectionString,
                 new SdkModuleClientProvider(),
@@ -260,9 +258,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [Fact]
         public async Task EdgeAgentConnectionBasicTest()
         {
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
+            RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             await registryManager.OpenAsync();
 
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid();
@@ -279,7 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
-                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice);
+                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubHostname, edgeDeviceId, edgeDevice);
 
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
@@ -352,9 +349,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string configurationId = "testconfiguration-" + Guid.NewGuid().ToString();
             string conditionPropertyName = "condition-" + Guid.NewGuid().ToString("N");
             string conditionPropertyValue = Guid.NewGuid().ToString();
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
+            RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
 
             try
             {
@@ -367,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 // Service takes about 5 mins to sync config to twin
                 await Task.Delay(TimeSpan.FromMinutes(7));
 
-                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice);
+                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubHostname, edgeDeviceId, edgeDevice);
 
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
@@ -429,9 +425,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             string addOnConfigurationId = "addon" + configurationId;
             string conditionPropertyName = "condition-" + Guid.NewGuid().ToString("N");
             string conditionPropertyValue = Guid.NewGuid().ToString();
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
+            RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
 
             try
             {
@@ -444,7 +439,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 // Service takes about 5 mins to sync config to twin
                 await Task.Delay(TimeSpan.FromMinutes(7));
 
-                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubConnectionStringBuilder, edgeDeviceId, edgeDevice);
+                var edgeAgentConnection = CreateEdgeAgentConnection(iotHubHostname, edgeDeviceId, edgeDevice);
 
                 await Task.Delay(TimeSpan.FromSeconds(20));
 
@@ -1171,9 +1166,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task EdgeAgentConnectionStatusTest()
         {
             // Arrange
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
+            RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             await registryManager.OpenAsync();
 
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid();
@@ -1190,7 +1184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
-                string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
+                string edgeAgentConnectionString = $"HostName={iotHubHostname};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
                 IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
                     edgeAgentConnectionString,
                     new SdkModuleClientProvider(),
@@ -1271,9 +1265,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task EdgeAgentPingMethodTest()
         {
             // Arrange
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
-            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            string iotHubHostname = SecretsHelper.GetSecret("IotHubHostname");
+            RegistryManager registryManager = RegistryManager.Create(iotHubHostname, new AzureCliCredential());
             await registryManager.OpenAsync();
 
             string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid();
@@ -1290,7 +1283,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
                 await SetAgentDesiredProperties(registryManager, edgeDeviceId);
 
-                string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
+                string edgeAgentConnectionString = $"HostName={iotHubHostname};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
                 IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
                     edgeAgentConnectionString,
                     new SdkModuleClientProvider(),
@@ -1330,7 +1323,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 };
 
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
-                ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+                ServiceClient serviceClient = ServiceClient.Create(iotHubHostname, new AzureCliCredential());
                 IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
                 var deviceManager = new Mock<IDeviceManager>();
                 Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();

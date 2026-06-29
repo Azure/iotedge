@@ -20,9 +20,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             var report = new CountingReport(
                 TestDescription,
-                TestMode.Connectivity,
                 Topology.SingleNode,
-                false,
                 "trackingId123",
                 "expectedSource",
                 "actualSource",
@@ -40,7 +38,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 new List<TestOperationResult> { },
                 new List<TestOperationResult> { },
                 new List<TestOperationResult> { },
-                Option.None<EventHubSpecificReportComponents>(),
                 Option.None<DateTime>());
 
             Assert.Equal(TestDescription, report.TestDescription);
@@ -78,9 +75,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     testDescription,
-                    TestMode.Connectivity,
                     Topology.SingleNode,
-                    false,
                     "trackingId123",
                     "expectedSource",
                     "actualSource",
@@ -98,7 +93,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
-                    Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
             Assert.StartsWith("testDescription", ex.Message);
@@ -112,9 +106,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
-                    TestMode.Connectivity,
                     Topology.SingleNode,
-                    false,
                     trackingId,
                     "expectedSource",
                     "actualSource",
@@ -132,7 +124,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
-                    Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
             Assert.StartsWith("trackingId", ex.Message);
@@ -146,9 +137,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
-                    TestMode.Connectivity,
                     Topology.SingleNode,
-                    false,
                     "trackingId-23434",
                     expectedSource,
                     "actualSource",
@@ -166,7 +155,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
-                    Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
             Assert.StartsWith("expectedSource", ex.Message);
@@ -180,9 +168,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
-                    TestMode.Connectivity,
                     Topology.SingleNode,
-                    false,
                     "trackingId-23434",
                     "expectedSource",
                     actualSource,
@@ -200,7 +186,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
-                    Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
             Assert.StartsWith("actualSource", ex.Message);
@@ -214,9 +199,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
                     TestDescription,
-                    TestMode.Connectivity,
                     Topology.SingleNode,
-                    false,
                     "trackingId-23434",
                     "expectedSource",
                     "actualSource",
@@ -234,7 +217,6 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
                     new List<TestOperationResult> { },
-                    Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
             Assert.StartsWith("resultType", ex.Message);

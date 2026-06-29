@@ -80,8 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
-            this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.ConnectionString), $"IOT_HUB_CONNECTION_STRING is missing from environment or context.json.");
+            this.IotHubHostname = Get("iotHubHostName");
+            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.IotHubHostname), $"iotHubHostName is missing from environment or context.json.");
             this.ParentDeviceId = Option.Maybe(Get("parentDeviceId"));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
@@ -89,8 +89,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
             this.EdgeHubSchemaVersion = Option.Maybe(Get("edgeHubSchemaVersion"));
             this.DiagnosticsImage = Option.Maybe(Get("diagnosticsImage"));
-            this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
-            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.EventHubEndpoint), $"EVENT_HUB_ENDPOINT is missing from environment or context.json.");
+            this.EventHubName = Get("eventHubName");
+            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.EventHubName), $"eventHubName is missing from environment or context.json.");
+            this.EventHubNamespace = Get("eventHubFullyQualitifiedNamespace");
+            Preconditions.CheckArgument(!string.IsNullOrWhiteSpace(this.EventHubNamespace), $"eventHubFullyQualitifiedNamespace is missing from environment or context.json.");
             this.LogFile = Option.Maybe(Get("logFile"));
             this.MethodReceiverImage = Option.Maybe(Get("methodReceiverImage"));
             this.MethodSenderImage = Option.Maybe(Get("methodSenderImage"));
@@ -130,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Option<string> CaCertScriptPath { get; }
 
-        public string ConnectionString { get; }
+        public string IotHubHostname { get; }
 
         public Option<string> ParentDeviceId { get; }
 
@@ -148,7 +150,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Option<string> DiagnosticsImage { get; }
 
-        public string EventHubEndpoint { get; }
+        public string EventHubName { get; }
+
+        public string EventHubNamespace { get; }
 
         public Option<string> LogFile { get; }
 

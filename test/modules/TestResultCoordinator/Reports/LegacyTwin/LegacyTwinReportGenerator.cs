@@ -22,7 +22,6 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             string resultType,
             string senderSource,
             Topology topology,
-            bool mqttBrokerEnabled,
             IAsyncEnumerator<TestOperationResult> senderTestResults)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
@@ -42,8 +41,6 @@ namespace TestResultCoordinator.Reports.LegacyTwin
         internal IAsyncEnumerator<TestOperationResult> SenderTestResults { get; }
 
         internal Topology Topology { get; }
-
-        internal bool MqttBrokerEnabled { get; }
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
@@ -83,34 +80,19 @@ namespace TestResultCoordinator.Reports.LegacyTwin
         //     + (504) Module cannot make reported property update
         bool IsPassed(IDictionary<int, int> statusCodesToCount)
         {
-            bool isPassed = true;
-            int totalResults = statusCodesToCount.Sum(x => x.Value);
-
-            if (totalResults == 0)
+            if (statusCodesToCount.Sum(x => x.Value) == 0)
             {
                 return false;
             }
 
-            if (this.Topology == Topology.Nested && this.MqttBrokerEnabled)
+            List<int> statusCodes = statusCodesToCount.Keys.ToList();
+            IEnumerable<int> failingStatusCodes = statusCodes.Where(s =>
             {
-                // See TwinTester/StatusCode.cs for reference.
-                int[] bigToleranceStatusCodes = { };
-                int[] littleToleranceStatusCodes = { 501, 504 };
-                isPassed = this.GeneratePassResult(statusCodesToCount, bigToleranceStatusCodes, littleToleranceStatusCodes);
-            }
-            else
-            {
-                List<int> statusCodes = statusCodesToCount.Keys.ToList();
-                IEnumerable<int> failingStatusCodes = statusCodes.Where(s =>
-                {
-                    string statusCode = s.ToString();
-                    return !statusCode.StartsWith("2");
-                });
+                string statusCode = s.ToString();
+                return !statusCode.StartsWith("2");
+            });
 
-                isPassed = failingStatusCodes.Count() == 0;
-            }
-
-            return isPassed;
+            return failingStatusCodes.Count() == 0;
         }
 
         bool GeneratePassResult(IDictionary<int, int> statusCodesToCount, int[] bigToleranceStatusCodes, int[] littleToleranceStatusCodes)

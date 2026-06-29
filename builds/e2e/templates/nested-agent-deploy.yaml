@@ -1,4 +1,13 @@
 parameters:
+- name: containerRegistryServer
+  type: string
+  default: ''
+- name: containerRegistryUsername
+  type: string
+  default: ''
+- name: containerRegistryPassword
+  type: string
+  default: ''
 - name: skipInstall
   type: boolean
   default: false
@@ -50,7 +59,6 @@ steps:
         itemPattern: |
          $(az.pipeline.images.artifacts)/$(quickstart.package.name)
          $(az.pipeline.images.artifacts)/e2e_deployment_files/*
-         $(az.pipeline.images.artifacts)/scripts/linux/trcE2ETest.sh
          $(az.pipeline.images.artifacts)/artifactInfo.txt
 
   - task: DownloadBuildArtifacts@0
@@ -123,6 +131,9 @@ steps:
   - ${{ if not(parameters.skipInstall) }}:
     - template: nested-deploy-config.yaml
       parameters:
+        containerRegistryServer: $(containerRegistryServer)
+        containerRegistryUsername: $(containerRegistryUsername)
+        containerRegistryPassword: $(containerRegistryPassword)
         deploymentFile: $(deploymentFile)
         deviceId: $(deviceId)
         level: $(level)

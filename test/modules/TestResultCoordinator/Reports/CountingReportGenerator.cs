@@ -22,9 +22,7 @@ namespace TestResultCoordinator.Reports
 
         internal CountingReportGenerator(
             string testDescription,
-            TestMode testMode,
             Topology topology,
-            bool mqttBrokerEnabled,
             string trackingId,
             string expectedSource,
             IAsyncEnumerator<TestOperationResult> expectedTestResults,
@@ -32,13 +30,10 @@ namespace TestResultCoordinator.Reports
             IAsyncEnumerator<TestOperationResult> actualTestResults,
             string resultType,
             ITestResultComparer<TestOperationResult> testResultComparer,
-            ushort unmatchedResultsMaxSize,
-            bool eventHubLongHaulMode)
+            ushort unmatchedResultsMaxSize)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
-            this.TestMode = testMode;
             this.Topology = topology;
-            this.MqttBrokerEnabled = mqttBrokerEnabled;
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -47,14 +42,9 @@ namespace TestResultCoordinator.Reports
             this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
             this.enumeratedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
-            this.EventHubLongHaulMode = eventHubLongHaulMode;
         }
 
-        internal TestMode TestMode { get; }
-
         internal Topology Topology { get; }
-
-        internal bool MqttBrokerEnabled { get; }
 
         internal string ActualSource { get; }
 
@@ -69,8 +59,6 @@ namespace TestResultCoordinator.Reports
         internal string TestDescription { get; }
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
-
-        public bool EventHubLongHaulMode { get; }
 
         /// <summary>
         /// Compare 2 data stores and counting expect, match, and duplicate results; and return a counting report.
@@ -97,7 +85,6 @@ namespace TestResultCoordinator.Reports
             var misorderedActualResults = new Queue<TestOperationResult>();
 
             bool allActualResultsMatch = false;
-            Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents = Option.None<EventHubSpecificReportComponents>();
             Option<DateTime> lastLoadedResultCreatedAt = Option.None<DateTime>();
 
             bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
@@ -189,36 +176,6 @@ namespace TestResultCoordinator.Reports
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
 
-            if (this.EventHubLongHaulMode)
-            {
-                bool stillReceivingFromEventHub = false;
-                // If we are are using EventHub to receive messages, we see an issue where EventHub can accrue large delays after
-                // running for a while. Therefore, if we are using EventHub with this counting report, we do two things.
-                // 1. Match only actual results. We still report all expected results, but matching actual results only.
-                // 2. We make sure that the last result we got from EventHub (i.e. the lastLoadedResult) is within our defined tolerance period.
-                //    'eventHubDelayTolerance' is an arbitrary tolerance period that we have defined, and can be tuned as needed.
-                // TODO: There is either something wrong with the EventHub service or something wrong with the way we are using it,
-                // Because we should not be accruing such large delays. If we move off EventHub, we should fix this as well.
-                TimeSpan eventHubDelayTolerance = Settings.Current.LongHaulSpecificSettings
-                        .Expect<ArgumentException>(
-                            () => throw new ArgumentException("TRC must be in long haul mode to be generating an EventHubLongHaul CountingReport"))
-                        .EventHubDelayTolerance;
-                if (lastLoadedActualResult == null || lastLoadedActualResult.CreatedAt < DateTime.UtcNow - eventHubDelayTolerance)
-                {
-                    stillReceivingFromEventHub = false;
-                }
-                else
-                {
-                    stillReceivingFromEventHub = true;
-                }
-
-                eventHubSpecificReportComponents = Option.Some(new EventHubSpecificReportComponents
-                {
-                    StillReceivingFromEventHub = stillReceivingFromEventHub,
-                    AllActualResultsMatch = allActualResultsMatch
-                });
-            }
-
             while (hasActualResult)
             {
                 // Log message for unexpected case.
@@ -243,9 +200,7 @@ namespace TestResultCoordinator.Reports
 
             return new CountingReport(
                 this.TestDescription,
-                this.TestMode,
                 this.Topology,
-                this.MqttBrokerEnabled,
                 this.trackingId,
                 this.ExpectedSource,
                 this.ActualSource,
@@ -259,7 +214,6 @@ namespace TestResultCoordinator.Reports
                 new List<TestOperationResult>(duplicateExpectedResults).AsReadOnly(),
                 new List<TestOperationResult>(duplicateActualResults).AsReadOnly(),
                 new List<TestOperationResult>(misorderedActualResults).AsReadOnly(),
-                eventHubSpecificReportComponents,
                 lastLoadedResultCreatedAt);
         }
 

@@ -9,7 +9,7 @@ steps:
     displayName: 'Clean identity level=${{ parameters.lvl }} arch=${{ parameters.arch }}'
     condition: always()
     inputs:
-      azureSubscription: 'IoTEdge1-msazure'
+      azureSubscription: '$(az.subscription)'
       scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
@@ -17,5 +17,5 @@ steps:
           exit 1
         fi
 
-        echo "Deleting device ${{ parameters.deviceId }} from hub ${{ parameters.iotHubName }} in subscription $(azure.subscription)"
-        az iot hub device-identity delete -n ${{ parameters.iotHubName }} -d ${{ parameters.deviceId }}
+        echo "Deleting device ${{ parameters.deviceId }} from hub ${{ parameters.iotHubName }}"
+        az iot hub device-identity delete --auth-type login --hub-name ${{ parameters.iotHubName }} --device-id ${{ parameters.deviceId }}

@@ -29,34 +29,14 @@ namespace TestResultCoordinator.Services
         public TestResultReportingService(ITestOperationResultStorage storage)
         {
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
-            switch (Settings.Current.TestMode)
-            {
-                case TestMode.Connectivity:
-                    {
-                        ConnectivitySpecificSettings connectivitySettings =
-                            Settings.Current.ConnectivitySpecificSettings.Expect(() => new ArgumentException("ConnectivitySpecificSettings must be supplied."));
-                        this.delayBeforeWork = Settings.Current.TestStartDelay +
-                            connectivitySettings.TestDuration +
-                            connectivitySettings.TestVerificationDelay;
-                        // Set sendReportFrequency to -1ms to indicate that the sending report Timer won't repeat
-                        this.sendReportFrequency = TimeSpan.FromMilliseconds(-1);
-                        this.logUploadDuration = Option.None<TimeSpan>();
-                        break;
-                    }
-
-                case TestMode.LongHaul:
-                    {
-                        // In long haul mode, wait 1 report frequency before starting
-                        this.sendReportFrequency = Settings.Current.LongHaulSpecificSettings
-                            .Expect(() => new ArgumentException("LongHaulSpecificSettings must be supplied."))
-                            .SendReportFrequency;
-                        this.delayBeforeWork = this.sendReportFrequency;
-                        // Add 10 minute buffer to duration to ensure we capture all logs
-                        this.logUploadDuration = Option.Some(this.sendReportFrequency + TimeSpan.FromMinutes(10));
-                        break;
-                    }
-            }
-
+            ConnectivitySpecificSettings connectivitySettings =
+                Settings.Current.ConnectivitySpecificSettings.Expect(() => new ArgumentException("ConnectivitySpecificSettings must be supplied."));
+            this.delayBeforeWork = Settings.Current.TestStartDelay +
+                connectivitySettings.TestDuration +
+                connectivitySettings.TestVerificationDelay;
+            // Set sendReportFrequency to -1ms to indicate that the sending report Timer won't repeat
+            this.sendReportFrequency = TimeSpan.FromMilliseconds(-1);
+            this.logUploadDuration = Option.None<TimeSpan>();
             this.serviceSpecificSettings = Settings.Current.TestResultReportingServiceSettings.Expect(() => new ArgumentException("TestResultReportingServiceSettings must be supplied."));
         }
 
@@ -89,7 +69,7 @@ namespace TestResultCoordinator.Services
 
         async void DoWorkAsync(object state)
         {
-            var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage, Settings.Current.NetworkControllerType, Settings.Current.LongHaulSpecificSettings);
+            var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage, Settings.Current.NetworkControllerType);
             List<ITestReportMetadata> reportMetadataList = await Settings.Current.GetReportMetadataListAsync(this.logger);
             ITestResultReport[] testResultReports = await TestReportUtil.GenerateTestResultReportsAsync(Settings.Current.TrackingId, reportMetadataList, testReportGeneratorFactory, this.logger);
 
@@ -105,7 +85,7 @@ namespace TestResultCoordinator.Services
             {
                 try
                 {
-                    await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, this.serviceSpecificSettings.BlobStorageAccountUriWithSasToken, this.logUploadDuration, this.logger);
+                    await TestReportUtil.UploadLogsAsync(Settings.Current.IotHubHostname, this.serviceSpecificSettings.BlobStorageAccountUriWithSasToken, this.logUploadDuration, this.logger);
                 }
                 catch (Exception ex)
                 {

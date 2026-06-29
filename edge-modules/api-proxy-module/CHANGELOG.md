@@ -1,3 +1,68 @@
+# 1.1.26 (2026-04-17)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.25 (2026-04-17)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.24 (2026-04-11)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.23 (2026-03-17)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.22 (2026-02-25)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.21 (2026-02-05)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.20 (2026-02-03)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.19 (2026-01-28)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.18 (2026-01-13)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.17 (2026-01-10)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.16 (2025-12-30)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.15 (2025-12-24)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
+# 1.1.14 (2025-12-11)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-api-proxy
+
 # 1.1.13 (2025-11-18)
 
 The following Docker images were updated because their base images changed:

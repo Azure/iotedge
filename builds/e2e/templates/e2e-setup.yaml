@@ -1,24 +1,20 @@
+parameters:
+  containerRegistryServer: ''
+  containerRegistryUsername: ''
+  dpsIdScope: 'optional'
+  eventHubName: ''
+  eventHubFullyQualitifiedNamespace: ''
+  iotHubHostName: ''
+  iotHubResourceId: 'optional'
+  rootCaCertificate: ''
+  rootCaKey: ''
+
 steps:
   - checkout: self
     clean: true
     fetchDepth: 100
     submodules: recursive
   
-  - task: AzureKeyVault@2
-    displayName: Get secrets
-    inputs:
-      azureSubscription: $(az.subscription)
-      keyVaultName: $(kv.name)
-      secretsFilter: >-
-        TestContainerRegistryPassword,
-        TestDpsGroupKeySymmetric,
-        TestEventHubCompatibleEndpoint,
-        TestIotHubConnectionString,
-        TestIotHubResourceId,
-        TestRootCaCertificate,
-        TestRootCaKey,
-        TestRootCaPassword
-
   - bash: | 
       echo "Built Images Result is '$(builtImages)'"
       echo "Built Packages Result is '$(builtPackages)'"
@@ -108,14 +104,14 @@ steps:
   - pwsh: |
       $certsDir = '$(System.ArtifactsDirectory)/certs'
       New-Item "$certsDir" -ItemType Directory -Force | Out-Null
-      $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
-      $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+      $env:ROOT_CERT -replace '\\x0A', "`n" | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+      $env:ROOT_KEY -replace '\\x0A', "`n" | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
       Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
     displayName: Install CA keys
     env:
-      ROOT_CERT: $(TestRootCaCertificate)
-      ROOT_KEY: $(TestRootCaKey)
-  
+      ROOT_CERT: ${{ parameters.rootCaCertificate }}
+      ROOT_KEY: ${{ parameters.rootCaKey }}
+
   - pwsh: |
       $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
       dotnet build $testDir
@@ -144,8 +140,8 @@ steps:
       }else
       {
         $nestededge = "false"
-        $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
-        $diagnosticImagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+        $imagePrefix = '${{ parameters.containerRegistryServer }}/$(cr.labelPrefix)azureiotedge'
+        $diagnosticImagePrefix = '${{ parameters.containerRegistryServer }}/$(cr.labelPrefix)azureiotedge'
         $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
         $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
         $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
@@ -171,8 +167,11 @@ steps:
       echo "Edge hub image: $edgeHubImage"
   
       $context = @{
+        eventHubName = '${{ parameters.eventHubName }}';
+        eventHubFullyQualitifiedNamespace = '${{ parameters.eventHubFullyQualitifiedNamespace }}';
+        iotHubHostName = '${{ parameters.iotHubHostName }}';
         nestededge = "$nestededge";
-        dpsIdScope = '$(dps.idScope)';
+        dpsIdScope = '${{ parameters.dpsIdScope }}';
         isa95Tag = 'false';
         edgeAgentImage = "$edgeAgentImage";
         edgeHubImage = "$edgeHubImage";
@@ -188,14 +187,14 @@ steps:
         networkControllerImage = "$imagePrefix-network-controller:$imageTag";
         testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
         metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag";
-        iotHubResourceId = "$env:IOT_HUB_RESOURCE_ID";
+        iotHubResourceId = '${{ parameters.iotHubResourceId }}';
         metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
         numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
         edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
         registries = @(
           @{
-            address = '$(cr.address)';
-            username = '$(cr.username)';
+            address = '${{ parameters.containerRegistryServer }}';
+            username = '${{ parameters.containerRegistryUsername }}';
           }
         );
         packagePath = Convert-Path '$(System.ArtifactsDirectory)';
@@ -237,5 +236,27 @@ steps:
 
       $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     displayName: Create test arguments file (context.json)
-    env:
-      IOT_HUB_RESOURCE_ID: $(TestIotHubResourceId)
+
+  - bash: |
+      set -euo pipefail
+
+      if ! systemctl cat docker.service >/dev/null 2>&1; then
+        # Apply the workaround differently for agents where Docker is installed as a snap
+        snap_docker_config='/var/snap/docker/current/config/daemon.json'
+        if [ -f $snap_docker_config ]; then
+          sudo snap stop docker
+          jq '. + { "min-api-version": "1.34" }' $snap_docker_config \
+            | sudo tee $snap_docker_config.tmp >/dev/null && sudo mv $snap_docker_config.tmp $snap_docker_config
+          sudo snap start docker
+        else
+          echo 'Docker service not found'
+        fi
+      else
+        echo 'Updating minimum Docker API version to 1.34'
+        sudo mkdir -p /etc/systemd/system/docker.service.d
+        echo -e '[Service]\nEnvironment=DOCKER_MIN_API_VERSION=1.34' \
+          | sudo tee /etc/systemd/system/docker.service.d/min-api-version.override.conf
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
+      fi
+    displayName: Update Docker's minimum API version to work around IoT Edge issue

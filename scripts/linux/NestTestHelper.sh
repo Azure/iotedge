@@ -67,21 +67,6 @@ function get_iotedge_quickstart_artifact_file() {
     echo "$path"
 }
 
-function get_leafdevice_artifact_file() {
-    local testDir=$1
-
-    local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$testDir/artifacts/core-linux/LeafDevice.linux-x64.tar.gz"
-    elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$testDir/artifacts/core-linux/LeafDevice.linux-arm64.tar.gz"
-    else
-        path="$testDir/artifacts/core-linux/LeafDevice.linux-arm.tar.gz"
-    fi
-
-    echo "$path"
-}
-
 function get_hash() {
     local length=$1
     local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)

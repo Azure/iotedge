@@ -6,6 +6,7 @@ namespace TestResultCoordinator
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
+    using Azure.Identity;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
@@ -31,8 +32,9 @@ namespace TestResultCoordinator
             string trackingId,
             bool useTestResultReportingService,
             bool useResultEventReceivingService,
-            string eventHubConnectionString,
-            string iotHubConnectionString,
+            string eventHubNamespace,
+            string eventHubName,
+            string iotHubHostname,
             string deviceId,
             string moduleId,
             ushort webHostPort,
@@ -50,9 +52,7 @@ namespace TestResultCoordinator
             string networkControllerRunProfileName,
             ushort unmatchedResultsMaxSize,
             string testInfo,
-            TestMode testMode,
             Topology topology,
-            bool mqttBrokerEnabled,
             TimeSpan unmatchedResultTolerance,
             TimeSpan eventHubDelayTolerance)
         {
@@ -62,7 +62,8 @@ namespace TestResultCoordinator
             {
                 this.TestResultEventReceivingServiceSettings = Option.Some(new TestResultEventReceivingServiceSettings()
                 {
-                    EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString)),
+                    EventHubNamespace = Preconditions.CheckNonWhiteSpace(eventHubNamespace, nameof(eventHubNamespace)),
+                    EventHubName = Preconditions.CheckNonWhiteSpace(eventHubName, nameof(eventHubName)),
                     ConsumerGroupName = "$Default"
                 });
             }
@@ -80,33 +81,13 @@ namespace TestResultCoordinator
             }
 
             this.ConnectivitySpecificSettings = Option.None<ConnectivitySpecificSettings>();
-            this.LongHaulSpecificSettings = Option.None<LongHaulSpecificSettings>();
-            switch (testMode)
+            this.ConnectivitySpecificSettings = Option.Some(new ConnectivitySpecificSettings()
             {
-                case TestMode.Connectivity:
-                    {
-                        this.ConnectivitySpecificSettings = Option.Some(new ConnectivitySpecificSettings()
-                        {
-                            TestDuration = testDuration,
-                            TestVerificationDelay = verificationDelay
-                        });
-                        break;
-                    }
-
-                case TestMode.LongHaul:
-                    {
-                        this.LongHaulSpecificSettings = Option.Some(new LongHaulSpecificSettings()
-                        {
-                            SendReportFrequency = sendReportFrequency,
-                            UnmatchedResultTolerance = unmatchedResultTolerance,
-                            EventHubDelayTolerance = eventHubDelayTolerance
-                        });
-                        break;
-                    }
-            }
-
+                TestDuration = testDuration,
+                TestVerificationDelay = verificationDelay
+            });
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
-            this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.WebHostPort = Preconditions.CheckNotNull(webHostPort, nameof(webHostPort));
@@ -118,9 +99,7 @@ namespace TestResultCoordinator
 
             this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.TestInfo.Add("DeviceId", this.DeviceId);
-            this.TestMode = testMode;
             this.Topology = topology;
-            this.MqttBrokerEnabled = mqttBrokerEnabled;
         }
 
         private NetworkControllerType GetNetworkControllerType(string networkControllerRunProfileName)
@@ -149,8 +128,9 @@ namespace TestResultCoordinator
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue("useTestResultReportingService", true),
                 configuration.GetValue("useResultEventReceivingService", true),
-                configuration.GetValue<string>("eventHubConnectionString"),
-                configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
+                configuration.GetValue<string>("eventHubNamespace"),
+                configuration.GetValue<string>("eventHubName"),
+                configuration.GetValue<string>("IOT_HUB_HOSTNAME"),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("webhostPort", DefaultWebHostPort),
@@ -168,14 +148,12 @@ namespace TestResultCoordinator
                 configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
                 configuration.GetValue<ushort>("UNMATCHED_RESULTS_MAX_SIZE", DefaultUnmatchedResultsMaxSize),
                 configuration.GetValue<string>("TEST_INFO"),
-                configuration.GetValue("testMode", TestMode.Connectivity),
                 configuration.GetValue("topology", Topology.SingleNode),
-                configuration.GetValue("mqttBrokerEnabled", false),
                 configuration.GetValue("unmatchedResultTolerance", TimeSpan.FromMinutes(1)),
                 configuration.GetValue("eventHubDelayTolerance", TimeSpan.FromHours(1)));
         }
 
-        public string IoTHubConnectionString { get; }
+        public string IotHubHostname { get; }
 
         public string DeviceId { get; }
 
@@ -205,13 +183,7 @@ namespace TestResultCoordinator
 
         public Option<ConnectivitySpecificSettings> ConnectivitySpecificSettings { get; }
 
-        public Option<LongHaulSpecificSettings> LongHaulSpecificSettings { get; }
-
-        public TestMode TestMode { get; }
-
         public Topology Topology { get; }
-
-        public bool MqttBrokerEnabled { get; }
 
         public override string ToString()
         {
@@ -227,17 +199,14 @@ namespace TestResultCoordinator
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.NetworkControllerType), this.NetworkControllerType.ToString() },
                 { nameof(this.TestInfo), JsonConvert.SerializeObject(this.TestInfo) },
-                { nameof(this.TestMode), this.TestMode.ToString() },
-                { nameof(this.Topology), this.Topology.ToString() },
-                { nameof(this.MqttBrokerEnabled), this.MqttBrokerEnabled.ToString() }
+                { nameof(this.Topology), this.Topology.ToString() }
             };
 
-            this.TestResultEventReceivingServiceSettings.ForEach(settings => fields.Add(nameof(settings.ConsumerGroupName), settings.ConsumerGroupName));
-            this.LongHaulSpecificSettings.ForEach(settings =>
+            this.TestResultEventReceivingServiceSettings.ForEach(settings =>
             {
-                fields.Add(nameof(settings.SendReportFrequency), settings.SendReportFrequency.ToString());
-                fields.Add(nameof(settings.UnmatchedResultTolerance), settings.UnmatchedResultTolerance.ToString());
-                fields.Add(nameof(settings.EventHubDelayTolerance), settings.EventHubDelayTolerance.ToString());
+                fields.Add(nameof(settings.EventHubNamespace), settings.EventHubNamespace);
+                fields.Add(nameof(settings.EventHubName), settings.EventHubName);
+                fields.Add(nameof(settings.ConsumerGroupName), settings.ConsumerGroupName);
             });
             this.ConnectivitySpecificSettings.ForEach(settings =>
             {
@@ -252,7 +221,7 @@ namespace TestResultCoordinator
         {
             if (this.reportMetadatas == null)
             {
-                RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
+                RegistryManager rm = RegistryManager.Create(this.IotHubHostname, new WorkloadIdentityCredential());
                 Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
                 this.reportMetadatas = TestReportUtil.ParseReportMetadataJson(moduleTwin.Properties.Desired["reportMetadataList"].ToString(), logger);
             }
@@ -276,7 +245,8 @@ namespace TestResultCoordinator
 
     internal struct TestResultEventReceivingServiceSettings
     {
-        public string EventHubConnectionString;
+        public string EventHubNamespace;
+        public string EventHubName;
         public string ConsumerGroupName;
     }
 
@@ -293,12 +263,5 @@ namespace TestResultCoordinator
     {
         public TimeSpan TestDuration;
         public TimeSpan TestVerificationDelay;
-    }
-
-    internal struct LongHaulSpecificSettings
-    {
-        public TimeSpan SendReportFrequency;
-        public TimeSpan UnmatchedResultTolerance;
-        public TimeSpan EventHubDelayTolerance;
     }
 }

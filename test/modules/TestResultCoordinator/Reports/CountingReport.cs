@@ -29,14 +29,11 @@ namespace TestResultCoordinator.Reports
     class CountingReport : TestResultReportBase
     {
         const string C2dTestDescription = "C2D";
-        const string GenericMqttTelemetryTestDescription = "mqtt | generic";
         const string MessagesTestDescription = "messages";
 
         public CountingReport(
             string testDescription,
-            TestMode testMode,
             Topology topology,
-            bool mqttBrokerEnabled,
             string trackingId,
             string expectedSource,
             string actualSource,
@@ -50,13 +47,10 @@ namespace TestResultCoordinator.Reports
             IReadOnlyList<TestOperationResult> duplicateExpectedResults,
             IReadOnlyList<TestOperationResult> duplicateActualResults,
             IReadOnlyList<TestOperationResult> misorderedActualResults,
-            Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents,
             Option<DateTime> lastActualResultTimestamp)
             : base(testDescription, trackingId, resultType)
         {
-            this.TestMode = testMode;
             this.Topology = topology;
-            this.MqttBrokerEnabled = mqttBrokerEnabled;
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TotalExpectCount = totalExpectCount;
@@ -69,16 +63,11 @@ namespace TestResultCoordinator.Reports
             this.DuplicateExpectedResults = duplicateExpectedResults;
             this.DuplicateActualResults = duplicateActualResults;
             this.MisorderedActualResults = misorderedActualResults;
-            this.EventHubSpecificReportComponents = eventHubSpecificReportComponents;
             this.LastActualResultTimestamp = lastActualResultTimestamp;
         }
 
         [JsonConverter(typeof(StringEnumConverter))]
-        public TestMode TestMode { get; }
-
         public Topology Topology { get; }
-
-        public bool MqttBrokerEnabled { get; }
 
         public string ExpectedSource { get; }
 
@@ -104,14 +93,6 @@ namespace TestResultCoordinator.Reports
 
         public IReadOnlyList<TestOperationResult> MisorderedActualResults { get; }
 
-        // EventHubSpecificReportComponents is a struct only for LongHaul counting reports that use EventHub.
-        // We need to deal with counting reports that involve EventHub differently, because
-        // EventHub will have a delay that gets longer as long haul runs. Therefore, we want to pass
-        // if 1) all actual results have a matching expected result and 2) We are still receiving messages
-        // from EventHub.
-        [JsonConverter(typeof(OptionConverter<EventHubSpecificReportComponents>), true)]
-        public Option<EventHubSpecificReportComponents> EventHubSpecificReportComponents { get; }
-
         [JsonConverter(typeof(OptionConverter<DateTime>), true)]
         public Option<DateTime> LastActualResultTimestamp { get; }
 
@@ -121,69 +102,22 @@ namespace TestResultCoordinator.Reports
         // Connectivity tolerances:
         // - [All-Cases]: Fail the tests if we have > 20% missing C2D messages
         // - [Nested-Edge] [Broker-Enabled]: Fail tests if we have > 10% missing custom mqtt messages
-        // Longhaul tolerances:
-        // - [Nested-Edge] [Broker-Enabled]: Fail the tests if we have > 20% missing custom mqtt messages
-        // - [Nested-Edge] [Broker-Enabled]: Fail the tests if we have > 1% missing iothub messages
-        bool IsPassedHelper() => this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.EventHubSpecificReportComponents.Match(
-            eh =>
+        bool IsPassedHelper()
+        {
+            if (this.TotalExpectCount == 0 || this.TotalDuplicateExpectedResultCount != 0)
             {
-                // Product issue for telemetry when broker enabled.
-                if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
-                {
-                    bool matchWithinThreshold = ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
-                    return matchWithinThreshold && eh.StillReceivingFromEventHub;
-                }
-                else
-                {
-                    return eh.AllActualResultsMatch && eh.StillReceivingFromEventHub;
-                }
-            },
-            () =>
+                return false;
+            }
+
+            // Product issue for C2D messages connected to edgehub.
+            if (this.TestDescription.Contains(C2dTestDescription))
             {
-                if (this.TestMode == TestMode.Connectivity)
-                {
-                    // Product issue for C2D messages connected to edgehub.
-                    if (this.TestDescription.Contains(C2dTestDescription))
-                    {
-                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
-                    }
+                return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
+            }
 
-                    // Product issue for custom mqtt telemetry.
-                    else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription == GenericMqttTelemetryTestDescription)
-                    {
-                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .9d;
-                    }
-                    else
-                    {
-                        return this.TotalExpectCount == this.TotalMatchCount;
-                    }
-                }
-                else
-                {
-                    // Product issue for custom mqtt telemetry.
-                    if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(GenericMqttTelemetryTestDescription))
-                    {
-                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .8d;
-                    }
-
-                    // Product issue for messages when broker is enabled.
-                    else if (this.Topology == Topology.Nested && this.MqttBrokerEnabled && this.TestDescription.Contains(MessagesTestDescription))
-                    {
-                        return ((double)this.TotalMatchCount / this.TotalExpectCount) > .99d;
-                    }
-                    else
-                    {
-                        return this.TotalExpectCount == this.TotalMatchCount;
-                    }
-                }
-            });
+            return this.TotalExpectCount == this.TotalMatchCount;
+        }
 
         public override string Title => $"Counting Report between [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
-    }
-
-    internal struct EventHubSpecificReportComponents
-    {
-        public bool StillReceivingFromEventHub;
-        public bool AllActualResultsMatch;
     }
 }

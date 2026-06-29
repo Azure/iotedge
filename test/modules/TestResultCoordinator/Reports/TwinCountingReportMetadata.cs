@@ -11,7 +11,7 @@ namespace TestResultCoordinator.Reports
             string actualSource,
             TestReportType testReportType,
             TwinTestPropertyType twinTestPropertyType)
-            : base(testDescription, expectedSource, actualSource, TestOperationResultType.Twin, testReportType, false)
+            : base(testDescription, expectedSource, actualSource, TestOperationResultType.Twin, testReportType)
         {
             this.TwinTestPropertyType = twinTestPropertyType;
         }

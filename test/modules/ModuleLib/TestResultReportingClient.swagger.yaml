@@ -1,8 +1,8 @@
 swagger: "2.0"
 info:
-  description: "Report test result API implemented by both TestAnalyzer and TestResultCoordinator."
+  description: "Report test result API implemented by TestResultCoordinator."
   version: "1.0.0"
-  title: "Test Result Repoting API swagger"
+  title: "Test Result Reporting API swagger"
 schemes:
 - "https"
 paths:

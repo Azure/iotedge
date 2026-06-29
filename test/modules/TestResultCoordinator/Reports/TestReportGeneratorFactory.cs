@@ -9,7 +9,6 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.DirectMethod;
     using TestResultCoordinator.Reports.DirectMethod.Connectivity;
-    using TestResultCoordinator.Reports.DirectMethod.LongHaul;
     using TestResultCoordinator.Reports.EdgeHubRestartTest;
     using TestResultCoordinator.Reports.LegacyTwin;
     using TestResultCoordinator.Storage;
@@ -18,18 +17,15 @@ namespace TestResultCoordinator.Reports
     {
         const int BatchSize = 500;
 
-        internal TestReportGeneratorFactory(ITestOperationResultStorage storage, NetworkControllerType networkControllerType, Option<LongHaulSpecificSettings> longhaulSettings)
+        internal TestReportGeneratorFactory(ITestOperationResultStorage storage, NetworkControllerType networkControllerType)
         {
             this.Storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.NetworkControllerType = networkControllerType;
-            this.LonghaulSettings = longhaulSettings;
         }
 
         ITestOperationResultStorage Storage { get; }
 
         NetworkControllerType NetworkControllerType { get; }
-
-        Option<LongHaulSpecificSettings> LonghaulSettings { get; }
 
         public async Task<ITestResultReportGenerator> CreateAsync(
             string trackingId,
@@ -46,18 +42,9 @@ namespace TestResultCoordinator.Reports
                         var expectedTestResults = this.GetResults(metadata.ExpectedSource);
                         var actualTestResults = this.GetResults(metadata.ActualSource);
 
-                        await this.LonghaulSettings.ForEachAsync(async (longhaulSettings) =>
-                        {
-                            TestResultFilter filter = new TestResultFilter(new SimpleTestOperationResultComparer());
-                            TimeSpan unmatchedResultTolerance = longhaulSettings.UnmatchedResultTolerance;
-                            (expectedTestResults, actualTestResults) = await filter.FilterResults(unmatchedResultTolerance, expectedTestResults, actualTestResults);
-                        });
-
                         return new CountingReportGenerator(
                             metadata.TestDescription,
-                            Settings.Current.TestMode,
                             Settings.Current.Topology,
-                            Settings.Current.MqttBrokerEnabled,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults.GetAsyncEnumerator(),
@@ -65,8 +52,7 @@ namespace TestResultCoordinator.Reports
                             actualTestResults.GetAsyncEnumerator(),
                             testReportMetadata.TestOperationResultType.ToString(),
                             new SimpleTestOperationResultComparer(),
-                            Settings.Current.EnumeratedResultsMaxSize,
-                            metadata.LongHaulEventHubMode);
+                            Settings.Current.EnumeratedResultsMaxSize);
                     }
 
                 case TestReportType.TwinCountingReport:
@@ -99,7 +85,6 @@ namespace TestResultCoordinator.Reports
                             testReportMetadata.TestOperationResultType.ToString(),
                             metadata.SenderSource,
                             Settings.Current.Topology,
-                            Settings.Current.MqttBrokerEnabled,
                             testResults.GetAsyncEnumerator());
                     }
 
@@ -137,31 +122,6 @@ namespace TestResultCoordinator.Reports
                             metadata.TestOperationResultType.ToString(),
                             networkStatusTimeline,
                             this.NetworkControllerType);
-                    }
-
-                case TestReportType.DirectMethodLongHaulReport:
-                    {
-                        var metadata = (DirectMethodLongHaulReportMetadata)testReportMetadata;
-                        var senderTestResults = this.GetResults(metadata.SenderSource);
-                        var receiverTestResults = this.GetResults(metadata.ReceiverSource);
-
-                        await this.LonghaulSettings.ForEachAsync(async (longhaulSettings) =>
-                        {
-                            TestResultFilter filter = new TestResultFilter(new DirectMethodTestOperationResultComparer());
-                            TimeSpan unmatchedResultTolerance = longhaulSettings.UnmatchedResultTolerance;
-                            (senderTestResults, receiverTestResults) = await filter.FilterResults(unmatchedResultTolerance, senderTestResults, receiverTestResults);
-                        });
-
-                        return new DirectMethodLongHaulReportGenerator(
-                            metadata.TestDescription,
-                            trackingId,
-                            metadata.SenderSource,
-                            Settings.Current.Topology,
-                            Settings.Current.MqttBrokerEnabled,
-                            senderTestResults.GetAsyncEnumerator(),
-                            metadata.ReceiverSource,
-                            receiverTestResults.GetAsyncEnumerator(),
-                            metadata.TestOperationResultType.ToString());
                     }
 
                 case TestReportType.EdgeHubRestartDirectMethodReport:
@@ -271,7 +231,7 @@ namespace TestResultCoordinator.Reports
 
             string[] sources = reportMetadata.ExpectedSource.Split('.');
             string moduleId = sources.Length > 0 ? sources[0] : Settings.Current.ModuleId;
-            return new CloudTwinTestResultCollection(reportMetadata.ExpectedSource, Settings.Current.IoTHubConnectionString, moduleId, Settings.Current.TrackingId);
+            return new CloudTwinTestResultCollection(reportMetadata.ExpectedSource, Settings.Current.IotHubHostname, moduleId, Settings.Current.TrackingId);
         }
     }
 }

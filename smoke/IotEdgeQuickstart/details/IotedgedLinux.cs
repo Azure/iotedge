@@ -550,7 +550,7 @@ namespace IotEdgeQuickstart.Details
             {
                 Console.WriteLine($"Calling iotedge system set-log-level {runtimeLogLevel.ToString().ToLower()}");
                 string[] output = await Process.RunAsync("iotedge", $"system set-log-level {runtimeLogLevel.ToString().ToLower()}", cts.Token);
-                Console.WriteLine($"{output.ToString()}");
+                Console.WriteLine(string.Join(Environment.NewLine, output));
             }
         }
 
