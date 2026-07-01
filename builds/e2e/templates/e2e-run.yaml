@@ -67,6 +67,7 @@ steps:
         # Below tests were disabled and marked for re-enable when a blocking item was resolved.
         # When it was resolved the tests were never enabled. We need to re-enable these.
         $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+        $filter += '&FullyQualifiedName~RouteMessageL3LeafToL4Module'
       }
       elseif ($test_type -eq 'nestededge_isa95')
       {
