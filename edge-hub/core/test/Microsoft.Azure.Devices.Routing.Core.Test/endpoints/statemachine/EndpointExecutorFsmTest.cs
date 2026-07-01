@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await command1.Completion;
 
             Assert.Equal(State.Idle, machine1.Status.State);
-            checkpointer1.Verify(c => c.CommitAsync(new[] { Message1 }, new IMessage[0], It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+            checkpointer1.Verify(c => c.CommitAsync(new[] { Message1 }, new IMessage[0], It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
             await machine1.CloseAsync();
 
             // Test exception throws
