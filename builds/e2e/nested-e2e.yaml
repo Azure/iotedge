@@ -109,6 +109,14 @@ stages:
           rootCaCertificate: '$(rootCaCertificate)'
           rootCaKey: '$(rootCaKey)'
       - template: templates/e2e-clear-docker-cached-images.yaml
+      - template: templates/e2e-run.yaml
+        parameters:
+          azureSubscription: '$(az.subscription)'
+          containerRegistryPassword: '$(containerRegistryPassword)'
+          dpsGroupKeySymmetric: '$(dpsGroupKeySymmetric)'
+          rootCaPassword: '$(rootCaPassword)'
+          sas_uri: $(sas_uri)
+          test_type: nestededge_mqtt
       - template: templates/nested-deploy-config.yaml
         parameters:
           containerRegistryServer: $(containerRegistryServer)
