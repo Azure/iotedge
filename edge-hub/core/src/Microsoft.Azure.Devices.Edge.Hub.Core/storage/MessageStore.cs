@@ -145,6 +145,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             return sequentialStore.GetCountFromOffset(offset);
         }
 
+        /// <summary>
+        /// Triggers an immediate cleanup attempt. Used for connection recovery
+        /// to retry checkpoint commits that may have failed during network outages.
+        /// </summary>
+        public void TriggerCleanup()
+        {
+            this.messagesCleaner.TriggerCleanup();
+        }
+
         public void Dispose()
         {
             this.Dispose(true);
@@ -230,6 +239,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 // Not disposing the cleanup task, in case it is not completed yet.
             }
 
+            /// <summary>
+            /// Triggers an immediate cleanup attempt. Called when cloud connection is restored
+            /// to retry checkpoint commits for messages that were sent but not acknowledged.
+            /// </summary>
+            public void TriggerCleanup()
+            {
+                this.EnsureCleanupTask(null);
+                Events.CleanupTriggeredByConnectionRecovery();
+            }
+
             void EnsureCleanupTask(object state)
             {
                 if (this.cleanupTask == null || this.cleanupTask.IsCompleted)
@@ -309,12 +328,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             Events.CleanupCheckpointState(messageQueueId, checkpointData);
                             int cleanupEntityStoreCount = 0;
 
+                            // Track orphaned messages for observability
+                            int orphanedMessageCount = 0;
+                            DateTime earliestOrphanedMessageTime = DateTime.MaxValue;
+
                             async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                             {
                                 var expiry = messageRef.TimeStamp + messageRef.TimeToLive;
                                 if (offset > checkpointData.Offset && expiry > DateTime.UtcNow)
                                 {
                                     return false;
+                                }
+
+                                // Detect orphaned messages (expired but can't clean due to offset gap)
+                                if (offset > checkpointData.Offset && expiry <= DateTime.UtcNow)
+                                {
+                                    orphanedMessageCount++;
+                                    if (messageRef.TimeStamp < earliestOrphanedMessageTime)
+                                    {
+                                        earliestOrphanedMessageTime = messageRef.TimeStamp;
+                                    }
                                 }
 
                                 var message = await this.TryDecrementRefCountUpdate(messageRef.EdgeMessageId, messageQueueId);
@@ -378,6 +411,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             totalCleanupCount += cleanupCount;
                             totalCleanupStoreCount += cleanupEntityStoreCount;
                             Events.CleanupCompleted(messageQueueId, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
+
+                            // Log orphaned messages for observability
+                            if (orphanedMessageCount > 0)
+                            {
+                                TimeSpan oldestOrphanAge = DateTime.UtcNow - earliestOrphanedMessageTime;
+                                Events.OrphanedMessagesDetected(messageQueueId, orphanedMessageCount, checkpointData.Offset, oldestOrphanAge);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -418,7 +458,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 MessageAdded,
                 ErrorGettingMessagesBatch,
                 CreatedCleanupProcessor,
-                ErrorUpdatingMessageForEndpoint
+                ErrorUpdatingMessageForEndpoint,
+                CleanupTriggeredByConnectionRecovery,
+                OrphanedMessagesDetected
             }
 
             public static void MessageStoreCreated()
@@ -441,6 +483,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 Log.LogInformation((int)EventIds.CleanupTaskStarted, "Started task to cleanup processed and stale messages");
             }
 
+            public static void CleanupTriggeredByConnectionRecovery()
+            {
+                Log.LogInformation((int)EventIds.CleanupTriggeredByConnectionRecovery, "Triggering cleanup due to cloud connection recovery to retry pending checkpoint commits");
+            }
+
             public static void ErrorCleaningMessagesForEndpoint(Exception ex, string endpointId)
             {
                 Log.LogWarning((int)EventIds.ErrorCleaningMessagesForEndpoint, ex, Invariant($"Error cleaning up messages for endpoint {endpointId}"));
@@ -460,6 +507,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {queueMessagesCount} messages from queue for endpoint {endpointId} and {storeMessagesCount} messages from message store."));
                 Log.LogDebug((int)EventIds.CleanupCompleted, Invariant($"Total messages cleaned up from queue for endpoint {endpointId} = {totalQueueMessagesCount}, and total messages cleaned up for message store = {totalStoreMessagesCount}."));
+            }
+
+            public static void OrphanedMessagesDetected(string endpointId, int orphanedCount, long checkpointOffset, TimeSpan oldestAge)
+            {
+                Log.LogWarning((int)EventIds.OrphanedMessagesDetected, Invariant($"Detected {orphanedCount} orphaned message(s) in endpoint {endpointId}. Checkpoint offset={checkpointOffset}, oldest message age={oldestAge.TotalSeconds:F1}s. Messages are stuck in store because checkpoint has not advanced. This indicates a potential message acknowledgment failure during network disruption. Checkpoint retries or the cleanup trigger on connection recovery should resolve this."));
             }
 
             public static void ErrorGettingMessagesBatch(string entityName, Exception ex)

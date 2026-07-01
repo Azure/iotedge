@@ -51,5 +51,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
         /// Returns the number of messages in the store from a offset
         /// </summary>
         Task<ulong> GetMessageCountFromOffset(string endpointId, long offset);
+
+        /// <summary>
+        /// Triggers an immediate cleanup attempt. Called when cloud connection is restored
+        /// to retry checkpoint commits for messages that were sent but not acknowledged.
+        /// </summary>
+        void TriggerCleanup();
     }
 }
