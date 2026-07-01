@@ -523,6 +523,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var connectionManagerTask = c.Resolve<Task<IConnectionManager>>();
                         var subscriptionProcessorTask = c.Resolve<Task<ISubscriptionProcessor>>();
                         var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                        var messageStoreTask = this.isStoreAndForwardEnabled ? c.Resolve<Task<IMessageStore>>() : null;
                         Router router = await routerTask;
                         ITwinManager twinManager = await twinManagerTask;
                         IConnectionManager connectionManager = await connectionManagerTask;
@@ -539,6 +540,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             invokeMethodHandler,
                             subscriptionProcessor,
                             deviceScopeIdentitiesCache);
+
+                        // Subscribe MessageStore to connection recovery events
+                        // to trigger cleanup when cloud connection is restored
+                        if (messageStoreTask != null)
+                        {
+                            IMessageStore messageStore = await messageStoreTask;
+                            connectionManager.CloudConnectionEstablished += (sender, identity) =>
+                            {
+                                messageStore.TriggerCleanup();
+                            };
+                        }
+
                         return hub;
                     })
                 .As<Task<IEdgeHub>>()

@@ -362,7 +362,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 {
                     ISinkResult<IMessage> result = thisPtr.currentCheckpointCommand.Result;
                     Events.Checkpoint(thisPtr, result);
+                    Events.CheckpointCommitAttemptStart(thisPtr, 1, 1, result.Succeeded.Count, EmptyMessages.Count);
                     await thisPtr.Checkpointer.CommitAsync(result.Succeeded, EmptyMessages, thisPtr.lastFailedRevivalTime, thisPtr.unhealthySince, cts.Token);
+                    Events.CheckpointCommitAttemptSucceeded(thisPtr, 1, result.Succeeded.Count, EmptyMessages.Count);
                     Events.CheckpointSuccess(thisPtr, result);
                 }
 
@@ -386,20 +388,49 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             try
             {
                 Preconditions.CheckNotNull(thisPtr.currentCheckpointCommand);
-                using (var cts = new CancellationTokenSource(thisPtr.config.Timeout))
+                ISinkResult<IMessage> result = thisPtr.currentCheckpointCommand.Result;
+
+                if (result.Succeeded.Any() || result.InvalidDetailsList.Any())
                 {
-                    ISinkResult<IMessage> result = thisPtr.currentCheckpointCommand.Result;
+                    ICollection<IMessage> toCheckpoint = result.InvalidDetailsList.Count > 0
+                        ? result.Succeeded.Concat(result.InvalidDetailsList.Select(i => i.Item)).ToList()
+                        : result.Succeeded;
+                    ICollection<IMessage> remaining = result.Failed;
 
-                    if (result.Succeeded.Any() || result.InvalidDetailsList.Any())
+                    Events.Checkpoint(thisPtr, result);
+
+                    // Attempt checkpoint commit with retry logic
+                    const int MaxCommitRetries = 3;
+                    Exception lastException = null;
+
+                    for (int attempt = 1; attempt <= MaxCommitRetries; attempt++)
                     {
-                        ICollection<IMessage> toCheckpoint = result.InvalidDetailsList.Count > 0
-                            ? result.Succeeded.Concat(result.InvalidDetailsList.Select(i => i.Item)).ToList()
-                            : result.Succeeded;
-                        ICollection<IMessage> remaining = result.Failed;
+                        try
+                        {
+                            using (var cts = new CancellationTokenSource(thisPtr.config.Timeout))
+                            {
+                                Events.CheckpointCommitAttemptStart(thisPtr, attempt, MaxCommitRetries, toCheckpoint.Count, remaining.Count);
+                                await thisPtr.Checkpointer.CommitAsync(toCheckpoint, remaining, Option.None<DateTime>(), thisPtr.unhealthySince, cts.Token);
+                                Events.CheckpointCommitAttemptSucceeded(thisPtr, attempt, toCheckpoint.Count, remaining.Count);
+                                Events.CheckpointSuccess(thisPtr, result);
+                                break;  // Success, exit retry loop
+                            }
+                        }
+                        catch (Exception ex) when (attempt < MaxCommitRetries)
+                        {
+                            lastException = ex;
+                            Events.CheckpointCommitRetry(thisPtr, attempt, ex);
 
-                        Events.Checkpoint(thisPtr, result);
-                        await thisPtr.Checkpointer.CommitAsync(toCheckpoint, remaining, Option.None<DateTime>(), thisPtr.unhealthySince, cts.Token);
-                        Events.CheckpointSuccess(thisPtr, result);
+                            // Exponential backoff: 100ms, 200ms, 400ms
+                            int delayMs = 100 * (int)Math.Pow(2, attempt - 1);
+                            await Task.Delay(delayMs);
+                        }
+                        catch (Exception ex) when (attempt == MaxCommitRetries)
+                        {
+                            lastException = ex;
+                            Events.CheckpointCommitFailed(thisPtr, MaxCommitRetries, ex);
+                            throw;
+                        }
                     }
                 }
 
@@ -589,7 +620,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 UpdateEndpoint,
                 UpdateEndpointSuccess,
                 UpdateEndpointFailure,
-                CheckRetryInnerException
+                CheckRetryInnerException,
+                CheckpointCommitAttemptStart,
+                CheckpointCommitAttemptSucceeded,
+                CheckpointCommitRetry,
+                CheckpointCommitFailed
             }
 
             public static void StateEnter(EndpointExecutorFsm fsm)
@@ -718,6 +753,53 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     (int)EventIds.CheckpointFailure,
                     ex,
                     "[CheckpointFailure] Checkpointing failed. CheckpointOffset: {0}, {1}",
+                    fsm.Status.CheckpointerStatus.Offset,
+                    GetContextString(fsm));
+            }
+
+            public static void CheckpointCommitRetry(EndpointExecutorFsm fsm, int attempt, Exception ex)
+            {
+                Log.LogWarning(
+                    (int)EventIds.CheckpointCommitRetry,
+                    ex,
+                    "[CheckpointCommitRetry] Checkpoint commit attempt {0} failed, retrying. CheckpointOffset: {1}, {2}",
+                    attempt,
+                    fsm.Status.CheckpointerStatus.Offset,
+                    GetContextString(fsm));
+            }
+
+            public static void CheckpointCommitAttemptStart(EndpointExecutorFsm fsm, int attempt, int maxAttempts, int toCheckpointCount, int remainingCount)
+            {
+                Log.LogInformation(
+                    (int)EventIds.CheckpointCommitAttemptStart,
+                    "[TEMP CheckpointCommitAttemptStart] Starting checkpoint commit attempt {0}/{1}. ToCheckpointSize: {2}, RemainingSize: {3}, CheckpointOffset: {4}, {5}",
+                    attempt,
+                    maxAttempts,
+                    toCheckpointCount,
+                    remainingCount,
+                    fsm.Status.CheckpointerStatus.Offset,
+                    GetContextString(fsm));
+            }
+
+            public static void CheckpointCommitAttemptSucceeded(EndpointExecutorFsm fsm, int attempt, int toCheckpointCount, int remainingCount)
+            {
+                Log.LogInformation(
+                    (int)EventIds.CheckpointCommitAttemptSucceeded,
+                    "[TEMP CheckpointCommitAttemptSucceeded] Checkpoint commit attempt {0} succeeded. ToCheckpointSize: {1}, RemainingSize: {2}, CheckpointOffset: {3}, {4}",
+                    attempt,
+                    toCheckpointCount,
+                    remainingCount,
+                    fsm.Status.CheckpointerStatus.Offset,
+                    GetContextString(fsm));
+            }
+
+            public static void CheckpointCommitFailed(EndpointExecutorFsm fsm, int maxAttempts, Exception ex)
+            {
+                Log.LogError(
+                    (int)EventIds.CheckpointCommitFailed,
+                    ex,
+                    "[CheckpointCommitFailed] Checkpoint commit failed after {0} attempts. CheckpointOffset: {1}, {2}",
+                    maxAttempts,
                     fsm.Status.CheckpointerStatus.Offset,
                     GetContextString(fsm));
             }

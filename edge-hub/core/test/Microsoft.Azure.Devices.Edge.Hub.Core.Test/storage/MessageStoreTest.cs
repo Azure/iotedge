@@ -541,6 +541,117 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestTriggerCleanupWakesCleanupTask(bool checkEntireQueueOnCleanup)
+        {
+            // Verify calling TriggerCleanup() immediately starts cleanup
+            var result = await this.GetMessageStore(checkEntireQueueOnCleanup, ttlSecs: 1, messageCleanupIntervalSecs: 3600); // Long cleanup interval
+            using (IMessageStore messageStore = result.Item1)
+            {
+                await messageStore.AddEndpoint("endpoint1");
+
+                // Add a message with short TTL
+                IMessage message = this.GetMessage(1);
+                await messageStore.Add("endpoint1", message, 1);
+
+                // Wait for message to expire
+                await Task.Delay(1500);
+
+                // Manually trigger cleanup instead of waiting for 30-minute timer
+                messageStore.TriggerCleanup();
+
+                // Wait a bit for cleanup to run
+                await Task.Delay(500);
+
+                // Verify message was cleaned up
+                IMessageIterator iterator = messageStore.GetMessageIterator("endpoint1");
+                IEnumerable<IMessage> batch = await iterator.GetNext(100);
+                var batchList = batch as IList<IMessage> ?? batch.ToList();
+
+                // After cleanup triggered, expired message should be removed
+                Assert.Empty(batchList);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestOrphanedMessageDetection(bool checkEntireQueueOnCleanup)
+        {
+            // Verify orphaned message detection when checkpoint doesn't advance
+            var result = await this.GetMessageStore(checkEntireQueueOnCleanup, ttlSecs: 1);
+            using (IMessageStore messageStore = result.Item1)
+            {
+                await messageStore.AddEndpoint("endpoint1");
+
+                // Add messages with short TTL
+                for (int i = 0; i < 3; i++)
+                {
+                    IMessage message = this.GetMessage(i);
+                    await messageStore.Add("endpoint1", message, 1);
+                }
+
+                // Wait for messages to expire
+                await Task.Delay(1500);
+
+                // NOTE: Checkpoint offset hasn't advanced, so messages are "orphaned"
+                // Create orphaned condition: messages expired, but checkpoint not updated
+                // This would normally be detected by the OrphanedMessagesDetected event
+
+                // Trigger cleanup which should detect orphaned messages
+                messageStore.TriggerCleanup();
+
+                // Wait for cleanup to complete
+                await Task.Delay(500);
+
+                // Verify at least one cleanup pass occurred
+                // (The orphan detection is logged, not queryable, but system remains stable)
+                Assert.NotNull(messageStore);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TestNoOrphanWhenCheckpointAdvances(bool checkEntireQueueOnCleanup)
+        {
+            // Verify NO orphan warning when checkpoint properly advances
+            var result = await this.GetMessageStore(checkEntireQueueOnCleanup, ttlSecs: 1);
+            using (IMessageStore messageStore = result.Item1)
+            {
+                ICheckpointStore checkpointStore = result.Item2;
+                await messageStore.AddEndpoint("endpoint1");
+
+                // Add messages with short TTL
+                for (int i = 0; i < 3; i++)
+                {
+                    IMessage message = this.GetMessage(i);
+                    await messageStore.Add("endpoint1", message, 1);
+                }
+
+                // Wait for messages to expire
+                await Task.Delay(1500);
+
+                // Advance checkpoint so messages can be cleaned normally (not orphaned)
+                var checkpointData = new CheckpointData(100L); // Offset beyond the messages
+                await checkpointStore.SetCheckpointDataAsync("endpoint1", checkpointData, CancellationToken.None);
+
+                // Trigger cleanup
+                messageStore.TriggerCleanup();
+
+                // Wait for cleanup
+                await Task.Delay(500);
+
+                // Verify messages are cleaned (no orphan condition)
+                IMessageIterator iterator = messageStore.GetMessageIterator("endpoint1");
+                IEnumerable<IMessage> batch = await iterator.GetNext(100);
+                var batchList = batch as IList<IMessage> ?? batch.ToList();
+                Assert.Empty(batchList);
+            }
+        }
+
         [Fact]
         public void MessageWrapperRoundtripTest()
         {

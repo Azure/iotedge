@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await command1.Completion;
 
             Assert.Equal(State.Idle, machine1.Status.State);
-            checkpointer1.Verify(c => c.CommitAsync(new[] { Message1 }, new IMessage[0], It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+            checkpointer1.Verify(c => c.CommitAsync(new[] { Message1 }, new IMessage[0], It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
             await machine1.CloseAsync();
 
             // Test exception throws
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await machine2.RunAsync(command2);
             await Assert.ThrowsAsync<Exception>(() => command2.Completion);
             Assert.Equal(State.Idle, machine2.Status.State);
-            checkpointer2.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+            checkpointer2.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
             await machine2.CloseAsync();
 
             // Test partial exception - no throw
@@ -180,8 +180,73 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await command3.Completion;
 
             Assert.Equal(State.Idle, machine3.Status.State);
-            checkpointer3.Verify(c => c.CommitAsync(It.Is<ICollection<IMessage>>(m => m.Count == 1), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            checkpointer3.Verify(c => c.CommitAsync(It.Is<ICollection<IMessage>>(m => m.Count == 1), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(6));
             await machine3.CloseAsync();
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestCheckpointRetryWithTransientFailureThenSuccess()
+        {
+            // Verify retry attempts on transient CommitAsync failures
+            var endpoint = new TestEndpoint("id1");
+            var checkpointer = new Mock<ICheckpointer>();
+            checkpointer.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
+
+            int attemptCount = 0;
+            checkpointer.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    attemptCount++;
+                    // Fail on first attempt, succeed on second
+                    if (attemptCount < 2)
+                    {
+                        return Task.FromException(new TimeoutException("Simulated network timeout"));
+                    }
+
+                    return Task.CompletedTask;
+                });
+
+            var config = new EndpointExecutorConfig(TimeSpan.FromSeconds(1), MaxRetryStrategy, TimeSpan.FromMinutes(5));
+            var machine = new EndpointExecutorFsm(endpoint, checkpointer.Object, config);
+
+            // Send message and wait for completion
+            SendMessage command = Commands.SendMessage(Message1);
+            await machine.RunAsync(command);
+            await command.Completion;
+
+            // Verify checkpoint succeeded after retry
+            Assert.Equal(State.Idle, machine.Status.State);
+            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            await machine.CloseAsync();
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestCheckpointRetryExhaustedAfterMaxAttempts()
+        {
+            // Verify all retry attempts are exhausted and exception is thrown
+            var endpoint = new TestEndpoint("id1");
+            var checkpointer = new Mock<ICheckpointer>();
+            checkpointer.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
+
+            // Always fail CommitAsync
+            checkpointer.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromException(new TimeoutException("Persistent network timeout")));
+
+            var config = new EndpointExecutorConfig(TimeSpan.FromSeconds(1), MaxRetryStrategy, TimeSpan.FromMinutes(5), throwOnDead: true);
+            var machine = new EndpointExecutorFsm(endpoint, checkpointer.Object, config);
+
+            // Send message - should fail after retries
+            SendMessage command = Commands.SendMessage(Message1);
+            await machine.RunAsync(command);
+
+            var ex = await Assert.ThrowsAsync<TimeoutException>(() => command.Completion);
+            Assert.Contains("Persistent network timeout", ex.Message);
+
+            // Verify all 3 retry attempts were made
+            checkpointer.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+            await machine.CloseAsync();
         }
 
         [Fact]
