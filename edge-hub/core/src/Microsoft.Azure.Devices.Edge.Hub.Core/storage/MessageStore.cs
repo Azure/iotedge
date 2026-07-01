@@ -325,6 +325,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             Events.CleanupTaskStarted(messageQueueId);
                             CheckpointData checkpointData = await this.messageStore.checkpointStore.GetCheckpointDataAsync(messageQueueId, CancellationToken.None);
                             ISequentialStore<MessageRef> sequentialStore = endpointSequentialStore.Value;
+                            long queueHeadOffset = sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token);
+                            long unreadStartOffset = checkpointData.Offset + 1;
+                            Events.TempCleanupCorrelation(messageQueueId, checkpointData.Offset, unreadStartOffset, queueHeadOffset);
                             Events.CleanupCheckpointState(messageQueueId, checkpointData);
                             int cleanupEntityStoreCount = 0;
 
@@ -455,6 +458,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 GettingNextBatch,
                 ObtainedNextBatch,
                 CleanupCheckpointState,
+                TempCleanupCorrelation,
                 MessageAdded,
                 ErrorGettingMessagesBatch,
                 CreatedCleanupProcessor,
@@ -552,6 +556,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             internal static void CleanupCheckpointState(string endpointId, CheckpointData checkpointData)
             {
                 Log.LogDebug((int)EventIds.CleanupCheckpointState, Invariant($"Checkpoint for endpoint {endpointId} is {checkpointData.Offset}"));
+            }
+
+            internal static void TempCleanupCorrelation(string endpointId, long checkpointOffset, long unreadStartOffset, long queueHeadOffset)
+            {
+                Log.LogInformation(
+                    (int)EventIds.TempCleanupCorrelation,
+                    Invariant($"[TEMP CleanupCorrelation] Endpoint={endpointId}, checkpointOffset={checkpointOffset}, unreadStartOffset={unreadStartOffset}, queueHeadOffset={queueHeadOffset}"));
             }
 
             internal static void MessageAdded(long offset, string edgeMessageId, string endpointId)
