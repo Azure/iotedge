@@ -59,7 +59,7 @@ steps:
         # Below tests were disabled and marked for re-enable when a blocking item was resolved.
         # When it was resolved the tests were never enabled. We need to re-enable these.
         $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
-        $filter += '&FullyQualifiedName~Microsoft.Azure.Devices.Edge.Test.Module'
+        $filter += '&(FullyQualifiedName~Microsoft.Azure.Devices.Edge.Test.Module|FullyQualifiedName~Microsoft.Azure.Devices.Edge.Test.Metrics|FullyQualifiedName~Microsoft.Azure.Devices.Edge.Test.IoTEdgeCheck)'
       }
       elseif ($test_type -eq 'nestededge_amqp')
       {
