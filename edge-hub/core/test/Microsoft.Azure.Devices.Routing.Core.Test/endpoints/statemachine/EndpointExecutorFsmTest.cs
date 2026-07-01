@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await machine2.RunAsync(command2);
             await Assert.ThrowsAsync<Exception>(() => command2.Completion);
             Assert.Equal(State.Idle, machine2.Status.State);
-            checkpointer2.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+            checkpointer2.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
             await machine2.CloseAsync();
 
             // Test partial exception - no throw
@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             await command3.Completion;
 
             Assert.Equal(State.Idle, machine3.Status.State);
-            checkpointer3.Verify(c => c.CommitAsync(It.Is<ICollection<IMessage>>(m => m.Count == 1), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            checkpointer3.Verify(c => c.CommitAsync(It.Is<ICollection<IMessage>>(m => m.Count == 1), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(6));
             await machine3.CloseAsync();
         }
 
