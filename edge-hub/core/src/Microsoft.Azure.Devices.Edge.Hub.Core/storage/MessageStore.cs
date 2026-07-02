@@ -211,6 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             readonly MessageStore messageStore;
             readonly Timer ensureCleanupTaskTimer;
             readonly CancellationTokenSource cancellationTokenSource;
+            readonly SemaphoreSlim cleanupWakeSignal;
             readonly bool checkEntireQueueOnCleanup;
             readonly int messageCleanupIntervalSecs;
             readonly IMetricsCounter expiredCounter;
@@ -221,6 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
                 this.messageStore = messageStore;
                 this.cancellationTokenSource = new CancellationTokenSource();
+                this.cleanupWakeSignal = new SemaphoreSlim(0);
                 this.messageCleanupIntervalSecs = messageCleanupIntervalSecs;
                 this.expiredCounter = Metrics.Instance.CreateCounter(
                    "messages_dropped",
@@ -234,8 +236,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 this.ensureCleanupTaskTimer?.Dispose();
                 this.cancellationTokenSource?.Cancel();
+                this.cleanupWakeSignal?.Release();
                 // wait for 30 secs for the cleanup task to finish.
                 this.cleanupTask?.Wait(TimeSpan.FromSeconds(30));
+                this.cleanupWakeSignal?.Dispose();
                 // Not disposing the cleanup task, in case it is not completed yet.
             }
 
@@ -246,7 +250,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public void TriggerCleanup()
             {
                 this.EnsureCleanupTask(null);
+                this.cleanupWakeSignal.Release();
                 Events.CleanupTriggeredByConnectionRecovery();
+                Events.TempCleanupWakeSignal();
             }
 
             void EnsureCleanupTask(object state)
@@ -428,7 +434,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                         }
                     }
 
-                    await Task.Delay(this.GetCleanupTaskSleepTime());
+                    await Task.WhenAny(
+                        Task.Delay(this.GetCleanupTaskSleepTime(), this.cancellationTokenSource.Token),
+                        this.cleanupWakeSignal.WaitAsync(this.cancellationTokenSource.Token));
                 }
             }
 
@@ -464,6 +472,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 CreatedCleanupProcessor,
                 ErrorUpdatingMessageForEndpoint,
                 CleanupTriggeredByConnectionRecovery,
+                TempCleanupWakeSignal,
                 OrphanedMessagesDetected
             }
 
@@ -490,6 +499,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public static void CleanupTriggeredByConnectionRecovery()
             {
                 Log.LogInformation((int)EventIds.CleanupTriggeredByConnectionRecovery, "Triggering cleanup due to cloud connection recovery to retry pending checkpoint commits");
+            }
+
+            public static void TempCleanupWakeSignal()
+            {
+                Log.LogWarning((int)EventIds.TempCleanupWakeSignal, "[TEMP CleanupWakeSignal] Cleanup wake signal sent due to connection recovery. Cleanup loop should run immediately.");
             }
 
             public static void ErrorCleaningMessagesForEndpoint(Exception ex, string endpointId)
