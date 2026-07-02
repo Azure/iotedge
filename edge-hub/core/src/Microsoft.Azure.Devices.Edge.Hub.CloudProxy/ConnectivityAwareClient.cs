@@ -123,20 +123,66 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         void InternalConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
             Events.ReceivedDeviceSdkCallback(this.identity, status, reason);
-            // @TODO: Ignore callback from Device SDK since it seems to be generating a lot of spurious Connected/NotConnected callbacks
-            /*
+
+            // TEMP: Bridge selected SDK callbacks into connectivity manager updates.
+            // Guards below prevent callback flapping from creating duplicate transitions.
             if (status == ConnectionStatus.Connected)
             {
-                this.deviceConnectivityManager.CallSucceeded();
-                this.HandleDeviceConnectedEvent();
+                if (!this.isConnected.Get())
+                {
+                    this.HandleDeviceConnectedEvent();
+                    Events.TempSdkBridgeApplied(this.identity, status, reason, "connected");
+                    _ = this.ReportSdkConnectedAsync(status, reason);
+                }
+                else
+                {
+                    Events.TempSdkBridgeIgnored(this.identity, status, reason, "already connected");
+                }
             }
-            else if (status == ConnectionStatus.Disconnected || status == ConnectionStatus.Disabled)
+            else if (status == ConnectionStatus.Disconnected || status == ConnectionStatus.Disconnected_Retrying || status == ConnectionStatus.Disabled)
             {
-                this.deviceConnectivityManager.CallTimedOut();
-                this.HandleDeviceDisconnectedEvent();
+                // Ignore intentional close transitions to avoid unnecessary connection churn.
+                if (reason == ConnectionStatusChangeReason.Client_Close)
+                {
+                    Events.TempSdkBridgeIgnored(this.identity, status, reason, "client close");
+                    return;
+                }
+
+                if (this.isConnected.Get())
+                {
+                    this.HandleDeviceDisconnectedEvent();
+                    Events.TempSdkBridgeApplied(this.identity, status, reason, "disconnected");
+                    _ = this.ReportSdkDisconnectedAsync(status, reason);
+                }
+                else
+                {
+                    Events.TempSdkBridgeIgnored(this.identity, status, reason, "already disconnected");
+                }
             }
-            this.connectionStatusChangedHandler?.Invoke(status, reason);
-            */
+        }
+
+        async Task ReportSdkConnectedAsync(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        {
+            try
+            {
+                await this.deviceConnectivityManager.CallSucceeded();
+            }
+            catch (Exception ex)
+            {
+                Events.TempSdkBridgeError(this.identity, status, reason, ex);
+            }
+        }
+
+        async Task ReportSdkDisconnectedAsync(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        {
+            try
+            {
+                await this.deviceConnectivityManager.CallTimedOut();
+            }
+            catch (Exception ex)
+            {
+                Events.TempSdkBridgeError(this.identity, status, reason, ex);
+            }
         }
 
         async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = true)
@@ -209,7 +255,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 OperationFailed,
                 OperationSucceeded,
                 ChangingStatus,
-                FailOverDetected
+                FailOverDetected,
+                TempSdkBridgeApplied,
+                TempSdkBridgeIgnored,
+                TempSdkBridgeError
             }
 
             public static void ReceivedDeviceSdkCallback(IIdentity identity, ConnectionStatus status, ConnectionStatusChangeReason reason)
@@ -240,6 +289,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void FailOverDetected(IIdentity identity, string operation, Exception ex)
             {
                 Log.LogInformation((int)EventIds.FailOverDetected, ex, $"Operation {operation} failed for {identity.Id} because of fail-over");
+            }
+
+            public static void TempSdkBridgeApplied(IIdentity identity, ConnectionStatus status, ConnectionStatusChangeReason reason, string action)
+            {
+                Log.LogWarning((int)EventIds.TempSdkBridgeApplied, $"[TEMP SdkReconnectBridgeApplied] Action={action}, status={status}, reason={reason}, identity={identity.Id}");
+            }
+
+            public static void TempSdkBridgeIgnored(IIdentity identity, ConnectionStatus status, ConnectionStatusChangeReason reason, string note)
+            {
+                Log.LogDebug((int)EventIds.TempSdkBridgeIgnored, $"[TEMP SdkReconnectBridgeIgnored] Note={note}, status={status}, reason={reason}, identity={identity.Id}");
+            }
+
+            public static void TempSdkBridgeError(IIdentity identity, ConnectionStatus status, ConnectionStatusChangeReason reason, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.TempSdkBridgeError, ex, $"[TEMP SdkReconnectBridgeError] Failed to report SDK callback. status={status}, reason={reason}, identity={identity.Id}");
             }
         }
     }
