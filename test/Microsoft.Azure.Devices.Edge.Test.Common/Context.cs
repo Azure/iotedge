@@ -6,6 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.IO;
     using System.Linq;
     using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -137,6 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Option<string> ParentDeviceId { get; }
 
         public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
+
+        public Dictionary<string, LeafDevice> LeafDeleteList { get; } = new Dictionary<string, LeafDevice>();
 
         public Option<string> DpsIdScope { get; }
 
