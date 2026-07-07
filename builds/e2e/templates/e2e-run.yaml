@@ -67,6 +67,10 @@ steps:
         # Below tests were disabled and marked for re-enable when a blocking item was resolved.
         # When it was resolved the tests were never enabled. We need to re-enable these.
         $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+        # TEMP (investigation, not for merge): narrow to the smallest set that reproduces
+        # RouteMessageL3LeafToL4Module. Metrics + IoTEdgeCheck must run before RouteMessage
+        # to provoke the AMQP upstream blip (derived from PR #7521 bisection, run 20260701.8).
+        $filter += '&(FullyQualifiedName~Microsoft.Azure.Devices.Edge.Test.Module|FullyQualifiedName~Microsoft.Azure.Devices.Edge.Test.Metrics|FullyQualifiedName~IoTEdgeCheck|FullyQualifiedName~RouteMessageL3LeafToL4Module)'
       }
       elseif ($test_type -eq 'nestededge_isa95')
       {
