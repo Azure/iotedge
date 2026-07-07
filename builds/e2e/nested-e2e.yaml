@@ -152,8 +152,52 @@ stages:
     - LockAgents
     - RunNestedTests
   jobs:
+  # TEMP (investigation, not for merge): capture support bundles from ALL levels (L3/L4/L5)
+  # after the test stage, so the L4/L5 edgeHub/relayer logs are available to debug
+  # RouteMessageL3LeafToL4Module. Runs before Clean_images so containers/logs still exist.
+  - job: Collect_Nested_Bundles
+    displayName: Collect nested support bundles
+    condition: always()
+    strategy:
+      matrix:
+        L3:
+          level: 3
+        L4:
+          level: 4
+        L5:
+          level: 5
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - status -equals locked_$(Build.BuildId)_L$(level)
+    steps:
+      - bash: |
+          set +e
+          out="$(Build.ArtifactStagingDirectory)/nested-bundle-L$(level)"
+          mkdir -p "$out"
+          echo "Collecting support bundle on L$(level) ($(hostname))"
+          sudo iotedge support-bundle --output "$out/support_bundle_L$(level).zip" || echo "support-bundle failed on L$(level)"
+          # Also grab raw module logs as a fallback in case support-bundle errors
+          for m in edgeHub edgeAgent relayer1; do
+            sudo docker logs "$m" > "$out/$m-L$(level).log" 2>&1 || true
+          done
+          ls -la "$out" || true
+        displayName: 'Generate support bundle (L$(level))'
+        condition: always()
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish nested bundle (L$(level))'
+        condition: always()
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)/nested-bundle-L$(level)'
+          ArtifactName: 'nested-support-bundles'
+
   - job: Clean_images
     displayName: Clean up Docker images
+    dependsOn: Collect_Nested_Bundles
+    condition: always()
     strategy:
       matrix:
         L3:
