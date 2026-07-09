@@ -97,7 +97,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public async Task<Device> CreateDeviceIdentityAsync(Device device, CancellationToken token)
         {
-            return await this.RegistryManager.AddDeviceAsync(device, token);
+            try
+            {
+                return await this.RegistryManager.AddDeviceAsync(device, token);
+            }
+            catch (DeviceAlreadyExistsException)
+            {
+                // A prior test run can leave an orphaned identity behind (for example when the
+                // job is killed during artifact upload before cleanup runs). Remove the stale
+                // identity and recreate so the repro run isn't blocked by leftover state.
+                Log.Warning($"Device identity '{device.Id}' already exists; deleting orphaned identity and recreating.");
+                await this.RegistryManager.RemoveDeviceAsync(device.Id, token);
+                return await this.RegistryManager.AddDeviceAsync(device, token);
+            }
         }
 
         public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
