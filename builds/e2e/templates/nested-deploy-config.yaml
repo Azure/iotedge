@@ -47,3 +47,52 @@ steps:
         # 5/22/2024 - Temporary work around the issue where the az cli command cannot authorize itself within *.sh script using the service principal's service connection
         deployment_working_file="$(Agent.HomeDirectory)/../working/deployment.json"
         az iot edge set-modules --auth-type login --device-id "${{ parameters.deviceId }}" --hub-name "$(iotHubName)" --content ${deployment_working_file} --output none
+
+        # Wait for the device's edgeAgent to finish reconciling this deployment before
+        # returning. set-modules only writes the desired twin; the device applies it
+        # asynchronously (which restarts edgeHub). Without this barrier the next test
+        # group can start while a parent is still reconciling, dropping a leaf's upstream
+        # link mid-test (see RouteMessageL3LeafToL4Module ~4min stall). Gate on edgeAgent's
+        # reported lastDesiredStatus.code == 200 (Success) for the desired version.
+        deviceId="${{ parameters.deviceId }}"
+        hubName="$(iotHubName)"
+        desiredVersion=$(az iot hub module-twin show --auth-type login --device-id "$deviceId" --module-id '$edgeAgent' --hub-name "$hubName" --query 'properties.desired."$version"' --output tsv)
+        echo "Waiting for edgeAgent on $deviceId to reconcile desired version $desiredVersion ..."
+        reconcileTimeoutSecs=300
+        reconcilePollSecs=5
+        elapsed=0
+        while true; do
+          reportedVersion=$(az iot hub module-twin show --auth-type login --device-id "$deviceId" --module-id '$edgeAgent' --hub-name "$hubName" --query 'properties.reported.lastDesiredVersion' --output tsv 2>/dev/null)
+          reportedCode=$(az iot hub module-twin show --auth-type login --device-id "$deviceId" --module-id '$edgeAgent' --hub-name "$hubName" --query 'properties.reported.lastDesiredStatus.code' --output tsv 2>/dev/null)
+          echo "  [$elapsed s] reported version=$reportedVersion status=$reportedCode (want version=$desiredVersion status=200)"
+          if [ "$reportedVersion" = "$desiredVersion" ] && [ "$reportedCode" = "200" ]; then
+            echo "edgeAgent on $deviceId reconciled desired version $desiredVersion successfully."
+            break
+          fi
+          if [ "$elapsed" -ge "$reconcileTimeoutSecs" ]; then
+            # Pull the full status description and reason so a stuck reconcile is diagnosable
+            # from the pipeline log instead of just a bare code. Two distinct failure modes:
+            #  - reportedVersion never reached desiredVersion => edgeAgent never picked up the
+            #    deployment (twin write lost, agent down, or hub connectivity issue).
+            #  - reportedVersion matched but code stayed non-200 => deployment applied but a
+            #    module is unhealthy (bad image ref, crash loop, pull failure).
+            reportedDescription=$(az iot hub module-twin show --auth-type login --device-id "$deviceId" --module-id '$edgeAgent' --hub-name "$hubName" --query 'properties.reported.lastDesiredStatus.description' --output tsv 2>/dev/null)
+            echo "----- edgeAgent reconcile timeout diagnostics for $deviceId -----"
+            echo "desired version : $desiredVersion"
+            echo "reported version: $reportedVersion"
+            echo "reported status : $reportedCode"
+            echo "status detail   : $reportedDescription"
+            if [ "$reportedVersion" != "$desiredVersion" ]; then
+              echo "diagnosis       : edgeAgent never picked up desired version $desiredVersion (still on $reportedVersion) - check agent connectivity/liveness"
+            else
+              echo "diagnosis       : deployment applied (version matched) but stuck at status $reportedCode - a module is likely unhealthy (bad image, crash loop, or pull failure)"
+            fi
+            echo "reported module states:"
+            az iot hub module-twin show --auth-type login --device-id "$deviceId" --module-id '$edgeAgent' --hub-name "$hubName" --query 'properties.reported.modules' --output json 2>/dev/null || true
+            echo "----------------------------------------------------------------"
+            echo "##vso[task.logissue type=error]edgeAgent on $deviceId did not reconcile desired version $desiredVersion within ${reconcileTimeoutSecs}s (last reported version=$reportedVersion status=$reportedCode: $reportedDescription)"
+            exit 1
+          fi
+          sleep "$reconcilePollSecs"
+          elapsed=$((elapsed + reconcilePollSecs))
+        done
