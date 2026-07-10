@@ -27,6 +27,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IIdentity identity;
         ConnectionStatusChangesHandler connectionStatusChangedHandler;
 
+        // The SDK callback can emit rapid alternating status changes. Debounce it so
+        // edgeHub reacts quickly to a stable status without propagating flap churn.
+        static readonly TimeSpan DebounceWindow = TimeSpan.FromSeconds(2);
+        readonly object debounceLock = new object();
+        Timer debounceTimer;
+        long debounceGeneration;
+        bool isOpen;
+
+        // Enabled for the draft E2E experiment. Make this configurable before merge.
+        bool sdkBridgeEnabled = true;
+
         public ConnectivityAwareClient(IClient client, IDeviceConnectivityManager deviceConnectivityManager, IIdentity identity)
         {
             this.identity = Preconditions.CheckNotNull(identity, nameof(identity));
@@ -38,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task CloseAsync()
         {
+            this.CancelDebouncedSdkBridge();
             await this.underlyingClient.CloseAsync();
             this.isConnected.Set(false);
             this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
@@ -60,6 +72,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task OpenAsync()
         {
             await this.InvokeFunc(() => this.underlyingClient.OpenAsync(), nameof(this.OpenAsync));
+            lock (this.debounceLock)
+            {
+                this.isOpen = true;
+            }
+
             this.deviceConnectivityManager.DeviceConnected += this.HandleDeviceConnectedEvent;
             this.deviceConnectivityManager.DeviceDisconnected += this.HandleDeviceDisconnectedEvent;
         }
@@ -92,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public void Dispose()
         {
+            this.CancelDebouncedSdkBridge();
             this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
             this.deviceConnectivityManager.DeviceDisconnected -= this.HandleDeviceDisconnectedEvent;
             this.isConnected.Set(false);
@@ -123,20 +141,100 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         void InternalConnectionStatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
             Events.ReceivedDeviceSdkCallback(this.identity, status, reason);
-            // @TODO: Ignore callback from Device SDK since it seems to be generating a lot of spurious Connected/NotConnected callbacks
-            /*
-            if (status == ConnectionStatus.Connected)
+
+            if (!this.sdkBridgeEnabled ||
+                (status != ConnectionStatus.Connected &&
+                 status != ConnectionStatus.Disconnected &&
+                 status != ConnectionStatus.Disconnected_Retrying &&
+                 status != ConnectionStatus.Disabled))
             {
-                this.deviceConnectivityManager.CallSucceeded();
-                this.HandleDeviceConnectedEvent();
+                return;
             }
-            else if (status == ConnectionStatus.Disconnected || status == ConnectionStatus.Disabled)
+
+            lock (this.debounceLock)
             {
-                this.deviceConnectivityManager.CallTimedOut();
-                this.HandleDeviceDisconnectedEvent();
+                if (!this.isOpen)
+                {
+                    return;
+                }
+
+                long generation = ++this.debounceGeneration;
+                this.debounceTimer?.Dispose();
+                this.debounceTimer = new Timer(
+                    _ => this.OnDebounceElapsed(generation, status),
+                    null,
+                    DebounceWindow,
+                    Timeout.InfiniteTimeSpan);
             }
-            this.connectionStatusChangedHandler?.Invoke(status, reason);
-            */
+        }
+
+        void OnDebounceElapsed(long generation, ConnectionStatus status) =>
+            _ = this.ApplyDebouncedStatusAsync(generation, status);
+
+        async Task ApplyDebouncedStatusAsync(long generation, ConnectionStatus status)
+        {
+            lock (this.debounceLock)
+            {
+                if (!this.isOpen || generation != this.debounceGeneration)
+                {
+                    return;
+                }
+
+                bool alreadyEffective = status == ConnectionStatus.Connected
+                    ? this.isConnected.Get()
+                    : !this.isConnected.Get();
+                if (alreadyEffective)
+                {
+                    return;
+                }
+
+                this.debounceTimer?.Dispose();
+                this.debounceTimer = null;
+            }
+
+            try
+            {
+                if (status == ConnectionStatus.Connected)
+                {
+                    await this.deviceConnectivityManager.CallSucceeded();
+                }
+                else
+                {
+                    await this.deviceConnectivityManager.CallTimedOut();
+                }
+
+                lock (this.debounceLock)
+                {
+                    if (!this.isOpen || generation != this.debounceGeneration)
+                    {
+                        return;
+                    }
+                }
+
+                if (status == ConnectionStatus.Connected)
+                {
+                    this.HandleDeviceConnectedEvent();
+                }
+                else
+                {
+                    this.HandleDeviceDisconnectedEvent();
+                }
+            }
+            catch (Exception ex)
+            {
+                Events.OperationFailed(this.identity, "applying debounced SDK connection status", ex);
+            }
+        }
+
+        void CancelDebouncedSdkBridge()
+        {
+            lock (this.debounceLock)
+            {
+                this.isOpen = false;
+                ++this.debounceGeneration;
+                this.debounceTimer?.Dispose();
+                this.debounceTimer = null;
+            }
         }
 
         async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = true)
