@@ -21,6 +21,59 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     public class StoringAsyncEndpointExecutorTest
     {
         [Fact]
+        public async Task ConnectivityRecoveryInterruptsRetryBackoffTest()
+        {
+            const string EndpointId = "endpoint1";
+            const uint Priority = 0;
+            var endpoint = new TestEndpoint(EndpointId) { CanProcess = false };
+            var retrySignal = new EndpointExecutorRetrySignal();
+            var config = new EndpointExecutorConfig(
+                TimeSpan.FromSeconds(30),
+                new FixedInterval(int.MaxValue, TimeSpan.FromMinutes(1)),
+                TimeSpan.FromSeconds(30));
+            var options = new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10));
+            var messageStore = new TestMessageStore();
+            var executor = new StoringAsyncEndpointExecutor(
+                endpoint,
+                new NullCheckpointerFactory(),
+                config,
+                options,
+                messageStore,
+                retrySignal);
+            await executor.UpdatePriorities(new List<uint> { Priority }, Option.None<Endpoint>());
+
+            await executor.Invoke(GetNewMessages(1, 0).First(), Priority, 3600);
+            for (int i = 0; i < 50 && executor.Status.RetryAttempts == 0; i++)
+            {
+                await Task.Delay(100);
+            }
+
+            Assert.Equal(0, endpoint.N);
+            Assert.True(executor.Status.RetryAttempts > 0);
+            Assert.Equal(TimeSpan.FromMinutes(1), executor.Status.RetryPeriod);
+
+            endpoint.CanProcess = true;
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            retrySignal.RequestRetry();
+            while (sw.Elapsed < TimeSpan.FromSeconds(5) && endpoint.N == 0)
+            {
+                await Task.Delay(50);
+            }
+
+            Assert.Equal(1, endpoint.N);
+            Assert.True(sw.Elapsed < TimeSpan.FromSeconds(5), $"Reconnect-triggered retry took {sw.Elapsed}.");
+
+            // Repeated connected signals are harmless once the FSM is no longer failing.
+            retrySignal.RequestRetry();
+            await Task.Delay(100);
+            Assert.Equal(1, endpoint.N);
+            await executor.CloseAsync();
+
+            // The executor unsubscribes when closed.
+            retrySignal.RequestRetry();
+        }
+
+        [Fact]
         public async Task InvokeTest()
         {
             // Arrange

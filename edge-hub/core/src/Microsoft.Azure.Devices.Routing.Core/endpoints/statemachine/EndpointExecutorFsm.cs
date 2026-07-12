@@ -134,6 +134,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             }
         }
 
+        public async Task RetryNowAsync()
+        {
+            using (await this.sync.LockAsync())
+            {
+                if (this.state == State.Failing)
+                {
+                    this.retryTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                    Routing.UserMetricLogger.LogRetryOperation(1, this.Endpoint.IotHubName, this.Endpoint.Name, this.Endpoint.Type);
+                    Events.RetryNow(this);
+                    await RunInternalAsync(this, Commands.Retry);
+                }
+            }
+        }
+
         public Task CloseAsync() => this.RunAsync(Commands.Close);
 
         public void Dispose() => this.Dispose(true);
@@ -545,9 +559,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         {
             try
             {
-                Routing.UserMetricLogger.LogRetryOperation(1, this.Endpoint.IotHubName, this.Endpoint.Name, this.Endpoint.Type);
-                this.retryTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-                await this.RunAsync(Commands.Retry);
+                await this.RetryNowAsync();
             }
             catch (Exception ex)
             {
@@ -589,7 +601,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 UpdateEndpoint,
                 UpdateEndpointSuccess,
                 UpdateEndpointFailure,
-                CheckRetryInnerException
+                CheckRetryInnerException,
+                RetryNow
             }
 
             public static void StateEnter(EndpointExecutorFsm fsm)
@@ -756,6 +769,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             public static void RetryFailed(EndpointExecutorFsm fsm, Exception exception)
             {
                 Log.LogError((int)EventIds.RetryFailed, exception, "[RetryFailed] Failed to retry. {0}", GetContextString(fsm));
+            }
+
+            public static void RetryNow(EndpointExecutorFsm fsm)
+            {
+                Log.LogDebug((int)EventIds.RetryNow, "[RetryNow] Retrying immediately after connectivity recovery. {0}", GetContextString(fsm));
             }
 
             public static void Dead(EndpointExecutorFsm fsm, ICollection<IMessage> messages)

@@ -11,12 +11,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly EndpointExecutorConfig config;
         readonly AsyncEndpointExecutorOptions options;
         readonly IMessageStore messageStore;
+        readonly IEndpointExecutorRetrySignal retrySignal;
 
-        public StoringAsyncEndpointExecutorFactory(EndpointExecutorConfig config, AsyncEndpointExecutorOptions options, IMessageStore messageStore)
+        public StoringAsyncEndpointExecutorFactory(
+            EndpointExecutorConfig config,
+            AsyncEndpointExecutorOptions options,
+            IMessageStore messageStore,
+            IEndpointExecutorRetrySignal retrySignal = null)
         {
             this.config = Preconditions.CheckNotNull(config, nameof(config));
             this.options = Preconditions.CheckNotNull(options, nameof(options));
             this.messageStore = Preconditions.CheckNotNull(messageStore, nameof(messageStore));
+            this.retrySignal = retrySignal;
         }
 
         public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities) => this.CreateAsync(endpoint, priorities, new NullCheckpointerFactory(), this.config);
@@ -29,7 +35,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             Preconditions.CheckNotNull(checkpointerFactory, nameof(checkpointerFactory));
             Preconditions.CheckNotNull(endpointExecutorConfig, nameof(endpointExecutorConfig));
 
-            var endpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointerFactory, endpointExecutorConfig, this.options, this.messageStore);
+            var endpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointerFactory, endpointExecutorConfig, this.options, this.messageStore, this.retrySignal);
             await endpointExecutor.UpdatePriorities(priorities, Option.None<Endpoint>());
             return endpointExecutor;
         }

@@ -430,7 +430,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             var endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
                             var messageStore = await c.Resolve<Task<IMessageStore>>();
-                            IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)), messageStore);
+                            // A recovered connection can land in the middle of an endpoint retry
+                            // backoff (up to 60 seconds). Wake parked FSMs instead of waiting out
+                            // the remaining backoff before store-and-forward resumes.
+                            var retrySignal = new EndpointExecutorRetrySignal();
+                            c.Resolve<IDeviceConnectivityManager>().ConnectivityRecovered += (_, __) => retrySignal.RequestRetry();
+                            IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(
+                                endpointExecutorConfig,
+                                new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)),
+                                messageStore,
+                                retrySignal);
                             return endpointExecutorFactory;
                         })
                     .As<Task<IEndpointExecutorFactory>>()

@@ -353,6 +353,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             public event EventHandler DeviceDisconnected;
 
+            public event EventHandler ConnectivityRecovered
+            {
+                add { }
+                remove { }
+            }
+
             public Task CallSucceeded() => Task.CompletedTask;
 
             public Task CallTimedOut() => Task.CompletedTask;

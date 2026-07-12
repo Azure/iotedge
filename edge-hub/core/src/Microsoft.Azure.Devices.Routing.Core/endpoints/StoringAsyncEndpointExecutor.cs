@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly CancellationTokenSource cts = new CancellationTokenSource();
         readonly ICheckpointerFactory checkpointerFactory;
         readonly EndpointExecutorConfig config;
+        readonly IEndpointExecutorRetrySignal retrySignal;
         AtomicReference<ImmutableDictionary<uint, EndpointExecutorFsm>> prioritiesToFsms;
         EndpointExecutorFsm lastUsedFsm;
 
@@ -38,15 +39,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             ICheckpointerFactory checkpointerFactory,
             EndpointExecutorConfig config,
             AsyncEndpointExecutorOptions options,
-            IMessageStore messageStore)
+            IMessageStore messageStore,
+            IEndpointExecutorRetrySignal retrySignal = null)
         {
             this.Endpoint = Preconditions.CheckNotNull(endpoint);
             this.checkpointerFactory = Preconditions.CheckNotNull(checkpointerFactory);
             this.config = Preconditions.CheckNotNull(config);
             this.options = Preconditions.CheckNotNull(options);
             this.messageStore = messageStore;
+            this.retrySignal = retrySignal;
             this.sendMessageTask = Task.Run(this.SendMessagesPump);
             this.prioritiesToFsms = new AtomicReference<ImmutableDictionary<uint, EndpointExecutorFsm>>(ImmutableDictionary<uint, EndpointExecutorFsm>.Empty);
+            if (this.retrySignal != null)
+            {
+                this.retrySignal.RetryRequested += this.HandleRetryRequested;
+            }
         }
 
         public Endpoint Endpoint { get; }
@@ -90,6 +97,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 if (!this.closed.GetAndSet(true))
                 {
+                    if (this.retrySignal != null)
+                    {
+                        this.retrySignal.RetryRequested -= this.HandleRetryRequested;
+                    }
+
                     this.cts.Cancel();
                     // Require to close all FSMs to complete currently executing command if any in order to unblock sendMessageTask.
                     ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
@@ -299,10 +311,37 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             await command.Completion;
         }
 
+        void HandleRetryRequested(object sender, EventArgs eventArgs)
+        {
+            if (!this.closed)
+            {
+                _ = Task.Run(this.RetryFailingEndpointsAsync);
+            }
+        }
+
+        async Task RetryFailingEndpointsAsync()
+        {
+            try
+            {
+                ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+                await Task.WhenAll(snapshot.Values.Select(fsm => fsm.RetryNowAsync()));
+                Events.RetryRequested(this);
+            }
+            catch (Exception ex)
+            {
+                Events.RetryRequestFailure(this, ex);
+            }
+        }
+
         void Dispose(bool disposing)
         {
             if (disposing)
             {
+                if (this.retrySignal != null)
+                {
+                    this.retrySignal.RetryRequested -= this.HandleRetryRequested;
+                }
+
                 this.cts.Dispose();
                 ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
                 this.prioritiesToFsms.CompareAndSet(snapshot, ImmutableDictionary<uint, EndpointExecutorFsm>.Empty);
@@ -390,7 +429,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Close,
                 CloseSuccess,
                 CloseFailure,
-                ErrorInPopulatePump
+                ErrorInPopulatePump,
+                RetryRequested,
+                RetryRequestFailure
             }
 
             public static void AddMessageSuccess(StoringAsyncEndpointExecutor executor, long offset, uint priority, uint timeToLiveSecs)
@@ -482,6 +523,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             public static void ErrorInPopulatePump(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorInPopulatePump, ex, "Error in populate messages pump");
+            }
+
+            public static void RetryRequested(StoringAsyncEndpointExecutor executor)
+            {
+                Log.LogDebug((int)EventIds.RetryRequested, "[RetryRequested] Retried failing endpoint FSMs immediately for EndpointId: {0}.", executor.Endpoint.Id);
+            }
+
+            public static void RetryRequestFailure(StoringAsyncEndpointExecutor executor, Exception ex)
+            {
+                Log.LogWarning((int)EventIds.RetryRequestFailure, ex, "[RetryRequestFailure] Failed to retry endpoint FSMs for EndpointId: {0}.", executor.Endpoint.Id);
             }
         }
 

@@ -10,6 +10,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         event EventHandler DeviceDisconnected;
 
+        // Unlike DeviceConnected, this event also fires when a short outage recovers
+        // from the intermediate Trying state without first reaching Disconnected.
+        event EventHandler ConnectivityRecovered;
+
         Task CallSucceeded();
 
         Task CallTimedOut();

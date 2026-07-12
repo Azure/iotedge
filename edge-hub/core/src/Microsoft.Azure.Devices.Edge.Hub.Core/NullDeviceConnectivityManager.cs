@@ -25,6 +25,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             remove { }
         }
 
+        public event EventHandler ConnectivityRecovered
+        {
+            add { }
+            remove { }
+        }
+
         public Task CallSucceeded() => Task.CompletedTask;
 
         public Task CallTimedOut() => Task.CompletedTask;

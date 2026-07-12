@@ -87,6 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public event EventHandler DeviceDisconnected;
 
+        public event EventHandler ConnectivityRecovered;
+
         enum State
         {
             Connected,
@@ -140,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         void OnConnected()
         {
             Events.OnConnected();
+            this.ConnectivityRecovered?.Invoke(this, EventArgs.Empty);
             this.connectedTimer.Start();
         }
 

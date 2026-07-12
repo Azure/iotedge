@@ -18,6 +18,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     public class DeviceConnectivityManagerTest
     {
         [Fact]
+        public async Task ConnectivityRecoveredFiresForTryingToConnectedTransitionTest()
+        {
+            var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "d1/m1");
+            var deviceConnectivityManager = new DeviceConnectivityManager(TimeSpan.FromHours(1), TimeSpan.FromHours(1), edgeHubIdentity);
+            int connectivityRecovered = 0;
+            int deviceConnected = 0;
+            deviceConnectivityManager.ConnectivityRecovered += (_, __) => Interlocked.Increment(ref connectivityRecovered);
+            deviceConnectivityManager.DeviceConnected += (_, __) => Interlocked.Increment(ref deviceConnected);
+
+            // Initial startup transitions Disconnected -> Connected.
+            await deviceConnectivityManager.CallSucceeded();
+            Assert.Equal(1, connectivityRecovered);
+            Assert.Equal(1, deviceConnected);
+
+            // A short outage only reaches Trying, not Disconnected. Recovery must still
+            // wake endpoint retries, without changing the existing DeviceConnected semantics.
+            await deviceConnectivityManager.CallTimedOut();
+            await deviceConnectivityManager.CallSucceeded();
+            Assert.Equal(2, connectivityRecovered);
+            Assert.Equal(1, deviceConnected);
+        }
+
+        [Fact]
         public async Task NoEventsTest()
         {
             // Arrange / act
