@@ -62,21 +62,33 @@ steps:
         reconcilePollSecs=5
         elapsed=0
         while true; do
-          reportedVersion=$(az iot hub module-twin show --auth-type login --device-id "$deviceId" --module-id '$edgeAgent' --hub-name "$hubName" --query 'properties.reported.lastDesiredVersion' --output tsv 2>/dev/null)
-          reportedCode=$(az iot hub module-twin show --auth-type login --device-id "$deviceId" --module-id '$edgeAgent' --hub-name "$hubName" --query 'properties.reported.lastDesiredStatus.code' --output tsv 2>/dev/null)
+          # Single twin read per poll: az emits the array query as three lines (one per
+          # element) with --output tsv, so read them into an array. Fewer az invocations
+          # than one call per field = fewer potential failure points per iteration.
+          mapfile -t twin < <(
+            az iot hub module-twin show \
+              --auth-type login \
+              --device-id "$deviceId" \
+              --module-id '$edgeAgent' \
+              --hub-name "$hubName" \
+              --query '[properties.reported.lastDesiredVersion, properties.reported.lastDesiredStatus.code, properties.reported.lastDesiredStatus.description]' \
+              --output tsv \
+              2>/dev/null
+          )
+          reportedVersion="${twin[0]}"
+          reportedCode="${twin[1]}"
+          reportedDescription="${twin[2]}"
           echo "  [$elapsed s] reported version=$reportedVersion status=$reportedCode (want version=$desiredVersion status=200)"
           if [ "$reportedVersion" = "$desiredVersion" ] && [ "$reportedCode" = "200" ]; then
             echo "edgeAgent on $deviceId reconciled desired version $desiredVersion successfully."
             break
           fi
           if [ "$elapsed" -ge "$reconcileTimeoutSecs" ]; then
-            # Pull the full status description and reason so a stuck reconcile is diagnosable
-            # from the pipeline log instead of just a bare code. Two distinct failure modes:
+            # Two distinct failure modes, both diagnosable from the values already read above:
             #  - reportedVersion never reached desiredVersion => edgeAgent never picked up the
             #    deployment (twin write lost, agent down, or hub connectivity issue).
             #  - reportedVersion matched but code stayed non-200 => deployment applied but a
             #    module is unhealthy (bad image ref, crash loop, pull failure).
-            reportedDescription=$(az iot hub module-twin show --auth-type login --device-id "$deviceId" --module-id '$edgeAgent' --hub-name "$hubName" --query 'properties.reported.lastDesiredStatus.description' --output tsv 2>/dev/null)
             echo "----- edgeAgent reconcile timeout diagnostics for $deviceId -----"
             echo "desired version : $desiredVersion"
             echo "reported version: $reportedVersion"

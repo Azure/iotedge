@@ -152,16 +152,16 @@ stages:
     - LockAgents
     - RunNestedTests
   jobs:
-  # TEMP (investigation, not for merge): capture support bundles from ALL levels (L3/L4/L5)
-  # after the test stage, so the L4/L5 edgeHub/relayer logs are available to debug
-  # RouteMessageL3LeafToL4Module. Runs before Clean_images so containers/logs still exist.
+  # Capture support bundles from the upper nested levels (L4/L5) after the test stage,
+  # so the L4/L5 edgeHub/relayer logs are available to debug nested routing failures
+  # (for example RouteMessageL3LeafToL4Module). The existing per-test teardown already
+  # publishes L3, so L3 is intentionally omitted here. Runs before Clean_images so
+  # containers/logs still exist.
   - job: Collect_Nested_Bundles
     displayName: Collect nested support bundles
     condition: always()
     strategy:
       matrix:
-        L3:
-          level: 3
         L4:
           level: 4
         L5:
