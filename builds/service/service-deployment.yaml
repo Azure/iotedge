@@ -4,7 +4,7 @@ pr: none
 trigger: none
 schedules:
 - cron: '0 3 * * *'
-  displayName: Nightly run 1.5 LTS
+  displayName: Nightly run 1.6 LTS
   branches:
     include:
     - main
