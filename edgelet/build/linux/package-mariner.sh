@@ -30,8 +30,8 @@ apt-get install -y \
     llvm-dev make pigz pkg-config python3-distutils python3-pip qemu-utils rpm tar \
     wget zstd
 
-# Install Go 1.23
-GO_VERSION=1.23.0
+# Install Go 1.24
+GO_VERSION=1.24.0
 [ "$ARCH" == 'aarch64' ] && GO_ARCH='arm64' || GO_ARCH='amd64'
 mkdir -p /usr/local/go
 curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" | tar -C /usr/local -xzf -
