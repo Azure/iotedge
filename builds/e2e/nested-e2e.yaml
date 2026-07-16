@@ -220,7 +220,7 @@ stages:
     displayName: Unlock agents
     dependsOn: Clean_images
     condition: always()
-    timeoutInMinutes: 2
+    timeoutInMinutes: 5
     pool:
       name: $(pool.name)
       demands:
@@ -235,7 +235,7 @@ stages:
     displayName: Clean up identities
     dependsOn: Clean_images
     condition: always()
-    timeoutInMinutes: 2
+    timeoutInMinutes: 5
     variables:    
       deviceLvl5DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level5_mqtt.outputs['createIdentity.parentDeviceId'] ] 
       deviceLvl4DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
