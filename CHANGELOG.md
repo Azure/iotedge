@@ -1,3 +1,13 @@
+# 1.5.43 (2026-07-17)
+
+Only Docker images are updated in this release. The daemon remains at version 1.5.21.
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-agent
+* azureiotedge-hub
+* azureiotedge-simulated-temperature-sensor
+* azureiotedge-diagnostics (remains at version 1.5.21 to match the daemon)
+
 # 1.5.42 (2026-06-29)
 
 This release supercedes v.1.5.41. It syncs to a newer commit in 'release/1.5' that contains important changes to our test pipelines. There are no changes to the IoT Edge product code.
