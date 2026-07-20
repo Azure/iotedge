@@ -56,7 +56,7 @@ steps:
     $context = @{
       logFile = Join-Path '$(binDir)' 'testoutput.log';
       eventHubName = '$(eventhub.name)';
-      eventHubFullyQualitifiedNamespace = '$(eventhub.namespace.hostname)';
+      eventHubFullyQualifiedNamespace = '$(eventhub.namespace.hostname)';
       iotHubHostName = '$(iothub.hostname)';
       caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
       rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
