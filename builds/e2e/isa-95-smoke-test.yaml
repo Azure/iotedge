@@ -77,8 +77,8 @@ stages:
           artifactName: iotedged-ubuntu24.04-amd64
         arm64:
           arch: ARM64
-          identityArtifactName: aziot-identity-ubuntu22.04-aarch64
-          artifactName: iotedged-ubuntu22.04-aarch64
+          identityArtifactName: aziot-identity-ubuntu24.04-aarch64
+          artifactName: iotedged-ubuntu24.04-aarch64
     variables:
       level: 5
       upstreamProtocol: amqp
@@ -145,8 +145,8 @@ stages:
           parentDeviceId: $(x64ParentDeviceId)
         arm64:
           arch: ARM64
-          identityArtifactName: aziot-identity-ubuntu22.04-aarch64
-          artifactName: iotedged-ubuntu22.04-aarch64
+          identityArtifactName: aziot-identity-ubuntu24.04-aarch64
+          artifactName: iotedged-ubuntu24.04-aarch64
           parentName: $(arm64ParentName)
           parentDeviceId: $(arm64ParentDeviceId)
     pool:
@@ -206,8 +206,8 @@ stages:
           parentDeviceId: $(x64ParentDeviceId)
         arm64:
           arch: ARM64
-          identityArtifactName: aziot-identity-ubuntu22.04-aarch64
-          artifactName: iotedged-ubuntu22.04-aarch64
+          identityArtifactName: aziot-identity-ubuntu24.04-aarch64
+          artifactName: iotedged-ubuntu24.04-aarch64
           parentName: $(arm64ParentName)
           parentDeviceId: $(arm64ParentDeviceId)
     pool:
@@ -327,7 +327,7 @@ stages:
           containerRegistryServer: '$(containerRegistryServer)'
           containerRegistryUsername: '$(containerRegistryUsername)'
           eventHubName: '$(eventhub.name)'
-          eventHubFullyQualitifiedNamespace: '$(eventhub.namespace.fqdn)'
+          eventHubFullyQualifiedNamespace: '$(eventhub.namespace.fqdn)'
           iotHubHostName: '$(iothub.hostname)'
           rootCaCertificate: '$(rootCaCertificate)'
           rootCaKey: '$(rootCaKey)'
