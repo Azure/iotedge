@@ -41,8 +41,17 @@ jobs:
       dotnet test \
         --configuration $(configuration) \
         --filter 'Category=Unit' \
+        --logger trx
+    displayName: Build and run core unit tests
+  - script: |
+      ResourceID='some-resource-id' \
+      LogAnalyticsWorkspaceId='some-workspace-id' \
+      LogAnalyticsSharedKey='some-shared-key' \
+      dotnet test \
+        --configuration $(configuration) \
         --logger trx \
-    displayName: Build and run unit tests
+        edge-modules/metrics-collector
+    displayName: Build and run metrics collector unit tests
   - task: PublishTestResults@2
     displayName: Publish Test Results
     inputs:
