@@ -87,11 +87,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     async Task<int> GetEventHubPartitionCountAsync()
                     {
                         await using var consumer = new EventHubConsumerClient(
-                        EventHubConsumerClient.DefaultConsumerGroupName,
-                        this.eventHubNamespace,
-                        this.eventHubName,
-                        this.credential,
-                        consumerOptions);
+                            EventHubConsumerClient.DefaultConsumerGroupName,
+                            this.eventHubNamespace,
+                            this.eventHubName,
+                            this.credential,
+                            consumerOptions);
 
                         string[] partitionIds = await consumer.GetPartitionIdsAsync();
                         return partitionIds.Length;
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // identity and recreate so the repro run isn't blocked by leftover state.
                 Log.Warning($"Device identity '{device.Id}' already exists; deleting orphaned identity and recreating.");
                 await this.RegistryManager.RemoveDeviceAsync(device.Id, token);
-            return await this.RegistryManager.AddDeviceAsync(device, token);
+                return await this.RegistryManager.AddDeviceAsync(device, token);
             }
         }
 
