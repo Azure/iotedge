@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class IotHub
     {
+        readonly AzureCliCredential credential;
         readonly string eventHubName;
         readonly string eventHubNamespace;
         readonly Lazy<Task<int>> eventHubPartitionCount;
@@ -27,8 +28,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly Lazy<ServiceClient> serviceClient;
         static readonly TimeSpan eventHubRequestDuration = TimeSpan.FromSeconds(20);
 
+        static AzureCliCredential CreateAzureCliCredential()
+        {
+            if (OsPlatform.IsArm() && OsPlatform.Is32Bit())
+            {
+                return new AzureCliCredential(new AzureCliCredentialOptions
+                {
+                    ProcessTimeout = TimeSpan.FromSeconds(60)
+                });
+            }
+
+            return new AzureCliCredential();
+        }
+
         public IotHub(string iotHubHostname, string eventHubName, string eventHubNamespace, Option<Uri> proxyUri)
         {
+            this.credential = IotHub.CreateAzureCliCredential();
             this.eventHubName = eventHubName;
             this.eventHubNamespace = eventHubNamespace;
             this.iotHubHostname = iotHubHostname;
@@ -41,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     proxy.ForEach(p => settings.Proxy = p);
                     return RegistryManager.Create(
                         this.iotHubHostname,
-                        new AzureCliCredential(),
+                        this.credential,
                         settings);
                 });
 
@@ -52,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     proxy.ForEach(p => settings.HttpProxy = p);
                     return ServiceClient.Create(
                         this.iotHubHostname,
-                        new AzureCliCredential(),
+                        this.credential,
                         DeviceTransportType.Amqp_WebSocket_Only,
                         settings);
                 });
@@ -72,11 +87,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     async Task<int> GetEventHubPartitionCountAsync()
                     {
                         await using var consumer = new EventHubConsumerClient(
-                            EventHubConsumerClient.DefaultConsumerGroupName,
-                            this.eventHubNamespace,
-                            this.eventHubName,
-                            new AzureCliCredential(),
-                            consumerOptions);
+                        EventHubConsumerClient.DefaultConsumerGroupName,
+                        this.eventHubNamespace,
+                        this.eventHubName,
+                        this.credential,
+                        consumerOptions);
 
                         string[] partitionIds = await consumer.GetPartitionIdsAsync();
                         return partitionIds.Length;
@@ -108,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // identity and recreate so the repro run isn't blocked by leftover state.
                 Log.Warning($"Device identity '{device.Id}' already exists; deleting orphaned identity and recreating.");
                 await this.RegistryManager.RemoveDeviceAsync(device.Id, token);
-                return await this.RegistryManager.AddDeviceAsync(device, token);
+            return await this.RegistryManager.AddDeviceAsync(device, token);
             }
         }
 
@@ -240,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 EventPosition.FromEnqueuedTime(seekTime),
                 this.eventHubNamespace,
                 this.eventHubName,
-                new AzureCliCredential());
+                this.credential);
 
             var result = new TaskCompletionSource<bool>();
             using (token.Register(() => result.TrySetCanceled()))
