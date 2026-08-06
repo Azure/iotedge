@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public class ConnectionManager : IConnectionManager
     {
         const int DefaultMaxClients = 101; // 100 Clients + 1 Edgehub
+        static readonly TimeSpan DefaultCloudConnectionRetryInterval = TimeSpan.FromSeconds(5);
         readonly object deviceConnLock = new object();
         readonly AsyncReaderWriterLock connectToCloudLock = new AsyncReaderWriterLock();
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
@@ -30,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IIdentityProvider identityProvider;
         readonly IDeviceConnectivityManager connectivityManager;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
+        readonly TimeSpan cloudConnectionRetryInterval;
+        readonly ISystemTime systemTime;
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
@@ -38,12 +41,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IDeviceConnectivityManager connectivityManager,
             int maxClients = DefaultMaxClients,
             bool closeCloudConnectionOnDeviceDisconnect = true)
+            : this(
+                cloudConnectionProvider,
+                credentialsCache,
+                identityProvider,
+                connectivityManager,
+                maxClients,
+                closeCloudConnectionOnDeviceDisconnect,
+                DefaultCloudConnectionRetryInterval,
+                SystemTime.Instance)
+        {
+        }
+
+        internal ConnectionManager(
+            ICloudConnectionProvider cloudConnectionProvider,
+            ICredentialsCache credentialsCache,
+            IIdentityProvider identityProvider,
+            IDeviceConnectivityManager connectivityManager,
+            int maxClients,
+            bool closeCloudConnectionOnDeviceDisconnect,
+            TimeSpan cloudConnectionRetryInterval,
+            ISystemTime systemTime)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.connectivityManager = Preconditions.CheckNotNull(connectivityManager, nameof(connectivityManager));
+            this.cloudConnectionRetryInterval = cloudConnectionRetryInterval >= TimeSpan.Zero
+                ? cloudConnectionRetryInterval
+                : throw new ArgumentOutOfRangeException(nameof(cloudConnectionRetryInterval));
+            this.systemTime = Preconditions.CheckNotNull(systemTime, nameof(systemTime));
             this.connectivityManager.DeviceDisconnected += (o, args) => this.HandleDeviceCloudConnectionDisconnected();
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
         }
@@ -91,27 +119,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<Option<ICloudProxy>> GetCloudConnection(string id)
         {
-            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnectionInternal(id);
+            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnectionInternal(id, false);
             return cloudProxyTry
                 .Ok()
-                .Map(c => (ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnectionInternal(id), c));
+                .Map(c => (ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnectionInternal(id, true), c));
         }
 
         public async Task<Try<ICloudProxy>> TryGetCloudConnection(string id)
         {
-            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnectionInternal(id);
+            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnectionInternal(id, false);
             return cloudProxyTry.Success
-                ? Try.Success((ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnectionInternal(id), cloudProxyTry.Value))
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnectionInternal(id, true), cloudProxyTry.Value))
                 : cloudProxyTry;
         }
 
-        async Task<Try<ICloudProxy>> TryGetCloudConnectionInternal(string id)
+        async Task<Try<ICloudProxy>> TryGetCloudConnectionInternal(string id, bool isRetry)
         {
             IIdentity identity = this.identityProvider.Create(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
-                c => this.ConnectToCloud(c.Identity, this.CloudConnectionStatusChangedHandler));
+                c => this.ConnectToCloud(c.Identity, this.CloudConnectionStatusChangedHandler),
+                isRetry);
 
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
@@ -221,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.NewCloudConnection(credentials.Identity, newCloudConnection);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(newCloudConnection, credentials.Identity);
             return cloudProxyTry.Success
-                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnectionInternal(credentials.Identity.Id), cloudProxyTry.Value))
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnectionInternal(credentials.Identity.Id, true), cloudProxyTry.Value))
                 : cloudProxyTry;
         }
 
@@ -235,11 +264,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // instance to this.devices and return that.
             ConnectedDevice device = this.GetOrCreateConnectedDevice(credentials.Identity);
 
-            Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection((c) => this.CreateOrUpdateCloudConnection(c, credentials));
+            Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
+                c => this.CreateOrUpdateCloudConnection(c, credentials),
+                false);
             Events.GetCloudConnection(credentials.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, credentials.Identity);
             return cloudProxyTry.Success
-                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnectionInternal(credentials.Identity.Id), cloudProxyTry.Value))
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnectionInternal(credentials.Identity.Id, true), cloudProxyTry.Value))
                 : cloudProxyTry;
         }
 
@@ -388,7 +419,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return this.devices.AddOrUpdate(
                 deviceId,
                 id => this.CreateNewConnectedDevice(identity),
-                (id, cd) => new ConnectedDevice(identity, cd.CloudConnection, cd.DeviceConnection));
+                (id, cd) => new ConnectedDevice(
+                    identity,
+                    cd.CloudConnection,
+                    cd.DeviceConnection,
+                    this.cloudConnectionRetryInterval,
+                    this.systemTime));
         }
 
         ConnectedDevice CreateNewConnectedDevice(IIdentity identity)
@@ -400,7 +436,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     throw new EdgeHubConnectionException($"Edge hub already has maximum allowed clients ({this.maxClients - 1}) connected.");
                 }
 
-                return new ConnectedDevice(identity);
+                return new ConnectedDevice(identity, this.cloudConnectionRetryInterval, this.systemTime);
             }
         }
 
@@ -426,18 +462,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // so using traditional locking mechanism for those.
             readonly object deviceProxyLock = new object();
             readonly AsyncLock cloudConnectionLock = new AsyncLock();
+            readonly TimeSpan cloudConnectionRetryInterval;
+            readonly ISystemTime systemTime;
             Option<Task<Try<ICloudConnection>>> cloudConnectionCreateTask = Option.None<Task<Try<ICloudConnection>>>();
+            Option<DateTime> cloudConnectionCreateCompletedTime = Option.None<DateTime>();
+            bool cloudConnectionCreateWasRetry;
 
-            public ConnectedDevice(IIdentity identity)
-                : this(identity, Option.None<ICloudConnection>(), Option.None<DeviceConnection>())
+            public ConnectedDevice(IIdentity identity, TimeSpan cloudConnectionRetryInterval, ISystemTime systemTime)
+                : this(
+                    identity,
+                    Option.None<ICloudConnection>(),
+                    Option.None<DeviceConnection>(),
+                    cloudConnectionRetryInterval,
+                    systemTime)
             {
             }
 
-            public ConnectedDevice(IIdentity identity, Option<ICloudConnection> cloudProxy, Option<DeviceConnection> deviceConnection)
+            public ConnectedDevice(
+                IIdentity identity,
+                Option<ICloudConnection> cloudProxy,
+                Option<DeviceConnection> deviceConnection,
+                TimeSpan cloudConnectionRetryInterval,
+                ISystemTime systemTime)
             {
                 this.Identity = identity;
                 this.CloudConnection = cloudProxy;
                 this.DeviceConnection = deviceConnection;
+                this.cloudConnectionRetryInterval = cloudConnectionRetryInterval;
+                this.systemTime = systemTime;
             }
 
             public IIdentity Identity { get; }
@@ -465,7 +517,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // Lock in case multiple connections are created to the cloud for the same device at the same time
                 using (await this.cloudConnectionLock.LockAsync())
                 {
-                    Try<ICloudConnection> newCloudConnection = await cloudConnectionUpdater(this);
+                    Task<Try<ICloudConnection>> updateTask = cloudConnectionUpdater(this);
+                    this.cloudConnectionCreateTask = Option.Some(updateTask);
+                    this.cloudConnectionCreateWasRetry = false;
+                    Try<ICloudConnection> newCloudConnection;
+                    try
+                    {
+                        newCloudConnection = await updateTask;
+                    }
+                    finally
+                    {
+                        this.cloudConnectionCreateCompletedTime = Option.Some(this.systemTime.UtcNow);
+                    }
+
                     if (newCloudConnection.Success)
                     {
                         this.CloudConnection = Option.Some(newCloudConnection.Value);
@@ -476,7 +540,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             public async Task<Try<ICloudConnection>> GetOrCreateCloudConnection(
-                Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionCreator)
+                Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionCreator,
+                bool isRetry)
             {
                 Preconditions.CheckNotNull(cloudConnectionCreator, nameof(cloudConnectionCreator));
 
@@ -496,13 +561,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                                 .GetOrElse(
                                                     async () =>
                                                     {
-                                                        return await this.cloudConnectionCreateTask.Filter(c => !c.IsCompleted)
+                                                        bool retryIntervalElapsed = this.cloudConnectionCreateCompletedTime
+                                                            .Map(t => this.systemTime.UtcNow - t >= this.cloudConnectionRetryInterval)
+                                                            .GetOrElse(true);
+                                                        return await this.cloudConnectionCreateTask.Filter(
+                                                                c => !c.IsCompleted || this.cloudConnectionCreateWasRetry && !retryIntervalElapsed)
                                                             .GetOrElse(
                                                                 async () =>
                                                                 {
                                                                     Task<Try<ICloudConnection>> createTask = cloudConnectionCreator(this);
                                                                     this.cloudConnectionCreateTask = Option.Some(createTask);
-                                                                    Try<ICloudConnection> cloudConnectionResult = await createTask;
+                                                                    this.cloudConnectionCreateWasRetry = isRetry;
+                                                                    Try<ICloudConnection> cloudConnectionResult;
+                                                                    try
+                                                                    {
+                                                                        cloudConnectionResult = await createTask;
+                                                                    }
+                                                                    finally
+                                                                    {
+                                                                        this.cloudConnectionCreateCompletedTime = Option.Some(this.systemTime.UtcNow);
+                                                                    }
+
                                                                     this.CloudConnection = cloudConnectionResult.Ok();
                                                                     return cloudConnectionResult;
                                                                 });

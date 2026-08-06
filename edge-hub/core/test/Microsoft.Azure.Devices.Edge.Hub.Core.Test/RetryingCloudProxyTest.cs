@@ -93,7 +93,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object, deviceConnectivityManager);
+            var connectionManager = CreateConnectionManagerWithoutCloudConnectionRetryDelay(
+                connectionProvider,
+                credentialsCache.Object,
+                identityProvider.Object,
+                deviceConnectivityManager);
             var messagesToSend = new List<IMessage>();
             for (int i = 0; i < 10; i++)
             {
@@ -200,7 +204,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object, deviceConnectivityManager);
+            var connectionManager = CreateConnectionManagerWithoutCloudConnectionRetryDelay(
+                connectionProvider,
+                credentialsCache.Object,
+                identityProvider.Object,
+                deviceConnectivityManager);
 
             // Act
             Option<ICloudProxy> cloudProxyOption = await connectionManager.GetCloudConnection(Id);
@@ -291,7 +299,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            var connectionManager = new ConnectionManager(connectionProvider, credentialsCache.Object, identityProvider.Object, deviceConnectivityManager);
+            var connectionManager = CreateConnectionManagerWithoutCloudConnectionRetryDelay(
+                connectionProvider,
+                credentialsCache.Object,
+                identityProvider.Object,
+                deviceConnectivityManager);
 
             async Task<ICloudProxy> GetCloudProxy(IConnectionManager cm)
             {
@@ -348,6 +360,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(expectedMessageIds.Count, receivedMessageIds.Count);
             Assert.Equal(expectedMessageIds, receivedMessageIds);
         }
+
+        static ConnectionManager CreateConnectionManagerWithoutCloudConnectionRetryDelay(
+            ICloudConnectionProvider connectionProvider,
+            ICredentialsCache credentialsCache,
+            IIdentityProvider identityProvider,
+            IDeviceConnectivityManager deviceConnectivityManager) =>
+            new ConnectionManager(
+                connectionProvider,
+                credentialsCache,
+                identityProvider,
+                deviceConnectivityManager,
+                101,
+                true,
+                TimeSpan.Zero,
+                SystemTime.Instance);
 
         static async Task RunSendMessages(ICloudProxy cloudProxy, IEnumerable<IMessage> messages, int batchSize = 1)
         {

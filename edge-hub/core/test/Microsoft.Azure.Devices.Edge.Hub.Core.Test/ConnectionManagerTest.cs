@@ -574,6 +574,62 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         [Unit]
+        public async Task GetCloudConnectionReusesRecentInactiveConnectionCreation()
+        {
+            const string DeviceId = "device1";
+            const int OperationCount = 200;
+            TimeSpan retryInterval = TimeSpan.FromSeconds(5);
+            DateTime now = new DateTime(2026, 8, 6, 0, 0, 0, DateTimeKind.Utc);
+            var systemTime = new Mock<ISystemTime>();
+            systemTime.SetupGet(t => t.UtcNow).Returns(() => now);
+
+            var cloudProxy = Mock.Of<ICloudProxy>(p => !p.IsActive);
+            Mock.Get(cloudProxy)
+                .Setup(p => p.SendMessageAsync(It.IsAny<IMessage>()))
+                .ThrowsAsync(new ObjectDisposedException("cloud proxy"));
+            var cloudConnection = Mock.Of<ICloudConnection>(
+                c => !c.IsActive && c.CloudProxy == Option.Some(cloudProxy));
+            var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
+            cloudConnectionProvider
+                .Setup(c => c.Connect(It.Is<IIdentity>(i => i.Id == DeviceId), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .ReturnsAsync(Try.Success(cloudConnection));
+
+            var connectionManager = new ConnectionManager(
+                cloudConnectionProvider.Object,
+                Mock.Of<ICredentialsCache>(),
+                GetIdentityProvider(),
+                Mock.Of<IDeviceConnectivityManager>(),
+                101,
+                true,
+                retryInterval,
+                systemTime.Object);
+
+            Option<ICloudProxy> initialCloudProxy = await connectionManager.GetCloudConnection(DeviceId);
+            Assert.True(initialCloudProxy.HasValue);
+
+            IMessage message = Mock.Of<IMessage>();
+            Task<ObjectDisposedException>[] operations = Enumerable.Range(0, OperationCount)
+                .Select(
+                    _ => Assert.ThrowsAsync<ObjectDisposedException>(
+                        () => initialCloudProxy.OrDefault().SendMessageAsync(message)))
+                .ToArray();
+            await Task.WhenAll(operations);
+
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Exactly(2));
+
+            now += retryInterval;
+            await Assert.ThrowsAsync<ObjectDisposedException>(
+                () => initialCloudProxy.OrDefault().SendMessageAsync(message));
+
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Exactly(3));
+        }
+
+        [Fact]
+        [Unit]
         public async Task CreateCloudProxyTest()
         {
             string edgeDeviceId = "edgeDevice";
