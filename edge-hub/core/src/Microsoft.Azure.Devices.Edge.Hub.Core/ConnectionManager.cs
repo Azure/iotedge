@@ -656,8 +656,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         if (createTask != null && connectionGeneration == this.cloudConnectionCreateGeneration)
                         {
                             reuseCreateTask = !createTask.IsCompleted
-                                || this.shouldThrottleCloudConnectionCreation
-                                && !this.CloudConnectionRetryIntervalElapsed();
+                                || (this.shouldThrottleCloudConnectionCreation
+                                    && !this.CloudConnectionRetryIntervalElapsed());
                             if (reuseCreateTask && createTask.IsCompleted)
                             {
                                 Events.ReusingRecentCloudConnectionAttempt(this.Identity, this.cloudConnectionRetryInterval);
