@@ -270,6 +270,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var transportSettings =
                 new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
             var receivedStatuses = new List<CloudConnectionStatus>();
+            var retryDelayEntered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseRetryDelay = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var messageConverterProvider = new MessageConverterProvider(
                 new Dictionary<Type, IMessageConverter>
                 {
@@ -287,19 +289,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 TimeSpan.FromSeconds(50),
                 DummyProductInfo,
-                Option.None<string>());
+                Option.None<string>(),
+                () =>
+                {
+                    retryDelayEntered.TrySetResult(true);
+                    return releaseRetryDelay.Task;
+                });
             Assert.NotNull(tokenProvider);
 
             Task<string> getTokenTask = tokenProvider.GetTokenAsync(Option.None<TimeSpan>());
             Assert.Single(receivedStatuses);
             await cloudConnection.UpdateTokenAsync(credentials);
-            await Task.Delay(TimeSpan.FromSeconds(1));
+            await retryDelayEntered.Task;
             Assert.True(cloudConnection.HasPendingTokenUpdate);
 
             cloudConnection.CancelTokenUpdate();
+            releaseRetryDelay.TrySetResult(true);
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => getTokenTask);
-            await Task.Delay(TimeSpan.FromSeconds(20));
             Assert.Single(receivedStatuses);
             Assert.False(cloudConnection.HasPendingTokenUpdate);
         }

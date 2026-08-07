@@ -366,16 +366,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ICloudConnectionProvider connectionProvider,
             ICredentialsCache credentialsCache,
             IIdentityProvider identityProvider,
-            IDeviceConnectivityManager deviceConnectivityManager) =>
-            new ConnectionManager(
+            IDeviceConnectivityManager deviceConnectivityManager)
+        {
+            var monotonicClock = Stopwatch.StartNew();
+            return new ConnectionManager(
                 connectionProvider,
                 credentialsCache,
                 identityProvider,
                 deviceConnectivityManager,
-                101,
-                true,
+                maxClients: 101,
+                closeCloudConnectionOnDeviceDisconnect: true,
                 TimeSpan.Zero,
-                Stopwatch.GetTimestamp);
+                () => monotonicClock.Elapsed);
+        }
 
         static async Task RunSendMessages(ICloudProxy cloudProxy, IEnumerable<IMessage> messages, int batchSize = 1)
         {

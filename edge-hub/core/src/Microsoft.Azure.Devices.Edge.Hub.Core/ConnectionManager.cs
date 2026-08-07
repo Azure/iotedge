@@ -24,6 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         const int DefaultMaxClients = 101; // 100 Clients + 1 Edgehub
         static readonly TimeSpan DefaultCloudConnectionRetryInterval = TimeSpan.FromSeconds(5);
+
+        // Retry throttling must not be skewed by wall-clock jumps, so it is measured against a
+        // process-wide monotonic clock.
+        static readonly Stopwatch MonotonicClock = Stopwatch.StartNew();
+
         readonly object deviceConnLock = new object();
         readonly AsyncReaderWriterLock connectToCloudLock = new AsyncReaderWriterLock();
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
@@ -34,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IDeviceConnectivityManager connectivityManager;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
         readonly TimeSpan cloudConnectionRetryInterval;
-        readonly Func<long> getTimestamp;
+        readonly Func<TimeSpan> getMonotonicTime;
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
@@ -51,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 maxClients,
                 closeCloudConnectionOnDeviceDisconnect,
                 DefaultCloudConnectionRetryInterval,
-                Stopwatch.GetTimestamp)
+                () => MonotonicClock.Elapsed)
         {
         }
 
@@ -63,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             int maxClients,
             bool closeCloudConnectionOnDeviceDisconnect,
             TimeSpan cloudConnectionRetryInterval,
-            Func<long> getTimestamp)
+            Func<TimeSpan> getMonotonicTime)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
@@ -73,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.cloudConnectionRetryInterval = cloudConnectionRetryInterval >= TimeSpan.Zero
                 ? cloudConnectionRetryInterval
                 : throw new ArgumentOutOfRangeException(nameof(cloudConnectionRetryInterval));
-            this.getTimestamp = Preconditions.CheckNotNull(getTimestamp, nameof(getTimestamp));
+            this.getMonotonicTime = Preconditions.CheckNotNull(getMonotonicTime, nameof(getMonotonicTime));
             this.connectivityManager.DeviceDisconnected += (o, args) => this.HandleDeviceCloudConnectionDisconnected();
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
         }
@@ -108,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task RemoveDeviceConnection(string id)
         {
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
-                ? this.RemoveDeviceConnection(device, this.closeCloudConnectionOnDeviceDisconnect)
+                ? this.RemoveDeviceConnection(device, removeCloudConnection: this.closeCloudConnectionOnDeviceDisconnect)
                 : Task.CompletedTask;
         }
 
@@ -292,7 +297,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             if (removeCloudConnection)
             {
                 await device.RemoveCloudConnection(
-                    throttleReconnect,
+                    throttleReconnect: throttleReconnect,
                     preserveConnection: throttleReconnect);
             }
 
@@ -354,26 +359,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                     Try<ICloudConnection> cloudConnectionTry = await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, tokenCredentials));
                                     if (!cloudConnectionTry.Success)
                                     {
-                                        await this.RemoveDeviceConnection(device, true, true);
+                                        await this.RemoveDeviceConnection(device, removeCloudConnection: true, throttleReconnect: true);
                                         this.CloudConnectionLost?.Invoke(this, device.Identity);
                                     }
                                 }
                                 else
                                 {
-                                    await this.RemoveDeviceConnection(device, this.closeCloudConnectionOnDeviceDisconnect);
+                                    await this.RemoveDeviceConnection(device, removeCloudConnection: this.closeCloudConnectionOnDeviceDisconnect);
                                 }
                             });
                     }
                     else
                     {
-                        await this.RemoveDeviceConnection(device, true, true);
+                        await this.RemoveDeviceConnection(device, removeCloudConnection: true, throttleReconnect: true);
                         this.CloudConnectionLost?.Invoke(this, device.Identity);
                     }
 
                     break;
 
                 case CloudConnectionStatus.DisconnectedTokenExpired:
-                    await this.RemoveDeviceConnection(device, true, true);
+                    await this.RemoveDeviceConnection(device, removeCloudConnection: true, throttleReconnect: true);
                     Events.InvokingCloudConnectionLostEvent(device.Identity);
                     this.CloudConnectionLost?.Invoke(this, device.Identity);
                     break;
@@ -442,7 +447,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     throw new EdgeHubConnectionException($"Edge hub already has maximum allowed clients ({this.maxClients - 1}) connected.");
                 }
 
-                return new ConnectedDevice(identity, this.cloudConnectionRetryInterval, this.getTimestamp);
+                return new ConnectedDevice(identity, this.cloudConnectionRetryInterval, this.getMonotonicTime);
             }
         }
 
@@ -464,6 +469,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         class ConnectedDevice
         {
+            // Generation parity is the removal flag: even means the cloud connection state is stable,
+            // odd means a removal is in progress. A connection attempt captures the generation it
+            // started under and may only publish its result while that generation is still current,
+            // so any interleaving removal discards it.
+            const long RemovalInProgressBit = 1;
+
             // Device Proxy methods are sync coming from the Protocol gateway,
             // so using traditional locking mechanism for those.
             readonly object deviceProxyLock = new object();
@@ -471,40 +482,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             readonly AsyncLock cloudConnectionLock = new AsyncLock();
             readonly AsyncLock cloudConnectionRemovalLock = new AsyncLock();
             readonly TimeSpan cloudConnectionRetryInterval;
-            readonly Func<long> getTimestamp;
+            readonly Func<TimeSpan> getMonotonicTime;
             ICloudConnection cloudConnection;
             ICloudConnection preservedCloudConnection;
             DeviceConnection deviceConnection;
             IIdentity identity;
             Task<Try<ICloudConnection>> cloudConnectionCreateTask;
             long cloudConnectionCreateGeneration;
-            long cloudConnectionCreateCompletedTimestamp;
             long cloudConnectionGeneration;
-            bool hasCloudConnectionCreateCompletedTimestamp;
+            TimeSpan? cloudConnectionCreateCompletedTime;
             bool shouldThrottleCloudConnectionCreation;
 
-            public ConnectedDevice(IIdentity identity, TimeSpan cloudConnectionRetryInterval, Func<long> getTimestamp)
-                : this(
-                    identity,
-                    Option.None<ICloudConnection>(),
-                    Option.None<DeviceConnection>(),
-                    cloudConnectionRetryInterval,
-                    getTimestamp)
-            {
-            }
-
-            public ConnectedDevice(
-                IIdentity identity,
-                Option<ICloudConnection> cloudProxy,
-                Option<DeviceConnection> deviceConnection,
-                TimeSpan cloudConnectionRetryInterval,
-                Func<long> getTimestamp)
+            public ConnectedDevice(IIdentity identity, TimeSpan cloudConnectionRetryInterval, Func<TimeSpan> getMonotonicTime)
             {
                 this.identity = identity;
-                this.cloudConnection = cloudProxy.OrDefault();
-                this.deviceConnection = deviceConnection.OrDefault();
                 this.cloudConnectionRetryInterval = cloudConnectionRetryInterval;
-                this.getTimestamp = getTimestamp;
+                this.getMonotonicTime = getMonotonicTime;
             }
 
             public IIdentity Identity => Volatile.Read(ref this.identity);
@@ -570,7 +563,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Func<ConnectedDevice, Task<Try<ICloudConnection>>> cloudConnectionUpdater)
             {
                 Preconditions.CheckNotNull(cloudConnectionUpdater, nameof(cloudConnectionUpdater));
-                await this.WaitForCloudConnectionRemoval();
+                await this.WaitForPendingCloudConnectionRemoval();
                 // Lock in case multiple connections are created to the cloud for the same device at the same time
                 using (await this.cloudConnectionLock.LockAsync())
                 {
@@ -597,9 +590,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             }
                             else
                             {
-                                this.RecordCloudConnectionAttemptCore(
+                                this.RecordFailedCloudConnectionAttemptCore(
                                     Task.FromResult(newCloudConnection),
-                                    true,
                                     connectionGeneration);
                             }
                         }
@@ -642,7 +634,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         }
                     }
 
-                    bool reuseCreateTask = false;
+                    TaskCompletionSource<Try<ICloudConnection>> createTaskSource = null;
+                    bool replacesExistingConnection = false;
                     lock (this.cloudConnectionStateLock)
                     {
                         connectionGeneration = Volatile.Read(ref this.cloudConnectionGeneration);
@@ -652,6 +645,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 new EdgeHubConnectionException($"Cloud connection for device {this.Identity.Id} is being removed."));
                         }
 
+                        bool reuseCreateTask = false;
                         createTask = this.cloudConnectionCreateTask;
                         if (createTask != null && connectionGeneration == this.cloudConnectionCreateGeneration)
                         {
@@ -666,13 +660,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                         if (!reuseCreateTask)
                         {
-                            bool replacesExistingConnection = this.CloudConnectionForUpdate.HasValue;
+                            replacesExistingConnection = this.CloudConnectionForUpdate.HasValue;
+                            // Publish the placeholder under the lock so concurrent callers join this attempt,
+                            // but run the caller-supplied creator only after the lock is released.
+                            createTaskSource = new TaskCompletionSource<Try<ICloudConnection>>(
+                                TaskCreationOptions.RunContinuationsAsynchronously);
+                            createTask = createTaskSource.Task;
                             Volatile.Write(ref this.cloudConnectionCreateGeneration, connectionGeneration);
-                            createTask = this.CreateCloudConnection(
-                                cloudConnectionCreator,
-                                replacesExistingConnection,
-                                connectionGeneration);
                             Volatile.Write(ref this.cloudConnectionCreateTask, createTask);
+                        }
+                    }
+
+                    if (createTaskSource != null)
+                    {
+                        try
+                        {
+                            createTaskSource.SetResult(
+                                await this.CreateCloudConnection(
+                                    cloudConnectionCreator,
+                                    replacesExistingConnection,
+                                    connectionGeneration));
+                        }
+                        catch (Exception ex)
+                        {
+                            createTaskSource.SetException(ex);
                         }
                     }
 
@@ -721,12 +732,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     if (displacedPreservedConnection != null
                         && !ReferenceEquals(displacedPreservedConnection, cloudConnectionResult.Value))
                     {
-                        if (displacedPreservedConnection is IClientTokenCloudConnection clientTokenCloudConnection)
-                        {
-                            clientTokenCloudConnection.CancelTokenUpdate();
-                        }
-
-                        await displacedPreservedConnection.CloseAsync();
+                        await CancelTokenUpdateAndCloseAsync(displacedPreservedConnection);
                     }
 
                     return cloudConnectionResult;
@@ -737,8 +743,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         if (this.IsCloudConnectionGenerationValid(connectionGeneration))
                         {
-                            this.cloudConnectionCreateCompletedTimestamp = this.getTimestamp();
-                            this.hasCloudConnectionCreateCompletedTimestamp = true;
+                            this.cloudConnectionCreateCompletedTime = this.getMonotonicTime();
                             if (createTask == null || createTask.IsFaulted || createTask.IsCanceled)
                             {
                                 this.shouldThrottleCloudConnectionCreation = true;
@@ -748,7 +753,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
-            async Task WaitForCloudConnectionRemoval()
+            // Barrier: acquiring and immediately releasing the removal lock guarantees that a removal
+            // already in flight has published its final generation and throttle state before the caller
+            // reads them. The lock is deliberately not held across the caller's work, because a cloud
+            // callback raised during that work can itself trigger a removal and would deadlock on it.
+            async Task WaitForPendingCloudConnectionRemoval()
             {
                 using (await this.cloudConnectionRemovalLock.LockAsync())
                 {
@@ -757,19 +766,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             bool CloudConnectionRetryIntervalElapsed()
             {
-                if (!this.hasCloudConnectionCreateCompletedTimestamp)
+                if (!this.cloudConnectionCreateCompletedTime.HasValue)
                 {
                     return true;
                 }
 
-                long elapsedTimestamp = this.getTimestamp() - this.cloudConnectionCreateCompletedTimestamp;
-                return elapsedTimestamp < 0
-                    || elapsedTimestamp >= this.cloudConnectionRetryInterval.TotalSeconds * Stopwatch.Frequency;
+                TimeSpan elapsed = this.getMonotonicTime() - this.cloudConnectionCreateCompletedTime.Value;
+                return elapsed < TimeSpan.Zero || elapsed >= this.cloudConnectionRetryInterval;
             }
 
-            void RecordCloudConnectionAttemptCore(
+            void RecordFailedCloudConnectionAttemptCore(
                 Task<Try<ICloudConnection>> createTask,
-                bool shouldThrottle,
                 long connectionGeneration)
             {
                 if (!this.IsCloudConnectionGenerationValid(connectionGeneration))
@@ -779,9 +786,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 Volatile.Write(ref this.cloudConnectionCreateGeneration, connectionGeneration);
                 Volatile.Write(ref this.cloudConnectionCreateTask, createTask);
-                this.cloudConnectionCreateCompletedTimestamp = this.getTimestamp();
-                this.hasCloudConnectionCreateCompletedTimestamp = true;
-                this.shouldThrottleCloudConnectionCreation = shouldThrottle;
+                this.cloudConnectionCreateCompletedTime = this.getMonotonicTime();
+                this.shouldThrottleCloudConnectionCreation = true;
             }
 
             void ResetCloudConnectionRetryStateCore(long connectionGeneration)
@@ -793,8 +799,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 Volatile.Write(ref this.cloudConnectionCreateGeneration, connectionGeneration);
                 Volatile.Write(ref this.cloudConnectionCreateTask, null);
-                this.cloudConnectionCreateCompletedTimestamp = 0;
-                this.hasCloudConnectionCreateCompletedTimestamp = false;
+                this.cloudConnectionCreateCompletedTime = null;
                 this.shouldThrottleCloudConnectionCreation = false;
             }
 
@@ -808,7 +813,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     var supersededCloudConnections = new List<ICloudConnection>(1);
                     lock (this.cloudConnectionStateLock)
                     {
-                        Interlocked.Increment(ref this.cloudConnectionGeneration);
+                        this.BeginCloudConnectionRemoval();
                         ICloudConnection activeCloudConnection =
                             Interlocked.Exchange(ref this.cloudConnection, null);
                         if (activeCloudConnection != null)
@@ -900,10 +905,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     {
                         lock (this.cloudConnectionStateLock)
                         {
-                            long stableGeneration = Volatile.Read(ref this.cloudConnectionGeneration) + 1;
+                            long stableGeneration = this.NextStableCloudConnectionGeneration();
                             Volatile.Write(ref this.cloudConnectionCreateGeneration, stableGeneration);
-                            this.cloudConnectionCreateCompletedTimestamp = this.getTimestamp();
-                            this.hasCloudConnectionCreateCompletedTimestamp = throttleReconnect;
+                            this.cloudConnectionCreateCompletedTime = throttleReconnect
+                                ? this.getMonotonicTime()
+                                : (TimeSpan?)null;
                             this.shouldThrottleCloudConnectionCreation = throttleReconnect;
                             Volatile.Write(
                                 ref this.cloudConnectionCreateTask,
@@ -913,14 +919,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                             new EdgeHubConnectionException(
                                                 $"Cloud connection for device {this.Identity.Id} was removed after a cloud failure.")))
                                     : null);
-                            Interlocked.Increment(ref this.cloudConnectionGeneration);
+                            this.CompleteCloudConnectionRemoval();
                         }
                     }
                 }
             }
 
+            static bool IsStableGeneration(long generation) => (generation & RemovalInProgressBit) == 0;
+
+            // Cancelling first is what makes the close final: an in-flight token update would otherwise
+            // hand back a live client for a connection the caller has already discarded.
+            static async Task CancelTokenUpdateAndCloseAsync(ICloudConnection cloudConnection)
+            {
+                if (cloudConnection is IClientTokenCloudConnection clientTokenCloudConnection)
+                {
+                    clientTokenCloudConnection.CancelTokenUpdate();
+                }
+
+                await cloudConnection.CloseAsync();
+            }
+
+            void BeginCloudConnectionRemoval() => Interlocked.Increment(ref this.cloudConnectionGeneration);
+
+            void CompleteCloudConnectionRemoval() => Interlocked.Increment(ref this.cloudConnectionGeneration);
+
+            // Only valid while a removal is in progress: the generation is odd, so the next increment
+            // restores the stable generation that post-removal connection attempts will run under.
+            long NextStableCloudConnectionGeneration() => Volatile.Read(ref this.cloudConnectionGeneration) + 1;
+
             bool IsCloudConnectionGenerationValid(long connectionGeneration) =>
-                (connectionGeneration & 1) == 0
+                IsStableGeneration(connectionGeneration)
                 && connectionGeneration == Volatile.Read(ref this.cloudConnectionGeneration);
 
             async Task<Try<ICloudConnection>> DiscardInvalidatedCloudConnection(
@@ -936,12 +964,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         ref this.preservedCloudConnection,
                         null,
                         cloudConnection.Value);
-                    if (cloudConnection.Value is IClientTokenCloudConnection clientTokenCloudConnection)
-                    {
-                        clientTokenCloudConnection.CancelTokenUpdate();
-                    }
-
-                    await cloudConnection.Value.CloseAsync();
+                    await CancelTokenUpdateAndCloseAsync(cloudConnection.Value);
                 }
 
                 return Try<ICloudConnection>.Failure(

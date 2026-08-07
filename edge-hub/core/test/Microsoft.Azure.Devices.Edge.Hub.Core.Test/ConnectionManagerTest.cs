@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
@@ -580,7 +579,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             const string DeviceId = "device1";
             const int OperationCount = 200;
             TimeSpan retryInterval = TimeSpan.FromSeconds(5);
-            long timestamp = 0;
+            TimeSpan monotonicTime = TimeSpan.Zero;
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider
                 .Setup(c => c.Connect(It.Is<IIdentity>(i => i.Id == DeviceId), It.IsAny<Action<string, CloudConnectionStatus>>()))
@@ -591,10 +590,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ICredentialsCache>(),
                 GetIdentityProvider(),
                 Mock.Of<IDeviceConnectivityManager>(),
-                101,
-                true,
+                maxClients: 101,
+                closeCloudConnectionOnDeviceDisconnect: true,
                 retryInterval,
-                () => timestamp);
+                () => monotonicTime);
 
             Task<Option<ICloudProxy>>[] operations = Enumerable.Range(0, OperationCount)
                 .Select(_ => connectionManager.GetCloudConnection(DeviceId))
@@ -606,7 +605,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
                 Times.Once);
 
-            timestamp += (long)(retryInterval.TotalSeconds * Stopwatch.Frequency);
+            monotonicTime += retryInterval;
             Option<ICloudProxy> resultAfterRetryInterval = await connectionManager.GetCloudConnection(DeviceId);
 
             Assert.False(resultAfterRetryInterval.HasValue);
@@ -622,7 +621,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             const string DeviceId = "device1";
             const int OperationCount = 200;
             TimeSpan retryInterval = TimeSpan.FromSeconds(5);
-            long timestamp = 0;
+            TimeSpan monotonicTime = TimeSpan.Zero;
             bool initialConnectionActive = true;
 
             var initialCloudProxy = new Mock<ICloudProxy>();
@@ -666,10 +665,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ICredentialsCache>(),
                 GetIdentityProvider(),
                 Mock.Of<IDeviceConnectivityManager>(),
-                101,
-                true,
+                maxClients: 101,
+                closeCloudConnectionOnDeviceDisconnect: true,
                 retryInterval,
-                () => timestamp);
+                () => monotonicTime);
 
             Option<ICloudProxy> cloudProxy = await connectionManager.GetCloudConnection(DeviceId);
             Assert.True(cloudProxy.HasValue);
@@ -687,7 +686,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
                 Times.Exactly(2));
 
-            timestamp += (long)(retryInterval.TotalSeconds * Stopwatch.Frequency);
+            monotonicTime += retryInterval;
             await Assert.ThrowsAsync<EdgeHubIOException>(
                 () => cloudProxy.OrDefault().SendMessageAsync(message));
 
@@ -809,7 +808,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             const string DeviceId = "device1";
             const int OperationCount = 200;
             TimeSpan retryInterval = TimeSpan.FromSeconds(5);
-            long timestamp = 0;
+            TimeSpan monotonicTime = TimeSpan.Zero;
             Action<string, CloudConnectionStatus> statusChangedHandler = null;
             var connectionRemoved = new TaskCompletionSource<bool>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
@@ -848,10 +847,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 Mock.Of<ICredentialsCache>(),
                 GetIdentityProvider(),
                 Mock.Of<IDeviceConnectivityManager>(),
-                101,
-                true,
+                maxClients: 101,
+                closeCloudConnectionOnDeviceDisconnect: true,
                 retryInterval,
-                () => timestamp);
+                () => monotonicTime);
 
             Option<ICloudProxy> initialCloudProxy = await connectionManager.GetCloudConnection(DeviceId);
             Assert.True(initialCloudProxy.HasValue);

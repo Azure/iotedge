@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         static readonly TimeSpan TokenRetryWaitTime = TimeSpan.FromSeconds(20);
 
         readonly AsyncLock identityUpdateLock = new AsyncLock();
+        readonly Func<Task> tokenRetryDelay;
 
         bool callbacksEnabled = true;
         TaskCompletionSource<string> tokenGetter;
@@ -40,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan operationTimeout,
             TimeSpan cloudConnectionHangingTimeout,
             string productInfo,
-            Option<string> modelId)
+            Option<string> modelId,
+            Func<Task> tokenRetryDelay)
             : base(
                 identity,
                 connectionStatusChangedHandler,
@@ -55,11 +57,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 productInfo,
                 modelId)
         {
+            this.tokenRetryDelay = tokenRetryDelay;
         }
 
         protected override bool CallbacksEnabled => this.callbacksEnabled;
 
-        public static async Task<ClientTokenCloudConnection> Create(
+        public static Task<ClientTokenCloudConnection> Create(
             ITokenCredentials tokenCredentials,
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
             ITransportSettings[] transportSettings,
@@ -72,8 +75,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan cloudConnectionHangingTimeout,
             string productInfo,
             Option<string> modelId)
+            => Create(
+                tokenCredentials,
+                connectionStatusChangedHandler,
+                transportSettings,
+                messageConverterProvider,
+                clientProvider,
+                cloudListener,
+                idleTimeout,
+                closeOnIdleTimeout,
+                operationTimeout,
+                cloudConnectionHangingTimeout,
+                productInfo,
+                modelId,
+                () => Task.Delay(TokenRetryWaitTime));
+
+        internal static async Task<ClientTokenCloudConnection> Create(
+            ITokenCredentials tokenCredentials,
+            Action<string, CloudConnectionStatus> connectionStatusChangedHandler,
+            ITransportSettings[] transportSettings,
+            IMessageConverterProvider messageConverterProvider,
+            IClientProvider clientProvider,
+            ICloudListener cloudListener,
+            TimeSpan idleTimeout,
+            bool closeOnIdleTimeout,
+            TimeSpan operationTimeout,
+            TimeSpan cloudConnectionHangingTimeout,
+            string productInfo,
+            Option<string> modelId,
+            Func<Task> tokenRetryDelay)
         {
             Preconditions.CheckNotNull(tokenCredentials, nameof(tokenCredentials));
+            Preconditions.CheckNotNull(tokenRetryDelay, nameof(tokenRetryDelay));
             var cloudConnection = new ClientTokenCloudConnection(
                 tokenCredentials.Identity,
                 connectionStatusChangedHandler,
@@ -86,7 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 operationTimeout,
                 cloudConnectionHangingTimeout,
                 productInfo,
-                modelId);
+                modelId,
+                tokenRetryDelay);
             ITokenProvider tokenProvider = new ClientTokenBasedTokenProvider(tokenCredentials, cloudConnection);
             ICloudProxy cloudProxy = await cloudConnection.CreateNewCloudProxyAsync(tokenProvider);
             cloudConnection.cloudProxy = Option.Some(cloudProxy);
@@ -94,17 +128,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         }
 
         /// <summary>
-        /// This method does the following -
-        ///     1. Updates the Identity to be used for the cloud connection
-        ///     2. Updates the cloud proxy -
-        ///         i. If there is an existing device client and
-        ///             a. If is waiting for an updated token, and the Identity has a token,
-        ///                then it uses that to give it to the waiting client authentication method.
-        ///             b. If not, then it creates a new cloud proxy (and device client) and closes the existing one
-        ///         ii. Else, if there is no cloud proxy, then opens a device client and creates a cloud proxy.
+        /// Applies new token credentials to the cloud connection.
         /// </summary>
+        /// <remarks>
+        /// A pending token request reuses the existing proxy. Otherwise, a replacement proxy opens
+        /// before the existing proxy closes so invalid credentials do not disrupt an active connection.
+        /// </remarks>
         /// <param name="newTokenCredentials">New token credentials.</param>
-        /// <returns>task of ICloudProxy interface.</returns>
+        /// <returns>The active cloud proxy.</returns>
         public async Task<ICloudProxy> UpdateTokenAsync(ITokenCredentials newTokenCredentials)
         {
             Preconditions.CheckNotNull(newTokenCredentials, nameof(newTokenCredentials));
@@ -203,12 +234,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         }
 
         /// <summary>
-        /// If the existing Identity has a usable token, then use it.
-        /// Else, generate a notification of token being near expiry and return a task that
-        /// can be completed later.
-        /// Keep retrying till we get a usable token.
-        /// Note - Don't use this.Identity in this method, as it may not have been set yet!
+        /// Returns the supplied token when usable; otherwise, requests replacement tokens until one is usable.
         /// </summary>
+        /// <remarks>
+        /// Token validation uses the supplied value because the connection identity may not yet contain
+        /// the latest credentials.
+        /// </remarks>
+        /// <param name="currentToken">The token to validate first.</param>
+        /// <returns>A usable token.</returns>
+        /// <exception cref="OperationCanceledException">Token updates have been canceled.</exception>
         async Task<string> GetNewToken(string currentToken)
         {
             Events.GetNewToken(this.Identity.Id);
@@ -216,8 +250,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             string token = currentToken;
             while (true)
             {
-                // We have to catch UnauthorizedAccessException, because on IsTokenUsable, we call parse from
-                // Device Client and it throws if the token is expired.
                 if (IsTokenUsable(this.Identity.IotHubHostname, token))
                 {
                     if (retrying)
@@ -231,19 +263,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                     return token;
                 }
-                else
-                {
-                    Events.TokenNotUsable(this.Identity, token);
-                }
 
-                bool newTokenGetterCreated = false;
-                if (Volatile.Read(ref this.tokenUpdatesCanceled) != 0)
-                {
-                    throw new OperationCanceledException(
-                        $"Token updates for client {this.Identity.Id} have been canceled.");
-                }
+                Events.TokenNotUsable(this.Identity, token);
 
-                // No need to lock here as the lock is being held by the refresher.
+                bool tokenGetterPublished = false;
+                this.ThrowIfTokenUpdatesCanceled(cancelPublishedWaiter: false);
                 TaskCompletionSource<string> tcs = Volatile.Read(ref this.tokenGetter);
                 if (tcs == null)
                 {
@@ -256,40 +280,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     if (tcs == null)
                     {
                         tcs = taskCompletionSource;
-                        newTokenGetterCreated = true;
+                        tokenGetterPublished = true;
                     }
                 }
 
-                if (Volatile.Read(ref this.tokenUpdatesCanceled) != 0)
-                {
-                    this.CancelTokenUpdate();
-                    throw new OperationCanceledException(
-                        $"Token updates for client {this.Identity.Id} have been canceled.");
-                }
+                this.ThrowIfTokenUpdatesCanceled(cancelPublishedWaiter: true);
 
-                // If a new tokenGetter was created, then invoke the connection status changed handler
-                if (newTokenGetterCreated)
+                if (tokenGetterPublished)
                 {
-                    // If retrying, wait for some time.
                     if (retrying)
                     {
-                        await Task.Delay(TokenRetryWaitTime);
+                        await this.tokenRetryDelay();
                     }
 
-                    if (Volatile.Read(ref this.tokenUpdatesCanceled) != 0)
-                    {
-                        this.CancelTokenUpdate();
-                        throw new OperationCanceledException(
-                            $"Token updates for client {this.Identity.Id} have been canceled.");
-                    }
-
+                    this.ThrowIfTokenUpdatesCanceled(cancelPublishedWaiter: true);
                     this.ConnectionStatusChangedHandler(this.Identity.Id, CloudConnectionStatus.TokenNearExpiry);
                 }
 
                 retrying = true;
-                // this.tokenGetter will be reset when this task returns.
                 token = await tcs.Task;
             }
+        }
+
+        void ThrowIfTokenUpdatesCanceled(bool cancelPublishedWaiter)
+        {
+            if (Volatile.Read(ref this.tokenUpdatesCanceled) == 0)
+            {
+                return;
+            }
+
+            if (cancelPublishedWaiter)
+            {
+                Interlocked.Exchange(ref this.tokenGetter, null)?.TrySetCanceled();
+            }
+
+            throw new OperationCanceledException(
+                $"Token updates for client {this.Identity.Id} have been canceled.");
         }
 
         class ClientTokenBasedTokenProvider : ITokenProvider
