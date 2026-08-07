@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Net;
     using System.Threading;
@@ -374,7 +375,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 101,
                 true,
                 TimeSpan.Zero,
-                SystemTime.Instance);
+                Stopwatch.GetTimestamp);
 
         static async Task RunSendMessages(ICloudProxy cloudProxy, IEnumerable<IMessage> messages, int batchSize = 1)
         {
