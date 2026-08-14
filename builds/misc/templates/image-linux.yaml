@@ -56,5 +56,6 @@ steps:
         --registry '$(registry.address)' \
         --repo-src 'microsoft/${{ parameters.name }}' \
         --repo-dst 'deleteme/${{ parameters.name }}' \
-        --tag '${{ parameters.version }}'
+        --tag '${{ parameters.version }}' \
+        --tags-add '[]'
     displayName: REMOVE ME - copy ${{ parameters.displayName }} to another repo
