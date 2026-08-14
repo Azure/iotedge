@@ -50,13 +50,3 @@ steps:
         --registry '$(registry.address)' \
         --version '${{ parameters.version }}'
     displayName: Build Image - ${{ parameters.displayName }}
-
-  - script: |
-      scripts/linux/copy-multi-platform-image.sh \
-        --registry '$(registry.address)' \
-        --repo-src 'microsoft/${{ parameters.name }}' \
-        --repo-dst 'deleteme/${{ parameters.name }}' \
-        --tag '${{ parameters.version }}' \
-        --tags-add '[]'
-    condition: and(succeeded(), ne(variables['System.JobName'], 'BuildImageFunctionsSample'))
-    displayName: REMOVE ME - copy ${{ parameters.displayName }} to another repo
