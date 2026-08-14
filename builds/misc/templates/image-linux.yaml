@@ -58,4 +58,5 @@ steps:
         --repo-dst 'deleteme/${{ parameters.name }}' \
         --tag '${{ parameters.version }}' \
         --tags-add '[]'
+    condition: and(succeeded(), ne(variables['System.JobName'], 'BuildImageFunctionsSample'))
     displayName: REMOVE ME - copy ${{ parameters.displayName }} to another repo
