@@ -216,7 +216,7 @@ echo "> docker info"
 docker info
 echo "--------------------"
 echo "> BUILDX_* and BUILDKIT_* environment variables"
-env | grep -E '^(BUILDX|BUILDKIT)_' | sort
+env | awk '/^(BUILDX|BUILDKIT)_/' | sort
 echo "--------------------"
 
 echo "Building and pushing image '$IMAGE'"
