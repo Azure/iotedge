@@ -198,10 +198,28 @@ process_args $@
 DOCKERFILE="$APP_BINARIESDIRECTORY/docker/linux/Dockerfile"
 IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION"
 
-echo "Building and pushing image '$IMAGE'"
-
 docker buildx create --use --bootstrap
 trap "docker buildx rm" EXIT
+
+# Dump docker version and config information to help with debugging
+echo "--------------------"
+echo "> docker version"
+docker version
+echo "--------------------"
+echo "> docker buildx version"
+docker buildx version
+echo "--------------------"
+echo "> docker buildx inspect --bootstrap"
+docker buildx inspect --bootstrap
+echo "--------------------"
+echo "> docker info"
+docker info
+echo "--------------------"
+echo "> BUILDX_* and BUILDKIT_* environment variables"
+env | awk '/^(BUILDX|BUILDKIT)_/' | sort
+echo "--------------------"
+
+echo "Building and pushing image '$IMAGE'"
 
 if [[ "$APP" == 'api-proxy-module' ]]; then
     # First, build each platform-specific image from a separate Dockerfile. This will create
