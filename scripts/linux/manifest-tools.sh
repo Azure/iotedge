@@ -341,7 +341,7 @@ get_manifest_digests() {
 # Outputs
 #   TOKEN           Unchanged if set by caller, otherwise it will contain a valid bearer token
 #
-copy_layers() {
+copy_blobs() {
     # Ensure the manifest has a mediaType we understand
     local media_type=$(echo "$MANIFEST" | jq -r '.mediaType')
     if [[ "$media_type" != 'application/vnd.oci.image.manifest.v1+json' ]] &&
@@ -352,12 +352,14 @@ copy_layers() {
 
     __get_token_with_scope "repository:$REPO_SRC:pull repository:$REPO_DST:pull,push"
 
-    # Parse the layer digests from the manifest
-    local digests=( $(echo "$MANIFEST" | jq -r '.. | objects | select(has("digest")) | .digest') )
+    # Parse the config and layer blob digests from the manifest
+    local digests=(
+        $(echo "$MANIFEST" | jq -r '.config.digest // empty,(.layers // [])[]?.digest // empty')
+    )
 
     local digest
     for digest in ${digests[@]}; do
-        # Check if the layer already exists at the destination
+        # Check if the blob already exists at the destination
         local result=$(curl \
             --head \
             --header "Authorization: Bearer $TOKEN" \
@@ -369,7 +371,7 @@ copy_layers() {
         local status=$(echo "$result" | tail -n 1)
         result="$(echo "$result" | head -n -1)"
         if [[ "$status" == 200 ]]; then
-            echo "Layer $REGISTRY/$REPO_DST@$digest already exists"
+            echo "Blob $REGISTRY/$REPO_DST@$digest already exists"
         elif [[ "$status" == 404 ]]; then
             # If the layer doesn't already exist, copy it
             result=$(curl \
@@ -384,15 +386,15 @@ copy_layers() {
             status=$(echo "$result" | tail -n 1)
             result="$(echo "$result" | head -n -1)"
             if [[ "$status" != 201 ]]; then
-                echo "Failed to copy layer to '$REGISTRY/$REPO_DST@$digest'," \
+                echo "Failed to copy blob to '$REGISTRY/$REPO_DST@$digest'," \
                     "status=$status, details="
                 echo "$result"
                 return 1
             fi
 
-            echo "Pushed layer $REGISTRY/$REPO_DST@$digest"
-        else [[ "$status" != 200 ]]
-            echo "Failed to check existence of layer '$REGISTRY/$REPO_DST@$digest'," \
+            echo "Pushed blob $REGISTRY/$REPO_DST@$digest"
+        else
+            echo "Failed to check existence of blob '$REGISTRY/$REPO_DST@$digest'," \
                 "status=$status, details="
             echo "$result"
             return 1
@@ -467,10 +469,10 @@ copy_manifests() {
 
         if [[ -n "$dst_repo" ]] && [[ "$dst_repo" != "$REPOSITORY" ]]; then
             # If we're copying to a different repository, always push the manifest. But first, we
-            # might also need to copy the layers referenced in each manifest.
+            # might also need to copy the config/layer blobs referenced in each manifest.
             REFERENCE="$digest" pull_manifest
             local manifest="$OUTPUTS"
-            MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$dst_repo" copy_layers
+            MANIFEST="$manifest" REPO_SRC="$REPOSITORY" REPO_DST="$dst_repo" copy_blobs
             MANIFEST="$manifest" REPOSITORY="$dst_repo" REFERENCE="${tag:-$digest}" push_manifest
         elif [[ -n "$tag" ]]; then
             # If we're copying within the same repository, we only need to push tags, not digests
