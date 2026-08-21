@@ -10,12 +10,9 @@ set -e
 # Define Environment Variables
 ###############################################################################
 # Get directory of running script
-DIR=$(cd "$(dirname "$0")" && pwd)
-
+PROJECT_ROOT=$(cd "$(dirname "$0")" && pwd)
 SCRIPT_NAME=$(basename "$0")
-BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
-PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}
-
+BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$PROJECT_ROOT/../..}
 IMAGE=api-proxy-module:latest
 
 ###############################################################################
@@ -39,10 +36,19 @@ check_arch()
 {
     if [[ "$ARCH" == "amd64" ]]; then
         ARCH="amd64"
+        ALT_ARCH='amd64'
+        BUILD_OS='alpine'
+        TARGET='x86_64-unknown-linux-musl'
     elif [[ "$ARCH" == "arm32v7" ]]; then
         ARCH="arm32v7"
+        ALT_ARCH='arm32v7'
+        BUILD_OS='debian12'
+        TARGET='armv7-unknown-linux-gnueabihf'
     elif [[ "$ARCH" == "aarch64" ]]; then
         ARCH="aarch64"
+        ALT_ARCH='arm64v8'
+        BUILD_OS='debian12'
+        TARGET='aarch64-unknown-linux-gnu'
     else
         echo "Unsupported architecture"
         exit 1
@@ -82,30 +88,15 @@ check_arch
 # Build
 ###############################################################################
 
-echo ${PROJECT_ROOT}
+echo "$BUILD_REPOSITORY_LOCALPATH"
 
-
-
-if [[ "$ARCH" == "amd64" ]]; then
 set +e
-../../scripts/linux/cross-platform-rust-build.sh --os alpine --arch $ARCH --build-path edge-modules/api-proxy-module
+$BUILD_REPOSITORY_LOCALPATH/scripts/linux/cross-platform-rust-build.sh \
+    --os $BUILD_OS \
+    --arch $ARCH \
+    --build-path edge-modules/api-proxy-module
 set -e
 
-cp -r ./templates/ ./docker/linux/amd64
-cp -r ./target/x86_64-unknown-linux-musl/release/api-proxy-module ./docker/linux/amd64
-docker build . -t  azureiotedge-api-proxy -f docker/linux/amd64/Dockerfile
-elif [[ "$ARCH" == "arm32v7" ]]; then
-
-docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src messense/rust-musl-cross:armv7-musleabihf  /bin/bash -c " rm -frv ~/.rustup/toolchains/* &&curl -sSLf https://sh.rustup.rs | sh -s -- -y && rustup target add armv7-unknown-linux-musleabihf && cargo build --target=armv7-unknown-linux-musleabihf --release --manifest-path /home/rust/src/edge-modules/api-proxy-module/Cargo.toml"
-cp -r ./templates/ ./docker/linux/arm32v7
-cp -r ./target/armv7-unknown-linux-musleabihf/release/api-proxy-module ./docker/linux/arm32v7
-docker build . -t  azureiotedge-api-proxy -f docker/linux/arm32v7/Dockerfile
-elif [[ "$ARCH" == "aarch64" ]]; then
-set +e
-../../scripts/linux/cross-platform-rust-build.sh --os alpine --arch $ARCH --build-path edge-modules/api-proxy-module
-set -e
-
-cp -r ./templates/ ./docker/linux/arm64v8
-cp -r ./target/aarch64-unknown-linux-gnu/release/api-proxy-module ./docker/linux/arm64v8
-docker build . -t  azureiotedge-api-proxy -f docker/linux/arm64v8/Dockerfile
-fi
+cp -r $PROJECT_ROOT/templates/ $PROJECT_ROOT/docker/linux/$ALT_ARCH
+cp -r $PROJECT_ROOT/target/$TARGET/release/api-proxy-module $PROJECT_ROOT/docker/linux/$ALT_ARCH
+docker build $PROJECT_ROOT --tag $IMAGE --file $PROJECT_ROOT/docker/linux/$ALT_ARCH/Dockerfile
