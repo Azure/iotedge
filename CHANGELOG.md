@@ -1,3 +1,8 @@
+# 1.6.2 (2026-08-25)
+
+## Edge Hub
+* Fix Edge Hub MQTT/TLS failures ( [55353a6](https://github.com/Azure/iotedge/commit/55353a649ea9d624a684428fab2d925a81bcda07) )
+
 # 1.6.1 (2026-08-12)
 
 Only Docker images are updated in this release. The daemon remains at version 1.6.0.
