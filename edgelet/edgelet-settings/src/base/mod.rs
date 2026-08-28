@@ -25,6 +25,8 @@ pub trait RuntimeSettings {
 
     fn allow_elevated_docker_permissions(&self) -> bool;
 
+    fn allowed_bind_sources(&self) -> &[std::path::PathBuf];
+
     fn iotedge_max_requests(&self) -> &IotedgeMaxRequests;
 
     fn agent(&self) -> &module::Settings<Self::ModuleConfig>;
@@ -104,6 +106,9 @@ pub struct Settings<ModuleConfig> {
     #[serde(default = "default_allow_elevated_docker_permissions")]
     pub allow_elevated_docker_permissions: bool,
 
+    #[serde(default)]
+    pub allowed_bind_sources: Vec<std::path::PathBuf>,
+
     #[serde(default, skip_serializing_if = "IotedgeMaxRequests::is_default")]
     pub iotedge_max_requests: IotedgeMaxRequests,
 
@@ -181,6 +186,10 @@ impl<T: Clone> RuntimeSettings for Settings<T> {
 
     fn allow_elevated_docker_permissions(&self) -> bool {
         self.allow_elevated_docker_permissions
+    }
+
+    fn allowed_bind_sources(&self) -> &[std::path::PathBuf] {
+        &self.allowed_bind_sources
     }
 
     fn agent(&self) -> &module::Settings<Self::ModuleConfig> {
