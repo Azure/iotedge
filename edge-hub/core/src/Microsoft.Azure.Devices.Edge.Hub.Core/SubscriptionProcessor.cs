@@ -79,11 +79,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 : RecoveryMaxBackoff;
         }
 
-        static Task ExecuteWithRetry(Func<Task> func, Action<RetryingEventArgs> onRetry)
+        static Task ExecuteWithRetry(Func<Task> func, Action<RetryingEventArgs> onRetry, CancellationToken cancellationToken)
         {
             var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
             transientRetryPolicy.Retrying += (_, args) => onRetry(args);
-            return transientRetryPolicy.ExecuteAsync(func);
+            return transientRetryPolicy.ExecuteAsync(func, cancellationToken);
         }
 
         async Task<bool> ProcessSubscriptionWithRetry(string id, ICloudProxy cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
@@ -97,8 +97,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         {
                             Metrics.AddRetryOperation(id, addSubscription ? "AddSubscription" : "RemoveSubscription");
                             Events.ErrorProcessingSubscription(id, deviceSubscription, addSubscription, r);
-                        });
+                        },
+                    this.shutdownToken);
                 return true;
+            }
+            catch (OperationCanceledException) when (this.shutdownToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -205,6 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     try
                     {
                         Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
+                        this.shutdownToken.ThrowIfCancellationRequested();
                         if (cloudProxy.HasValue)
                         {
                             retry = !await this.ApplySubscriptions(id, cloudProxy.OrDefault());
@@ -215,9 +221,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             retry = true;
                         }
                     }
-                    catch (Exception ex) when (!ex.IsFatal())
+                    catch (Exception ex) when (!ex.IsFatal() && !(ex is OperationCanceledException && this.shutdownToken.IsCancellationRequested))
                     {
-                        Events.ErrorProcessingSubscriptions(ex);
+                        Events.ErrorProcessingSubscriptions(ex, id);
                         retry = true;
                     }
 
@@ -251,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                Events.ErrorProcessingSubscriptions(ex);
+                Events.ErrorProcessingSubscriptions(ex, id);
                 if (state.Abort())
                 {
                     this.Signal(id);
@@ -348,14 +354,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             public static void ErrorProcessingSubscriptions(Exception ex, IIdentity identity)
+                => ErrorProcessingSubscriptions(ex, identity.Id);
+
+            public static void ErrorProcessingSubscriptions(Exception ex, string id)
             {
                 if (ex.HasTimeoutException())
                 {
-                    Log.LogDebug((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Timed out while processing subscriptions for client {identity.Id}. Will try again when connected."));
+                    Log.LogDebug((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Timed out while processing subscriptions for client {id}. Will try again when connected."));
                 }
                 else
                 {
-                    Log.LogWarning((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Error processing subscriptions for client {identity.Id}."));
+                    Log.LogWarning((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Error processing subscriptions for client {id}."));
                 }
             }
 
@@ -404,7 +413,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             internal static void ErrorProcessingSubscriptions(Exception e)
             {
-                Log.LogWarning((int)EventIds.ProcessingSubscription, e, Invariant($"Error processing subscriptions for connected clients."));
+                Log.LogWarning((int)EventIds.ErrorProcessingSubscriptions, e, Invariant($"Error processing subscriptions for connected clients."));
             }
 
             public static void ClientConnectedToCloudProcessingSubscriptions(IIdentity identity)

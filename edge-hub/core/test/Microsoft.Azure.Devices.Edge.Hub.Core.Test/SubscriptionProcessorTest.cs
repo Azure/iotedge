@@ -837,5 +837,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             cloudProxy.Verify(c => c.SetupCallMethodAsync(), Times.Once);
             cloudProxy.Verify(c => c.RemoveCallMethodAsync(), Times.Once);
         }
+
+        [Fact]
+        public async Task ClientInRecoveryDelayDoesNotBlockAnotherClient()
+        {
+            string unavailableId = "d1/m1";
+            string availableId = "d1/m2";
+            var recoveryStarted = new SemaphoreSlim(0, 1);
+            var subscriptionApplied = new SemaphoreSlim(0, 1);
+            var availableCloudProxy = new Mock<ICloudProxy>();
+            availableCloudProxy.Setup(c => c.SetupDesiredPropertyUpdatesAsync())
+                .Callback(() => subscriptionApplied.Release())
+                .Returns(Task.CompletedTask);
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.AddSubscription(It.IsAny<string>(), It.IsAny<DeviceSubscription>())).Returns(true);
+            connectionManager.Setup(c => c.GetCloudConnection(unavailableId))
+                .Callback(() => recoveryStarted.Release())
+                .ReturnsAsync(Option.None<ICloudProxy>());
+            connectionManager.Setup(c => c.GetDeviceConnection(unavailableId)).Returns(Option.Some(Mock.Of<IDeviceProxy>()));
+            connectionManager.Setup(c => c.GetCloudConnection(availableId)).ReturnsAsync(Option.Some(availableCloudProxy.Object));
+            using var subscriptionProcessor = new SubscriptionProcessor(
+                connectionManager.Object,
+                Mock.Of<IInvokeMethodHandler>(),
+                Mock.Of<IDeviceConnectivityManager>());
+
+            await subscriptionProcessor.AddSubscription(unavailableId, DeviceSubscription.Methods);
+            Assert.True(await recoveryStarted.WaitAsync(TimeSpan.FromSeconds(5)));
+            await subscriptionProcessor.AddSubscription(availableId, DeviceSubscription.DesiredPropertyUpdates);
+
+            Assert.True(await subscriptionApplied.WaitAsync(TimeSpan.FromSeconds(5)));
+        }
+
+        [Fact]
+        public async Task DisposeCancelsRecoveryDelay()
+        {
+            string id = "d1/m1";
+            var recoveryStarted = new SemaphoreSlim(0, 1);
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.AddSubscription(id, DeviceSubscription.Methods)).Returns(true);
+            connectionManager.Setup(c => c.GetCloudConnection(id))
+                .Callback(() => recoveryStarted.Release())
+                .ReturnsAsync(Option.None<ICloudProxy>());
+            connectionManager.Setup(c => c.GetDeviceConnection(id)).Returns(Option.Some(Mock.Of<IDeviceProxy>()));
+            var subscriptionProcessor = new SubscriptionProcessor(
+                connectionManager.Object,
+                Mock.Of<IInvokeMethodHandler>(),
+                Mock.Of<IDeviceConnectivityManager>());
+
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.Methods);
+            Assert.True(await recoveryStarted.WaitAsync(TimeSpan.FromSeconds(5)));
+            subscriptionProcessor.Dispose();
+            await Task.Delay(TimeSpan.FromMilliseconds(1200));
+
+            connectionManager.Verify(c => c.GetCloudConnection(id), Times.Once);
+        }
     }
 }
