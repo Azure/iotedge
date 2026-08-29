@@ -1,3 +1,13 @@
+# Unreleased
+
+## Breaking change: migrated to the Azure Monitor Logs Ingestion API
+
+The Azure Monitor HTTP Data Collector API (and the OMS agent certificate-registration protocol this module previously used) is retiring on 14 September 2026. The `AzureMonitor` upload target now uses the [Logs Ingestion API](https://learn.microsoft.com/azure/azure-monitor/logs/logs-ingestion-api-overview) instead:
+* Removed `LogAnalyticsWorkspaceId` / `LogAnalyticsSharedKey` settings and the certificate-registration/mTLS upload path.
+* Added `DataCollectionEndpoint`, `DataCollectionRuleId`, and `DataCollectionStreamName` settings, pointing at a Data Collection Endpoint and Data Collection Rule.
+* Added AAD authentication via `Azure.Identity`, configurable through `AadClientId`, `AadTenantId`, `AadClientCertificatePath`, and `AadClientCertificatePassword`. Client-secret based auth is not supported; use a certificate-based app registration or ambient credentials (`DefaultAzureCredential`).
+* See [README.md](src/README.md) for setup and configuration details.
+
 # 1.3.1 (2026-08-12)
 
 The following Docker images were updated because their base images changed:

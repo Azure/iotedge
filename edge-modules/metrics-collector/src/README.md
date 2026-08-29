@@ -8,7 +8,11 @@ See ExampleDeployment.json for a complete example deployment manifest.
 
 
 ## Setup Steps:
-If sending data to Log Analytics, then the InsightsMetrics table must be added to your Log Analytics workspace. Follow [these](https://github.com/Microsoft/OMS-docker/blob/ci_feature_prod/docs/solution-onboarding.md) instructions to add the table.
+If sending data to Log Analytics (`UploadTarget=AzureMonitor`), metrics are uploaded via the [Logs Ingestion API](https://learn.microsoft.com/azure/azure-monitor/logs/logs-ingestion-api-overview) (the older HTTP Data Collector API is retired on 14 September 2026). Before deploying this module you must:
+1. Create a Data Collection Endpoint (DCE).
+2. Create (or reuse) a custom table in your Log Analytics workspace with columns matching `Origin`, `Namespace`, `Name`, `Value`, `CollectionTime`, `Tags`, `Computer`.
+3. Create a Data Collection Rule (DCR) associated with the DCE and the destination table, and note its immutable ID and stream name.
+4. Grant the identity used by this module (see the `Authentication` section below) the `Monitoring Metrics Publisher` role on the DCR.
 
 
 ## Configuration:
@@ -23,14 +27,22 @@ Required config items:
     
 
 Optional config items:
-- `LogAnalyticsWorkspaceId`
-    - Log analytics workspace ID
+- `DataCollectionEndpoint`
+    - The Data Collection Endpoint (DCE) URL to ingest logs to.
     - Required if `UploadTarget` is set to `AzureMonitor`
-    - ex: `12345678-1234-1234-1234-123456789abc`
-- `LogAnalyticsSharedKey`
-    - Shared Key for log analytics workspace
+    - ex: `https://my-dce-name.eastus-1.ingest.monitor.azure.com`
+- `DataCollectionRuleId`
+    - The immutable ID of the Data Collection Rule (DCR) that routes data to the destination table.
     - Required if `UploadTarget` is set to `AzureMonitor`
-    - ex: `aHR0cDovL21zaXQubWljcm9zb2Z0c3RyZWFtLmNvbS92aWRlby81ZTRjNGY4Yi01ZjIwLTQ2ODEtOGEwYy00OGE2OWZlNGIxMWY=`
+    - ex: `dcr-00000000000000000000000000000000`
+- `DataCollectionStreamName`
+    - The stream name declared on the DCR for the destination custom table.
+    - Required if `UploadTarget` is set to `AzureMonitor`
+    - ex: `Custom-InsightsMetrics`
+- `AadClientId` / `AadTenantId`
+    - Optional. Identify the app registration/managed identity/workload identity to authenticate as. See the `Authentication` section below.
+- `AadClientCertificatePath` / `AadClientCertificatePassword`
+    - Optional. Path (and password, if the file is password-protected) to a certificate used for certificate-based app registration authentication. See the `Authentication` section below.
 - `MetricsEndpointsCSV`
     - List of endpoints to scrape Prometheus metrics from
     - ex: `http://edgeAgent:9600/metrics,http://MetricsSpewer:9417/metrics`
@@ -66,9 +78,16 @@ Optional config items:
     - ex: `00:12:00`
     - Defaults to every 24 hours
 - `AzureDomain`
-    - Configurable azure domain which is used to construct the log analytics upload address.
-    - ex: `azure.com.cn`
+    - Configurable azure domain which is used to select the AAD authority host (public cloud, Azure Government, or Azure China) for authentication.
+    - ex: `azure.us`
     - Defaults to `azure.com`
+
+## Authentication:
+
+When `UploadTarget` is `AzureMonitor`, the module authenticates to Azure AD to call the Logs Ingestion API. Client secrets are not supported. Two options are available:
+
+- **Certificate-based app registration** (recommended for customers): set `AadClientCertificatePath` (and `AadClientCertificatePassword` if needed) along with `AadClientId` and `AadTenantId`.
+- **Ambient credentials via `DefaultAzureCredential`** (default, used when `AadClientCertificatePath` is not set): picks up, in order, environment credentials (including workload identity federated tokens), managed identity, and an active Azure CLI session. Set `AadClientId`/`AadTenantId` to disambiguate when multiple identities are available (e.g. a specific user-assigned managed identity or workload identity).
 
 ## Upload Target:
 

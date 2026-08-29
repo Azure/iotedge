@@ -8,6 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using global::Azure;
+    using global::Azure.Core;
+    using global::Azure.Monitor.Ingestion;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using System.Net;
@@ -15,14 +18,17 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
 
     public sealed class FixedSetTableUpload : IMetricsPublisher
     {
-        private readonly string workspaceId;
-        private readonly string workspaceKey;
+        private readonly LogsIngestionClient client;
+        private readonly string dataCollectionRuleId;
+        private readonly string streamName;
         private readonly string DNSName;
 
-        public FixedSetTableUpload(string workspaceId, string workspaceKey)
+        public FixedSetTableUpload(string dataCollectionEndpoint, string dataCollectionRuleId, string streamName, TokenCredential credential)
         {
-            this.workspaceId = Preconditions.CheckNonWhiteSpace(workspaceId, nameof(workspaceId));
-            this.workspaceKey = Preconditions.CheckNonWhiteSpace(workspaceKey, nameof(workspaceKey));
+            Preconditions.CheckNonWhiteSpace(dataCollectionEndpoint, nameof(dataCollectionEndpoint));
+            this.dataCollectionRuleId = Preconditions.CheckNonWhiteSpace(dataCollectionRuleId, nameof(dataCollectionRuleId));
+            this.streamName = Preconditions.CheckNonWhiteSpace(streamName, nameof(streamName));
+            this.client = new LogsIngestionClient(new Uri(dataCollectionEndpoint), Preconditions.CheckNotNull(credential, nameof(credential)));
 
             string DNSName = Environment.GetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME");
             if (DNSName == null || String.IsNullOrEmpty(DNSName))
@@ -39,37 +45,29 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             try
             {
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
-                IEnumerable<LaMetric> metricsToUpload = metrics.Select(m => new LaMetric(m, DNSName));
-                LaMetricList metricList = new LaMetricList(metricsToUpload);
+                List<LaMetric> metricsToUpload = metrics.Select(m => new LaMetric(m, DNSName)).ToList();
                 bool success = false;
                 for (int i = 0; i < Constants.UploadMaxRetries && (!success); i++)
                 {
-                    // TODO: split up metricList so that no individual post is greater than 1mb
-                    success = await AzureFixedSetTable.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(metricList), Settings.Current.ResourceId);
+                    // The SDK handles batching/compression of the payload internally.
+                    Response response = await this.client.UploadAsync(this.dataCollectionRuleId, this.streamName, metricsToUpload, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    success = !response.IsError;
+                    if (!success)
+                    {
+                        LoggerUtil.Writer.LogDebug($"Logs ingestion upload failed - status {response.Status}, reason {response.ReasonPhrase}");
+                    }
                 }
 
                 if (success)
-                    LoggerUtil.Writer.LogInformation($"Successfully sent {metricList.DataItems.Count()} metrics to fixed set table");
+                    LoggerUtil.Writer.LogInformation($"Successfully sent {metricsToUpload.Count} metrics to fixed set table");
                 else
-                    LoggerUtil.Writer.LogError($"Failed to send {metricList.DataItems.Count()} metrics to fixed set table after {Constants.UploadMaxRetries} retries");
+                    LoggerUtil.Writer.LogError($"Failed to send {metricsToUpload.Count} metrics to fixed set table after {Constants.UploadMaxRetries} retries");
                 return success;
             }
             catch (Exception e)
             {
                 LoggerUtil.Writer.LogError(e, "Error uploading metrics to fixed set table");
                 return false;
-            }
-        }
-
-        private class LaMetricList
-        {
-            public string DataType => Constants.MetricUploadDataType;
-            public string IPName => Constants.MetricUploadIPName;
-            public IEnumerable<LaMetric> DataItems { get; }
-
-            public LaMetricList(IEnumerable<LaMetric> items)
-            {
-                DataItems = items;
             }
         }
 
@@ -102,3 +100,4 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
         }
     }
 }
+

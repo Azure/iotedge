@@ -56,7 +56,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 IMetricsPublisher publisher;
                 if (Settings.Current.UploadTarget == UploadTarget.AzureMonitor)
                 {
-                    publisher = new FixedSetTableUpload.FixedSetTableUpload(Settings.Current.LogAnalyticsWorkspaceId, Settings.Current.LogAnalyticsWorkspaceKey);
+                    publisher = new FixedSetTableUpload.FixedSetTableUpload(
+                        Settings.Current.DataCollectionEndpoint,
+                        Settings.Current.DataCollectionRuleId,
+                        Settings.Current.DataCollectionStreamName,
+                        FixedSetTableUpload.AadCredentialFactory.Create(Settings.Current));
                 }
                 else
                 {

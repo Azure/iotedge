@@ -19,8 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         public static Settings Information = GetInformation();
 
         private Settings(
-            string logAnalyticsWorkspaceId,
-            string logAnalyticsWorkspaceKey,
+            string dataCollectionEndpoint,
+            string dataCollectionRuleId,
+            string dataCollectionStreamName,
+            string aadClientId,
+            string aadTenantId,
+            string aadClientCertificatePath,
+            string aadClientCertificatePassword,
             string endpoints,
             int scrapeFrequencySecs,
             UploadTarget uploadTarget,
@@ -39,9 +44,18 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             if (this.UploadTarget == UploadTarget.AzureMonitor)
             {
-                this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
-                this.LogAnalyticsWorkspaceKey = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceKey, nameof(logAnalyticsWorkspaceKey));
+                this.DataCollectionEndpoint = Preconditions.CheckNonWhiteSpace(dataCollectionEndpoint, nameof(dataCollectionEndpoint));
+                this.DataCollectionRuleId = Preconditions.CheckNonWhiteSpace(dataCollectionRuleId, nameof(dataCollectionRuleId));
+                this.DataCollectionStreamName = Preconditions.CheckNonWhiteSpace(dataCollectionStreamName, nameof(dataCollectionStreamName));
             }
+
+            // These are all optional. When none are set, DefaultAzureCredential picks up ambient
+            // credentials (workload identity federated token, Azure CLI login, managed identity, etc).
+            // When AadClientCertificatePath is set, a certificate-based app registration is used instead.
+            this.AadClientId = aadClientId;
+            this.AadTenantId = aadTenantId;
+            this.AadClientCertificatePath = aadClientCertificatePath;
+            this.AadClientCertificatePassword = aadClientCertificatePassword;
 
             this.Endpoints = new List<string>();
             foreach (string endpoint in endpoints.Split(","))
@@ -83,8 +97,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     .Build();
 
                 return new Settings(
-                    configuration.GetValue<string>("LogAnalyticsWorkspaceId", null),
-                    configuration.GetValue<string>("LogAnalyticsSharedKey", null),
+                    configuration.GetValue<string>("DataCollectionEndpoint", null),
+                    configuration.GetValue<string>("DataCollectionRuleId", null),
+                    configuration.GetValue<string>("DataCollectionStreamName", null),
+                    configuration.GetValue<string>("AadClientId", null),
+                    configuration.GetValue<string>("AadTenantId", null),
+                    configuration.GetValue<string>("AadClientCertificatePath", null),
+                    configuration.GetValue<string>("AadClientCertificatePassword", null),
                     configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
                     configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
                     configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureMonitor),
@@ -115,8 +134,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             Regex regex = new Regex("(subscriptions\\/)(.*?)(\\/resourceGroups\\/)(.*?)(\\/providers\\/)");
 
             return new Settings(
-                settings.LogAnalyticsWorkspaceId,
-                settings.LogAnalyticsWorkspaceKey,
+                settings.DataCollectionEndpoint,
+                settings.DataCollectionRuleId,
+                settings.DataCollectionStreamName,
+                settings.AadClientId,
+                settings.AadTenantId,
+                settings.AadClientCertificatePath,
+                settings.AadClientCertificatePassword,
                 string.Join(',', settings.Endpoints),
                 settings.ScrapeFrequencySecs,
                 settings.UploadTarget,
@@ -131,9 +155,19 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 settings.AzureDomain);
         }
 
-        public string LogAnalyticsWorkspaceId { get; }
+        public string DataCollectionEndpoint { get; }
 
-        public string LogAnalyticsWorkspaceKey { get; }
+        public string DataCollectionRuleId { get; }
+
+        public string DataCollectionStreamName { get; }
+
+        public string AadClientId { get; }
+
+        public string AadTenantId { get; }
+
+        public string AadClientCertificatePath { get; }
+
+        public string AadClientCertificatePassword { get; }
 
         public List<string> Endpoints { get; }
 
@@ -164,7 +198,12 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         {
             var fields = new Dictionary<string, string>()
             {
-                { nameof(this.LogAnalyticsWorkspaceId), this.LogAnalyticsWorkspaceId ?? string.Empty },
+                { nameof(this.DataCollectionEndpoint), this.DataCollectionEndpoint ?? string.Empty },
+                { nameof(this.DataCollectionRuleId), this.DataCollectionRuleId ?? string.Empty },
+                { nameof(this.DataCollectionStreamName), this.DataCollectionStreamName ?? string.Empty },
+                { nameof(this.AadClientId), this.AadClientId ?? string.Empty },
+                { nameof(this.AadTenantId), this.AadTenantId ?? string.Empty },
+                { nameof(this.AadClientCertificatePath), this.AadClientCertificatePath ?? string.Empty },
                 { nameof(this.Endpoints), JsonConvert.SerializeObject(this.Endpoints, Formatting.Indented) },
                 { nameof(this.ScrapeFrequencySecs), this.ScrapeFrequencySecs.ToString() },
                 { nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget) },

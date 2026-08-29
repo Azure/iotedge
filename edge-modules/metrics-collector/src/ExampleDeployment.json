@@ -40,11 +40,14 @@
               "UploadTarget": {
                 "value": "AzureMonitor"
               },
-              "LogAnalyticsWorkspaceId": {
-                "value": "<log analytics workspace id>"
+              "DataCollectionEndpoint": {
+                "value": "<data collection endpoint URL>"
               },
-              "LogAnalyticsSharedKey": {
-                "value": "<log analytics workspace shared key>"
+              "DataCollectionRuleId": {
+                "value": "<data collection rule immutable id>"
+              },
+              "DataCollectionStreamName": {
+                "value": "<data collection rule stream name, e.g. Custom-InsightsMetrics>"
               },
               "MetricsEndpointsCSV": {
                 "value": "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"
