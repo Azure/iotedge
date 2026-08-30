@@ -1060,7 +1060,7 @@ fn filter_bind_sources(
 
     if remove_case_insensitive_keys(&mut create_options.other_properties, &["HostConfig"]) {
         log::warn!(
-            "Removing ambiguous `HostConfig` from module '{module_name}'. Docker field names cannot differ only by case."
+            "Removing case-insensitive duplicate of Docker field `HostConfig` from module '{module_name}'."
         );
     }
 
@@ -1080,7 +1080,7 @@ fn filter_bind_sources(
         ],
     ) {
         log::warn!(
-            "Removing ambiguous Docker permission fields from module '{module_name}'. Docker field names cannot differ only by case."
+            "Removing case-insensitive duplicate Docker permission fields from module '{module_name}'."
         );
     }
 
@@ -1094,6 +1094,7 @@ fn filter_bind_sources(
                 return false;
             }
             let source = Path::new(source);
+            // A non-absolute source in Binds is a Docker-managed named volume, not a host path.
             if !source.is_absolute() {
                 return true;
             }
@@ -1119,7 +1120,7 @@ fn filter_bind_sources(
                     || property.eq_ignore_ascii_case("Type")
             }) {
                 log::warn!(
-                    "Removing mount with ambiguous source or type from module '{module_name}'. Docker field names cannot differ only by case."
+                    "Removing mount with a case-insensitive duplicate source or type from module '{module_name}'."
                 );
                 return false;
             }
@@ -1158,13 +1159,12 @@ fn filter_bind_sources(
 
     if host_config
         .volumes_from
-        .as_ref()
+        .take()
         .is_some_and(|volumes_from| !volumes_from.is_empty())
     {
         log::warn!(
             "Removing `VolumesFrom` from module '{module_name}'. Inherited volumes can expose disallowed host paths."
         );
-        host_config.volumes_from = None;
     }
 }
 
