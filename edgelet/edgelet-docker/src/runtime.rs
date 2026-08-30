@@ -1094,7 +1094,8 @@ fn filter_bind_sources(
                 return false;
             }
             let source = Path::new(source);
-            // A non-absolute source in Binds is a Docker-managed named volume, not a host path.
+            // A non-absolute source in Binds is interpreted as a Docker volume name,
+            // not as a host filesystem path.
             if !source.is_absolute() {
                 return true;
             }
