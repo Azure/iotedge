@@ -6,6 +6,7 @@ trust_bundle_cert = "aziot-edged-trust-bundle"
 auto_reprovisioning_mode = "OnErrorOnly"
 homedir = "/var/lib/aziot/edged"
 allow_elevated_docker_permissions = true
+allowed_bind_sources = []
 
 [agent]
 name = "edgeAgent"

@@ -41,7 +41,7 @@ mod container_top_response;
 pub use self::container_top_response::ContainerTopResponse;
 
 mod host_config;
-pub use self::host_config::{HostConfig, HostConfigPortBindings};
+pub use self::host_config::{HostConfig, HostConfigPortBindings, Mount};
 
 mod image_summary;
 pub use self::image_summary::ImageSummary;
