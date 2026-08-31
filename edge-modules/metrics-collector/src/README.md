@@ -91,7 +91,7 @@ When `UploadTarget` is `AzureMonitor`, the module authenticates to Azure AD to c
 
 ## Upload Target:
 
-Scrapped metrics can be uploaded directly to Log Analytics (requires outbound internet connectivity, see Adding the InsightsMetrics Table section), or metrics can be published as IoT messages (useful for local consumption).
+Scraped metrics can be uploaded directly to Log Analytics (requires outbound internet connectivity, see Adding the InsightsMetrics Table section), or metrics can be published as IoT messages (useful for local consumption).
 Metrics published as IoT messages are emitted as UTF8-encoded json from the endpoint `/messages/modules/<module name>/outputs/metricOutput`. The format is as follows:
 
 ```
