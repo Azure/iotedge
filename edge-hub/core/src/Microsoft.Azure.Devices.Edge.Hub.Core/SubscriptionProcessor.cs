@@ -209,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     bool retry;
                     try
                     {
-                        Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
+                        Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id).WaitAsync(this.shutdownToken);
                         this.shutdownToken.ThrowIfCancellationRequested();
                         if (cloudProxy.HasValue)
                         {
@@ -360,7 +360,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 if (ex.HasTimeoutException())
                 {
-                    Log.LogDebug((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Timed out while processing subscriptions for client {id}. Will try again when connected."));
+                    Log.LogDebug((int)EventIds.ErrorProcessingSubscriptions, ex, Invariant($"Timed out while processing subscriptions for client {id}. Will retry subscription recovery."));
                 }
                 else
                 {

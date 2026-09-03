@@ -891,5 +891,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             connectionManager.Verify(c => c.GetCloudConnection(id), Times.Once);
         }
+
+        [Fact]
+        public async Task DisposeCancelsPendingCloudConnectionLookup()
+        {
+            string id = "d1/m1";
+            var cloudLookupStarted = new SemaphoreSlim(0, 1);
+            var cloudLookup = new TaskCompletionSource<Option<ICloudProxy>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var cloudProxy = new Mock<ICloudProxy>();
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(c => c.AddSubscription(id, DeviceSubscription.Methods)).Returns(true);
+            connectionManager.Setup(c => c.GetCloudConnection(id))
+                .Callback(() => cloudLookupStarted.Release())
+                .Returns(cloudLookup.Task);
+            var subscriptionProcessor = new SubscriptionProcessor(
+                connectionManager.Object,
+                Mock.Of<IInvokeMethodHandler>(),
+                Mock.Of<IDeviceConnectivityManager>());
+
+            await subscriptionProcessor.AddSubscription(id, DeviceSubscription.Methods);
+            Assert.True(await cloudLookupStarted.WaitAsync(TimeSpan.FromSeconds(5)));
+
+            subscriptionProcessor.Dispose();
+            cloudLookup.SetResult(Option.Some(cloudProxy.Object));
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+
+            cloudProxy.Verify(c => c.SetupCallMethodAsync(), Times.Never);
+        }
     }
 }
