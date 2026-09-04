@@ -534,10 +534,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(clientMessage3.SystemProperties.ContainsKey(SystemProperties.EdgeMessageId));
         }
 
-        static async Task<RoutingEdgeHub> GetTestEdgeHub(IConnectionManager connectionManager = null)
+        [Fact]
+        public async Task DisposeDisposesSubscriptionProcessor()
+        {
+            var subscriptionProcessor = new Mock<ISubscriptionProcessor>();
+            Mock<IDisposable> disposableSubscriptionProcessor = subscriptionProcessor.As<IDisposable>();
+            RoutingEdgeHub edgeHub = await GetTestEdgeHub(subscriptionProcessor: subscriptionProcessor.Object);
+
+            edgeHub.Dispose();
+
+            disposableSubscriptionProcessor.Verify(d => d.Dispose(), Times.Once);
+        }
+
+        static async Task<RoutingEdgeHub> GetTestEdgeHub(
+            IConnectionManager connectionManager = null,
+            ISubscriptionProcessor subscriptionProcessor = null)
         {
             // Arrange
             connectionManager = connectionManager ?? Mock.Of<IConnectionManager>();
+            subscriptionProcessor = subscriptionProcessor ?? Mock.Of<ISubscriptionProcessor>();
             var endpoint = new Mock<Endpoint>("myId");
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
@@ -558,7 +573,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 "ed1",
                 "$edgeHub",
                 Mock.Of<IInvokeMethodHandler>(),
-                Mock.Of<ISubscriptionProcessor>(),
+                subscriptionProcessor,
                 Mock.Of<IDeviceScopeIdentitiesCache>());
             return edgeHub;
         }

@@ -189,6 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                         logger.LogError($"Error stopping protocol heads: {ex.Message}");
                     }
 
+                    edgeHub.Dispose();
                     await CloseDbStoreProviderAsync(container);
                 }
 

@@ -162,6 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             if (disposing)
             {
+                (this.subscriptionProcessor as IDisposable)?.Dispose();
                 this.router?.Dispose();
             }
         }
