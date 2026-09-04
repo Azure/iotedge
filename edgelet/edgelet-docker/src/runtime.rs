@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::{BTreeMap, HashMap};
+use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{process, str};
@@ -42,8 +43,27 @@ pub struct DockerModuleRuntime<C> {
     system_resources: Arc<Mutex<System>>,
     create_socket_channel: UnboundedSender<ModuleAction>,
     allow_elevated_docker_permissions: bool,
+    allowed_bind_sources: Vec<PathBuf>,
+    workload_socket_dir: PathBuf,
+    management_socket: Option<PathBuf>,
+    agent_name: String,
     additional_info: BTreeMap<String, String>,
     image_use_data: ImagePruneData,
+}
+
+impl<C> DockerModuleRuntime<C> {
+    // Each module may access only its own workload socket; only Edge Agent may access management.
+    fn implicit_bind_sources(&self, module_name: &str) -> Vec<PathBuf> {
+        let mut sources = vec![self.workload_socket_dir.join(format!("{module_name}.sock"))];
+
+        if module_name == self.agent_name
+            && let Some(management_socket) = &self.management_socket
+        {
+            sources.push(management_socket.clone());
+        }
+
+        sources
+    }
 }
 
 fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
@@ -184,11 +204,18 @@ impl MakeModuleRuntime for DockerModuleRuntime<Connector> {
         let system_resources = System::new_all();
         log::info!("Successfully initialized module runtime");
 
+        let workload_socket_dir = settings.homedir().canonicalize()?.join("mnt");
+        let management_socket = socket_path(settings.connect().management_uri());
+
         let runtime = Self {
             client,
             system_resources: Arc::new(Mutex::new(system_resources)),
             create_socket_channel,
             allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
+            allowed_bind_sources: settings.allowed_bind_sources().to_vec(),
+            workload_socket_dir,
+            management_socket,
+            agent_name: settings.agent().name().to_owned(),
             additional_info: settings.additional_info().clone(),
             image_use_data,
         };
@@ -326,6 +353,15 @@ where
         );
         drop_unsafe_privileges(
             self.allow_elevated_docker_permissions,
+            module.config_mut().create_options_mut(),
+        );
+        let module_name = module.name().to_owned();
+        let implicit_bind_sources = self.implicit_bind_sources(&module_name);
+        filter_bind_sources(
+            self.allow_elevated_docker_permissions,
+            &self.allowed_bind_sources,
+            &implicit_bind_sources,
+            &module_name,
             module.config_mut().create_options_mut(),
         );
 
@@ -939,11 +975,205 @@ fn drop_unsafe_privileges(
     host_config.cap_drop = Some(caps_to_drop);
 }
 
+fn socket_path(uri: &Url) -> Option<PathBuf> {
+    (uri.scheme() == "unix").then(|| PathBuf::from(uri.path()))
+}
+
+// TODO(rustup): Replace with Path::normalize_lexically when it is stabilized.
+fn normalize_lexically(path: &Path) -> Option<PathBuf> {
+    if !path.is_absolute() {
+        return None;
+    }
+
+    let mut normalized = PathBuf::from("/");
+    for component in path.components() {
+        match component {
+            Component::RootDir | Component::CurDir => {}
+            Component::Normal(component) => normalized.push(component),
+            Component::ParentDir => {
+                if !normalized.pop() {
+                    return None;
+                }
+            }
+            Component::Prefix(_) => return None,
+        }
+    }
+
+    Some(normalized)
+}
+
+fn is_allowed_bind_source(
+    source: &Path,
+    allowed_bind_sources: &[PathBuf],
+    implicit_bind_sources: &[PathBuf],
+) -> bool {
+    let Some(source) = normalize_lexically(source) else {
+        return false;
+    };
+
+    // Runtime sockets require exact matches;
+    // configured sources allow all descendants.
+    implicit_bind_sources
+        .iter()
+        .filter_map(|path| normalize_lexically(path))
+        .any(|path| source == path)
+        || allowed_bind_sources
+            .iter()
+            .filter_map(|path| normalize_lexically(path))
+            .any(|path| source.starts_with(path))
+}
+
+fn remove_case_insensitive_keys(
+    properties: &mut BTreeMap<String, serde_json::Value>,
+    keys: &[&str],
+) -> bool {
+    let original_len = properties.len();
+    properties.retain(|property, _| {
+        property.is_ascii() && !keys.iter().any(|key| property.eq_ignore_ascii_case(key))
+    });
+    properties.len() != original_len
+}
+
+fn has_volume_driver_config(properties: &BTreeMap<String, serde_json::Value>) -> bool {
+    properties
+        .iter()
+        .filter(|(property, _)| property.eq_ignore_ascii_case("VolumeOptions"))
+        .filter_map(|(_, value)| value.as_object())
+        .any(|options| {
+            options.iter().any(|(property, value)| {
+                !property.is_ascii()
+                    || (property.eq_ignore_ascii_case("DriverConfig") && !value.is_null())
+            })
+        })
+}
+
+fn filter_bind_sources(
+    allow_elevated_docker_permissions: bool,
+    allowed_bind_sources: &[PathBuf],
+    implicit_bind_sources: &[PathBuf],
+    module_name: &str,
+    create_options: &mut ContainerCreateBody,
+) {
+    if allow_elevated_docker_permissions {
+        return;
+    }
+
+    if remove_case_insensitive_keys(&mut create_options.other_properties, &["HostConfig"]) {
+        log::warn!(
+            "Removing case-insensitive duplicate of Docker field `HostConfig` from module '{module_name}'."
+        );
+    }
+
+    let Some(host_config) = &mut create_options.host_config else {
+        return;
+    };
+
+    if remove_case_insensitive_keys(
+        &mut host_config.other_properties,
+        &[
+            "Binds",
+            "Mounts",
+            "VolumesFrom",
+            "Privileged",
+            "CapAdd",
+            "CapDrop",
+        ],
+    ) {
+        log::warn!(
+            "Removing case-insensitive duplicate Docker permission fields from module '{module_name}'."
+        );
+    }
+
+    if let Some(binds) = &mut host_config.binds {
+        binds.retain(|bind| {
+            let Some((source, _)) = bind.split_once(':') else {
+                return true;
+            };
+            if source.is_empty() {
+                log::warn!("Removing malformed bind '{bind}' from module '{module_name}'.");
+                return false;
+            }
+            let source = Path::new(source);
+            // A non-absolute source in Binds is interpreted as a Docker volume name,
+            // not as a host filesystem path.
+            if !source.is_absolute() {
+                return true;
+            }
+
+            let allowed =
+                is_allowed_bind_source(source, allowed_bind_sources, implicit_bind_sources);
+
+            if !allowed {
+                log::warn!(
+                    "Removing disallowed host bind '{bind}' from module '{module_name}'. Add its source to `allowed_bind_sources` in config.toml to allow it."
+                );
+            }
+
+            allowed
+        });
+    }
+
+    if let Some(mounts) = &mut host_config.mounts {
+        mounts.retain(|mount| {
+            if mount.other_properties.keys().any(|property| {
+                !property.is_ascii()
+                    || property.eq_ignore_ascii_case("Source")
+                    || property.eq_ignore_ascii_case("Type")
+            }) {
+                log::warn!(
+                    "Removing mount with a case-insensitive duplicate source or type from module '{module_name}'."
+                );
+                return false;
+            }
+
+            if mount.r#type.as_deref() == Some("volume")
+                && has_volume_driver_config(&mount.other_properties)
+            {
+                log::warn!(
+                    "Removing volume mount with driver configuration from module '{module_name}'. Volume drivers can expose disallowed host paths."
+                );
+                return false;
+            }
+
+            if mount.r#type.as_deref() != Some("bind") {
+                return true;
+            }
+
+            let allowed = mount.source.as_deref().is_some_and(|source| {
+                is_allowed_bind_source(
+                    Path::new(source),
+                    allowed_bind_sources,
+                    implicit_bind_sources,
+                )
+            });
+
+            if !allowed {
+                log::warn!(
+                    "Removing disallowed host bind mount '{:?}' from module '{module_name}'. Add its source to `allowed_bind_sources` in config.toml to allow it.",
+                    mount.source
+                );
+            }
+
+            allowed
+        });
+    }
+
+    if host_config
+        .volumes_from
+        .take()
+        .is_some_and(|volumes_from| !volumes_from.is_empty())
+    {
+        log::warn!(
+            "Removing `VolumesFrom` from module '{module_name}'. Inherited volumes can expose disallowed host paths."
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::process::{Command, Stdio};
 
-    use docker::models::HostConfig;
+    use docker::models::{HostConfig, Mount};
 
     use super::*;
 
@@ -1117,6 +1347,280 @@ mod tests {
         assert_eq!(
             create_options.host_config.as_ref().unwrap().cap_drop,
             Some(vec!["SETUID".to_owned()])
+        );
+    }
+
+    #[test]
+    fn filter_bind_sources_does_nothing_when_elevated_permissions_are_allowed() {
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                binds: Some(vec!["/:/host".to_owned()]),
+                mounts: Some(vec![Mount {
+                    source: Some("/var/run/docker.sock".to_owned()),
+                    target: Some("/var/run/docker.sock".to_owned()),
+                    r#type: Some("bind".to_owned()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        filter_bind_sources(true, &[], &[], "module1", &mut create_options);
+
+        let host_config = create_options.host_config.unwrap();
+        assert_eq!(host_config.binds, Some(vec!["/:/host".to_owned()]));
+        assert_eq!(host_config.mounts.unwrap().len(), 1);
+    }
+
+    #[test]
+    fn filter_bind_sources_uses_normalized_component_prefixes() {
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                binds: Some(vec![
+                    "/iotedge/storage:/storage".to_owned(),
+                    "/iotedge/storage/module/./data:/data:ro".to_owned(),
+                    "/iotedge/storage-other:/collision".to_owned(),
+                    "/iotedge/storage/../../etc:/etc".to_owned(),
+                    "named-volume:/volume".to_owned(),
+                    "/anonymous".to_owned(),
+                    ":/malformed".to_owned(),
+                ]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        filter_bind_sources(
+            false,
+            &[PathBuf::from("/iotedge/storage")],
+            &[],
+            "module1",
+            &mut create_options,
+        );
+
+        assert_eq!(
+            create_options.host_config.unwrap().binds,
+            Some(vec![
+                "/iotedge/storage:/storage".to_owned(),
+                "/iotedge/storage/module/./data:/data:ro".to_owned(),
+                "named-volume:/volume".to_owned(),
+                "/anonymous".to_owned(),
+            ])
+        );
+    }
+
+    #[test]
+    fn filter_bind_sources_filters_only_structured_bind_mounts() {
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                mounts: Some(vec![
+                    Mount {
+                        source: Some("/iotedge/storage/edgeHub".to_owned()),
+                        target: Some("/storage".to_owned()),
+                        r#type: Some("bind".to_owned()),
+                        read_only: Some(true),
+                        ..Default::default()
+                    },
+                    Mount {
+                        source: Some("/var/run/docker.sock".to_owned()),
+                        target: Some("/var/run/docker.sock".to_owned()),
+                        r#type: Some("bind".to_owned()),
+                        ..Default::default()
+                    },
+                    Mount {
+                        source: Some("named-volume".to_owned()),
+                        target: Some("/volume".to_owned()),
+                        r#type: Some("volume".to_owned()),
+                        ..Default::default()
+                    },
+                    Mount {
+                        source: Some("driver-volume".to_owned()),
+                        target: Some("/host".to_owned()),
+                        r#type: Some("volume".to_owned()),
+                        other_properties: [(
+                            "VolumeOptions".to_owned(),
+                            serde_json::json!({
+                                "DriverConfig": {
+                                    "Name": "local",
+                                    "Options": {
+                                        "type": "none",
+                                        "o": "bind",
+                                        "device": "/"
+                                    }
+                                }
+                            }),
+                        )]
+                        .into(),
+                        ..Default::default()
+                    },
+                    Mount {
+                        source: None,
+                        target: Some("/missing".to_owned()),
+                        r#type: Some("bind".to_owned()),
+                        ..Default::default()
+                    },
+                ]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        filter_bind_sources(
+            false,
+            &[PathBuf::from("/iotedge/storage")],
+            &[],
+            "edgeHub",
+            &mut create_options,
+        );
+
+        let mounts = create_options.host_config.unwrap().mounts.unwrap();
+        assert_eq!(mounts.len(), 2);
+        assert_eq!(
+            mounts[0].source.as_deref(),
+            Some("/iotedge/storage/edgeHub")
+        );
+        assert_eq!(mounts[0].read_only, Some(true));
+        assert_eq!(mounts[1].r#type.as_deref(), Some("volume"));
+    }
+
+    #[test]
+    fn filter_bind_sources_removes_inherited_volumes() {
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                volumes_from: Some(vec!["other-container".to_owned()]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        filter_bind_sources(false, &[], &[], "module1", &mut create_options);
+
+        assert_eq!(create_options.host_config.unwrap().volumes_from, None);
+    }
+
+    #[test]
+    fn filter_bind_sources_removes_case_insensitive_field_collisions() {
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                mounts: Some(vec![
+                    Mount {
+                        source: Some("driver-volume".to_owned()),
+                        target: Some("/host".to_owned()),
+                        r#type: Some("volume".to_owned()),
+                        other_properties: [(
+                            "volumeOptions".to_owned(),
+                            serde_json::json!({
+                                "driverConfig": {
+                                    "Name": "local",
+                                    "Options": {
+                                        "type": "none",
+                                        "o": "bind",
+                                        "device": "/"
+                                    }
+                                }
+                            }),
+                        )]
+                        .into(),
+                        ..Default::default()
+                    },
+                    Mount {
+                        source: Some("/iotedge/storage".to_owned()),
+                        target: Some("/storage".to_owned()),
+                        r#type: Some("bind".to_owned()),
+                        other_properties: [(
+                            "source".to_owned(),
+                            serde_json::Value::String("/".to_owned()),
+                        )]
+                        .into(),
+                        ..Default::default()
+                    },
+                ]),
+                other_properties: [
+                    ("binds".to_owned(), serde_json::json!(["/:/host"])),
+                    ("volumesFrom".to_owned(), serde_json::json!(["other"])),
+                    ("privileged".to_owned(), serde_json::Value::Bool(true)),
+                    ("capDrop".to_owned(), serde_json::json!([])),
+                ]
+                .into(),
+                ..Default::default()
+            }),
+            other_properties: [(
+                "Ho\u{17f}tConfig".to_owned(),
+                serde_json::json!({"Binds": ["/:/host"]}),
+            )]
+            .into(),
+            ..Default::default()
+        };
+
+        filter_bind_sources(
+            false,
+            &[PathBuf::from("/iotedge/storage")],
+            &[],
+            "module1",
+            &mut create_options,
+        );
+
+        assert!(create_options.other_properties.is_empty());
+        let host_config = create_options.host_config.unwrap();
+        assert!(host_config.other_properties.is_empty());
+        assert!(host_config.mounts.unwrap().is_empty());
+    }
+
+    #[test]
+    fn filter_bind_sources_preserves_required_runtime_sockets() {
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                binds: Some(vec![
+                    "/var/lib/aziot/edged/mnt/edgeAgent.sock:/var/run/iotedge/workload.sock"
+                        .to_owned(),
+                    "/var/run/iotedge/mgmt.sock:/var/run/iotedge/mgmt.sock".to_owned(),
+                ]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        filter_bind_sources(
+            false,
+            &[],
+            &[
+                PathBuf::from("/var/lib/aziot/edged/mnt/edgeAgent.sock"),
+                PathBuf::from("/var/run/iotedge/mgmt.sock"),
+            ],
+            "edgeAgent",
+            &mut create_options,
+        );
+
+        assert_eq!(
+            create_options
+                .host_config
+                .as_ref()
+                .unwrap()
+                .binds
+                .as_ref()
+                .unwrap()
+                .len(),
+            2
+        );
+
+        create_options.host_config.as_mut().unwrap().binds = Some(vec![
+            "/var/lib/aziot/edged/mnt/module1.sock:/var/run/iotedge/workload.sock".to_owned(),
+            "/var/run/iotedge/mgmt.sock:/var/run/iotedge/mgmt.sock".to_owned(),
+        ]);
+        filter_bind_sources(
+            false,
+            &[],
+            &[PathBuf::from("/var/lib/aziot/edged/mnt/module1.sock")],
+            "module1",
+            &mut create_options,
+        );
+
+        assert_eq!(
+            create_options.host_config.unwrap().binds,
+            Some(vec![
+                "/var/lib/aziot/edged/mnt/module1.sock:/var/run/iotedge/workload.sock".to_owned()
+            ])
         );
     }
 

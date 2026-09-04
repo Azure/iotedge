@@ -99,6 +99,10 @@ impl crate::RuntimeSettings for Settings {
         self.base.allow_elevated_docker_permissions()
     }
 
+    fn allowed_bind_sources(&self) -> &[std::path::PathBuf] {
+        self.base.allowed_bind_sources()
+    }
+
     fn agent(&self) -> &crate::module::Settings<Self::ModuleConfig> {
         self.base.agent()
     }
@@ -155,6 +159,9 @@ mod tests {
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test-files/sample_settings_content_trust.toml";
     static GOOD_SETTINGS_NETWORK: &str = "test-files/sample_settings.network.toml";
     static GOOD_SETTINGS_IMAGE_GC: &str = "test-files/sample_settings_image_gc.toml";
+    static GOOD_SETTINGS_ALLOWED_BINDS: &str = "test-files/sample_settings.allowed_binds.toml";
+    static GOOD_SETTINGS_NO_ALLOWED_BINDS: &str =
+        "test-files/sample_settings.no_allowed_binds.toml";
 
     #[test]
     fn err_no_file() {
@@ -210,6 +217,41 @@ mod tests {
         let settings = Settings::new().unwrap();
         let watchdog_settings = settings.watchdog();
         assert_eq!(watchdog_settings.max_retries(), 3);
+    }
+
+    #[test]
+    fn allowed_bind_sources_defaults() {
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
+        let settings = Settings::new().unwrap();
+
+        assert!(settings.allowed_bind_sources().is_empty());
+    }
+
+    #[test]
+    fn allowed_bind_sources_can_be_overridden_or_cleared() {
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_ALLOWED_BINDS);
+            std::env::set_var("AZIOT_EDGED_CONFIG_DIR", CONFIG_DIR);
+        }
+        let settings = Settings::new().unwrap();
+        assert_eq!(
+            settings.allowed_bind_sources(),
+            &[
+                std::path::PathBuf::from("/srv/edgeAgent"),
+                std::path::PathBuf::from("/srv/edgeHub")
+            ]
+        );
+
+        unsafe {
+            std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_NO_ALLOWED_BINDS);
+        }
+        let settings = Settings::new().unwrap();
+        assert!(settings.allowed_bind_sources().is_empty());
     }
 
     #[test]

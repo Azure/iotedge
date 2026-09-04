@@ -56,6 +56,10 @@ impl edgelet_settings::RuntimeSettings for Settings {
         unimplemented!()
     }
 
+    fn allowed_bind_sources(&self) -> &[std::path::PathBuf] {
+        unimplemented!()
+    }
+
     fn iotedge_max_requests(&self) -> &edgelet_settings::IotedgeMaxRequests {
         unimplemented!()
     }

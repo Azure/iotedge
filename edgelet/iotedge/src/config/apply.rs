@@ -215,6 +215,7 @@ async fn execute_inner(
     let super_config::Config {
         trust_bundle_cert,
         allow_elevated_docker_permissions,
+        allowed_bind_sources,
         auto_reprovisioning_mode,
         imported_master_encryption_key,
         additional_info,
@@ -548,6 +549,8 @@ async fn execute_inner(
             homedir: AZIOT_EDGED_HOMEDIR_PATH.into(),
 
             allow_elevated_docker_permissions: allow_elevated_docker_permissions.unwrap_or(true),
+
+            allowed_bind_sources: allowed_bind_sources.unwrap_or_default(),
 
             iotedge_max_requests,
 
