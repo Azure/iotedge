@@ -39,10 +39,6 @@ Optional config items:
     - The stream name declared on the DCR for the destination custom table.
     - Required if `UploadTarget` is set to `AzureMonitor`
     - ex: `Custom-InsightsMetrics`
-- `AadClientId` / `AadTenantId`
-    - Optional. Identify the app registration/managed identity/workload identity to authenticate as. See the `Authentication` section below.
-- `AadClientCertificatePath` / `AadClientCertificatePassword`
-    - Optional. Path (and password, if the file is password-protected) to a certificate used for certificate-based app registration authentication. See the `Authentication` section below.
 - `MetricsEndpointsCSV`
     - List of endpoints to scrape Prometheus metrics from
     - ex: `http://edgeAgent:9600/metrics,http://MetricsSpewer:9417/metrics`
@@ -84,10 +80,15 @@ Optional config items:
 
 ## Authentication:
 
-When `UploadTarget` is `AzureMonitor`, the module authenticates to Azure AD to call the Logs Ingestion API. Client secrets are not supported. Two options are available:
+When `UploadTarget` is `AzureMonitor`, the module authenticates to Microsoft Entra ID using [`DefaultAzureCredential`](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential), so any credential type that it supports works here. Configure it with the standard `AZURE_*` environment variables in the module's deployment manifest. Common options:
 
-- **Certificate-based app registration** (recommended for customers): set `AadClientCertificatePath` (and `AadClientCertificatePassword` if needed) along with `AadClientId` and `AadTenantId`.
-- **Ambient credentials via `DefaultAzureCredential`** (default, used when `AadClientCertificatePath` is not set): picks up, in order, environment credentials (including workload identity federated tokens), managed identity, and an active Azure CLI session. Set `AadClientId`/`AadTenantId` to disambiguate when multiple identities are available (e.g. a specific user-assigned managed identity or workload identity).
+- **Certificate-based app registration** (recommended for production): `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_CERTIFICATE_PATH`, and `AZURE_CLIENT_CERTIFICATE_PASSWORD` if the certificate file is password-protected. Mount the certificate into the module's container.
+- **Workload identity federation**: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_FEDERATED_TOKEN_FILE`.
+- **Managed identity**: set `AZURE_CLIENT_ID` to select a specific user-assigned identity.
+- **Azure CLI session**: useful for local development and CI, where the host already has an active `az login`.
+- **Client secret**: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`. Supported, but prefer a certificate or federated credential; a long-lived secret in a deployment manifest is the weakest of these options.
+
+Whichever identity you use must be granted the `Monitoring Metrics Publisher` role on the DCR.
 
 ## Upload Target:
 
