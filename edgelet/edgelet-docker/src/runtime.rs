@@ -1072,7 +1072,7 @@ fn filter_privileged_properties(
 
     if remove_case_insensitive_keys(&mut create_options.other_properties, &DISALLOWED_PROPERTIES) {
         log::warn!(
-            "At least one of the following properties {DISALLOWED_PROPERTIES:?} is disallowed and was removed from the container create body. Set `allow_elevated_docker_permissions = true` in config.toml to allow usage of these properties."
+            "At least one of the following disallowed properties {DISALLOWED_PROPERTIES:?} was removed from the container create body. Set `allow_elevated_docker_permissions = true` in config.toml to allow usage of these properties."
         );
     }
 
