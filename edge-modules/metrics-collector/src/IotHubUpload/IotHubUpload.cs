@@ -31,24 +31,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
             {
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
                 IEnumerable<ExportMetric> outputMetrics = metrics.Select(m => new ExportMetric(m));
+                List<IEnumerable<ExportMetric>> splitMetrics = new List<IEnumerable<ExportMetric>> { outputMetrics };
+                IEnumerable<Message> messagesToSend = BatchAndBuildMessages(splitMetrics);
 
-                string outputString = JsonConvert.SerializeObject(outputMetrics);
-
-                if (Settings.Current.TransformForIoTCentral)
+                foreach (Message metricsMessage in messagesToSend)
                 {
-                    outputString = Transform(outputMetrics);
+                    await this.ModuleClientWrapper.SendMessageAsync("metricOutput", metricsMessage);
                 }
-
-                byte[] metricsData = Encoding.UTF8.GetBytes(outputString);
-                if (Settings.Current.CompressForUpload)
-                {
-                    metricsData = Compression.CompressToGzip(metricsData);
-                }
-
-                Message metricsMessage = new Message(metricsData);
-                metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
-
-                await this.ModuleClientWrapper.SendMessageAsync("metricOutput", metricsMessage);
 
                 return true;
             }
@@ -56,6 +45,58 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
             {
                 LoggerUtil.Writer.LogError(e, "Error sending metrics via IoT message");
                 return false;
+            }
+        }
+
+        private byte[] serializeMetrics(IEnumerable<ExportMetric> outputMetrics)
+        {
+            string outputString = JsonConvert.SerializeObject(outputMetrics);
+
+            if (Settings.Current.TransformForIoTCentral)
+            {
+                outputString = Transform(outputMetrics);
+            }
+
+            byte[] metricsData = Encoding.UTF8.GetBytes(outputString);
+
+            if (Settings.Current.CompressForUpload)
+            {
+                metricsData = Compression.CompressToGzip(metricsData);
+            }
+
+            return metricsData;
+        }
+
+        private IEnumerable<Message> BatchAndBuildMessages(List<IEnumerable<ExportMetric>> splitMetrics)
+        {
+
+            List<Message> messageList = new List<Message>();
+            byte[] metricsData = serializeMetrics(splitMetrics.Last());
+            if (metricsData.Length > Constants.MaxMessageSize)
+            {
+                LoggerUtil.Writer.LogInformation($"IoT message is {metricsData.Length} bytes, splitting messages...");
+                List<IEnumerable<ExportMetric>> splitAgainMetrics = new List<IEnumerable<ExportMetric>>();
+                foreach (IEnumerable<ExportMetric> metrics in splitMetrics)
+                {
+                    ExportMetric[] metricsarray = metrics.ToArray();
+                    ExportMetric[] firstArray = metricsarray.Take(metricsarray.Length / 2).ToArray();
+                    splitAgainMetrics.Add(firstArray);
+                    ExportMetric[] secondArray = metricsarray.Skip(metricsarray.Length / 2).ToArray();
+                    splitAgainMetrics.Add(secondArray);
+                }
+
+                return BatchAndBuildMessages(splitAgainMetrics);
+            }
+            else
+            {
+                foreach (IEnumerable<ExportMetric> metrics in splitMetrics)
+                {
+                    metricsData = serializeMetrics(metrics);
+                    Message metricsMessage = new Message(metricsData);
+                    metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
+                    messageList.Add(metricsMessage);
+                }
+                return messageList;
             }
         }
 
