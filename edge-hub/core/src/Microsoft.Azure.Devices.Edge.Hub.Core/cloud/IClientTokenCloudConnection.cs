@@ -6,6 +6,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
 
     public interface IClientTokenCloudConnection : ICloudConnection
     {
+        bool HasPendingTokenUpdate { get; }
+
+        void CancelTokenUpdate();
+
         Task<ICloudProxy> UpdateTokenAsync(ITokenCredentials tokenCredentials);
     }
 }
