@@ -1404,7 +1404,7 @@ mod tests {
     }
 
     #[test]
-    fn filter_privileged_properties_uses_normalized_component_prefixes() {
+    fn filter_privileged_properties_removes_disallowed_properties() {
         let mut other_properties = BTreeMap::new();
         other_properties.insert("Devices".into(), "/dev/sda".into());
         other_properties.insert("PidMode".into(), "host".into());
@@ -1415,6 +1415,32 @@ mod tests {
         other_properties.insert("CgroupParent".into(), "group".into());
         other_properties.insert("OtherProp".into(), "test".into());
 
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                binds: Some(vec!["/:/host".to_owned()]),
+                mounts: Some(vec![Mount {
+                    source: Some("/var/run/docker.sock".to_owned()),
+                    target: Some("/var/run/docker.sock".to_owned()),
+                    r#type: Some("bind".to_owned()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            other_properties,
+            ..Default::default()
+        };
+
+        filter_privileged_properties(false, &[], &[], "module1", &mut create_options);
+
+        assert_eq!(1, create_options.other_properties.len());
+        assert_eq!(
+            "test",
+            create_options.other_properties.remove("OtherProp").unwrap()
+        );
+    }
+
+    #[test]
+    fn filter_privileged_properties_uses_normalized_component_prefixes() {
         let mut create_options = ContainerCreateBody {
             host_config: Some(HostConfig {
                 binds: Some(vec![
@@ -1428,7 +1454,6 @@ mod tests {
                 ]),
                 ..Default::default()
             }),
-            other_properties,
             ..Default::default()
         };
 
@@ -1449,9 +1474,6 @@ mod tests {
                 "/anonymous".to_owned(),
             ])
         );
-
-        assert_eq!(1, create_options.other_properties.len());
-        assert_eq!("test", create_options.other_properties.remove("OtherProp").unwrap());
     }
 
     #[test]
