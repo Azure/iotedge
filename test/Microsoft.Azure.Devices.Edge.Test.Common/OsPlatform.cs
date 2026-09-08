@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         public static readonly IOsPlatform Current = new Linux.OsPlatform();
 
+        public static bool Is32Bit() => RuntimeInformation.OSArchitecture == Architecture.X86 || RuntimeInformation.OSArchitecture == Architecture.Arm;
+
         public static bool Is64Bit() => RuntimeInformation.OSArchitecture == Architecture.X64 || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
         public static bool IsArm() => RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64;
