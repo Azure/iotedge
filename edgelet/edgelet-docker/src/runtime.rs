@@ -1413,6 +1413,7 @@ mod tests {
         other_properties.insert("UsernsMode".into(), "host".into());
         other_properties.insert("SecurityOpt".into(), "seccomp=unconfined".into());
         other_properties.insert("CgroupParent".into(), "group".into());
+        other_properties.insert("OtherProp".into(), "test".into());
 
         let mut create_options = ContainerCreateBody {
             host_config: Some(HostConfig {
@@ -1449,7 +1450,8 @@ mod tests {
             ])
         );
 
-        assert!(create_options.other_properties.is_empty());
+        assert_eq!(1, create_options.other_properties.len());
+        assert_eq!("test", create_options.other_properties.remove("OtherProp").unwrap());
     }
 
     #[test]
