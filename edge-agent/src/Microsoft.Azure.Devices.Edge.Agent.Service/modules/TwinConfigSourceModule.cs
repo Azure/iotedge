@@ -144,6 +144,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IRequestHandler>>()
                 .SingleInstance();
 
+            // Task<IRequestHandler> - SuspendUpdatesRequestHandler
+            builder.Register(
+                    c =>
+                    {
+                        IRequestHandler handler = new SuspendUpdatesRequestHandler(c.Resolve<ISuspendManager>());
+                        return Task.FromResult(handler);
+                    })
+                .As<Task<IRequestHandler>>()
+                .SingleInstance();
+
+            // Task<IRequestHandler> - ResumeUpdatesRequestHandler
+            builder.Register(
+                    c =>
+                    {
+                        IRequestHandler handler = new ResumeUpdatesRequestHandler(c.Resolve<ISuspendManager>());
+                        return Task.FromResult(handler);
+                    })
+                .As<Task<IRequestHandler>>()
+                .SingleInstance();
+
             // ISdkModuleClientProvider
             builder.Register(c => new SdkModuleClientProvider())
                 .As<ISdkModuleClientProvider>()
