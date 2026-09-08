@@ -403,8 +403,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         async Task ApplyPatchAsync(TwinCollection desiredProperties, TwinCollection patch)
         {
             try
+
             {
-                string mergedJson = JsonEx.Merge(desiredProperties, patch, true);
+                string mergedJson = JsonEx.Merge(desiredProperties, patch, true, "createOptions");
                 desiredProperties = new TwinCollection(mergedJson);
                 Events.LogDesiredPropertiesAfterPatch(desiredProperties);
                 this.desiredProperties = Option.Some(desiredProperties);
