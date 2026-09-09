@@ -8,18 +8,22 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
     using global::Azure.Identity;
 
     // Builds the TokenCredential used to authenticate to the Logs Ingestion API.
-    // Authentication is configured through the standard AZURE_* environment variables
-    // that DefaultAzureCredential reads; see the module README for details.
+    // Deliberately narrower than DefaultAzureCredential: only production-oriented
+    // credential types are tried, so a developer's local Azure CLI/IDE session on
+    // the host can never silently substitute for the intended identity. Configured
+    // through the standard AZURE_* environment variables; see the module README.
     internal static class AadCredentialFactory
     {
         public static TokenCredential Create(Settings settings)
         {
-            var options = new DefaultAzureCredentialOptions
-            {
-                AuthorityHost = GetAuthorityHost(settings.AzureDomain)
-            };
+            Uri authorityHost = GetAuthorityHost(settings.AzureDomain);
 
-            return new DefaultAzureCredential(options);
+            // Covers client secret and certificate-based app registrations.
+            var environmentCredential = new EnvironmentCredential(new TokenCredentialOptions { AuthorityHost = authorityHost });
+            var workloadIdentityCredential = new WorkloadIdentityCredential(new WorkloadIdentityCredentialOptions { AuthorityHost = authorityHost });
+            var managedIdentityCredential = new ManagedIdentityCredential();
+
+            return new ChainedTokenCredential(environmentCredential, workloadIdentityCredential, managedIdentityCredential);
         }
 
         private static Uri GetAuthorityHost(string azureDomain)

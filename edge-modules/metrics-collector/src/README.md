@@ -80,15 +80,16 @@ Optional config items:
 
 ## Authentication:
 
-When `UploadTarget` is `AzureMonitor`, the module authenticates to Microsoft Entra ID using [`DefaultAzureCredential`](https://learn.microsoft.com/dotnet/api/azure.identity.defaultazurecredential), so any credential type that it supports works here. Configure it with the standard `AZURE_*` environment variables in the module's deployment manifest. Common options:
+When `UploadTarget` is `AzureMonitor`, the module authenticates to Microsoft Entra ID using an explicit [`ChainedTokenCredential`](https://learn.microsoft.com/dotnet/api/azure.identity.chainedtokencredential) of only production-oriented credential types — unlike `DefaultAzureCredential`, it does not fall back to developer-machine credentials (Azure CLI, Visual Studio, etc.), so a stray local session on the host can never silently substitute for the intended identity. Configure it with the standard `AZURE_*` environment variables in the module's deployment manifest. Options, tried in this order:
 
 - **Certificate-based app registration** (recommended for production): `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_CERTIFICATE_PATH`, and `AZURE_CLIENT_CERTIFICATE_PASSWORD` if the certificate file is password-protected. Mount the certificate into the module's container.
-- **Workload identity federation**: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_FEDERATED_TOKEN_FILE`.
-- **Managed identity**: set `AZURE_CLIENT_ID` to select a specific user-assigned identity.
-- **Azure CLI session**: useful for local development and CI, where the host already has an active `az login`.
 - **Client secret**: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`. Supported, but prefer a certificate or federated credential; a long-lived secret in a deployment manifest is the weakest of these options.
+- **Workload identity federation**: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_FEDERATED_TOKEN_FILE`.
+- **Managed identity**: available automatically on hosts that support it (e.g. Arc-enabled servers).
 
 Whichever identity you use must be granted the `Monitoring Metrics Publisher` role on the DCR.
+
+Note: an active Azure CLI session on the host is *not* picked up by this module (deliberately, for the reason above). For local development or CI environments that rely on `az login`, set `AZURE_CLIENT_ID`/`AZURE_CLIENT_SECRET`/`AZURE_TENANT_ID` (or a certificate/federated token) explicitly instead.
 
 ## Upload Target:
 
