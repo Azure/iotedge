@@ -10,6 +10,11 @@ The Azure Monitor HTTP Data Collector API (and the OMS agent certificate-registr
 
 The `IotMessage` upload target is not impacted by this change, and will continue to work without modifications.
 
+# 1.3.2 (2026-09-09)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
 # 1.3.1 (2026-08-12)
 
 The following Docker images were updated because their base images changed:

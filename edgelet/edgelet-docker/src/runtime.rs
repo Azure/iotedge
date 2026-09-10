@@ -357,7 +357,7 @@ where
         );
         let module_name = module.name().to_owned();
         let implicit_bind_sources = self.implicit_bind_sources(&module_name);
-        filter_bind_sources(
+        filter_privileged_properties(
             self.allow_elevated_docker_permissions,
             &self.allowed_bind_sources,
             &implicit_bind_sources,
@@ -1047,15 +1047,33 @@ fn has_volume_driver_config(properties: &BTreeMap<String, serde_json::Value>) ->
         })
 }
 
-fn filter_bind_sources(
+fn filter_privileged_properties(
     allow_elevated_docker_permissions: bool,
     allowed_bind_sources: &[PathBuf],
     implicit_bind_sources: &[PathBuf],
     module_name: &str,
     create_options: &mut ContainerCreateBody,
 ) {
+    // These properties specified in ContainerCreateBody's other_properties may allow elevation of container privilege.
+    // Drop them if allow_elevated_docker_permissions is not set.
+    const DISALLOWED_PROPERTIES: [&str; 7] = [
+        "Devices",
+        "PidMode",
+        "NetworkMode",
+        "IpcMode",
+        "SecurityOpt",
+        "UsernsMode",
+        "CgroupParent",
+    ];
+
     if allow_elevated_docker_permissions {
         return;
+    }
+
+    if remove_case_insensitive_keys(&mut create_options.other_properties, &DISALLOWED_PROPERTIES) {
+        log::warn!(
+            "At least one of the following disallowed properties {DISALLOWED_PROPERTIES:?} was removed from the container create body. Set `allow_elevated_docker_permissions = true` in config.toml to allow usage of these properties."
+        );
     }
 
     if remove_case_insensitive_keys(&mut create_options.other_properties, &["HostConfig"]) {
@@ -1351,7 +1369,16 @@ mod tests {
     }
 
     #[test]
-    fn filter_bind_sources_does_nothing_when_elevated_permissions_are_allowed() {
+    fn filter_privileged_properties_does_nothing_when_elevated_permissions_are_allowed() {
+        let mut other_properties = BTreeMap::new();
+        other_properties.insert("Devices".into(), "/dev/sda".into());
+        other_properties.insert("PidMode".into(), "host".into());
+        other_properties.insert("NetworkMode".into(), "host".into());
+        other_properties.insert("IpcMode".into(), "host".into());
+        other_properties.insert("UsernsMode".into(), "host".into());
+        other_properties.insert("SecurityOpt".into(), "seccomp=unconfined".into());
+        other_properties.insert("CgroupParent".into(), "group".into());
+
         let mut create_options = ContainerCreateBody {
             host_config: Some(HostConfig {
                 binds: Some(vec!["/:/host".to_owned()]),
@@ -1363,18 +1390,57 @@ mod tests {
                 }]),
                 ..Default::default()
             }),
+            other_properties: other_properties.clone(),
             ..Default::default()
         };
 
-        filter_bind_sources(true, &[], &[], "module1", &mut create_options);
+        filter_privileged_properties(true, &[], &[], "module1", &mut create_options);
 
         let host_config = create_options.host_config.unwrap();
         assert_eq!(host_config.binds, Some(vec!["/:/host".to_owned()]));
         assert_eq!(host_config.mounts.unwrap().len(), 1);
+
+        assert_eq!(create_options.other_properties, other_properties);
     }
 
     #[test]
-    fn filter_bind_sources_uses_normalized_component_prefixes() {
+    fn filter_privileged_properties_removes_disallowed_properties() {
+        let mut other_properties = BTreeMap::new();
+        other_properties.insert("Devices".into(), "/dev/sda".into());
+        other_properties.insert("PidMode".into(), "host".into());
+        other_properties.insert("NetworkMode".into(), "host".into());
+        other_properties.insert("IpcMode".into(), "host".into());
+        other_properties.insert("UsernsMode".into(), "host".into());
+        other_properties.insert("SecurityOpt".into(), "seccomp=unconfined".into());
+        other_properties.insert("CgroupParent".into(), "group".into());
+        other_properties.insert("OtherProp".into(), "test".into());
+
+        let mut create_options = ContainerCreateBody {
+            host_config: Some(HostConfig {
+                binds: Some(vec!["/:/host".to_owned()]),
+                mounts: Some(vec![Mount {
+                    source: Some("/var/run/docker.sock".to_owned()),
+                    target: Some("/var/run/docker.sock".to_owned()),
+                    r#type: Some("bind".to_owned()),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            }),
+            other_properties,
+            ..Default::default()
+        };
+
+        filter_privileged_properties(false, &[], &[], "module1", &mut create_options);
+
+        assert_eq!(1, create_options.other_properties.len());
+        assert_eq!(
+            "test",
+            create_options.other_properties.remove("OtherProp").unwrap()
+        );
+    }
+
+    #[test]
+    fn filter_privileged_properties_uses_normalized_component_prefixes() {
         let mut create_options = ContainerCreateBody {
             host_config: Some(HostConfig {
                 binds: Some(vec![
@@ -1391,7 +1457,7 @@ mod tests {
             ..Default::default()
         };
 
-        filter_bind_sources(
+        filter_privileged_properties(
             false,
             &[PathBuf::from("/iotedge/storage")],
             &[],
@@ -1411,7 +1477,7 @@ mod tests {
     }
 
     #[test]
-    fn filter_bind_sources_filters_only_structured_bind_mounts() {
+    fn filter_privileged_properties_filters_only_structured_bind_mounts() {
         let mut create_options = ContainerCreateBody {
             host_config: Some(HostConfig {
                 mounts: Some(vec![
@@ -1466,7 +1532,7 @@ mod tests {
             ..Default::default()
         };
 
-        filter_bind_sources(
+        filter_privileged_properties(
             false,
             &[PathBuf::from("/iotedge/storage")],
             &[],
@@ -1485,7 +1551,7 @@ mod tests {
     }
 
     #[test]
-    fn filter_bind_sources_removes_inherited_volumes() {
+    fn filter_privileged_properties_removes_inherited_volumes() {
         let mut create_options = ContainerCreateBody {
             host_config: Some(HostConfig {
                 volumes_from: Some(vec!["other-container".to_owned()]),
@@ -1494,13 +1560,13 @@ mod tests {
             ..Default::default()
         };
 
-        filter_bind_sources(false, &[], &[], "module1", &mut create_options);
+        filter_privileged_properties(false, &[], &[], "module1", &mut create_options);
 
         assert_eq!(create_options.host_config.unwrap().volumes_from, None);
     }
 
     #[test]
-    fn filter_bind_sources_removes_case_insensitive_field_collisions() {
+    fn filter_privileged_properties_removes_case_insensitive_field_collisions() {
         let mut create_options = ContainerCreateBody {
             host_config: Some(HostConfig {
                 mounts: Some(vec![
@@ -1553,7 +1619,7 @@ mod tests {
             ..Default::default()
         };
 
-        filter_bind_sources(
+        filter_privileged_properties(
             false,
             &[PathBuf::from("/iotedge/storage")],
             &[],
@@ -1568,7 +1634,7 @@ mod tests {
     }
 
     #[test]
-    fn filter_bind_sources_preserves_required_runtime_sockets() {
+    fn filter_privileged_properties_preserves_required_runtime_sockets() {
         let mut create_options = ContainerCreateBody {
             host_config: Some(HostConfig {
                 binds: Some(vec![
@@ -1581,7 +1647,7 @@ mod tests {
             ..Default::default()
         };
 
-        filter_bind_sources(
+        filter_privileged_properties(
             false,
             &[],
             &[
@@ -1608,7 +1674,7 @@ mod tests {
             "/var/lib/aziot/edged/mnt/module1.sock:/var/run/iotedge/workload.sock".to_owned(),
             "/var/run/iotedge/mgmt.sock:/var/run/iotedge/mgmt.sock".to_owned(),
         ]);
-        filter_bind_sources(
+        filter_privileged_properties(
             false,
             &[],
             &[PathBuf::from("/var/lib/aziot/edged/mnt/module1.sock")],
