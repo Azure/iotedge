@@ -45,8 +45,37 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             try
             {
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
-                List<LaMetric> metricsToUpload = metrics.Select(m => new LaMetric(m, DNSName)).ToList();
+
+                // NaN/Infinity values (e.g. summary quantiles with no recent samples, see
+                // BuiltInMetrics.md) can't be represented in standard JSON. System.Text.Json,
+                // which the SDK uses internally to serialize each metric, throws on them, and
+                // the SDK swallows that exception rather than surfacing it, so an unfiltered
+                // batch fails silently on every upload. Drop them instead of uploading.
+                int skipped = 0;
+                List<LaMetric> metricsToUpload = metrics
+                    .Where(m =>
+                    {
+                        bool finite = !double.IsNaN(m.Value) && !double.IsInfinity(m.Value);
+                        if (!finite)
+                        {
+                            skipped++;
+                        }
+                        return finite;
+                    })
+                    .Select(m => new LaMetric(m, DNSName))
+                    .ToList();
+                if (skipped > 0)
+                {
+                    LoggerUtil.Writer.LogDebug($"Skipped {skipped} metrics with a NaN or infinite value; these can't be represented in JSON.");
+                }
+
                 bool success = false;
+                if (metricsToUpload.Count == 0)
+                {
+                    LoggerUtil.Writer.LogDebug("No metrics with finite values to upload this cycle.");
+                    return true;
+                }
+
                 for (int i = 0; i < Constants.UploadMaxRetries && (!success); i++)
                 {
                     try
@@ -61,10 +90,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                     }
                     catch (Exception e)
                     {
-                        // Retry on a per-attempt basis: covers both transient network/service
-                        // failures and known Azure.Monitor.Ingestion SDK bugs (e.g. a null
-                        // reference thrown from LogsIngestionClient.UploadAsync when no upload
-                        // task reaches its internal concurrency threshold before being aborted).
+                        // Retry on a per-attempt basis: covers transient network/service failures,
+                        // and a real Azure.Monitor.Ingestion SDK bug where a non-cancellation
+                        // exception thrown while serializing a log entry (e.g. a NaN/Infinity
+                        // value slipping through) is silently swallowed internally, leaving no
+                        // upload task queued and causing a NullReferenceException on return.
                         LoggerUtil.Writer.LogDebug(e, "Logs ingestion upload attempt threw an exception");
                     }
                 }
