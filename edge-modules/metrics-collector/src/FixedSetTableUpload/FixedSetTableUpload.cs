@@ -49,12 +49,23 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 bool success = false;
                 for (int i = 0; i < Constants.UploadMaxRetries && (!success); i++)
                 {
-                    // The SDK handles batching/compression of the payload internally.
-                    Response response = await this.client.UploadAsync(this.dataCollectionRuleId, this.streamName, metricsToUpload, cancellationToken: cancellationToken).ConfigureAwait(false);
-                    success = !response.IsError;
-                    if (!success)
+                    try
                     {
-                        LoggerUtil.Writer.LogDebug($"Logs ingestion upload failed - status {response.Status}, reason {response.ReasonPhrase}");
+                        // The SDK handles batching/compression of the payload internally.
+                        Response response = await this.client.UploadAsync(this.dataCollectionRuleId, this.streamName, metricsToUpload, cancellationToken: cancellationToken).ConfigureAwait(false);
+                        success = !response.IsError;
+                        if (!success)
+                        {
+                            LoggerUtil.Writer.LogDebug($"Logs ingestion upload failed - status {response.Status}, reason {response.ReasonPhrase}");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        // Retry on a per-attempt basis: covers both transient network/service
+                        // failures and known Azure.Monitor.Ingestion SDK bugs (e.g. a null
+                        // reference thrown from LogsIngestionClient.UploadAsync when no upload
+                        // task reaches its internal concurrency threshold before being aborted).
+                        LoggerUtil.Writer.LogDebug(e, "Logs ingestion upload attempt threw an exception");
                     }
                 }
 
