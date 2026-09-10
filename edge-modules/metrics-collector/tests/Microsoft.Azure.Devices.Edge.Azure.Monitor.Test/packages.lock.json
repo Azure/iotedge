@@ -100,10 +100,10 @@
       },
       "Azure.Monitor.Ingestion": {
         "type": "Transitive",
-        "resolved": "1.1.2",
-        "contentHash": "ZFAOxc7WdO0ceSdYzLvHhYoIo+oVNBgY2HeypurgPpvxZJJ0eZXSnekFnAF6bpfsYHqDkomX1JY6E6ExdwHKZg==",
+        "resolved": "1.2.0",
+        "contentHash": "+wSX2NhWoip9smhRcb4iiVB4H2I8MBQTogJfYaO5s1om0JxNN7aP5isNCkN9Q96P4HXYeDxOE9eC54qbk6haaA==",
         "dependencies": {
-          "Azure.Core": "1.38.0"
+          "Azure.Core": "1.47.1"
         }
       },
       "Castle.Core": {
@@ -556,7 +556,7 @@
         "type": "Project",
         "dependencies": {
           "Azure.Identity": "[1.17.1, )",
-          "Azure.Monitor.Ingestion": "[1.1.2, )",
+          "Azure.Monitor.Ingestion": "[1.2.0, )",
           "Microsoft.Azure.Devices.Client": "[1.43.2-edgeLts, 1.43.2-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
           "Microsoft.Extensions.Configuration.EnvironmentVariables": "[10.0.0, )",

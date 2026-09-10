@@ -15,11 +15,11 @@
       },
       "Azure.Monitor.Ingestion": {
         "type": "Direct",
-        "requested": "[1.1.2, )",
-        "resolved": "1.1.2",
-        "contentHash": "ZFAOxc7WdO0ceSdYzLvHhYoIo+oVNBgY2HeypurgPpvxZJJ0eZXSnekFnAF6bpfsYHqDkomX1JY6E6ExdwHKZg==",
+        "requested": "[1.2.0, )",
+        "resolved": "1.2.0",
+        "contentHash": "+wSX2NhWoip9smhRcb4iiVB4H2I8MBQTogJfYaO5s1om0JxNN7aP5isNCkN9Q96P4HXYeDxOE9eC54qbk6haaA==",
         "dependencies": {
-          "Azure.Core": "1.38.0"
+          "Azure.Core": "1.47.1"
         }
       },
       "Microsoft.Azure.Devices.Client": {
