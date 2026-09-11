@@ -73,6 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 }
 
                 bool success = false;
+                Exception lastException = null;
+                string lastFailure = null;
                 if (metricsToUpload.Count == 0)
                 {
                     LoggerUtil.Writer.LogDebug("No metrics with finite values to upload this cycle.");
@@ -88,11 +90,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                         success = !response.IsError;
                         if (!success)
                         {
+                            lastFailure = $"status {response.Status}, reason {response.ReasonPhrase}";
                             LoggerUtil.Writer.LogDebug($"Logs ingestion upload failed - status {response.Status}, reason {response.ReasonPhrase}");
                         }
                     }
                     catch (Exception e)
                     {
+                        lastException = e;
                         // Retry on a per-attempt basis: covers transient network/service failures,
                         // and a real Azure.Monitor.Ingestion SDK bug where a non-cancellation
                         // exception thrown while serializing a log entry (e.g. a NaN/Infinity
@@ -104,8 +108,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
 
                 if (success)
                     LoggerUtil.Writer.LogInformation($"Successfully sent {metricsToUpload.Count} metrics to fixed set table");
+                else if (lastException != null)
+                    LoggerUtil.Writer.LogError(lastException, $"Failed to send {metricsToUpload.Count} metrics to fixed set table after {Constants.UploadMaxRetries} retries. Last exception: {lastException.Message}");
                 else
-                    LoggerUtil.Writer.LogError($"Failed to send {metricsToUpload.Count} metrics to fixed set table after {Constants.UploadMaxRetries} retries");
+                    LoggerUtil.Writer.LogError($"Failed to send {metricsToUpload.Count} metrics to fixed set table after {Constants.UploadMaxRetries} retries. Last response: {lastFailure}");
                 return success;
             }
             catch (Exception e)
