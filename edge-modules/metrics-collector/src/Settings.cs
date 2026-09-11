@@ -41,6 +41,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             if (this.UploadTarget == UploadTarget.AzureMonitor)
             {
                 this.DataCollectionEndpoint = Preconditions.CheckNonWhiteSpace(dataCollectionEndpoint, nameof(dataCollectionEndpoint));
+                if (!Uri.TryCreate(this.DataCollectionEndpoint, UriKind.Absolute, out Uri endpointUri) || endpointUri.Scheme != Uri.UriSchemeHttps)
+                {
+                    throw new ArgumentException("DataCollectionEndpoint must be an absolute HTTPS URI.", nameof(dataCollectionEndpoint));
+                }
+
                 this.DataCollectionRuleId = Preconditions.CheckNonWhiteSpace(dataCollectionRuleId, nameof(dataCollectionRuleId));
                 this.DataCollectionStreamName = Preconditions.CheckNonWhiteSpace(dataCollectionStreamName, nameof(dataCollectionStreamName));
             }
