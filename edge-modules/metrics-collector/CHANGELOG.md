@@ -6,6 +6,7 @@ The Azure Monitor HTTP Data Collector API (and the OMS agent certificate-registr
 * Removed `LogAnalyticsWorkspaceId` / `LogAnalyticsSharedKey` settings and the certificate-registration/mTLS upload path.
 * Added `DataCollectionEndpoint`, `DataCollectionRuleId`, and `DataCollectionStreamName` settings, pointing at a Data Collection Endpoint and Data Collection Rule.
 * Added Microsoft Entra ID authentication via an explicit `ChainedTokenCredential` (certificate, client secret, workload identity federation, managed identity), configured through the standard `AZURE_*` environment variables.
+* The custom table schema now uses `TimeGenerated` directly and removes the unused `Computer` column. Existing `Origin`, `Namespace`, `Name`, `Value`, `Tags`, and `ResourceId` fields are retained for query continuity.
 * See [README.md](src/README.md) for setup and configuration details.
 
 The `IotMessage` upload target is not impacted by this change, and will continue to work without modifications.

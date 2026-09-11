@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
     using global::Azure.Monitor.Ingestion;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public sealed class FixedSetTableUpload : IMetricsPublisher
@@ -21,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
         private readonly LogsIngestionClient client;
         private readonly string dataCollectionRuleId;
         private readonly string streamName;
-        private readonly string DNSName;
         private readonly string resourceId;
 
         public FixedSetTableUpload(string dataCollectionEndpoint, string dataCollectionRuleId, string streamName, string resourceId, TokenCredential credential, LogsIngestionAudience audience)
@@ -32,15 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             this.resourceId = Preconditions.CheckNonWhiteSpace(resourceId, nameof(resourceId));
             var options = new LogsIngestionClientOptions { Audience = audience };
             this.client = new LogsIngestionClient(new Uri(dataCollectionEndpoint), Preconditions.CheckNotNull(credential, nameof(credential)), options);
-
-            string DNSName = Environment.GetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME");
-            if (DNSName == null || String.IsNullOrEmpty(DNSName))
-            {
-                // TODO: is this a good fallback?
-                // TODO: test
-                DNSName = Dns.GetHostName();
-            }
-            this.DNSName = DNSName;
         }
 
         public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -56,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 // batch fails silently on every upload. Drop them instead of uploading.
                 List<Metric> finiteMetrics = FilterFiniteMetrics(metrics, out int skipped);
                 List<LaMetric> metricsToUpload = finiteMetrics
-                    .Select(m => new LaMetric(m, DNSName, this.resourceId))
+                    .Select(m => new LaMetric(m, this.resourceId))
                     .ToList();
                 if (skipped > 0)
                 {
@@ -137,11 +126,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             public string Namespace { get; }
             public string Name { get; }
             public double Value { get; }
-            public DateTime CollectionTime { get; }
+            public DateTime TimeGenerated { get; }
             public string Tags { get; }
-            public string Computer { get; }
             public string ResourceId { get; }
-            public LaMetric(Metric metric, string hostname, string resourceId)
+            public LaMetric(Metric metric, string resourceId)
             {
                 // forms DB key
                 this.Name = metric.Name;
@@ -151,8 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 this.Value = metric.Value;
 
                 // optional 
-                this.CollectionTime = metric.TimeGeneratedUtc;
-                this.Computer = Constants.MetricComputer;
+                this.TimeGenerated = metric.TimeGeneratedUtc;
                 this.Origin = Constants.MetricOrigin;
                 this.Namespace = Constants.MetricNamespace;
                 this.ResourceId = resourceId;

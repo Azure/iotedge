@@ -10,8 +10,8 @@ See ExampleDeployment.json for a complete example deployment manifest.
 ## Setup Steps:
 If sending data to Log Analytics (`UploadTarget=AzureMonitor`), metrics are uploaded via the [Logs Ingestion API](https://learn.microsoft.com/azure/azure-monitor/logs/logs-ingestion-api-overview) (the older HTTP Data Collector API is retired on 14 September 2026). Before deploying this module you must:
 1. Create a Data Collection Endpoint (DCE).
-2. Create (or reuse) a custom table in your Log Analytics workspace with columns matching `Origin`, `Namespace`, `Name`, `Value`, `CollectionTime`, `Tags`, `Computer`, and `ResourceId`.
-3. Create a Data Collection Rule (DCR) associated with the DCE and the destination table, and note its immutable ID and stream name. Configure the DCR transform to map `CollectionTime` to the required `TimeGenerated` column and `ResourceId` to the `_ResourceId` system column, for example: `source | extend TimeGenerated = todatetime(CollectionTime), _ResourceId = ResourceId`.
+2. Create (or reuse) a custom table in your Log Analytics workspace with columns matching `TimeGenerated`, `Origin`, `Namespace`, `Name`, `Value`, `Tags`, and `ResourceId`.
+3. Create a Data Collection Rule (DCR) associated with the DCE and the destination table, and note its immutable ID and stream name. Configure the DCR transform to map `ResourceId` to the `_ResourceId` system column, for example: `source | extend _ResourceId = ResourceId`.
 4. Grant the identity used by this module (see the `Authentication` section below) the `Monitoring Metrics Publisher` role on the DCR.
 
 
@@ -93,7 +93,7 @@ Note: an active Azure CLI session on the host is *not* picked up by this module 
 
 ## Upload Target:
 
-Scraped metrics can be uploaded directly to Log Analytics (requires outbound internet connectivity, see Adding the InsightsMetrics Table section), or metrics can be published as IoT messages (useful for local consumption).
+Scraped metrics can be uploaded directly to a customer-created Log Analytics custom table (requires outbound internet connectivity), or metrics can be published as IoT messages (useful for local consumption).
 Metrics published as IoT messages are emitted as UTF8-encoded json from the endpoint `/messages/modules/<module name>/outputs/metricOutput`. The format is as follows:
 
 ```
