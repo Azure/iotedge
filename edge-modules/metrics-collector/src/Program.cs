@@ -56,11 +56,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 IMetricsPublisher publisher;
                 if (Settings.Current.UploadTarget == UploadTarget.AzureMonitor)
                 {
+                    var cloudConfiguration = FixedSetTableUpload.AadCredentialFactory.GetCloudConfiguration(Settings.Current.AzureDomain);
                     publisher = new FixedSetTableUpload.FixedSetTableUpload(
                         Settings.Current.DataCollectionEndpoint,
                         Settings.Current.DataCollectionRuleId,
                         Settings.Current.DataCollectionStreamName,
-                        FixedSetTableUpload.AadCredentialFactory.Create(Settings.Current));
+                        FixedSetTableUpload.AadCredentialFactory.Create(Settings.Current),
+                        cloudConfiguration.Audience);
                 }
                 else
                 {

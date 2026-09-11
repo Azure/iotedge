@@ -23,12 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
         private readonly string streamName;
         private readonly string DNSName;
 
-        public FixedSetTableUpload(string dataCollectionEndpoint, string dataCollectionRuleId, string streamName, TokenCredential credential)
+        public FixedSetTableUpload(string dataCollectionEndpoint, string dataCollectionRuleId, string streamName, TokenCredential credential, LogsIngestionAudience audience)
         {
             Preconditions.CheckNonWhiteSpace(dataCollectionEndpoint, nameof(dataCollectionEndpoint));
             this.dataCollectionRuleId = Preconditions.CheckNonWhiteSpace(dataCollectionRuleId, nameof(dataCollectionRuleId));
             this.streamName = Preconditions.CheckNonWhiteSpace(streamName, nameof(streamName));
-            this.client = new LogsIngestionClient(new Uri(dataCollectionEndpoint), Preconditions.CheckNotNull(credential, nameof(credential)));
+            var options = new LogsIngestionClientOptions { Audience = audience };
+            this.client = new LogsIngestionClient(new Uri(dataCollectionEndpoint), Preconditions.CheckNotNull(credential, nameof(credential)), options);
 
             string DNSName = Environment.GetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME");
             if (DNSName == null || String.IsNullOrEmpty(DNSName))

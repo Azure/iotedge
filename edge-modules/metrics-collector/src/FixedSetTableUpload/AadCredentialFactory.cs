@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
     using System;
     using global::Azure.Core;
     using global::Azure.Identity;
+    using global::Azure.Monitor.Ingestion;
 
     // Builds the TokenCredential used to authenticate to the Logs Ingestion API.
     // Deliberately narrower than DefaultAzureCredential: only production-oriented
@@ -16,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
     {
         public static TokenCredential Create(Settings settings)
         {
-            Uri authorityHost = GetAuthorityHost(settings.AzureDomain);
+            (Uri authorityHost, LogsIngestionAudience _) = GetCloudConfiguration(settings.AzureDomain);
 
             // Covers client secret and certificate-based app registrations.
             var environmentCredential = new EnvironmentCredential(new TokenCredentialOptions { AuthorityHost = authorityHost });
@@ -26,16 +27,19 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             return new ChainedTokenCredential(environmentCredential, workloadIdentityCredential, managedIdentityCredential);
         }
 
-        private static Uri GetAuthorityHost(string azureDomain)
+        internal static (Uri AuthorityHost, LogsIngestionAudience Audience) GetCloudConfiguration(string azureDomain)
         {
             switch (azureDomain)
             {
                 case "azure.us":
-                    return AzureAuthorityHosts.AzureGovernment;
+                    return (AzureAuthorityHosts.AzureGovernment, LogsIngestionAudience.AzureGovernment);
                 case "azure.cn":
-                    return AzureAuthorityHosts.AzureChina;
+                case "azure.com.cn":
+                    return (AzureAuthorityHosts.AzureChina, LogsIngestionAudience.AzureChina);
+                case "azure.com":
+                    return (AzureAuthorityHosts.AzurePublicCloud, LogsIngestionAudience.AzurePublicCloud);
                 default:
-                    return AzureAuthorityHosts.AzurePublicCloud;
+                    throw new ArgumentException($"Unsupported Azure domain: {azureDomain}", nameof(azureDomain));
             }
         }
     }
