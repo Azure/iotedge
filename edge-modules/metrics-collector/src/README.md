@@ -11,7 +11,7 @@ See ExampleDeployment.json for a complete example deployment manifest.
 If sending data to Log Analytics (`UploadTarget=AzureMonitor`), metrics are uploaded via the [Logs Ingestion API](https://learn.microsoft.com/azure/azure-monitor/logs/logs-ingestion-api-overview) (the older HTTP Data Collector API is retired on 14 September 2026). Before deploying this module you must:
 1. Create a Data Collection Endpoint (DCE).
 2. Create (or reuse) a custom table in your Log Analytics workspace with columns matching `TimeGenerated`, `Origin`, `Namespace`, `Name`, `Value`, `Tags`, and `ResourceId`.
-3. Create a Data Collection Rule (DCR) associated with the DCE and the destination table, and note its immutable ID and stream name. Configure the DCR transform to map `ResourceId` to the `_ResourceId` system column, for example: `source | extend _ResourceId = ResourceId`.
+3. Create a Data Collection Rule (DCR) associated with the DCE and the destination table, and note its immutable ID and stream name. Pass the stream through to the destination table without renaming the fields; `ResourceId` is stored as a normal custom-table column for queries and filtering.
 4. Grant the identity used by this module (see the `Authentication` section below) the `Monitoring Metrics Publisher` role on the DCR.
 
 
