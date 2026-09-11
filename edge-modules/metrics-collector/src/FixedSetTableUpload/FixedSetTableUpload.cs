@@ -54,17 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 // which the SDK uses internally to serialize each metric, throws on them, and
                 // the SDK swallows that exception rather than surfacing it, so an unfiltered
                 // batch fails silently on every upload. Drop them instead of uploading.
-                int skipped = 0;
-                List<LaMetric> metricsToUpload = metrics
-                    .Where(m =>
-                    {
-                        bool finite = !double.IsNaN(m.Value) && !double.IsInfinity(m.Value);
-                        if (!finite)
-                        {
-                            skipped++;
-                        }
-                        return finite;
-                    })
+                List<Metric> finiteMetrics = FilterFiniteMetrics(metrics, out int skipped);
+                List<LaMetric> metricsToUpload = finiteMetrics
                     .Select(m => new LaMetric(m, DNSName, this.resourceId))
                     .ToList();
                 if (skipped > 0)
@@ -119,6 +110,25 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 LoggerUtil.Writer.LogError(e, "Error uploading metrics to fixed set table");
                 return false;
             }
+        }
+
+        internal static List<Metric> FilterFiniteMetrics(IEnumerable<Metric> metrics, out int skipped)
+        {
+            skipped = 0;
+            var finiteMetrics = new List<Metric>();
+            foreach (Metric metric in metrics)
+            {
+                if (double.IsNaN(metric.Value) || double.IsInfinity(metric.Value))
+                {
+                    skipped++;
+                }
+                else
+                {
+                    finiteMetrics.Add(metric);
+                }
+            }
+
+            return finiteMetrics;
         }
 
         private class LaMetric
