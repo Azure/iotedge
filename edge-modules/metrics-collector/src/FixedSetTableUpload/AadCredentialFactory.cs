@@ -22,7 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             // Covers client secret and certificate-based app registrations.
             var environmentCredential = new EnvironmentCredential(new TokenCredentialOptions { AuthorityHost = authorityHost });
             var workloadIdentityCredential = new WorkloadIdentityCredential(new WorkloadIdentityCredentialOptions { AuthorityHost = authorityHost });
-            var managedIdentityCredential = new ManagedIdentityCredential();
+            string managedIdentityClientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
+            var managedIdentityCredential = string.IsNullOrWhiteSpace(managedIdentityClientId)
+                ? new ManagedIdentityCredential()
+                : new ManagedIdentityCredential(ManagedIdentityId.FromUserAssignedClientId(managedIdentityClientId));
 
             return new ChainedTokenCredential(environmentCredential, workloadIdentityCredential, managedIdentityCredential);
         }
