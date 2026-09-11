@@ -61,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                         Settings.Current.DataCollectionEndpoint,
                         Settings.Current.DataCollectionRuleId,
                         Settings.Current.DataCollectionStreamName,
+                        Settings.Current.ResourceId,
                         FixedSetTableUpload.AadCredentialFactory.Create(Settings.Current),
                         cloudConfiguration.Audience);
                 }

@@ -22,12 +22,14 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
         private readonly string dataCollectionRuleId;
         private readonly string streamName;
         private readonly string DNSName;
+        private readonly string resourceId;
 
-        public FixedSetTableUpload(string dataCollectionEndpoint, string dataCollectionRuleId, string streamName, TokenCredential credential, LogsIngestionAudience audience)
+        public FixedSetTableUpload(string dataCollectionEndpoint, string dataCollectionRuleId, string streamName, string resourceId, TokenCredential credential, LogsIngestionAudience audience)
         {
             Preconditions.CheckNonWhiteSpace(dataCollectionEndpoint, nameof(dataCollectionEndpoint));
             this.dataCollectionRuleId = Preconditions.CheckNonWhiteSpace(dataCollectionRuleId, nameof(dataCollectionRuleId));
             this.streamName = Preconditions.CheckNonWhiteSpace(streamName, nameof(streamName));
+            this.resourceId = Preconditions.CheckNonWhiteSpace(resourceId, nameof(resourceId));
             var options = new LogsIngestionClientOptions { Audience = audience };
             this.client = new LogsIngestionClient(new Uri(dataCollectionEndpoint), Preconditions.CheckNotNull(credential, nameof(credential)), options);
 
@@ -63,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                         }
                         return finite;
                     })
-                    .Select(m => new LaMetric(m, DNSName))
+                    .Select(m => new LaMetric(m, DNSName, this.resourceId))
                     .ToList();
                 if (skipped > 0)
                 {
@@ -122,7 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             public DateTime CollectionTime { get; }
             public string Tags { get; }
             public string Computer { get; }
-            public LaMetric(Metric metric, string hostname)
+            public string ResourceId { get; }
+            public LaMetric(Metric metric, string hostname, string resourceId)
             {
                 // forms DB key
                 this.Name = metric.Name;
@@ -136,6 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 this.Computer = Constants.MetricComputer;
                 this.Origin = Constants.MetricOrigin;
                 this.Namespace = Constants.MetricNamespace;
+                this.ResourceId = resourceId;
 
                 //TODO: what to do with origin?
             }
