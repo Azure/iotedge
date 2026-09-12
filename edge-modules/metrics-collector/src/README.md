@@ -8,7 +8,11 @@ See ExampleDeployment.json for a complete example deployment manifest.
 
 
 ## Setup Steps:
-If sending data to Log Analytics, then the InsightsMetrics table must be added to your Log Analytics workspace. Follow [these](https://github.com/Microsoft/OMS-docker/blob/ci_feature_prod/docs/solution-onboarding.md) instructions to add the table.
+If sending data to Log Analytics (`UploadTarget=AzureMonitor`), metrics are uploaded via the [Logs Ingestion API](https://learn.microsoft.com/azure/azure-monitor/logs/logs-ingestion-api-overview) (the older HTTP Data Collector API is retired on 14 September 2026). Before deploying this module you must:
+1. Create a Data Collection Endpoint (DCE).
+2. Create (or reuse) a custom table in your Log Analytics workspace with columns matching `TimeGenerated`, `Origin`, `Namespace`, `Name`, `Value`, `Tags`, and `ResourceId`.
+3. Create a Data Collection Rule (DCR) associated with the DCE and the destination table, and note its immutable ID and stream name. Pass the stream through to the destination table without renaming the fields; `ResourceId` is stored as a normal custom-table column for queries and filtering.
+4. Grant the identity used by this module (see the `Authentication` section below) the `Monitoring Metrics Publisher` role on the DCR.
 
 
 ## Configuration:
@@ -23,14 +27,18 @@ Required config items:
     
 
 Optional config items:
-- `LogAnalyticsWorkspaceId`
-    - Log analytics workspace ID
+- `DataCollectionEndpoint`
+    - The Data Collection Endpoint (DCE) URL to ingest logs to.
     - Required if `UploadTarget` is set to `AzureMonitor`
-    - ex: `12345678-1234-1234-1234-123456789abc`
-- `LogAnalyticsSharedKey`
-    - Shared Key for log analytics workspace
+    - ex: `https://my-dce-name.eastus-1.ingest.monitor.azure.com`
+- `DataCollectionRuleId`
+    - The immutable ID of the Data Collection Rule (DCR) that routes data to the destination table.
     - Required if `UploadTarget` is set to `AzureMonitor`
-    - ex: `aHR0cDovL21zaXQubWljcm9zb2Z0c3RyZWFtLmNvbS92aWRlby81ZTRjNGY4Yi01ZjIwLTQ2ODEtOGEwYy00OGE2OWZlNGIxMWY=`
+    - ex: `dcr-00000000000000000000000000000000`
+- `DataCollectionStreamName`
+    - The stream name declared on the DCR for the destination custom table.
+    - Required if `UploadTarget` is set to `AzureMonitor`
+    - ex: `Custom-InsightsMetrics`
 - `MetricsEndpointsCSV`
     - List of endpoints to scrape Prometheus metrics from
     - ex: `http://edgeAgent:9600/metrics,http://MetricsSpewer:9417/metrics`
@@ -66,13 +74,26 @@ Optional config items:
     - ex: `00:12:00`
     - Defaults to every 24 hours
 - `AzureDomain`
-    - Configurable azure domain which is used to construct the log analytics upload address.
-    - ex: `azure.com.cn`
+    - Configurable azure domain which is used to select the AAD authority host (public cloud, Azure Government, or Azure China) for authentication.
+    - ex: `azure.us`
     - Defaults to `azure.com`
+
+## Authentication:
+
+When `UploadTarget` is `AzureMonitor`, the module authenticates to Microsoft Entra ID using an explicit [`ChainedTokenCredential`](https://learn.microsoft.com/dotnet/api/azure.identity.chainedtokencredential) of only production-oriented credential types — unlike `DefaultAzureCredential`, it does not fall back to developer-machine credentials (Azure CLI, Visual Studio, etc.), so a stray local session on the host can never silently substitute for the intended identity. Configure it with the standard `AZURE_*` environment variables in the module's deployment manifest. Options, tried in this order:
+
+- **Certificate-based app registration** (recommended for production): `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_CERTIFICATE_PATH`, and `AZURE_CLIENT_CERTIFICATE_PASSWORD` if the certificate file is password-protected. Mount the certificate into the module's container.
+- **Client secret**: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`. Supported, but prefer a certificate or federated credential; a long-lived secret in a deployment manifest is the weakest of these options.
+- **Workload identity federation**: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_FEDERATED_TOKEN_FILE`.
+- **Managed identity**: available automatically on hosts that support it (e.g. Arc-enabled servers).
+
+Whichever identity you use must be granted the `Monitoring Metrics Publisher` role on the DCR.
+
+Note: an active Azure CLI session on the host is *not* picked up by this module (deliberately, for the reason above). For local development or CI environments that rely on `az login`, set `AZURE_CLIENT_ID`/`AZURE_CLIENT_SECRET`/`AZURE_TENANT_ID` (or a certificate/federated token) explicitly instead.
 
 ## Upload Target:
 
-Scrapped metrics can be uploaded directly to Log Analytics (requires outbound internet connectivity, see Adding the InsightsMetrics Table section), or metrics can be published as IoT messages (useful for local consumption).
+Scraped metrics can be uploaded directly to a customer-created Log Analytics custom table (requires outbound internet connectivity), or metrics can be published as IoT messages (useful for local consumption).
 Metrics published as IoT messages are emitted as UTF8-encoded json from the endpoint `/messages/modules/<module name>/outputs/metricOutput`. The format is as follows:
 
 ```

@@ -1,3 +1,16 @@
+# 2.0.0 (Unreleased)
+
+## Breaking change: migrated to the Azure Monitor Logs Ingestion API
+
+The Azure Monitor HTTP Data Collector API (and the OMS agent certificate-registration protocol this module previously used) is retiring on 14 September 2026. The `AzureMonitor` upload target now uses the [Logs Ingestion API](https://learn.microsoft.com/azure/azure-monitor/logs/logs-ingestion-api-overview) instead:
+* Removed `LogAnalyticsWorkspaceId` / `LogAnalyticsSharedKey` settings and the certificate-registration/mTLS upload path.
+* Added `DataCollectionEndpoint`, `DataCollectionRuleId`, and `DataCollectionStreamName` settings, pointing at a Data Collection Endpoint and Data Collection Rule.
+* Added Microsoft Entra ID authentication via an explicit `ChainedTokenCredential` (certificate, client secret, workload identity federation, managed identity), configured through the standard `AZURE_*` environment variables.
+* The custom table schema now uses `TimeGenerated` directly and removes the unused `Computer` column. Existing `Origin`, `Namespace`, `Name`, `Value`, `Tags`, and `ResourceId` fields are retained for query continuity.
+* See [README.md](src/README.md) for setup and configuration details.
+
+The `IotMessage` upload target is not impacted by this change, and will continue to work without modifications.
+
 # 1.3.2 (2026-09-09)
 
 The following Docker images were updated because their base images changed:
