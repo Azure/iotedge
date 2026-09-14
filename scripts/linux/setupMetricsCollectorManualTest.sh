@@ -339,7 +339,7 @@ else
 
 print_step "Creating custom table, DCE, and DCR"
 # The module emits TimeGenerated/Origin/Namespace/Name/Value/Tags/ResourceId.
-# The DCR transform below maps ResourceId to Log Analytics resource attribution.
+# The DCR passes ResourceId through as an ordinary custom-table column.
 cat > "$WORK_DIR/monitor.json" <<'TEMPLATE_EOF'
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
