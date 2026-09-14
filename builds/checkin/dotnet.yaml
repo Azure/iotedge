@@ -44,7 +44,7 @@ jobs:
         --logger trx
     displayName: Build and run core unit tests
   - script: |
-      ResourceID='some-resource-id' \
+      ResourceId='some-resource-id' \
       DataCollectionEndpoint='https://example.ingest.monitor.azure.com' \
       DataCollectionRuleId='dcr-example' \
       DataCollectionStreamName='Custom-InsightsMetrics' \

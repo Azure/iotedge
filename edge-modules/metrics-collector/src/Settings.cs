@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<bool>("experimentalFeatures:AddIdentifyingTags", false),
                     configuration.GetValue<string>("AllowedMetrics", ""),
                     configuration.GetValue<string>("BlockedMetrics", ""),
-                    configuration.GetValue<string>("ResourceID", ""),
+                    configuration.GetValue<string>("ResourceId", ""),
                     configuration.GetValue<string>("version", ""),
                     configuration.GetValue<TimeSpan>("IotHubConnectFrequency", TimeSpan.FromDays(1)),
                     configuration.GetValue<String>("AzureDomain", "azure.com")

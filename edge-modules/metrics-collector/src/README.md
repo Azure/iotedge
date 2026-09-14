@@ -22,7 +22,7 @@ Required config items:
 - `UploadTarget`
     - Should metrics be sent to Azure Monitor (Log Analytics) or to other IoT Modules (via messages). See the Upload Target section for details.
     - Can be `AzureMonitor` or `IotMessage`
-- `ResourceID`
+- `ResourceId`
     - ARM resource ID of the IoT Hub this node communicates too.
     
 

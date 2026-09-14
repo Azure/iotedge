@@ -700,7 +700,7 @@ if [[ "$UPLOAD_MODE" == 'ingestion' ]]; then
         --arg freq "$SCRAPE_FREQUENCY_SECS" \
         '{
             UploadTarget: { value: "AzureMonitor" },
-            ResourceID: { value: $hub },
+            ResourceId: { value: $hub },
             DataCollectionEndpoint: { value: $dce },
             DataCollectionRuleId: { value: $dcr },
             DataCollectionStreamName: { value: $stream },
@@ -715,7 +715,7 @@ else
         --arg freq "$SCRAPE_FREQUENCY_SECS" \
         '{
             UploadTarget: { value: "AzureMonitor" },
-            ResourceID: { value: $hub },
+            ResourceId: { value: $hub },
             LogAnalyticsWorkspaceId: { value: $workspaceId },
             LogAnalyticsSharedKey: { value: $sharedKey },
             ScrapeFrequencyInSecs: { value: $freq }

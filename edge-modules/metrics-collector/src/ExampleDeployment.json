@@ -52,7 +52,7 @@
               "MetricsEndpointsCSV": {
                 "value": "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"
               },
-              "ResourceID": {
+              "ResourceId": {
                 "value": "<IoT hub resource id>"
               },
               "ScrapeFrequencyInSecs": {

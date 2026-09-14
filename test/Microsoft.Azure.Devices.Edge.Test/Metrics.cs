@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[]
                         {
                             ("UploadTarget", "IotMessage"),
-                            ("ResourceID", hubResourceId),
+                            ("ResourceId", hubResourceId),
                             ("ScrapeFrequencyInSecs", "10"),
                             ("CompressForUpload", "false")
                         });
