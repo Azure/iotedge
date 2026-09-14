@@ -66,7 +66,7 @@ VM_SIZE='Standard_D4ds_v5'
 VM_IMAGE='Ubuntu2404'
 VNET_ADDRESS_PREFIX='10.0.0.0/16'
 SUBNET_ADDRESS_PREFIX='10.0.0.0/24'
-TABLE_NAME='InsightsMetricsCustom_CL'
+TABLE_NAME='IoTEdgeMetrics_CL'
 RUN_OK_SENTINEL='__RUN_ON_VM_OK__'
 
 function usage() {
