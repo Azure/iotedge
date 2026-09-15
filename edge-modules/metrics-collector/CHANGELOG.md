@@ -1,4 +1,4 @@
-# 2.0.0
+# 2.0.0 (2026-09-15)
 
 ## Breaking change: migrated to the Azure Monitor Logs Ingestion API
 
