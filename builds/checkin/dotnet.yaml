@@ -44,9 +44,10 @@ jobs:
         --logger trx
     displayName: Build and run core unit tests
   - script: |
-      ResourceID='some-resource-id' \
-      LogAnalyticsWorkspaceId='some-workspace-id' \
-      LogAnalyticsSharedKey='some-shared-key' \
+      ResourceId='some-resource-id' \
+      DataCollectionEndpoint='https://example.ingest.monitor.azure.com' \
+      DataCollectionRuleId='dcr-example' \
+      DataCollectionStreamName='Custom-InsightsMetrics' \
       dotnet test \
         --configuration $(configuration) \
         --logger trx \
