@@ -39,7 +39,7 @@ if ! [ -f "$AzureLinuxToolkitDir/toolkit.tar.gz" ]; then
     rm -rf "$AzureLinuxToolkitDir"
     git clone 'https://github.com/microsoft/azurelinux.git' --branch "$AZURELINUX_RELEASE" --depth 1 "$AzureLinuxToolkitDir"
     pushd "$AzureLinuxToolkitDir/toolkit/"
-    USER="${USER:-root}" make install-prereqs-and-configure
+    make install-prereqs
     make package-toolkit REBUILD_TOOLS=y
     popd
     cp "$AzureLinuxToolkitDir"/out/toolkit-*.tar.gz "$AZURELINUX_BUILD_ROOT/toolkit.tar.gz"
