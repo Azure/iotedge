@@ -280,7 +280,7 @@ stages:
           matrix:
             3.0-amd64:
               agent-pool: $(pool.linux.name)
-              agent-image: agent-aziotedge-ubuntu-22.04-msmoby
+              agent-image: agent-aziotedge-ubuntu-22.04
               arch: amd64
               os: azurelinux
               os_id: azl
@@ -290,7 +290,7 @@ stages:
               target.iotedged: builds/azurelinux3/out/RPMS/x86_64
             3.0-aarch64:
               agent-pool: $(pool.linux.arm.name)
-              agent-image: agent-aziotedge-ubuntu-22.04-arm64-msmoby
+              agent-image: agent-aziotedge-ubuntu-22.04-arm64
               arch: aarch64
               os: azurelinux
               os_id: azl
