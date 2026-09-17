@@ -208,6 +208,111 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Fact]
         [Unit]
+        public async Task CanceledConnectionRejectsFutureTokenRequests()
+        {
+            string iothubHostName = "test.azure-devices.net";
+            string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(3));
+            var credentials = new TokenCredentials(
+                new DeviceIdentity(iothubHostName, "device1"),
+                token,
+                string.Empty,
+                Option.None<string>(),
+                Option.None<string>(),
+                false);
+            ITokenProvider tokenProvider = null;
+            IClientProvider clientProvider =
+                GetMockDeviceClientProviderWithToken((_, provider, _, _) => tokenProvider = provider);
+            var transportSettings =
+                new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var messageConverterProvider = new MessageConverterProvider(
+                new Dictionary<Type, IMessageConverter>
+                {
+                    [typeof(TwinCollection)] = Mock.Of<IMessageConverter>()
+                });
+            ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
+                credentials,
+                (_, __) => { },
+                transportSettings,
+                messageConverterProvider,
+                clientProvider,
+                Mock.Of<ICloudListener>(),
+                TimeSpan.FromMinutes(60),
+                true,
+                TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
+                DummyProductInfo,
+                Option.None<string>());
+
+            cloudConnection.CancelTokenUpdate();
+
+            Assert.NotNull(tokenProvider);
+            await Assert.ThrowsAsync<OperationCanceledException>(
+                () => tokenProvider.GetTokenAsync(Option.None<TimeSpan>()));
+            Assert.False(cloudConnection.HasPendingTokenUpdate);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task CancellationDuringRetrySuppressesTokenStatusCallback()
+        {
+            string iothubHostName = "test.azure-devices.net";
+            string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(3));
+            var credentials = new TokenCredentials(
+                new DeviceIdentity(iothubHostName, "device1"),
+                token,
+                string.Empty,
+                Option.None<string>(),
+                Option.None<string>(),
+                false);
+            ITokenProvider tokenProvider = null;
+            IClientProvider clientProvider =
+                GetMockDeviceClientProviderWithToken((_, provider, _, _) => tokenProvider = provider);
+            var transportSettings =
+                new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+            var receivedStatuses = new List<CloudConnectionStatus>();
+            var retryDelayEntered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseRetryDelay = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var messageConverterProvider = new MessageConverterProvider(
+                new Dictionary<Type, IMessageConverter>
+                {
+                    [typeof(TwinCollection)] = Mock.Of<IMessageConverter>()
+                });
+            ClientTokenCloudConnection cloudConnection = await ClientTokenCloudConnection.Create(
+                credentials,
+                (_, status) => receivedStatuses.Add(status),
+                transportSettings,
+                messageConverterProvider,
+                clientProvider,
+                Mock.Of<ICloudListener>(),
+                TimeSpan.FromMinutes(60),
+                true,
+                TimeSpan.FromSeconds(20),
+                TimeSpan.FromSeconds(50),
+                DummyProductInfo,
+                Option.None<string>(),
+                () =>
+                {
+                    retryDelayEntered.TrySetResult(true);
+                    return releaseRetryDelay.Task;
+                });
+            Assert.NotNull(tokenProvider);
+
+            Task<string> getTokenTask = tokenProvider.GetTokenAsync(Option.None<TimeSpan>());
+            Assert.Single(receivedStatuses);
+            await cloudConnection.UpdateTokenAsync(credentials);
+            await retryDelayEntered.Task;
+            Assert.True(cloudConnection.HasPendingTokenUpdate);
+
+            cloudConnection.CancelTokenUpdate();
+            releaseRetryDelay.TrySetResult(true);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => getTokenTask);
+            Assert.Single(receivedStatuses);
+            Assert.False(cloudConnection.HasPendingTokenUpdate);
+        }
+
+        [Fact]
+        [Unit]
         public async Task RefreshTokenWithRetryTest()
         {
             string iothubHostName = "test.azure-devices.net";
