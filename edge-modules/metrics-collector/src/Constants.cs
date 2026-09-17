@@ -8,5 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         public static readonly string IoTUploadMessageIdentifier = "origin-iotedge-metrics-collector";
         public static readonly int UploadMaxRetries = 3;
         public const string ProductInfo = "IoTEdgeMetricsCollectorModule";
+        public static readonly int MaxMessageSize = 225000;
     }
 }
