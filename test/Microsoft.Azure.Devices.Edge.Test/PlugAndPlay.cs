@@ -48,18 +48,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(TestModelId),
                 Context.Current.NestedEdge);
 
-            await TryFinally.DoAsync(
-                async () =>
-                {
-                    DateTime seekTime = DateTime.Now;
-                    await leaf.SendEventAsync(token);
-                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await this.ValidateIdentity(leafDeviceId, Option.None<string>(), TestModelId, token);
-                },
-                async () =>
-                {
-                    await leaf.DeleteIdentityAsync(token);
-                });
+            Context.Current.LeafDeleteList.TryAdd(leafDeviceId, leaf);
+
+            DateTime seekTime = DateTime.Now;
+            await leaf.SendEventAsync(token);
+            await leaf.WaitForEventsReceivedAsync(seekTime, token);
+            await this.ValidateIdentity(leafDeviceId, Option.None<string>(), TestModelId, token);
         }
 
         [TestCase(Protocol.Mqtt)]

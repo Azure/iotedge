@@ -38,18 +38,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.None<string>(),
                 Context.Current.NestedEdge);
 
-            await TryFinally.DoAsync(
-                async () =>
-                {
-                    DateTime seekTime = DateTime.Now;
-                    await leaf.SendEventAsync(token);
-                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await leaf.InvokeDirectMethodAsync(token);
-                },
-                async () =>
-                {
-                    await leaf.DeleteIdentityAsync(token);
-                });
+            Context.Current.LeafDeleteList.TryAdd(leafDeviceId, leaf);
+
+            DateTime seekTime = DateTime.Now;
+            await leaf.SendEventAsync(token);
+            await leaf.WaitForEventsReceivedAsync(seekTime, token);
+            await leaf.InvokeDirectMethodAsync(token);
         }
     }
 }

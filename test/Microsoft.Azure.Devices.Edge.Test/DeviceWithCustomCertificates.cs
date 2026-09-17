@@ -45,6 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     token,
                     Option.None<string>(),
                     this.device.NestedEdge.IsNestedEdge);
+
+                Context.Current.LeafDeleteList.TryAdd(leafDeviceId, leaf);
             }
             catch (Exception) when (!parentId.HasValue)
             {
@@ -58,18 +60,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Assert.NotNull(leaf);
 
-            await TryFinally.DoAsync(
-                async () =>
-                {
-                    DateTime seekTime = DateTime.Now;
-                    await leaf.SendEventAsync(token);
-                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await leaf.InvokeDirectMethodAsync(token);
-                },
-                async () =>
-                {
-                    await leaf.DeleteIdentityAsync(token);
-                });
+            DateTime seekTime = DateTime.Now;
+            await leaf.SendEventAsync(token);
+            await leaf.WaitForEventsReceivedAsync(seekTime, token);
+            await leaf.InvokeDirectMethodAsync(token);
         }
 
         [Test]
@@ -112,6 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     token,
                     Option.None<string>(),
                     this.device.NestedEdge.IsNestedEdge);
+
+                Context.Current.LeafDeleteList.TryAdd(leafDeviceId, leaf);
             }
             catch (Exception) when (!parentId.HasValue)
             {
@@ -125,19 +121,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Assert.NotNull(leaf);
 
-            await TryFinally.DoAsync(
-                async () =>
-                {
-                    DateTime seekTime = DateTime.Now;
-                    await leaf.SendEventAsync(token);
-                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await leaf.InvokeDirectMethodAsync(token);
-                },
-                async () =>
-                {
-                    await leaf.DeleteIdentityAsync(token);
-                    await Task.CompletedTask;
-                });
+            DateTime seekTime = DateTime.Now;
+            await leaf.SendEventAsync(token);
+            await leaf.WaitForEventsReceivedAsync(seekTime, token);
+            await leaf.InvokeDirectMethodAsync(token);
         }
     }
 }
