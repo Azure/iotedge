@@ -35,15 +35,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return token.Value<T>();
         }
 
-        public static string Merge(object baseline, object patch, bool treatNullAsDelete)
+        public static string Merge(object baseline, object patch, bool treatNullAsDelete, string chunkedProperty = "")
         {
             JToken baselineToken = JToken.FromObject(baseline);
             JToken patchToken = JToken.FromObject(patch);
-            JToken mergedToken = Merge(baselineToken, patchToken, treatNullAsDelete);
+            JToken mergedToken = Merge(baselineToken, patchToken, treatNullAsDelete, chunkedProperty);
             return mergedToken.ToString();
         }
 
-        public static JToken Merge(JToken baselineToken, JToken patchToken, bool treatNullAsDelete)
+        public static JToken Merge(JToken baselineToken, JToken patchToken, bool treatNullAsDelete, string chunkedProperty = "")
         {
             // Reached the leaf JValue
             if (patchToken.Type != JTokenType.Object || baselineToken.Type != JTokenType.Object)
@@ -55,6 +55,16 @@ namespace Microsoft.Azure.Devices.Edge.Util
             var baseline = (JObject)baselineToken;
             var result = new JObject(baseline);
 
+            // Collect the chunked (for example createOptionsXX) keys that exist in the patch
+            HashSet<string> patchChunkedNames = new HashSet<string>();
+
+            if (!string.IsNullOrEmpty(chunkedProperty)) {
+                patchChunkedNames = patch.Properties()
+                    .Where(p => IsChunkedName(chunkedProperty, p.Name))
+                    .Select(p => p.Name)
+                    .ToHashSet(StringComparer.Ordinal);
+            }
+
             foreach (JProperty patchProp in patch.Properties())
             {
                 if (IsValidToken(patchProp.Value))
@@ -62,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     JProperty baselineProp = baseline.Property(patchProp.Name);
                     if (baselineProp != null && patchProp.Value.Type != JTokenType.Null)
                     {
-                        JToken nestedResult = Merge(baselineProp.Value, patchProp.Value, treatNullAsDelete);
+                        JToken nestedResult = Merge(baselineProp.Value, patchProp.Value, treatNullAsDelete, chunkedProperty);
                         result[patchProp.Name] = nestedResult;
                     }
                     else // decide whether to remove or add the patch key
@@ -83,7 +93,40 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 }
             }
 
+            // Clean up result from non-existing chunked properties.
+            if (!string.IsNullOrEmpty(chunkedProperty)) {
+                var resultToRemove = result.Properties()
+                    .Where(p =>
+                        IsChunkedName(chunkedProperty, p.Name) &&
+                        (patchChunkedNames.Count == 0 ||
+                        !patchChunkedNames.Contains(p.Name)))
+                    .Select(p => p.Name)
+                    .ToList();
+
+                foreach (var name in resultToRemove)
+                {
+                    result.Remove(name);
+                }
+            }
             return result;
+        }
+
+        private static bool IsChunkedName(string chunkedName, string propertyName)
+        {
+            if (!propertyName.StartsWith(chunkedName, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            // Require exactly two digits after chunked property (for example "createOptionsXX")
+            if (propertyName.Length != chunkedName.Length + 2)
+            {
+                return false;
+            }
+
+            string suffix = propertyName.Substring(chunkedName.Length); // e.g. "01", "15"
+
+            return int.TryParse(suffix, out int n) && n >= 0 && n <= 99;
         }
 
         public static bool IsValidToken(JToken token) => ValidDiffTypes.Any(t => t == token.Type);
