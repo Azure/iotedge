@@ -1,3 +1,17 @@
+# 1.6.4 (2026-09-28)
+
+## Breaking change
+When `allow_elevated_docker_permissions` is `false` in your device configuration (config.toml), aziot-edged now removes privileged Docker properties and host bind mounts whose source is not listed in `allowed_bind_sources`. Before upgrading, add every required host bind source to the top-level `allowed_bind_sources` setting. IoT Edge workload sockets and the Edge Agent management socket are allowed automatically.
+
+## Edge Hub
+### Bug fixes
+* Fix subscription recovery when the cloud proxy is unavailable ( [d8b8ec2](https://github.com/Azure/iotedge/commit/d8b8ec290a2029de014878b096ba041778da4ce6) )
+
+## aziot-edge
+### Bug fixes
+* Remove privileged Docker properties when elevated permissions are disabled ( [bde41af](https://github.com/Azure/iotedge/commit/bde41affa1da4ce7843b0cc91b08640d1a2df950) )
+* Restrict host bind sources for modules with elevated permissions disabled ( [d76d8a7](https://github.com/Azure/iotedge/commit/d76d8a72aa9cc797fcce28af137d82ec5fb52efd) )
+
 # 1.6.3 (2026-09-09)
 
 Only Docker images are updated in this release. The daemon remains at version 1.6.0.
