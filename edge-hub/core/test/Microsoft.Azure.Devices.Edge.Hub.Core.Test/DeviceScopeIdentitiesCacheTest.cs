@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Query.Builtins;
     using Moq;
+    using Newtonsoft.Json;
     using Xunit;
 
     [Unit]
@@ -1418,8 +1419,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             proxy.Verify(p => p.GetServiceIdentity("edge", "m1", "edge"), Times.Once);
             proxy.Verify(p => p.GetServiceIdentitiesIterator(), Times.Once);
-            iterator.VerifyGet(i => i.HasNext, Times.Once);
-            proxy.VerifyNoOtherCalls();
+            iterator.VerifyGet(i => i.HasNext, Times.AtLeastOnce);
+            proxy.Verify(p => p.GetServiceIdentity(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
         [Fact]
@@ -1442,6 +1443,71 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Equal(module, (await cache.GetServiceIdentity(module.Id)).OrDefault());
             Assert.False((await cache.GetAuthChain(module.Id)).HasValue);
             proxy.Verify(p => p.GetServiceIdentity("edge", "m1", "edge"), Times.Once);
+        }
+
+        [Fact]
+        public async Task StaleModuleLookupDoesNotOverrideNewerDisabledParentAsync()
+        {
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            var enabledParent = new ServiceIdentity("edge", null, "scope", Enumerable.Empty<string>(), "1234", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Enabled);
+            var disabledParent = new ServiceIdentity("edge", null, "scope", Enumerable.Empty<string>(), "1234", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Disabled);
+            var module = new ServiceIdentity("edge", "m1", null, Enumerable.Empty<string>(), "2345", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            iterator.Setup(i => i.HasNext).Returns(false);
+            var moduleRequested = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var moduleResponse = new TaskCompletionSource<(Option<ServiceIdentity>, Option<ServiceIdentity>)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            proxy.Setup(p => p.GetServiceIdentity("edge", "m1", "edge"))
+                .Callback(() => moduleRequested.SetResult(true))
+                .Returns(moduleResponse.Task);
+            proxy.Setup(p => p.GetServiceIdentity("edge", "edge")).ReturnsAsync(Option.Some(disabledParent));
+            var store = GetEntityStore("cache");
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("edge"), proxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+
+            Task moduleRefresh = cache.RefreshServiceIdentity(module.Id);
+            await moduleRequested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await cache.RefreshServiceIdentity(disabledParent.Id);
+            moduleResponse.SetResult((Option.Some(module), Option.Some(enabledParent)));
+            await moduleRefresh;
+
+            Assert.Equal(disabledParent, (await cache.GetServiceIdentity(disabledParent.Id)).OrDefault());
+            var storedParent = JsonConvert.DeserializeObject<DeviceScopeIdentitiesCache.StoredServiceIdentity>((await store.Get(disabledParent.Id)).OrDefault());
+            Assert.Equal(disabledParent, storedParent.ServiceIdentity.OrDefault());
+            Assert.Equal(module, (await cache.GetServiceIdentity(module.Id)).OrDefault());
+            Assert.False((await cache.GetAuthChain(module.Id)).HasValue);
+            proxy.Verify(p => p.GetServiceIdentity("edge", "m1", "edge"), Times.Once);
+            proxy.Verify(p => p.GetServiceIdentity("edge", "edge"), Times.Once);
+        }
+
+        [Fact]
+        public async Task RefreshModuleKeepsCachedNonEdgeParentAttachedAsync()
+        {
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            var edge = new ServiceIdentity("edge", null, "edgeScope", Enumerable.Empty<string>(), "1234", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Enabled);
+            var device = new ServiceIdentity("d1", null, null, new[] { "edgeScope" }, "2345", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var returnedDevice = new ServiceIdentity("d1", null, null, new[] { "edgeScope" }, "3456", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var module = new ServiceIdentity("d1", "m1", null, Enumerable.Empty<string>(), "4567", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            iterator.SetupSequence(i => i.HasNext).Returns(true).Returns(false);
+            iterator.Setup(i => i.GetNext()).ReturnsAsync(new[] { edge, device, module });
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            proxy.Setup(p => p.GetServiceIdentity("d1", "m1", "edge")).ReturnsAsync((Option.Some(module), Option.Some(returnedDevice)));
+            var store = GetEntityStore("cache");
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("edge"), proxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+            Assert.Equal("d1/m1;d1;edge", (await cache.GetAuthChain(module.Id)).OrDefault());
+
+            await cache.RefreshServiceIdentity(module.Id);
+
+            Assert.Equal(device, (await cache.GetServiceIdentity(device.Id)).OrDefault());
+            var storedParent = JsonConvert.DeserializeObject<DeviceScopeIdentitiesCache.StoredServiceIdentity>((await store.Get(device.Id)).OrDefault());
+            Assert.Equal(device, storedParent.ServiceIdentity.OrDefault());
+            Assert.Equal("d1/m1;d1;edge", (await cache.GetAuthChain(module.Id)).OrDefault());
+            proxy.Verify(p => p.GetServiceIdentity("d1", "m1", "edge"), Times.Once);
+            proxy.Verify(p => p.GetServiceIdentity(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));

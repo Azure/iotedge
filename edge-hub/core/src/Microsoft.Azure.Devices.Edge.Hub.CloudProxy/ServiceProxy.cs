@@ -170,16 +170,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .Filter(_ => serviceIdentityResult.HasValue)
                 .Map(sc =>
                 {
-                    List<Device> parents = sc.Devices?
+                    if (sc.Devices == null || !sc.Devices.Any())
+                    {
+                        return Option.None<ServiceIdentity>();
+                    }
+
+                    List<Device> parents = sc.Devices
                         .Where(d => string.Equals(d.Id, deviceId, StringComparison.Ordinal))
                         .ToList();
 
-                    if (parents != null && parents.Count == 1)
+                    if (parents.Count == 1)
                     {
                         return Option.Some(parents[0].ToServiceIdentity());
                     }
 
-                    Events.UnexpectedResult(parents?.Count ?? 0, 1, "parent devices", id);
+                    Events.UnexpectedResult(parents.Count, 1, "parent devices", id);
                     return Option.None<ServiceIdentity>();
                 })
                 .GetOrElse(Option.None<ServiceIdentity>());

@@ -434,10 +434,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [InlineData(0)]
         [InlineData(1)]
         [InlineData(2)]
+        [InlineData(3)]
         public async Task GetModuleIdentityDoesNotAcceptInvalidParentAsync(int parentCase)
         {
             Device[] parents = parentCase == 0 ? null :
-                parentCase == 1 ? new[] { GetDevice("D1") } : new[] { GetDevice("d1"), GetDevice("d1") };
+                parentCase == 1 ? new[] { GetDevice("D1") } :
+                parentCase == 2 ? new[] { GetDevice("d1"), GetDevice("d1") } : Array.Empty<Device>();
             Module module = GetModule("d1", "m1");
             var result = new ScopeResult(parents, new[] { module }, null);
             var client = new Mock<IDeviceScopeApiClient>(MockBehavior.Strict);

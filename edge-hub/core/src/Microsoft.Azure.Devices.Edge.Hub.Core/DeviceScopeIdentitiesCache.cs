@@ -309,7 +309,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     await this.serviceProxy.GetServiceIdentity(parts[0], parts[1], onBehalfOfDevice);
 
                 // The module needs its parent in the hierarchy to obtain an auth chain.
-                await parent.ForEachAsync(this.HandleNewServiceIdentity);
+                // Preserve an already-cached parent; this check and insertion are not atomic.
+                await parent.ForEachAsync(
+                    async p =>
+                    {
+                        if (!await this.serviceIdentityHierarchy.Contains(p.Id))
+                        {
+                            await this.HandleNewServiceIdentity(p);
+                        }
+                    });
                 return identity;
             }
             else
