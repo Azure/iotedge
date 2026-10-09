@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return serviceIdentityResult;
         }
 
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, string onBehalfOfDevice)
+        public async Task<(Option<ServiceIdentity> Identity, Option<ServiceIdentity> Parent)> GetServiceIdentity(string deviceId, string moduleId, string onBehalfOfDevice)
         {
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
@@ -166,7 +166,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             return Option.None<ServiceIdentity>();
                         });
 
-            return serviceIdentityResult;
+            Option<ServiceIdentity> parentIdentity = scopeResult
+                .Filter(_ => serviceIdentityResult.HasValue)
+                .Map(sc =>
+                {
+                    if (sc.Devices == null || !sc.Devices.Any())
+                    {
+                        return Option.None<ServiceIdentity>();
+                    }
+
+                    List<Device> parents = sc.Devices
+                        .Where(d => string.Equals(d.Id, deviceId, StringComparison.Ordinal))
+                        .ToList();
+
+                    if (parents.Count == 1)
+                    {
+                        return Option.Some(parents[0].ToServiceIdentity());
+                    }
+
+                    Events.UnexpectedResult(parents.Count, 1, "parent devices", id);
+                    return Option.None<ServiceIdentity>();
+                })
+                .GetOrElse(Option.None<ServiceIdentity>());
+
+            return (serviceIdentityResult, parentIdentity);
         }
 
         Exception MapException(DeviceScopeApiException ex)
