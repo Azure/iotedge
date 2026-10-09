@@ -198,8 +198,8 @@
       },
       "Microsoft.Azure.Devices.Client": {
         "type": "Transitive",
-        "resolved": "1.43.0-edgeLts",
-        "contentHash": "lmcZUT04unp09ZoY9RdXTHjjsZrKs1oFotyvOlZBpsYD06R0/CTpfjbuk54LOqkH0NDk2lErnPAH/+/FE04fMg==",
+        "resolved": "1.43.2-edgeLts",
+        "contentHash": "Is/Fed8WHB6E97Hjk2bgKmxH3daVWpNrMX+lJ2ZNJlDlh3PWxgbd1QMETap0cp7ahpn13YXEzvsWmjuZ//XvrQ==",
         "dependencies": {
           "MQTTnet": "5.1.0.1559",
           "Microsoft.Azure.Amqp": "2.6.9",
@@ -708,7 +708,7 @@
       "microsoft.azure.devices.edge.moduleutil": {
         "type": "Project",
         "dependencies": {
-          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
+          "Microsoft.Azure.Devices.Client": "[1.43.2-edgeLts, 1.43.2-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )"
         }
       },
@@ -725,7 +725,7 @@
           "Azure.Identity": "[1.17.1, )",
           "Azure.Messaging.EventHubs": "[5.12.2, )",
           "Microsoft.Azure.Devices": "[1.42.0-edgeLts, 1.42.0-edgeLts]",
-          "Microsoft.Azure.Devices.Client": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
+          "Microsoft.Azure.Devices.Client": "[1.43.2-edgeLts, 1.43.2-edgeLts]",
           "Microsoft.Azure.Devices.Edge.Util": "[1.0.0, )",
           "Microsoft.Extensions.Configuration.Binder": "[10.0.0, )",
           "Microsoft.Extensions.Configuration.EnvironmentVariables": "[10.0.0, )",
