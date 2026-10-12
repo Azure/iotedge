@@ -1,3 +1,11 @@
+# 1.6.5 (2026-10-09)
+
+Only Docker images are updated in this release. The daemon remains at version 1.6.4.
+
+## Edge Hub
+### Bug fixes
+* Preserve matching parent device identities returned by module lookups so modules can recover their upstream authentication chain after an empty bulk scope refresh ( [13214b2](https://github.com/Azure/iotedge/commit/13214b2ab55b19835f19604b26074f7dc871e871) )
+
 # 1.6.4 (2026-09-28)
 
 ## Breaking change
