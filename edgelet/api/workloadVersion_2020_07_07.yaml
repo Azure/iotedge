@@ -286,13 +286,12 @@ definitions:
     properties:
       settings:
         type: object
+        description: |
+          Runtime-specific module settings. Only the image and imageHash fields are
+          returned; all other settings, such as createOptions, are omitted.
         example:
           image: 'microsoft/azureiotedge-hub:1.0'
-          createOptions:
-            HostConfig:
-              PortBindings:
-                '22/tcp':
-                  - HostPort: '11022'
+          imageHash: 'sha256:1234'
       env:
         type: array
         items:
