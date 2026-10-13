@@ -287,8 +287,8 @@ definitions:
       settings:
         type: object
         description: |
-          Runtime-specific module settings. Only non-sensitive fields such as the image
-          are returned; other settings such as createOptions are omitted.
+          Runtime-specific module settings. Only the image and imageHash fields are
+          returned; all other settings, such as createOptions, are omitted.
         example:
           image: 'microsoft/azureiotedge-hub:1.0'
           imageHash: 'sha256:1234'

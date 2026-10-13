@@ -86,6 +86,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use http_body_util::BodyExt as _;
+
+    use http_common::server::Route;
+
     use edgelet_test_utils::{test_route_err, test_route_ok};
 
     #[test]
@@ -139,5 +143,55 @@ mod tests {
             serde_json::json!({}),
             super::redact_settings(serde_json::Value::Null)
         );
+    }
+
+    #[tokio::test]
+    async fn get_redacts_settings() {
+        let route = test_route_ok!(super::PATH);
+        let names = ["module1", "module2"];
+
+        {
+            let mut runtime = route.runtime.lock().await;
+
+            runtime.modules = names
+                .iter()
+                .map(|name| {
+                    let settings = serde_json::json!({
+                        "image": format!("{name}:1.0"),
+                        "imageHash": format!("sha256:{name}"),
+                        "createOptions": {
+                            "Labels": { "net.azure-devices.edge.env": "{\"SECRET\":\"value\"}" },
+                            "Env": ["SECRET=value"]
+                        },
+                        "auth": { "username": "user", "password": "password" }
+                    });
+
+                    edgelet_test_utils::runtime::Module {
+                        name: (*name).to_string(),
+                        type_: "docker".to_string(),
+                        config: edgelet_test_utils::runtime::Config {
+                            settings: serde_json::from_value(settings).unwrap(),
+                        },
+                    }
+                })
+                .collect();
+        }
+
+        let response = route.get().await.unwrap();
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let response: edgelet_http::ListModulesResponse = serde_json::from_slice(&body).unwrap();
+
+        assert_eq!(names.len(), response.modules.len());
+
+        for (name, module) in names.iter().zip(&response.modules) {
+            assert_eq!(*name, module.name);
+            assert_eq!(
+                serde_json::json!({
+                    "image": format!("{name}:1.0"),
+                    "imageHash": format!("sha256:{name}")
+                }),
+                module.config.settings
+            );
+        }
     }
 }
