@@ -574,6 +574,402 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         [Unit]
+        public async Task GetCloudConnectionThrottlesRepeatedFailedCreation()
+        {
+            const string DeviceId = "device1";
+            const int OperationCount = 200;
+            TimeSpan retryInterval = TimeSpan.FromSeconds(5);
+            TimeSpan monotonicTime = TimeSpan.Zero;
+            var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
+            cloudConnectionProvider
+                .Setup(c => c.Connect(It.Is<IIdentity>(i => i.Id == DeviceId), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .ReturnsAsync(Try<ICloudConnection>.Failure(new TimeoutException()));
+
+            var connectionManager = new ConnectionManager(
+                cloudConnectionProvider.Object,
+                Mock.Of<ICredentialsCache>(),
+                GetIdentityProvider(),
+                Mock.Of<IDeviceConnectivityManager>(),
+                maxClients: 101,
+                closeCloudConnectionOnDeviceDisconnect: true,
+                retryInterval,
+                () => monotonicTime);
+
+            Task<Option<ICloudProxy>>[] operations = Enumerable.Range(0, OperationCount)
+                .Select(_ => connectionManager.GetCloudConnection(DeviceId))
+                .ToArray();
+            Option<ICloudProxy>[] results = await Task.WhenAll(operations);
+
+            Assert.All(results, result => Assert.False(result.HasValue));
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Once);
+
+            monotonicTime += retryInterval;
+            Option<ICloudProxy> resultAfterRetryInterval = await connectionManager.GetCloudConnection(DeviceId);
+
+            Assert.False(resultAfterRetryInterval.HasValue);
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Exactly(2));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetCloudConnectionThrottlesImmediatelyInactiveReplacements()
+        {
+            const string DeviceId = "device1";
+            const int OperationCount = 200;
+            TimeSpan retryInterval = TimeSpan.FromSeconds(5);
+            TimeSpan monotonicTime = TimeSpan.Zero;
+            bool initialConnectionActive = true;
+
+            var initialCloudProxy = new Mock<ICloudProxy>();
+            initialCloudProxy.SetupGet(p => p.IsActive).Returns(() => initialConnectionActive);
+            var initialCloudConnection = new Mock<ICloudConnection>();
+            initialCloudConnection.SetupGet(c => c.IsActive).Returns(() => initialConnectionActive);
+            initialCloudConnection.SetupGet(c => c.CloudProxy).Returns(
+                () => initialConnectionActive
+                    ? Option.Some(initialCloudProxy.Object)
+                    : Option.None<ICloudProxy>());
+
+            Try<ICloudConnection> CreateFailingReplacement()
+            {
+                bool isActive = true;
+                var cloudProxy = new Mock<ICloudProxy>();
+                cloudProxy.SetupGet(p => p.IsActive).Returns(() => isActive);
+                cloudProxy
+                    .Setup(p => p.SendMessageAsync(It.IsAny<IMessage>()))
+                    .Callback(() => isActive = false)
+                    .ThrowsAsync(new ObjectDisposedException("cloud proxy"));
+                var cloudConnection = new Mock<ICloudConnection>();
+                cloudConnection.SetupGet(c => c.IsActive).Returns(() => isActive);
+                cloudConnection.SetupGet(c => c.CloudProxy).Returns(
+                    () => isActive
+                        ? Option.Some(cloudProxy.Object)
+                        : Option.None<ICloudProxy>());
+                return Try.Success(cloudConnection.Object);
+            }
+
+            int connectionCount = 0;
+            var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
+            cloudConnectionProvider
+                .Setup(c => c.Connect(It.Is<IIdentity>(i => i.Id == DeviceId), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .ReturnsAsync(
+                    () => ++connectionCount == 1
+                        ? Try.Success(initialCloudConnection.Object)
+                        : CreateFailingReplacement());
+
+            var connectionManager = new ConnectionManager(
+                cloudConnectionProvider.Object,
+                Mock.Of<ICredentialsCache>(),
+                GetIdentityProvider(),
+                Mock.Of<IDeviceConnectivityManager>(),
+                maxClients: 101,
+                closeCloudConnectionOnDeviceDisconnect: true,
+                retryInterval,
+                () => monotonicTime);
+
+            Option<ICloudProxy> cloudProxy = await connectionManager.GetCloudConnection(DeviceId);
+            Assert.True(cloudProxy.HasValue);
+            initialConnectionActive = false;
+
+            IMessage message = Mock.Of<IMessage>();
+            Task<EdgeHubIOException>[] operations = Enumerable.Range(0, OperationCount)
+                .Select(
+                    _ => Assert.ThrowsAsync<EdgeHubIOException>(
+                        () => cloudProxy.OrDefault().SendMessageAsync(message)))
+                .ToArray();
+            await Task.WhenAll(operations);
+
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Exactly(2));
+
+            monotonicTime += retryInterval;
+            await Assert.ThrowsAsync<EdgeHubIOException>(
+                () => cloudProxy.OrDefault().SendMessageAsync(message));
+
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Exactly(3));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task RemoveDeviceConnectionInvalidatesInFlightCloudConnection()
+        {
+            const string DeviceId = "device1";
+            bool isActive = true;
+            var cloudProxy = Mock.Of<ICloudProxy>(p => p.IsActive);
+            var cloudConnection = new Mock<ICloudConnection>();
+            cloudConnection.SetupGet(c => c.IsActive).Returns(() => isActive);
+            cloudConnection.SetupGet(c => c.CloudProxy).Returns(() => Option.Some(cloudProxy));
+            cloudConnection
+                .Setup(c => c.CloseAsync())
+                .Callback(() => isActive = false)
+                .ReturnsAsync(true);
+
+            var connectionSource = new TaskCompletionSource<Try<ICloudConnection>>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
+            cloudConnectionProvider
+                .Setup(c => c.Connect(It.Is<IIdentity>(i => i.Id == DeviceId), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .Returns(connectionSource.Task);
+            var connectionManager = new ConnectionManager(
+                cloudConnectionProvider.Object,
+                Mock.Of<ICredentialsCache>(),
+                GetIdentityProvider(),
+                Mock.Of<IDeviceConnectivityManager>());
+
+            Task<Option<ICloudProxy>> getCloudConnection = connectionManager.GetCloudConnection(DeviceId);
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Once);
+
+            await connectionManager.RemoveDeviceConnection(DeviceId);
+            connectionSource.SetResult(Try.Success(cloudConnection.Object));
+            Option<ICloudProxy> result = await getCloudConnection;
+
+            Assert.False(result.HasValue);
+            Assert.False(isActive);
+            cloudConnection.Verify(c => c.CloseAsync(), Times.Once);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task CreateCloudConnectionWaitsForRemovalToComplete()
+        {
+            const string DeviceId = "device1";
+            var identity = new DeviceIdentity(IotHubHostName, DeviceId);
+            var credentials = new TokenCredentials(
+                identity,
+                DummyToken,
+                DummyProductInfo,
+                Option.None<string>(),
+                Option.None<string>(),
+                false);
+            bool firstConnectionActive = true;
+            var firstCloudProxy = Mock.Of<ICloudProxy>(p => p.IsActive);
+            var closeStarted = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var closeConnection = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var firstCloudConnection = new Mock<ICloudConnection>();
+            firstCloudConnection.SetupGet(c => c.IsActive).Returns(() => firstConnectionActive);
+            firstCloudConnection.SetupGet(c => c.CloudProxy).Returns(() => Option.Some(firstCloudProxy));
+            firstCloudConnection
+                .Setup(c => c.CloseAsync())
+                .Callback(() => closeStarted.SetResult(true))
+                .Returns(closeConnection.Task);
+
+            var secondCloudProxy = Mock.Of<ICloudProxy>(p => p.IsActive);
+            var secondCloudConnection = Mock.Of<ICloudConnection>(
+                c => c.IsActive && c.CloudProxy == Option.Some(secondCloudProxy));
+            var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
+            cloudConnectionProvider
+                .SetupSequence(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .ReturnsAsync(Try.Success(firstCloudConnection.Object))
+                .ReturnsAsync(Try.Success(secondCloudConnection));
+            var connectionManager = new ConnectionManager(
+                cloudConnectionProvider.Object,
+                Mock.Of<ICredentialsCache>(),
+                GetIdentityProvider(),
+                Mock.Of<IDeviceConnectivityManager>());
+
+            Try<ICloudProxy> firstResult = await connectionManager.CreateCloudConnectionAsync(credentials);
+            Assert.True(firstResult.Success);
+
+            Task removeConnection = connectionManager.RemoveDeviceConnection(DeviceId);
+            await closeStarted.Task;
+            Option<ICloudProxy> resultDuringRemoval = await connectionManager.GetCloudConnection(DeviceId);
+            Task<Try<ICloudProxy>> createConnection = connectionManager.CreateCloudConnectionAsync(credentials);
+
+            Assert.False(resultDuringRemoval.HasValue);
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Once);
+
+            firstConnectionActive = false;
+            closeConnection.SetResult(true);
+            await removeConnection;
+            Try<ICloudProxy> secondResult = await createConnection;
+
+            Assert.True(secondResult.Success);
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Exactly(2));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TokenExpiredRemovalPreservesConnectionOnlyForTokenUpdate()
+        {
+            const string DeviceId = "device1";
+            const int OperationCount = 200;
+            TimeSpan retryInterval = TimeSpan.FromSeconds(5);
+            TimeSpan monotonicTime = TimeSpan.Zero;
+            Action<string, CloudConnectionStatus> statusChangedHandler = null;
+            var connectionRemoved = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var cloudProxy = Mock.Of<ICloudProxy>(p => p.IsActive);
+            var updatedCloudProxy = Mock.Of<ICloudProxy>(p => p.IsActive);
+            bool tokenUpdated = false;
+            var cloudConnection = new Mock<IClientTokenCloudConnection>();
+            cloudConnection.SetupGet(c => c.IsActive).Returns(true);
+            cloudConnection
+                .SetupGet(c => c.CloudProxy)
+                .Returns(() => Option.Some(tokenUpdated ? updatedCloudProxy : cloudProxy));
+            cloudConnection
+                .SetupGet(c => c.HasPendingTokenUpdate)
+                .Callback(() => connectionRemoved.TrySetResult(true))
+                .Returns(true);
+            cloudConnection
+                .Setup(c => c.CloseAsync())
+                .ReturnsAsync(true);
+            cloudConnection
+                .Setup(c => c.UpdateTokenAsync(It.IsAny<ITokenCredentials>()))
+                .Callback(() => tokenUpdated = true)
+                .ReturnsAsync(updatedCloudProxy);
+
+            int connectionCount = 0;
+            var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
+            cloudConnectionProvider
+                .Setup(c => c.Connect(It.Is<IIdentity>(i => i.Id == DeviceId), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .Callback<IIdentity, Action<string, CloudConnectionStatus>>((_, handler) => statusChangedHandler = handler)
+                .ReturnsAsync(
+                    () => ++connectionCount == 1
+                        ? Try.Success(cloudConnection.Object as ICloudConnection)
+                        : Try<ICloudConnection>.Failure(new TimeoutException()));
+
+            var connectionManager = new ConnectionManager(
+                cloudConnectionProvider.Object,
+                Mock.Of<ICredentialsCache>(),
+                GetIdentityProvider(),
+                Mock.Of<IDeviceConnectivityManager>(),
+                maxClients: 101,
+                closeCloudConnectionOnDeviceDisconnect: true,
+                retryInterval,
+                () => monotonicTime);
+
+            Option<ICloudProxy> initialCloudProxy = await connectionManager.GetCloudConnection(DeviceId);
+            Assert.True(initialCloudProxy.HasValue);
+            Assert.NotNull(statusChangedHandler);
+
+            statusChangedHandler(DeviceId, CloudConnectionStatus.DisconnectedTokenExpired);
+            await connectionRemoved.Task;
+
+            Task<Option<ICloudProxy>>[] operations = Enumerable.Range(0, OperationCount)
+                .Select(_ => connectionManager.GetCloudConnection(DeviceId))
+                .ToArray();
+            Option<ICloudProxy>[] results = await Task.WhenAll(operations);
+
+            Assert.All(results, result => Assert.False(result.HasValue));
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Once);
+            cloudConnection.Verify(c => c.CloseAsync(), Times.Never);
+
+            var updatedCredentials = new TokenCredentials(
+                new DeviceIdentity(IotHubHostName, DeviceId),
+                DummyToken,
+                DummyProductInfo,
+                Option.None<string>(),
+                Option.None<string>(),
+                true);
+            Try<ICloudProxy> updatedConnection =
+                await connectionManager.CreateCloudConnectionAsync(updatedCredentials);
+
+            Assert.True(updatedConnection.Success);
+            Assert.Same(updatedCloudProxy, ((RetryingCloudProxy)updatedConnection.Value).InnerCloudProxy);
+            Option<ICloudProxy> activeConnection = await connectionManager.GetCloudConnection(DeviceId);
+            Assert.True(activeConnection.HasValue);
+            Assert.Same(updatedCloudProxy, ((RetryingCloudProxy)activeConnection.OrDefault()).InnerCloudProxy);
+            cloudConnection.Verify(c => c.UpdateTokenAsync(updatedCredentials), Times.Once);
+            cloudConnectionProvider.Verify(
+                c => c.Connect(It.IsAny<IIdentity>(), It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TokenExpiredRemovalCancelsConnectionWithoutPendingUpdate()
+        {
+            const string DeviceId = "device1";
+            bool tokenUpdateCanceled = false;
+            Action<string, CloudConnectionStatus> statusChangedHandler = null;
+            var connectionClosed = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var cloudProxy = Mock.Of<ICloudProxy>(p => p.IsActive);
+            var replacementCloudProxy = Mock.Of<ICloudProxy>(p => p.IsActive);
+            var replacementCloudConnection = Mock.Of<ICloudConnection>(
+                c => c.IsActive && c.CloudProxy == Option.Some(replacementCloudProxy));
+            var cloudConnection = new Mock<IClientTokenCloudConnection>();
+            cloudConnection.SetupGet(c => c.IsActive).Returns(true);
+            cloudConnection.SetupGet(c => c.CloudProxy).Returns(Option.Some(cloudProxy));
+            cloudConnection.SetupGet(c => c.HasPendingTokenUpdate).Returns(false);
+            cloudConnection
+                .Setup(c => c.CancelTokenUpdate())
+                .Callback(() => tokenUpdateCanceled = true);
+            cloudConnection
+                .Setup(c => c.CloseAsync())
+                .Callback(
+                    () =>
+                    {
+                        Assert.True(tokenUpdateCanceled);
+                        connectionClosed.TrySetResult(true);
+                    })
+                .ReturnsAsync(true);
+            var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
+            cloudConnectionProvider
+                .Setup(c => c.Connect(It.Is<IIdentity>(i => i.Id == DeviceId), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .Callback<IIdentity, Action<string, CloudConnectionStatus>>((_, handler) => statusChangedHandler = handler)
+                .ReturnsAsync(Try.Success(cloudConnection.Object as ICloudConnection));
+            cloudConnectionProvider
+                .Setup(c => c.Connect(It.Is<IClientCredentials>(credentials => credentials.Identity.Id == DeviceId), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .ReturnsAsync(Try.Success(replacementCloudConnection));
+            var connectionManager = new ConnectionManager(
+                cloudConnectionProvider.Object,
+                Mock.Of<ICredentialsCache>(),
+                GetIdentityProvider(),
+                Mock.Of<IDeviceConnectivityManager>());
+
+            Option<ICloudProxy> initialConnection = await connectionManager.GetCloudConnection(DeviceId);
+            Assert.True(initialConnection.HasValue);
+            Assert.NotNull(statusChangedHandler);
+
+            statusChangedHandler(DeviceId, CloudConnectionStatus.DisconnectedTokenExpired);
+            await connectionClosed.Task;
+
+            cloudConnection.Verify(c => c.CancelTokenUpdate(), Times.Once);
+            cloudConnection.Verify(c => c.CloseAsync(), Times.Once);
+            Option<ICloudProxy> removedConnection = await connectionManager.GetCloudConnection(DeviceId);
+            Assert.False(removedConnection.HasValue);
+
+            var replacementCredentials = new TokenCredentials(
+                new DeviceIdentity(IotHubHostName, DeviceId),
+                DummyToken,
+                DummyProductInfo,
+                Option.None<string>(),
+                Option.None<string>(),
+                true);
+            Try<ICloudProxy> replacementConnection =
+                await connectionManager.CreateCloudConnectionAsync(replacementCredentials);
+
+            Assert.True(replacementConnection.Success);
+            Assert.Same(
+                replacementCloudProxy,
+                ((RetryingCloudProxy)replacementConnection.Value).InnerCloudProxy);
+            cloudConnection.Verify(
+                c => c.UpdateTokenAsync(It.IsAny<ITokenCredentials>()),
+                Times.Never);
+            cloudConnectionProvider.Verify(
+                c => c.Connect(replacementCredentials, It.IsAny<Action<string, CloudConnectionStatus>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        [Unit]
         public async Task CreateCloudProxyTest()
         {
             string edgeDeviceId = "edgeDevice";
