@@ -40,9 +40,9 @@
       },
       "Microsoft.Azure.Devices.Client": {
         "type": "Direct",
-        "requested": "[1.43.0-edgeLts, 1.43.0-edgeLts]",
-        "resolved": "1.43.0-edgeLts",
-        "contentHash": "lmcZUT04unp09ZoY9RdXTHjjsZrKs1oFotyvOlZBpsYD06R0/CTpfjbuk54LOqkH0NDk2lErnPAH/+/FE04fMg==",
+        "requested": "[1.43.2-edgeLts, 1.43.2-edgeLts]",
+        "resolved": "1.43.2-edgeLts",
+        "contentHash": "Is/Fed8WHB6E97Hjk2bgKmxH3daVWpNrMX+lJ2ZNJlDlh3PWxgbd1QMETap0cp7ahpn13YXEzvsWmjuZ//XvrQ==",
         "dependencies": {
           "MQTTnet": "5.1.0.1559",
           "Microsoft.Azure.Amqp": "2.6.9",
