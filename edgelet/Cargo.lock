@@ -961,6 +961,7 @@ dependencies = [
  "hyper-util",
  "nix",
  "serde",
+ "serde_json",
  "tokio",
  "tower-service",
 ]

@@ -3,7 +3,10 @@
 use hyper::body::Incoming;
 
 #[derive(Clone, Default, serde::Deserialize, serde::Serialize)]
-pub struct Config {}
+pub struct Config {
+    #[serde(flatten)]
+    pub settings: serde_json::Map<String, serde_json::Value>,
+}
 
 #[derive(Clone)]
 pub struct Module {
@@ -64,6 +67,7 @@ impl edgelet_core::ModuleRegistry for ModuleRegistry {
 
 pub struct Runtime {
     pub module_auth: std::collections::BTreeMap<String, Vec<i32>>,
+    pub modules: Vec<Module>,
 }
 
 impl Default for Runtime {
@@ -77,6 +81,7 @@ impl Default for Runtime {
 
         Runtime {
             module_auth: modules,
+            modules: Vec::new(),
         }
     }
 }
@@ -101,6 +106,16 @@ impl edgelet_core::ModuleRuntime for Runtime {
 
             Ok(pids)
         }
+    }
+
+    async fn list_with_details(
+        &self,
+    ) -> anyhow::Result<Vec<(Self::Module, edgelet_core::ModuleRuntimeState)>> {
+        Ok(self
+            .modules
+            .iter()
+            .map(|module| (module.clone(), edgelet_core::ModuleRuntimeState::default()))
+            .collect())
     }
 
     // The functions below aren't used in tests.
@@ -148,12 +163,6 @@ impl edgelet_core::ModuleRuntime for Runtime {
     }
 
     async fn list(&self) -> anyhow::Result<Vec<Self::Module>> {
-        unimplemented!()
-    }
-
-    async fn list_with_details(
-        &self,
-    ) -> anyhow::Result<Vec<(Self::Module, edgelet_core::ModuleRuntimeState)>> {
         unimplemented!()
     }
 
