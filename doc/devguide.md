@@ -44,12 +44,6 @@ Besides using Test Explorer in Visual Studio, you can run the unit tests with:
 scripts/linux/runTests.sh
 ```
 
-The Linux container-build script regression tests require Python 3 and Bash, but no Docker daemon or registry access:
-
-```sh
-python3 -B -m unittest discover -s scripts/linux/tests -p test_buildx_scripts.py -v
-```
-
 ## Run integration tests
 
 To run integration tests and/or BVTs, make sure the following dependencies are installed in your environment:
