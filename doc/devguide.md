@@ -24,6 +24,18 @@ scripts/linux/buildBranch.sh
 
 Binaries are published to `target/publish/`.
 
+### Linux container builds use Docker's embedded BuildKit
+
+`scripts/linux/buildImage.sh` and `scripts/linux/buildRocksDb.sh` always select Docker Engine's embedded BuildKit (`docker` driver) with an internal `--builder default`, ignoring any ambient `BUILDX_BUILDER`. There is no script `--builder` option or pipeline template `builder` parameter. The scripts do not create or remove a container builder, so there is no secondary `moby/buildkit` image pull.
+
+The supported build-agent baseline requires:
+
+- Docker's **containerd image store** for multi-platform images and provenance attestations. Check `docker info` for `driver-type: io.containerd.snapshotter.v1` and `docker buildx inspect default --bootstrap` for the driver, embedded BuildKit version and advertised platforms.
+- BuildKit and Buildx versions supporting SLSA v1 provenance. Image builds retain `--pull` to refresh base images and `--provenance=mode=min,version=v1`; the release refresh detector consumes that SLSA v1 dependency metadata.
+- Working execution support for every required platform, including binfmt/QEMU emulation for cross-architecture Dockerfile `RUN` steps. RocksDB retains `--load` and the subsequent local `docker run --platform ...` to extract the library, so the daemon must also execute the target architecture.
+
+Daemon configuration and required emulation must be provisioned outside these scripts; there is no compatibility fallback. Other Docker Hub references, including API proxy base images, are not addressed by this change.
+
 ## Run unit tests
 
 Besides using Test Explorer in Visual Studio, you can run the unit tests with:
