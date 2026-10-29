@@ -16,6 +16,7 @@ SCRIPT_NAME=$(basename "$0")
 ARCH=
 BUILD_NUMBER=
 OUTPUT_DIR=
+DOCKER_BUILDX_BUILDER="${BUILDX_BUILDER:-}"
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -27,6 +28,7 @@ function usage() {
     echo "--output-dir          Path to librocksdb folder that contains resulting binaries."
     echo "--build-number        Build number for which to tag image."
     echo "--arch                Options: amd64, arm32v7, arm64v8."
+    echo "--builder             Existing Buildx builder, or set BUILDX_BUILDER. Use 'default' for Docker's embedded BuildKit. If unset, create a temporary containerized builder."
     echo " -h, --help           Print this help and exit."
     exit 1
 }
@@ -51,16 +53,29 @@ function process_args() {
         elif [ ${save_next_arg} -eq 3 ]; then
             ARCH=$arg
             save_next_arg=0
+        elif [ ${save_next_arg} -eq 4 ]; then
+            if [[ -z "$arg" || "$arg" == -* ]]; then
+                echo 'The --builder parameter requires a non-empty builder name'
+                print_help_and_exit
+            fi
+            DOCKER_BUILDX_BUILDER="$arg"
+            save_next_arg=0
         else
             case "$arg" in
             "-h" | "--help") usage ;;
             "--output-dir") save_next_arg=1 ;;
             "--build-number") save_next_arg=2 ;;
             "--arch") save_next_arg=3 ;;
+            "--builder") save_next_arg=4 ;;
             *) usage ;;
             esac
         fi
     done
+
+    if [ ${save_next_arg} -eq 4 ]; then
+        echo 'The --builder parameter requires a non-empty builder name'
+        print_help_and_exit
+    fi
 
     if [ ! -d "$OUTPUT_DIR" ]; then
         echo "Value '$OUTPUT_DIR' specified by --output-dir is not a valid directory"
@@ -82,10 +97,15 @@ esac
 build_image=rocksdb-build:main-$ARCH-$BUILD_NUMBER
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 
-docker buildx create --use --bootstrap
-trap "docker buildx rm" EXIT
+if [[ -z "$DOCKER_BUILDX_BUILDER" ]]; then
+    DOCKER_BUILDX_BUILDER="$(docker buildx create --driver docker-container)"
+    trap 'docker buildx rm "$DOCKER_BUILDX_BUILDER"' EXIT
+fi
+
+docker buildx inspect "$DOCKER_BUILDX_BUILDER" --bootstrap
 
 docker buildx build \
+    --builder "$DOCKER_BUILDX_BUILDER" \
     --load \
     --platform $platform \
     --tag $build_image \

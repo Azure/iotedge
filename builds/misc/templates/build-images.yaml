@@ -2,6 +2,9 @@ parameters:
   - name: build_single
     type: string
     default: ''
+  - name: builder
+    type: string
+    default: ''
 
 stages:
 
@@ -44,6 +47,7 @@ stages:
       - template: build-rocksdb.yaml
         parameters:
           build_single: ${{ parameters.build_single }}
+          builder: ${{ parameters.builder }}
 
 ################################################################################
   - stage: BuildExecutables
@@ -189,6 +193,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Edge Agent
           name: azureiotedge-agent
           app: Microsoft.Azure.Devices.Edge.Agent.Service
@@ -200,6 +205,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Edge Hub
           name: azureiotedge-hub
           app: Microsoft.Azure.Devices.Edge.Hub.Service
@@ -211,6 +217,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Temperature Sensor
           name: azureiotedge-simulated-temperature-sensor
           app: SimulatedTemperatureSensor
@@ -221,6 +228,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Diagnostics
           name: azureiotedge-diagnostics
           app: IotedgeDiagnosticsDotnet
@@ -231,6 +239,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Metrics Collector
           name: azureiotedge-metrics-collector
           app: Microsoft.Azure.Devices.Edge.Azure.Monitor
@@ -241,6 +250,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: API Proxy
           name: azureiotedge-api-proxy
           app: api-proxy-module
@@ -256,6 +266,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Temperature Filter
           name: azureiotedge-temperature-filter
           app: TemperatureFilter
@@ -266,6 +277,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Load Gen
           name: azureiotedge-load-gen
           app: load-gen
@@ -277,6 +289,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Functions Sample
           name: azureiotedge-functions-filter
           app: EdgeHubTriggerCSharp
@@ -287,6 +300,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Direct Method Sender
           name: azureiotedge-direct-method-sender
           app: DirectMethodSender
@@ -297,6 +311,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Direct Method Receiver
           name: azureiotedge-direct-method-receiver
           app: DirectMethodReceiver
@@ -307,6 +322,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Metrics Validator
           name: azureiotedge-metrics-validator
           app: MetricsValidator
@@ -317,6 +333,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Number Logger
           name: azureiotedge-number-logger
           app: NumberLogger
@@ -327,6 +344,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Module Restarter
           name: azureiotedge-module-restarter
           app: ModuleRestarter
@@ -337,6 +355,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: TwinTester
           name: azureiotedge-twin-tester
           app: TwinTester
@@ -348,6 +367,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Relayer
           name: azureiotedge-relayer
           app: Relayer
@@ -358,6 +378,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Network Controller
           name: azureiotedge-network-controller
           app: NetworkController
@@ -369,6 +390,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: TestResultCoordinator
           name: azureiotedge-test-result-coordinator
           app: TestResultCoordinator
@@ -380,6 +402,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Test Metrics Collector
           name: azureiotedge-test-metrics-collector
           app: TestMetricsCollector
@@ -390,6 +413,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: DeploymentTester
           name: azureiotedge-deployment-tester
           app: DeploymentTester
@@ -400,6 +424,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: EdgeHubRestartTester
           name: azureiotedge-edgehub-restart-tester
           app: EdgeHubRestartTester
@@ -410,6 +435,7 @@ stages:
       steps:
       - template: image-linux.yaml
         parameters:
+          builder: ${{ parameters.builder }}
           displayName: Cloud To Device Message Tester
           name: azureiotedge-c2dmessage-tester
           app: CloudToDeviceMessageTester
