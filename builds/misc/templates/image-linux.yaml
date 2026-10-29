@@ -1,7 +1,6 @@
 parameters:
   app: ''
   bin_dir: '$(Build.BinariesDirectory)'
-  builder: ''
   displayName: ''
   download_artifacts: true
   name: ''
@@ -51,6 +50,3 @@ steps:
         --registry '$(registry.address)' \
         --version '${{ parameters.version }}'
     displayName: Build Image - ${{ parameters.displayName }}
-    ${{ if ne(parameters.builder, '') }}:
-      env:
-        BUILDX_BUILDER: ${{ parameters.builder }}

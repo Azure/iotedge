@@ -24,41 +24,17 @@ scripts/linux/buildBranch.sh
 
 Binaries are published to `target/publish/`.
 
-### Select an existing Buildx builder for Linux container builds
+### Linux container builds use Docker's embedded BuildKit
 
-`scripts/linux/buildImage.sh` and `scripts/linux/buildRocksDb.sh` accept `--builder NAME` or the standard `BUILDX_BUILDER` environment variable; the command-line option takes precedence. With no command-line selection and `BUILDX_BUILDER` unset or empty, the scripts retain the existing workflow: create a temporary `docker-container` builder and remove it on exit. An explicit selection reuses an externally provisioned, existing builder without creating or removing it. In particular, `default` selects Docker Engine's embedded BuildKit (`docker` driver), not a new builder container.
+`scripts/linux/buildImage.sh` and `scripts/linux/buildRocksDb.sh` always select Docker Engine's embedded BuildKit (`docker` driver) with an internal `--builder default`, ignoring any ambient `BUILDX_BUILDER`. There is no script `--builder` option or pipeline template `builder` parameter. The scripts do not create or remove a container builder, so there is no secondary `moby/buildkit` image pull.
 
-After building the application binaries and authenticating to your registry, for example:
+The supported build-agent baseline requires:
 
-```sh
-scripts/linux/buildImage.sh \
-  --app Microsoft.Azure.Devices.Edge.Hub.Service --bin target \
-  --name azureiotedge-hub --registry myregistry.azurecr.io \
-  --version dev --builder default
+- Docker's **containerd image store** for multi-platform images and provenance attestations. Check `docker info` for `driver-type: io.containerd.snapshotter.v1` and `docker buildx inspect default --bootstrap` for the driver, embedded BuildKit version and advertised platforms.
+- BuildKit and Buildx versions supporting SLSA v1 provenance. Image builds retain `--pull` to refresh base images and `--provenance=mode=min,version=v1`; the release refresh detector consumes that SLSA v1 dependency metadata.
+- Working execution support for every required platform, including binfmt/QEMU emulation for cross-architecture Dockerfile `RUN` steps. RocksDB retains `--load` and the subsequent local `docker run --platform ...` to extract the library, so the daemon must also execute the target architecture.
 
-BUILDX_BUILDER=default scripts/linux/buildRocksDb.sh \
-  --output-dir target --build-number dev --arch amd64
-```
-
-The shared Azure Pipelines templates expose the same optional `builder` parameter:
-
-```yaml
-- template: /builds/misc/templates/build-images.yaml
-  parameters:
-    builder: default
-```
-
-This selects the builder for RocksDB and every Linux image job. The leaf templates (`build-rocksdb.yaml` and `image-linux.yaml`) also accept it directly. The default is `''`, which leaves an inherited `BUILDX_BUILDER` unchanged; without an environment selection, the temporary-builder workflow is unchanged.
-
-Before opting in on each build agent:
-
-- The embedded `docker` driver needs the **containerd image store** for multi-platform images and provenance attestations. Fresh Engine installations may enable it by default, while upgraded installations can retain the classic image store; do not infer support from the Engine version alone. Check `docker info` for `driver-type: io.containerd.snapshotter.v1`, and run `docker buildx inspect default --bootstrap` to check the driver, embedded BuildKit version and advertised platforms. For another existing builder, inspect its name instead.
-- The selected BuildKit and Buildx versions must support SLSA v1 provenance with `--provenance=mode=min,version=v1`. Image builds explicitly request that format and `--pull` to refresh base images. The release refresh detector consumes the SLSA v1 dependency metadata; older BuildKit versions that cannot emit it are not supported.
-- Cross-architecture Dockerfile `RUN` steps still require native workers or working emulation (for example, binfmt/QEMU). RocksDB retains `--load`, and its subsequent `docker run --platform ...` must execute the target architecture on the local Docker daemon too; a remote builder alone does not provide that runtime support.
-
-Provision compatible builders, daemon settings and emulation outside these scripts. They do not automatically modify daemon configuration or fall back to another builder when the selected one is incompatible.
-
-OneBranch release definitions live in the separate `iotedge-release` repository. They must explicitly opt in and exercise image publishing and the refresh detector (`builds/release/detect-image-updates.yaml`) end to end before rollout; these shared-template changes alone do not enable release builds. Other Docker Hub references, including API proxy base images, are not addressed by builder selection or this change.
+Daemon configuration and required emulation must be provisioned outside these scripts; there is no compatibility fallback. Other Docker Hub references, including API proxy base images, are not addressed by this change.
 
 ## Run unit tests
 

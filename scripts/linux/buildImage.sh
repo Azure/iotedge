@@ -26,7 +26,6 @@ PLATFORMS='linux/amd64,linux/arm/v7,linux/arm64'
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:=""}
 DOCKER_IMAGENAME=
 DOCKER_NAMESPACE='microsoft'
-DOCKER_BUILDX_BUILDER="${BUILDX_BUILDER:-}"
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 SCRIPT_NAME=$(basename "$0")
 
@@ -73,7 +72,6 @@ usage() {
     echo "options"
     echo " -a, --app            App to build image for (e.g. Microsoft.Azure.Devices.Edge.Agent.Service)"
     echo " -b, --bin            Path to the application binaries. Either use this option or set env variable BUILD_BINARIESDIRECTORY"
-    echo "     --builder        Existing Buildx builder, or set BUILDX_BUILDER. Use 'default' for Docker's embedded BuildKit (requires the containerd image store and SLSA v1 support). If unset, create a temporary containerized builder."
     echo " -h, --help           Print this message and exit"
     echo " -n, --name           Image name (e.g. azureiotedge-agent)"
     echo " -p, --platforms      Platforms to build. Default is '$PLATFORMS'"
@@ -112,13 +110,6 @@ process_args() {
         elif [[ ${save_next_arg} -eq 6 ]]; then
             DOCKER_IMAGEVERSION="$arg"
             save_next_arg=0
-        elif [[ ${save_next_arg} -eq 7 ]]; then
-            if [[ -z "$arg" || "$arg" == -* ]]; then
-                echo 'The --builder parameter requires a non-empty builder name'
-                print_help_and_exit
-            fi
-            DOCKER_BUILDX_BUILDER="$arg"
-            save_next_arg=0
         else
             case "$arg" in
             "-a" | "--app") save_next_arg=1 ;;
@@ -128,16 +119,10 @@ process_args() {
             "-p" | "--platforms") save_next_arg=4 ;;
             "-r" | "--registry") save_next_arg=5 ;;
             "-v" | "--version") save_next_arg=6 ;;
-            "--builder") save_next_arg=7 ;;
             *) echo "Unknown argument '$arg'"; usage ;;
             esac
         fi
     done
-
-    if [[ ${save_next_arg} -eq 7 ]]; then
-        echo 'The --builder parameter requires a non-empty builder name'
-        print_help_and_exit
-    fi
 
     if [[ -z "$DOCKER_REGISTRY" ]]; then
         echo 'The --registry parameter is required'
@@ -213,11 +198,6 @@ process_args "$@"
 DOCKERFILE="$APP_BINARIESDIRECTORY/docker/linux/Dockerfile"
 IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION"
 
-if [[ -z "$DOCKER_BUILDX_BUILDER" ]]; then
-    DOCKER_BUILDX_BUILDER="$(docker buildx create --driver docker-container)"
-    trap 'docker buildx rm "$DOCKER_BUILDX_BUILDER"' EXIT
-fi
-
 # Dump docker version and config information to help with debugging
 echo "--------------------"
 echo "> docker version"
@@ -226,8 +206,8 @@ echo "--------------------"
 echo "> docker buildx version"
 docker buildx version
 echo "--------------------"
-echo "> docker buildx inspect $DOCKER_BUILDX_BUILDER --bootstrap"
-docker buildx inspect "$DOCKER_BUILDX_BUILDER" --bootstrap
+echo "> docker buildx inspect default --bootstrap"
+docker buildx inspect default --bootstrap
 echo "--------------------"
 echo "> docker info"
 docker info
@@ -251,7 +231,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
         PLAT_IMAGE="$IMAGE-$CONVERTED_PLATFORM"
 
         docker buildx build \
-            --builder "$DOCKER_BUILDX_BUILDER" \
+            --builder default \
             --provenance=mode=min,version=v1 \
             --pull \
             --no-cache \
@@ -265,7 +245,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     done
 
     # Next, create the multi-platform image from the platform-specific images
-    docker buildx imagetools create --builder "$DOCKER_BUILDX_BUILDER" --tag "$IMAGE" "${PLAT_IMAGES[@]}"
+    docker buildx imagetools create --builder default --tag "$IMAGE" "${PLAT_IMAGES[@]}"
 
     # Finally, tag each platform-specific image. This will untag the intermediate manifest lists,
     # which are no longer needed.
@@ -281,7 +261,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
 else
     # First, build the complete multi-platform image
     docker buildx build \
-        --builder "$DOCKER_BUILDX_BUILDER" \
+        --builder default \
         --provenance=mode=min,version=v1 \
         --pull \
         --no-cache \

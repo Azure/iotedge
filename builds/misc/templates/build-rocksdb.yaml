@@ -2,9 +2,6 @@ parameters:
 - name: build_single
   type: string
   default: ''
-- name: builder
-  type: string
-  default: ''
 - name: targets
   type: object
   default:
@@ -38,9 +35,6 @@ jobs:
             --arch ${{ target.arch }}
           EONG
         displayName: Build and copy out rocksdb lib
-        ${{ if ne(parameters.builder, '') }}:
-          env:
-            BUILDX_BUILDER: ${{ parameters.builder }}
       - task: PublishBuildArtifacts@1
         displayName: Publish artifacts
         inputs:
