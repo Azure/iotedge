@@ -1,3 +1,18 @@
+# 2.0.3 (2026-10-29)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 2.0.2 (2026-10-29)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
+# 2.0.1 (2026-10-27)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
 # 2.0.0 (2026-09-15)
 
 ## Breaking change: migrated to the Azure Monitor Logs Ingestion API
