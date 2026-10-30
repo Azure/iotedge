@@ -5,6 +5,11 @@ use futures_util::{
 use log::info;
 use tokio::signal::unix::{signal, SignalKind};
 
+/// Waits for SIGTERM or SIGINT.
+///
+/// # Panics
+///
+/// Panics if either signal handler cannot be registered.
 pub async fn shutdown() {
     let mut terminate = signal(SignalKind::terminate()).expect("signal handling failed");
     let terminate = terminate.recv();
