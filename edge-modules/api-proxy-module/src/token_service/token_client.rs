@@ -49,7 +49,7 @@ impl TokenClient {
             .await?;
 
         let signature = resp.digest();
-        let token = UrlSerializer::new(format!("SharedAccessSignature sr={}", resource_uri))
+        let token = UrlSerializer::new(format!("SharedAccessSignature sr={resource_uri}"))
             .append_pair("sig", signature)
             .append_pair("se", expiration_date)
             .finish();

@@ -22,7 +22,7 @@ const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
 const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
 
 const TWIN_CONFIG_MAX_BACK_OFF: Duration = Duration::from_secs(30);
-const TWIN_CONFIG_KEEP_ALIVE: Duration = Duration::from_secs(300);
+const TWIN_CONFIG_KEEP_ALIVE: Duration = Duration::from_mins(5);
 
 pub fn get_sdk_client() -> Result<Client, Error> {
     let client = match Client::new_for_edge_module(
@@ -99,8 +99,8 @@ pub fn start(
                     //Notify watchdog config is there
                     Ok(()) => notify_received_config.notify_one(),
                     Err(error) => error!("Error while parsing default config: {}", error),
-                };
-            };
+                }
+            }
         }
     });
 
