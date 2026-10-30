@@ -1,3 +1,8 @@
+# 2.0.4 (2026-10-30)
+
+The following Docker images were updated because their base images changed:
+* azureiotedge-metrics-collector
+
 # 2.0.3 (2026-10-29)
 
 The following Docker images were updated because their base images changed:
