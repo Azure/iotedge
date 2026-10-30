@@ -676,8 +676,22 @@ fn write_lines<'a>(
     Ok(())
 }
 
-fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
+fn parse_local_service_proxy_setting(output: &str) -> Option<String> {
     const PROXY_KEY: &str = "https_proxy";
+
+    let vars = output.trim_start_matches("Environment=");
+    for var in vars.split(' ') {
+        if let Some((key, value)) = var.split_once('=')
+            && key == PROXY_KEY
+        {
+            return Some(value.trim_end_matches('\n').to_owned());
+        }
+    }
+
+    None
+}
+
+fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
     let output = Command::new("sh")
         .arg("-c")
         .arg("systemctl show --property=Environment ".to_owned() + svc_name)
@@ -685,27 +699,7 @@ fn get_local_service_proxy_setting(svc_name: &str) -> Option<String> {
         .expect("failed to execute process");
     let stdout = String::from_utf8_lossy(&output.stdout);
 
-    let mut svc_proxy = None;
-    let vars = stdout.trim_start_matches("Environment=");
-    for var in vars.split(' ') {
-        let mut parts = var.split('=');
-        if let Some(PROXY_KEY) = parts.next() {
-            svc_proxy = parts.next().map(String::from);
-
-            let Some(mut s) = svc_proxy else {
-                return svc_proxy;
-            };
-
-            // Remove newline
-            if s.ends_with('\n') {
-                s.pop();
-            }
-
-            return Some(s);
-        } // Ignore remaining variables
-    }
-
-    svc_proxy
+    parse_local_service_proxy_setting(&stdout)
 }
 
 #[cfg(test)]
@@ -846,6 +840,17 @@ mod tests {
             std::env::remove_var("AZIOT_EDGED_CONFIG");
             std::env::remove_var("AZIOT_EDGED_CONFIG_DIR");
         }
+    }
+
+    #[test]
+    fn local_service_proxy_setting_preserves_equals_in_value() {
+        let output =
+            "Environment=FOO=bar https_proxy=http://user:abc=def@proxy.example:8080 OTHER=value\n";
+
+        assert_eq!(
+            super::parse_local_service_proxy_setting(output).as_deref(),
+            Some("http://user:abc=def@proxy.example:8080")
+        );
     }
 
     #[tokio::test]
