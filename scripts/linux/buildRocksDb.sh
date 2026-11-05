@@ -82,10 +82,10 @@ esac
 build_image=rocksdb-build:main-$ARCH-$BUILD_NUMBER
 cd $BUILD_REPOSITORY_LOCALPATH/edge-util/docker/linux
 
-docker buildx create --use --bootstrap
-trap "docker buildx rm" EXIT
+docker buildx inspect default --bootstrap
 
 docker buildx build \
+    --builder default \
     --load \
     --platform $platform \
     --tag $build_image \
