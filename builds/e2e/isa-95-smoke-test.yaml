@@ -2,7 +2,7 @@ trigger: none
 pr: none
 
 # Test agents are shared, so schedules must be coordinated to avoid conflicts:
-# - main and release/1.4 run daily, but are offset from each other by 12 hours
+# - main, release/1.6 and release/1.5 run daily, offset by 8 hours
 schedules:
 - cron: "0 0 * * *"
   displayName: Daily run main
@@ -10,11 +10,17 @@ schedules:
     include:
     - main
   always: true
-- cron: "0 12 * * *"
-  displayName: Daily run release/1.4
+- cron: "0 8 * * *"
+  displayName: Daily run release/1.6
   branches:
     include:
-    - release/1.4
+    - release/1.6
+  always: true
+- cron: "0 16 * * *"
+  displayName: Daily run release/1.5
+  branches:
+    include:
+    - release/1.5
   always: true
 
 variables:
@@ -27,7 +33,7 @@ resources:
   pipelines:
   - pipeline: ci-build
     source: 'Azure-IoT-Edge-Core CI Build'
-    branch: 'main'
+    branch: 'release/1.6'
 
 stages:
 - stage: LockAgents

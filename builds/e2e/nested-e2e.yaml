@@ -1,7 +1,7 @@
 trigger: none
 pr: none
 
-# Following branches (main, release/1.4) all run scheduled tests weekly. This
+# Following branches (main, release/1.6, release/1.5) run scheduled tests weekly. This
 # occurs at different days of the week across nested e2e and connectivity
 # pipelines.
 schedules:
@@ -12,10 +12,16 @@ schedules:
     - main
   always: true
 - cron: "0 0 * * 4"
-  displayName: Weekly run release/1.4
+  displayName: Weekly run release/1.6
   branches:
     include:
-    - release/1.4
+    - release/1.6
+  always: true
+- cron: "0 0 * * 5"
+  displayName: Weekly run release/1.5
+  branches:
+    include:
+    - release/1.5
   always: true
 
 variables:
@@ -28,7 +34,7 @@ resources:
   pipelines:
   - pipeline: ci-build
     source: 'Azure-IoT-Edge-Core CI Build'
-    branch: 'main'
+    branch: 'release/1.6'
 
 stages:
 - stage: LockAgents
