@@ -14,9 +14,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
     public class TestEndpoint : Endpoint
     {
+        readonly Action<string, IEnumerable<IMessage>> trace;
+        bool canProcess;
+
         public TestEndpoint(string id)
+            : this(id, null)
+        {
+        }
+
+        public TestEndpoint(string id, Action<string, IEnumerable<IMessage>> trace)
             : this(id, id, string.Empty)
         {
+            this.trace = trace;
+            this.trace?.Invoke($"CanProcess initialized: {this.CanProcess}", null);
         }
 
         public TestEndpoint(string id, string name, string iotHubName)
@@ -30,7 +40,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
         public IList<IMessage> Processed { get; }
 
-        public bool CanProcess { get; set; }
+        public bool CanProcess
+        {
+            get => this.canProcess;
+            set
+            {
+                this.trace?.Invoke($"CanProcess changing: {this.canProcess} -> {value}", null);
+                this.canProcess = value;
+                this.trace?.Invoke($"CanProcess changed: {value}", null);
+            }
+        }
 
         public override string Type => nameof(TestEndpoint);
 
@@ -62,7 +81,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             {
                 ISinkResult<IMessage> result;
 
-                if (this.endpoint.CanProcess)
+                bool canProcess = this.endpoint.CanProcess;
+                this.endpoint.trace?.Invoke($"SendAttempt CanProcess={canProcess}", messages);
+                if (canProcess)
                 {
                     foreach (IMessage message in messages)
                     {
@@ -70,11 +91,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                     }
 
                     result = new SinkResult<IMessage>(messages);
+                    this.endpoint.trace?.Invoke("SendAccepted", messages);
                 }
                 else
                 {
                     // Simulate connectivity failure and don't process any messages
                     result = new SinkResult<IMessage>(new IMessage[0], messages, new SendFailureDetails(FailureKind.InternalError, new Exception("endpoint failed")));
+                    this.endpoint.trace?.Invoke("SendRejected", messages);
                 }
 
                 return Task.FromResult(result);

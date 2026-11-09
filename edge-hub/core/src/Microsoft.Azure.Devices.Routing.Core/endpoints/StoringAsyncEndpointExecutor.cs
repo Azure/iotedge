@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly CancellationTokenSource cts = new CancellationTokenSource();
         readonly ICheckpointerFactory checkpointerFactory;
         readonly EndpointExecutorConfig config;
+        readonly Action<uint, IMessage[]> batchSelected;
         AtomicReference<ImmutableDictionary<uint, EndpointExecutorFsm>> prioritiesToFsms;
         EndpointExecutorFsm lastUsedFsm;
 
@@ -39,12 +40,24 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             EndpointExecutorConfig config,
             AsyncEndpointExecutorOptions options,
             IMessageStore messageStore)
+            : this(endpoint, checkpointerFactory, config, options, messageStore, null)
+        {
+        }
+
+        internal StoringAsyncEndpointExecutor(
+            Endpoint endpoint,
+            ICheckpointerFactory checkpointerFactory,
+            EndpointExecutorConfig config,
+            AsyncEndpointExecutorOptions options,
+            IMessageStore messageStore,
+            Action<uint, IMessage[]> batchSelected)
         {
             this.Endpoint = Preconditions.CheckNotNull(endpoint);
             this.checkpointerFactory = Preconditions.CheckNotNull(checkpointerFactory);
             this.config = Preconditions.CheckNotNull(config);
             this.options = Preconditions.CheckNotNull(options);
             this.messageStore = messageStore;
+            this.batchSelected = batchSelected;
             this.sendMessageTask = Task.Run(this.SendMessagesPump);
             this.prioritiesToFsms = new AtomicReference<ImmutableDictionary<uint, EndpointExecutorFsm>>(ImmutableDictionary<uint, EndpointExecutorFsm>.Empty);
         }
@@ -259,6 +272,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                                     msg.ProcessedPriority = priority;
                                 }
 
+                                this.batchSelected?.Invoke(priority, messages);
                                 Events.ProcessingMessages(this, messages, priority);
                                 await this.ProcessMessages(messages, fsm);
                                 Events.SendMessagesSuccess(this, messages, priority);
