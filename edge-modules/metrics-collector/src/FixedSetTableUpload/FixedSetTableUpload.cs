@@ -25,11 +25,17 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
         public FixedSetTableUpload(string dataCollectionEndpoint, string dataCollectionRuleId, string streamName, string resourceId, TokenCredential credential, LogsIngestionAudience audience)
         {
             Preconditions.CheckNonWhiteSpace(dataCollectionEndpoint, nameof(dataCollectionEndpoint));
+            var endpoint = new Uri(dataCollectionEndpoint);
+            if (!IsAzureMonitorIngestionEndpoint(endpoint, audience))
+            {
+                throw new ArgumentException("DataCollectionEndpoint must be an HTTPS Azure Monitor ingestion endpoint for the configured cloud.", nameof(dataCollectionEndpoint));
+            }
+
             this.dataCollectionRuleId = Preconditions.CheckNonWhiteSpace(dataCollectionRuleId, nameof(dataCollectionRuleId));
             this.streamName = Preconditions.CheckNonWhiteSpace(streamName, nameof(streamName));
             this.resourceId = Preconditions.CheckNonWhiteSpace(resourceId, nameof(resourceId));
             var options = new LogsIngestionClientOptions { Audience = audience };
-            this.client = new LogsIngestionClient(new Uri(dataCollectionEndpoint), Preconditions.CheckNotNull(credential, nameof(credential)), options);
+            this.client = new LogsIngestionClient(endpoint, Preconditions.CheckNotNull(credential, nameof(credential)), options);
         }
 
         public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -118,6 +124,38 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             }
 
             return finiteMetrics;
+        }
+
+        private static bool IsAzureMonitorIngestionEndpoint(Uri endpoint, LogsIngestionAudience audience)
+        {
+            if (endpoint.Scheme != Uri.UriSchemeHttps)
+            {
+                return false;
+            }
+
+            string host = endpoint.IdnHost.TrimEnd('.');
+            if (audience.Equals(LogsIngestionAudience.AzurePublicCloud))
+            {
+                // Preserve the additional ingestion hosts in Azure Monitor's endpoint contract:
+                // https://learn.microsoft.com/en-us/azure/azure-monitor/fundamentals/azure-monitor-network-access#logs-ingestion-api-endpoints
+                return host.EndsWith(".ingest.monitor.azure.com", StringComparison.OrdinalIgnoreCase)
+                    || host.Equals("prod.la.ingest.monitor.core.windows.net", StringComparison.OrdinalIgnoreCase)
+                    || host.EndsWith(".prod.la.ingest.monitor.core.windows.net", StringComparison.OrdinalIgnoreCase)
+                    || host.Equals("prod.la.ingestion.msftcloudes.com", StringComparison.OrdinalIgnoreCase)
+                    || host.EndsWith(".prod.la.ingestion.msftcloudes.com", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (audience.Equals(LogsIngestionAudience.AzureGovernment))
+            {
+                return host.EndsWith(".ingest.monitor.azure.us", StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (audience.Equals(LogsIngestionAudience.AzureChina))
+            {
+                return host.EndsWith(".ingest.monitor.azure.cn", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
         }
 
         private class LaMetric
