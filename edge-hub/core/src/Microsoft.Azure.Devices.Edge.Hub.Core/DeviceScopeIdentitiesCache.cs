@@ -299,30 +299,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.refreshCacheTask?.Dispose();
         }
 
-        internal async Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string targetId, string onBehalfOfDevice)
+        internal Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string targetId, string onBehalfOfDevice)
         {
             // If it is a module id, it will have the format "deviceId/moduleId"
             string[] parts = targetId.Split('/');
             if (parts.Length == 2)
             {
-                (Option<ServiceIdentity> identity, Option<ServiceIdentity> parent) =
-                    await this.serviceProxy.GetServiceIdentity(parts[0], parts[1], onBehalfOfDevice);
-
-                // The module needs its parent in the hierarchy to obtain an auth chain.
-                // Preserve an already-cached parent; this check and insertion are not atomic.
-                await parent.ForEachAsync(
-                    async p =>
-                    {
-                        if (!await this.serviceIdentityHierarchy.Contains(p.Id))
-                        {
-                            await this.HandleNewServiceIdentity(p);
-                        }
-                    });
-                return identity;
+                return this.serviceProxy.GetServiceIdentity(parts[0], parts[1], onBehalfOfDevice);
             }
             else
             {
-                return await this.serviceProxy.GetServiceIdentity(targetId, onBehalfOfDevice);
+                return this.serviceProxy.GetServiceIdentity(targetId, onBehalfOfDevice);
             }
         }
 

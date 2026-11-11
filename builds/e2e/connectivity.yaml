@@ -1,7 +1,7 @@
 trigger: none
 pr: none
 
-# Following branches (main, release/1.4) all run scheduled tests weekly. This
+# Following branches (main, release/1.6, release/1.5) run scheduled tests weekly. This
 # occurs at different days of the week across nested e2e and connectivity
 # pipelines.
 schedules:
@@ -12,10 +12,16 @@ schedules:
     - main
   always: true
 - cron: "0 0 * * 1"
-  displayName: Weekly run release/1.4
+  displayName: Weekly run release/1.6
   branches:
     include:
-    - release/1.4
+    - release/1.6
+  always: true
+- cron: "0 0 * * 2"
+  displayName: Weekly run release/1.5
+  branches:
+    include:
+    - release/1.5
   always: true
 
 variables:
@@ -203,8 +209,8 @@ jobs:
           test.buildId: '$(Build.BuildId)'
           build.source.branch: '$(Build.SourceBranchName)'
           build.repo.path: '$(Build.SourcesDirectory)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
+          edgelet.source.branch: '$(resources.pipeline.ci-build.sourceBranch)'
+          images.source.branch: '$(resources.pipeline.ci-build.sourceBranch)'
           identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
@@ -346,10 +352,11 @@ jobs:
         displayName: 'Download Identity Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
+          project: $(resources.pipeline.ci-build.projectID)
+          pipeline: $(resources.pipeline.ci-build.pipelineName)
+          branchName: $(resources.pipeline.ci-build.sourceBranch)
+          buildVersionToDownload: specific
+          buildId: $(resources.pipeline.ci-build.runID)
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(identity.artifact.name)
           allowPartiallySucceededBuilds: true
@@ -358,10 +365,11 @@ jobs:
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
+          project: $(resources.pipeline.ci-build.projectID)
+          pipeline: $(resources.pipeline.ci-build.pipelineName)
+          branchName: $(resources.pipeline.ci-build.sourceBranch)
+          buildVersionToDownload: specific
+          buildId: $(resources.pipeline.ci-build.runID)
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
           allowPartiallySucceededBuilds: true
@@ -370,10 +378,11 @@ jobs:
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
+          project: $(resources.pipeline.ci-build.projectID)
+          pipeline: $(resources.pipeline.ci-build.pipelineName)
+          branchName: $(resources.pipeline.ci-build.sourceBranch)
+          buildVersionToDownload: specific
+          buildId: $(resources.pipeline.ci-build.runID)
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           allowPartiallySucceededBuilds: true
@@ -393,8 +402,8 @@ jobs:
           test.buildId: '$(Build.BuildId)'
           build.source.branch: '$(Build.SourceBranchName)'
           build.repo.path: '$(Build.SourcesDirectory)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
+          edgelet.source.branch: '$(resources.pipeline.ci-build.sourceBranch)'
+          images.source.branch: '$(resources.pipeline.ci-build.sourceBranch)'
           identity.artifact.name: '$(identity.artifact.name)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
