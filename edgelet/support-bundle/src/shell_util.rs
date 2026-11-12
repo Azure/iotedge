@@ -48,7 +48,7 @@ pub async fn write_check(
 pub async fn write_inspect<W>(
     module_name: &str,
     zip_writer: &mut ZipWriter<W>,
-    file_options: &FileOptions<'_, ()>,
+    file_options: &FileOptions<'_, '_, ()>,
     verbose: bool,
 ) -> anyhow::Result<()>
 where
@@ -118,7 +118,7 @@ pub async fn get_docker_networks() -> Result<Vec<String>, Error> {
 pub async fn write_network_inspect<W>(
     network_name: &str,
     zip_writer: &mut ZipWriter<W>,
-    file_options: &FileOptions<'_, ()>,
+    file_options: &FileOptions<'_, '_, ()>,
     verbose: bool,
 ) -> anyhow::Result<()>
 where
@@ -170,7 +170,7 @@ pub async fn write_system_log<W>(
     unit: &str,
     log_options: &LogOptions,
     zip_writer: &mut ZipWriter<W>,
-    file_options: &FileOptions<'_, ()>,
+    file_options: &FileOptions<'_, '_, ()>,
     verbose: bool,
 ) -> anyhow::Result<()>
 where
