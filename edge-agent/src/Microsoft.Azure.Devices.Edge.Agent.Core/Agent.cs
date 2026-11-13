@@ -24,12 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         readonly IPlanner planner;
         readonly IPlanRunner planRunner;
+        readonly ISuspendManager suspendManager;
         readonly IReporter reporter;
         readonly IConfigSource configSource;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
         readonly IEntityStore<string, string> configStore;
         readonly IEnvironmentProvider environmentProvider;
-        readonly AsyncLock reconcileLock = new AsyncLock();
         readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
         readonly IEncryptionProvider encryptionProvider;
         readonly IDeploymentMetrics deploymentMetrics;
@@ -43,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEnvironmentProvider environmentProvider,
             IPlanner planner,
             IPlanRunner planRunner,
+            ISuspendManager suspendManager,
             IReporter reporter,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
             IEntityStore<string, string> configStore,
@@ -55,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
             this.planRunner = Preconditions.CheckNotNull(planRunner, nameof(planRunner));
+            this.suspendManager = Preconditions.CheckNotNull(suspendManager, nameof(suspendManager));
             this.reporter = Preconditions.CheckNotNull(reporter, nameof(reporter));
             this.moduleIdentityLifecycleManager = Preconditions.CheckNotNull(moduleIdentityLifecycleManager, nameof(moduleIdentityLifecycleManager));
             this.configStore = Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -73,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IConfigSource configSource,
             IPlanner planner,
             IPlanRunner planRunner,
+            ISuspendManager suspendManager,
             IReporter reporter,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
             IEnvironmentProvider environmentProvider,
@@ -106,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 environmentProvider,
                 planner,
                 planRunner,
+                suspendManager,
                 reporter,
                 moduleIdentityLifecycleManager,
                 configStore,
@@ -120,8 +124,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public async Task ReconcileAsync(CancellationToken token)
         {
             ModuleSet moduleSetToReport = null;
-            using (await this.reconcileLock.LockAsync(token))
+            using (await this.suspendManager.BeginUpdateCycleAsync(token))
             {
+                if (this.suspendManager.IsSuspended())
+                {
+                    return;
+                }
+
                 try
                 {
                     Events.StartingReconcile();

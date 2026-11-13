@@ -269,6 +269,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IEntityStore<string, string>>>()
                 .SingleInstance();
 
+            // ISuspendManager
+            builder.Register(c => new SuspendManager(SystemTime.Instance))
+                .As<ISuspendManager>()
+                .SingleInstance();
+
             // IRestartManager
             builder.Register(c => new RestartPolicyManager(this.maxRestartCount, this.coolOffTimeUnitInSeconds))
                 .As<IRestartPolicyManager>()
@@ -328,6 +333,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var environmentProvider = c.Resolve<Task<IEnvironmentProvider>>();
                         var planner = c.Resolve<Task<IPlanner>>();
                         var planRunner = c.Resolve<IPlanRunner>();
+                        var suspendManager = c.Resolve<ISuspendManager>();
                         var reporter = c.Resolve<IReporter>();
                         var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
                         var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
@@ -338,6 +344,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             await configSource,
                             await planner,
                             planRunner,
+                            suspendManager,
                             reporter,
                             moduleIdentityLifecycleManager,
                             await environmentProvider,
