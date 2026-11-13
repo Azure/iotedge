@@ -39,10 +39,10 @@ The *configuration path* is displayed *in blue* below. It is possible to customi
 2. Build the module image by running the following command:
 
     ```cmd
-    ./edge-modules/api-proxy-module/build.sh -t x86_64
+    ./edge-modules/api-proxy-module/build.sh -t amd64
     ```
 
-    > To build an image for ARM, run the above command on a Linux ARM32 machine and change the -t switch to `armv7l`
+    > To build an image for ARM32 or ARM64, run the above command on a Linux machine that matches the desired ARM architecture and change the -t switch to `arm32v7` or `aarch64`, respectively.
 
 3. Tag the image as desired and push it to the container registry used for your IoT Edge deployment.
 
