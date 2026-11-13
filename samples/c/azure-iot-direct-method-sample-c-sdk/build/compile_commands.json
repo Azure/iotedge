@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/home/chencheng/Project/JnJ-robotic-codewith/c-sdk-direct-method-sample/DirectMethodSample/build",
+  "command": "/usr/bin/gcc  -I/usr/include/azureiot -I/usr/include/azureiot/inc   -DUSE_EDGE_MODULES -g   -std=gnu99 -o CMakeFiles/main.dir/main.c.o   -c /home/chencheng/Project/JnJ-robotic-codewith/c-sdk-direct-method-sample/DirectMethodSample/modules/CModule/main.c",
+  "file": "/home/chencheng/Project/JnJ-robotic-codewith/c-sdk-direct-method-sample/DirectMethodSample/modules/CModule/main.c"
+},
+{
+  "directory": "/home/chencheng/Project/JnJ-robotic-codewith/c-sdk-direct-method-sample/DirectMethodSample/build",
+  "command": "/usr/bin/gcc  -I/usr/include/azureiot -I/usr/include/azureiot/inc   -DUSE_EDGE_MODULES -g   -o CMakeFiles/my_parson.dir/parson.c.o   -c /home/chencheng/Project/JnJ-robotic-codewith/c-sdk-direct-method-sample/DirectMethodSample/modules/CModule/parson.c",
+  "file": "/home/chencheng/Project/JnJ-robotic-codewith/c-sdk-direct-method-sample/DirectMethodSample/modules/CModule/parson.c"
+}
+]
