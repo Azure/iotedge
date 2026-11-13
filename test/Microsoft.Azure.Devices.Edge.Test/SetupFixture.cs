@@ -124,6 +124,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         await device.MaybeDeleteIdentityAsync(token);
                     }
 
+                    foreach (var leaf in Context.Current.LeafDeleteList.Values)
+                    {
+                        await leaf.DeleteIdentityAsync(token);
+                    }
+
                     // Remove packages installed by this run.
                     await this.daemon.UninstallAsync(token);
 

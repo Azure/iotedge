@@ -39,18 +39,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.None<string>(),
                 this.device.NestedEdge.IsNestedEdge);
 
-            await TryFinally.DoAsync(
-                async () =>
-                {
-                    DateTime seekTime = DateTime.Now;
-                    await leaf.SendEventAsync(token);
-                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await leaf.InvokeDirectMethodAsync(token);
-                },
-                async () =>
-                {
-                    await leaf.DeleteIdentityAsync(token);
-                });
+            Context.Current.LeafDeleteList.TryAdd(leafDeviceId, leaf);
+
+            DateTime seekTime = DateTime.Now;
+            await leaf.SendEventAsync(token);
+            await leaf.WaitForEventsReceivedAsync(seekTime, token);
+            await leaf.InvokeDirectMethodAsync(token);
         }
 
         [Test]
@@ -79,19 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.None<string>(),
                 this.device.NestedEdge.IsNestedEdge);
 
-            await TryFinally.DoAsync(
-                async () =>
-                {
-                    DateTime seekTime = DateTime.Now;
-                    await leaf.SendEventAsync(token);
-                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await leaf.InvokeDirectMethodAsync(token);
-                },
-                async () =>
-                {
-                    await leaf.Close();
-                    await leaf.DeleteIdentityAsync(token);
-                });
+            Context.Current.LeafDeleteList.TryAdd(leafDeviceId, leaf);
+
+            DateTime seekTime = DateTime.Now;
+            await leaf.SendEventAsync(token);
+            await leaf.WaitForEventsReceivedAsync(seekTime, token);
+            await leaf.InvokeDirectMethodAsync(token);
 
             // Re-create the leaf with the same device ID, for our purposes this is
             // the equivalent of updating the SAS keys
@@ -109,19 +96,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.None<string>(),
                 this.device.NestedEdge.IsNestedEdge);
 
-            await TryFinally.DoAsync(
-                async () =>
-                {
-                    DateTime seekTime = DateTime.Now;
-                    await leafUpdated.SendEventAsync(token);
-                    await leafUpdated.WaitForEventsReceivedAsync(seekTime, token);
-                    await leafUpdated.InvokeDirectMethodAsync(token);
-                },
-                async () =>
-                {
-                    await leafUpdated.Close();
-                    await leafUpdated.DeleteIdentityAsync(token);
-                });
+            seekTime = DateTime.Now;
+            await leafUpdated.SendEventAsync(token);
+            await leafUpdated.WaitForEventsReceivedAsync(seekTime, token);
+            await leafUpdated.InvokeDirectMethodAsync(token);
         }
 
         [Test]
@@ -155,40 +133,33 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.None<string>(),
                 Context.Current.NestedEdge);
 
-            await TryFinally.DoAsync(
-                async () =>
-                {
-                    // Send a message from the leaf device
-                    DateTime seekTime = DateTime.Now;
-                    await leaf.SendEventAsync(token);
-                    Log.Verbose($"Sent message from {leafDeviceId}");
+            Context.Current.LeafDeleteList.TryAdd(leafDeviceId, leaf);
 
-                    // Verify that the message was received/resent by the relayer module on L4
-                    await Profiler.Run(
-                        () => this.IotHub.ReceiveEventsAsync(
-                            parentDeviceId,
-                            seekTime,
-                            data =>
-                            {
-                                data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
-                                data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
-                                data.Properties.TryGetValue("leaf-message-id", out object msgId);
+            // Send a message from the leaf device
+            DateTime seekTime = DateTime.Now;
+            await leaf.SendEventAsync(token);
+            Log.Verbose($"Sent message from {leafDeviceId}");
 
-                                Log.Verbose($"Received event for '{devId + "/" + modId}' with message ID '{msgId}'");
+            // Verify that the message was received/resent by the relayer module on L4
+            await Profiler.Run(
+                () => this.IotHub.ReceiveEventsAsync(
+                    parentDeviceId,
+                    seekTime,
+                    data =>
+                    {
+                        data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+                        data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
+                        data.Properties.TryGetValue("leaf-message-id", out object msgId);
 
-                                return devId != null && devId.ToString().Equals(parentDeviceId)
-                                                     && modId.ToString().Equals(relayerModuleId);
-                            },
-                            token),
-                        "Received events from module '{Device}' on Event Hub '{EventHub}'",
-                        parentDeviceId + "/" + relayerModuleId,
-                        this.IotHub.EventHubName);
-                },
-                async () =>
-                {
-                    await leaf.Close();
-                    await leaf.DeleteIdentityAsync(token);
-                });
+                        Log.Verbose($"Received event for '{devId + "/" + modId}' with message ID '{msgId}'");
+
+                        return devId != null && devId.ToString().Equals(parentDeviceId)
+                                                && modId.ToString().Equals(relayerModuleId);
+                    },
+                    token),
+                "Received events from module '{Device}' on Event Hub '{EventHub}'",
+                parentDeviceId + "/" + relayerModuleId,
+                this.IotHub.EventHubName);
         }
 
         [Test]
@@ -226,18 +197,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.None<string>(),
                 this.device.NestedEdge.IsNestedEdge);
 
-            await TryFinally.DoAsync(
-                async () =>
-                {
-                    DateTime seekTime = DateTime.Now;
-                    await leaf.SendEventAsync(token);
-                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                    await leaf.InvokeDirectMethodAsync(token);
-                },
-                async () =>
-                {
-                    await leaf.DeleteIdentityAsync(token);
-                });
+            Context.Current.LeafDeleteList.TryAdd(leafDeviceId, leaf);
+
+            DateTime seekTime = DateTime.Now;
+            await leaf.SendEventAsync(token);
+            await leaf.WaitForEventsReceivedAsync(seekTime, token);
+            await leaf.InvokeDirectMethodAsync(token);
         }
     }
 }
