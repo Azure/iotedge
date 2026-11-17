@@ -92,7 +92,7 @@ url = { version = "2", features = ["serde"] }
 
 yaml-rust = "0.4"
 
-zip = { version = "8", features = ["deflate"], default-features = false }
+zip = { version = "9", features = ["deflate"], default-features = false }
 
 aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
