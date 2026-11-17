@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -343,6 +344,54 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Assert
             Assert.True(isAuthenticated);
             Mock.Get(underlyingAuthenticator).VerifyAll();
+        }
+
+        [Fact]
+        public async Task AuthenticateTest_Nested_MissingGatewaysAsync()
+        {
+            string key = GetKey();
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(key, key));
+            var root = new ServiceIdentity("root", null, "root-scope", Enumerable.Empty<string>(), "1", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Enabled);
+            var gateway = new ServiceIdentity("gateway", null, "gateway-scope", new[] { "root-scope" }, "2", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Enabled);
+            var nested = new ServiceIdentity("nested", null, "nested-scope", new[] { "gateway-scope" }, "3", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Enabled);
+            var leaf = new ServiceIdentity("leaf", null, null, new[] { "nested-scope" }, "4", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var actorModule = new ServiceIdentity("gateway", Constants.EdgeHubModuleId, null, Enumerable.Empty<string>(), "5", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var tree = new ServiceIdentityTree("root");
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            iterator.Setup(i => i.HasNext).Returns(false);
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            var requests = new List<string>();
+            foreach ((ServiceIdentity identity, string parent) in new[] { (root, "root"), (gateway, "root"), (nested, "gateway"), (leaf, "nested") })
+            {
+                proxy.Setup(p => p.GetServiceIdentity(identity.Id, parent)).Returns(async () =>
+                {
+                    Assert.True((await tree.GetAuthChain(parent)).HasValue);
+                    requests.Add(identity.Id);
+                    return Option.Some(identity);
+                });
+            }
+
+            proxy.Setup(p => p.GetServiceIdentity("gateway", Constants.EdgeHubModuleId, "root"))
+                .ReturnsAsync((Option.Some(actorModule), Option.Some(gateway)));
+            var store = Mock.Of<IKeyValueStore<string, string>>();
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(tree, proxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+            var underlying = new Mock<IAuthenticator>(MockBehavior.Strict);
+            underlying.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(false);
+            var authenticator = new DeviceScopeTokenAuthenticator(cache, "testiothub.azure-devices.net", "root", underlying.Object, true, true, true);
+            var actorIdentity = Mock.Of<IModuleIdentity>(i => i.Id == actorModule.Id && i.DeviceId == "gateway" && i.ModuleId == Constants.EdgeHubModuleId);
+            string token = GetDeviceToken("testiothub.azure-devices.net", "gateway", Constants.EdgeHubModuleId, key);
+            var credentials = Mock.Of<ITokenCredentials>(c => c.Identity == actorIdentity && c.Token == token && c.AuthChain == Option.Some("leaf;nested;gateway"));
+
+            Assert.True(await authenticator.AuthenticateAsync(credentials));
+            Assert.Equal(new[] { "root", "gateway", "nested", "leaf" }, requests);
+            Assert.Equal("leaf;nested;gateway;root", (await cache.GetAuthChain("leaf")).OrDefault());
+            Assert.True(await authenticator.AuthenticateAsync(credentials));
+            Assert.Equal(4, requests.Count);
+            proxy.Verify(p => p.GetServiceIdentity("gateway", Constants.EdgeHubModuleId, "root"), Times.Once);
+            proxy.Verify(p => p.GetServiceIdentitiesIterator(), Times.Once);
+            underlying.VerifyNoOtherCalls();
         }
 
         [Fact]
