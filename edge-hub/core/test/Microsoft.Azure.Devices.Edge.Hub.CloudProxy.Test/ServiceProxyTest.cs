@@ -98,6 +98,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        public async Task GetGatewayIdentityUsesNestedDirectLookupAsync()
+        {
+            Device gateway = GetDevice("edge");
+            var client = new Mock<IDeviceScopeApiClient>(MockBehavior.Strict);
+            client.Setup(c => c.GetIdentityOnBehalfOfAsync("edge", Option.None<string>(), "edge"))
+                .ReturnsAsync(new ScopeResult(new[] { gateway }, null, null));
+            var provider = new Mock<IDeviceScopeApiClientProvider>(MockBehavior.Strict);
+            provider.Setup(p => p.CreateNestedDeviceScopeClient()).Returns(client.Object);
+            IServiceProxy proxy = new ServiceProxy(provider.Object, true);
+
+            Option<ServiceIdentity> identity = await proxy.GetServiceIdentity("edge", "edge");
+
+            Assert.Equal(gateway.ToServiceIdentity(), identity.OrDefault());
+            client.Verify(c => c.GetIdentityOnBehalfOfAsync("edge", Option.None<string>(), "edge"), Times.Once);
+            client.Verify(c => c.GetIdentitiesInScopeAsync(), Times.Never);
+        }
+
+        [Fact]
         public async Task GetServiceIdentitiy_Device_InvalidTest_MultipleResults()
         {
             // Arrange

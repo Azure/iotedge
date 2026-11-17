@@ -1510,6 +1510,256 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             proxy.Verify(p => p.GetServiceIdentity(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
+        [Fact]
+        public async Task RefreshLeafAfterEmptyScopeRecoversGatewayAsync()
+        {
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            var gateway = new ServiceIdentity("edge", null, "scope", Enumerable.Empty<string>(), "1234", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Enabled);
+            var leaf = new ServiceIdentity("leaf", null, null, new[] { "scope" }, "2345", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var iterator = new Mock<IServiceIdentitiesIterator>(MockBehavior.Strict);
+            iterator.Setup(i => i.HasNext).Returns(false);
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            proxy.Setup(p => p.GetServiceIdentity("leaf", "edge")).ReturnsAsync(Option.Some(leaf));
+            proxy.Setup(p => p.GetServiceIdentity("edge", "edge")).ReturnsAsync(Option.Some(gateway));
+            var store = GetEntityStore("cache");
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("edge"), proxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+            Assert.Empty(await cache.GetAllIds());
+
+            await cache.RefreshServiceIdentity(leaf.Id);
+
+            Assert.Equal(leaf, (await cache.GetServiceIdentity(leaf.Id)).OrDefault());
+            Assert.Equal(gateway, (await cache.GetServiceIdentity(gateway.Id)).OrDefault());
+            Assert.Equal(gateway, JsonConvert.DeserializeObject<DeviceScopeIdentitiesCache.StoredServiceIdentity>((await store.Get(gateway.Id)).OrDefault()).ServiceIdentity.OrDefault());
+            Assert.Equal("leaf;edge", (await cache.GetAuthChain(leaf.Id)).OrDefault());
+            Assert.Equal("leaf;edge", await cache.VerifyServiceIdentityAuthChainState(leaf.Id, true, true));
+            proxy.Verify(p => p.GetServiceIdentity("leaf", "edge"), Times.Once);
+            proxy.Verify(p => p.GetServiceIdentity("edge", "edge"), Times.Once);
+            proxy.Verify(p => p.GetServiceIdentitiesIterator(), Times.Once);
+        }
+
+        [Theory]
+        [InlineData("missing")]
+        [InlineData("disabled")]
+        [InlineData("wrong-scope")]
+        [InlineData("wrong-id")]
+        [InlineData("not-edge")]
+        [InlineData("transient-error")]
+        [InlineData("out-of-scope")]
+        public async Task RefreshLeafRejectsInvalidGatewayAndThrottlesRecoveryAsync(string parentCase)
+        {
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            var gateway = new ServiceIdentity(
+                parentCase == "wrong-id" ? "other" : "edge",
+                null,
+                parentCase == "wrong-scope" ? "other-scope" : "scope",
+                Enumerable.Empty<string>(),
+                "1234",
+                parentCase == "not-edge" ? Enumerable.Empty<string>() : new[] { Constants.IotEdgeIdentityCapability },
+                authentication,
+                parentCase == "disabled" ? ServiceIdentityStatus.Disabled : ServiceIdentityStatus.Enabled);
+            var leaf = new ServiceIdentity("leaf", null, null, new[] { "scope" }, "2345", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var sibling = new ServiceIdentity("sibling", null, null, new[] { "scope" }, "3456", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            iterator.Setup(i => i.HasNext).Returns(false);
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            proxy.Setup(p => p.GetServiceIdentity("leaf", "edge")).ReturnsAsync(Option.Some(leaf));
+            proxy.Setup(p => p.GetServiceIdentity("sibling", "edge")).ReturnsAsync(Option.Some(sibling));
+            if (parentCase == "transient-error")
+            {
+                proxy.Setup(p => p.GetServiceIdentity("edge", "edge")).ThrowsAsync(new TimeoutException("Parent lookup timed out"));
+            }
+            else if (parentCase == "out-of-scope")
+            {
+                proxy.Setup(p => p.GetServiceIdentity("edge", "edge")).ThrowsAsync(new DeviceInvalidStateException("Parent is out of scope"));
+            }
+            else
+            {
+                proxy.Setup(p => p.GetServiceIdentity("edge", "edge")).ReturnsAsync(parentCase == "missing" ? Option.None<ServiceIdentity>() : Option.Some(gateway));
+            }
+
+            var store = GetEntityStore("cache");
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("edge"), proxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+
+            await cache.RefreshServiceIdentity(leaf.Id);
+            await cache.RefreshServiceIdentity(sibling.Id);
+
+            Assert.Equal(leaf, (await cache.GetServiceIdentity(leaf.Id)).OrDefault());
+            Assert.Equal(sibling, (await cache.GetServiceIdentity(sibling.Id)).OrDefault());
+            Assert.True((await store.Get(leaf.Id)).HasValue);
+            Assert.False((await store.Get("edge")).HasValue);
+            Assert.False((await cache.GetServiceIdentity("edge")).HasValue);
+            Assert.False((await cache.GetAuthChain(leaf.Id)).HasValue);
+            await Assert.ThrowsAsync<DeviceInvalidStateException>(() => cache.VerifyServiceIdentityAuthChainState(leaf.Id, true, true));
+            proxy.Verify(p => p.GetServiceIdentity("edge", "edge"), Times.Once);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task ConcurrentLeafRefreshesShareGatewayLookupAsync(bool includeParent)
+        {
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            var gateway = new ServiceIdentity("edge", null, "scope", Enumerable.Empty<string>(), "1234", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Enabled);
+            var leaf = new ServiceIdentity("leaf", null, null, new[] { "scope" }, "2345", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var sibling = new ServiceIdentity("sibling", null, null, new[] { "scope" }, "3456", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var requested = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var response = new TaskCompletionSource<Option<ServiceIdentity>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            iterator.Setup(i => i.HasNext).Returns(false);
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            proxy.Setup(p => p.GetServiceIdentity("leaf", "edge")).ReturnsAsync(Option.Some(leaf));
+            proxy.Setup(p => p.GetServiceIdentity("sibling", "edge")).ReturnsAsync(Option.Some(sibling));
+            proxy.Setup(p => p.GetServiceIdentity("edge", "edge")).Callback(() => requested.SetResult(true)).Returns(response.Task);
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("edge"), proxy.Object, GetEntityStore("cache"), TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+
+            Task first = cache.RefreshServiceIdentity(leaf.Id);
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Task second = cache.RefreshServiceIdentity(sibling.Id);
+            response.SetResult(includeParent ? Option.Some(gateway) : Option.None<ServiceIdentity>());
+            await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.Equal(includeParent, (await cache.GetAuthChain(leaf.Id)).HasValue);
+            Assert.Equal(includeParent, (await cache.GetAuthChain(sibling.Id)).HasValue);
+            proxy.Verify(p => p.GetServiceIdentity("edge", "edge"), Times.Once);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task LeafGatewayRecoveryDoesNotUndoConcurrentParentChangeAsync(bool removeParent)
+        {
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            var gateway = new ServiceIdentity("edge", null, "scope", Enumerable.Empty<string>(), "1234", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Enabled);
+            var disabledGateway = new ServiceIdentity("edge", null, "scope", Enumerable.Empty<string>(), "1234", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Disabled);
+            var leaf = new ServiceIdentity("leaf", null, null, new[] { "scope" }, "2345", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var requested = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var response = new TaskCompletionSource<Option<ServiceIdentity>>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            iterator.Setup(i => i.HasNext).Returns(false);
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            proxy.Setup(p => p.GetServiceIdentity("leaf", "edge")).ReturnsAsync(Option.Some(leaf));
+            proxy.SetupSequence(p => p.GetServiceIdentity("edge", "edge"))
+                .Returns(() =>
+                {
+                    requested.SetResult(true);
+                    return response.Task;
+                })
+                .ReturnsAsync(removeParent ? Option.None<ServiceIdentity>() : Option.Some(disabledGateway));
+            var store = GetEntityStore("cache");
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("edge"), proxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+
+            Task leafRefresh = cache.RefreshServiceIdentity(leaf.Id);
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await cache.RefreshServiceIdentity("edge");
+            response.SetResult(Option.Some(gateway));
+            await leafRefresh.WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.Equal(leaf, (await cache.GetServiceIdentity(leaf.Id)).OrDefault());
+            Assert.False((await cache.GetAuthChain(leaf.Id)).HasValue);
+            if (removeParent)
+            {
+                Assert.False((await cache.GetServiceIdentity("edge")).HasValue);
+                Assert.False((await store.Get("edge")).HasValue);
+            }
+            else
+            {
+                Assert.Equal(disabledGateway, (await cache.GetServiceIdentity("edge")).OrDefault());
+                Assert.Equal(disabledGateway, JsonConvert.DeserializeObject<DeviceScopeIdentitiesCache.StoredServiceIdentity>((await store.Get("edge")).OrDefault()).ServiceIdentity.OrDefault());
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task LeafRefreshDoesNotReplaceCachedGatewayAsync(bool disabled)
+        {
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            var gateway = new ServiceIdentity("edge", null, "scope", Enumerable.Empty<string>(), "1234", new[] { Constants.IotEdgeIdentityCapability }, authentication, disabled ? ServiceIdentityStatus.Disabled : ServiceIdentityStatus.Enabled);
+            var leaf = new ServiceIdentity("leaf", null, null, new[] { "scope" }, "2345", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            iterator.SetupSequence(i => i.HasNext).Returns(true).Returns(false);
+            iterator.Setup(i => i.GetNext()).ReturnsAsync(new[] { gateway });
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            proxy.Setup(p => p.GetServiceIdentity("leaf", "edge")).ReturnsAsync(Option.Some(leaf));
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("edge"), proxy.Object, GetEntityStore("cache"), TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+
+            await cache.RefreshServiceIdentity(leaf.Id);
+
+            Assert.Equal(gateway, (await cache.GetServiceIdentity("edge")).OrDefault());
+            Assert.Equal(!disabled, (await cache.GetAuthChain(leaf.Id)).HasValue);
+            proxy.Verify(p => p.GetServiceIdentity("edge", "edge"), Times.Never);
+        }
+
+        [Theory]
+        [InlineData("missing")]
+        [InlineData("disabled")]
+        [InlineData("no-scope")]
+        [InlineData("out-of-scope")]
+        public async Task LeafRefreshDoesNotFetchGatewayWithoutValidLeafAsync(string leafCase)
+        {
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            var leaf = new ServiceIdentity("leaf", null, null, leafCase == "no-scope" ? Enumerable.Empty<string>() : new[] { "scope" }, "2345", Enumerable.Empty<string>(), authentication, leafCase == "disabled" ? ServiceIdentityStatus.Disabled : ServiceIdentityStatus.Enabled);
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            iterator.Setup(i => i.HasNext).Returns(false);
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            if (leafCase == "out-of-scope")
+            {
+                proxy.Setup(p => p.GetServiceIdentity("leaf", "edge")).ThrowsAsync(new DeviceInvalidStateException("Leaf is out of scope"));
+            }
+            else
+            {
+                proxy.Setup(p => p.GetServiceIdentity("leaf", "edge")).ReturnsAsync(leafCase == "missing" ? Option.None<ServiceIdentity>() : Option.Some(leaf));
+            }
+
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("edge"), proxy.Object, GetEntityStore("cache"), TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+
+            await cache.RefreshServiceIdentity("leaf");
+            await cache.RefreshServiceIdentity("leaf");
+
+            Assert.Equal(leafCase != "missing" && leafCase != "out-of-scope", (await cache.GetServiceIdentity("leaf")).HasValue);
+            Assert.False((await cache.GetAuthChain("leaf")).HasValue);
+            proxy.Verify(p => p.GetServiceIdentity("edge", "edge"), Times.Never);
+        }
+
+        [Fact]
+        public async Task LeafGatewayRecoveryRetriesAfterCooldownAsync()
+        {
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            var gateway = new ServiceIdentity("edge", null, "scope", Enumerable.Empty<string>(), "1234", new[] { Constants.IotEdgeIdentityCapability }, authentication, ServiceIdentityStatus.Enabled);
+            var leaf = new ServiceIdentity("leaf", null, null, new[] { "scope" }, "2345", Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var iterator = new Mock<IServiceIdentitiesIterator>();
+            iterator.Setup(i => i.HasNext).Returns(false);
+            var proxy = new Mock<IServiceProxy>(MockBehavior.Strict);
+            proxy.Setup(p => p.GetServiceIdentitiesIterator()).Returns(iterator.Object);
+            proxy.Setup(p => p.GetServiceIdentity("leaf", "edge")).ReturnsAsync(Option.Some(leaf));
+            proxy.SetupSequence(p => p.GetServiceIdentity("edge", "edge"))
+                .ReturnsAsync(Option.None<ServiceIdentity>())
+                .ReturnsAsync(Option.Some(gateway));
+            TimeSpan refreshDelay = TimeSpan.FromMilliseconds(50);
+            DeviceScopeIdentitiesCache cache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("edge"), proxy.Object, GetEntityStore("cache"), TimeSpan.FromHours(1), refreshDelay);
+            await cache.WaitForCacheRefresh(TimeSpan.FromSeconds(10));
+
+            await cache.RefreshServiceIdentity(leaf.Id);
+            Assert.False((await cache.GetAuthChain(leaf.Id)).HasValue);
+            await Task.Delay(refreshDelay + TimeSpan.FromMilliseconds(50));
+            await cache.RefreshServiceIdentity(leaf.Id);
+
+            Assert.Equal("leaf;edge", (await cache.GetAuthChain(leaf.Id)).OrDefault());
+            proxy.Verify(p => p.GetServiceIdentity("edge", "edge"), Times.Exactly(2));
+        }
+
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
 
         static IEntityStore<string, string> GetEntityStore(string entityName)
