@@ -106,6 +106,7 @@ You can set Edge Agent and Edge Hub environment variables in the Azure portal. I
 | ServerCertificateRenewAfterInMs           | Maximum time duration after which the Edge Hub server certificate will be renewed, irrespective of certificate expiry time                         | int32                                                                 | int32.max                     |
 | MaxCheckCertExpiryInMs                    | Maximum time duration after which Edge Hub server certificate expiry should be checked, irrespective of certificate expiry time                    | int32                                                                 | n/a                           |
 
+
 ### <a id="cloudauthnote">Cloud AuthenticationMode not supported in production</a>
 
 Cloud authentication is not supported in production because of several known limitations:
