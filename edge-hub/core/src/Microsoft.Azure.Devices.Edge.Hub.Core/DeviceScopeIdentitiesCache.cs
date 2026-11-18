@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -14,9 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Nito.AsyncEx;
+    using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
+        const int MaxAuthChainIds = 6;
+        const int MaxGatewayRefreshEntries = 1000;
+
         static readonly TimeSpan defaultInitializationRefreshDelay = TimeSpan.FromSeconds(60);
 
         readonly string edgeDeviceId;
@@ -31,10 +36,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly AsyncManualResetEvent refreshCacheCompleteSignal = new AsyncManualResetEvent(false);
         readonly object refreshCacheLock = new object();
         readonly AtomicBoolean isInitialized = new AtomicBoolean(false);
+        readonly AsyncLockProvider<string> identityUpdateLocks = new AsyncLockProvider<string>(10);
+        readonly AsyncLockProvider<string> gatewayRefreshLocks = new AsyncLockProvider<string>(10);
+        readonly object gatewayRefreshTimesLock = new object();
+        readonly Dictionary<(string Gateway, string Parent), DateTime> gatewayRefreshTimes = new Dictionary<(string, string), DateTime>();
+        readonly ConcurrentDictionary<string, long> recoveryVersions = new ConcurrentDictionary<string, long>(StringComparer.Ordinal);
 
         Task refreshCacheTask;
         DateTime cacheLastRefreshTime;
         Dictionary<string, DateTime> identitiesLastRefreshTime;
+        long recoveryVersion;
 
         DeviceScopeIdentitiesCache(
             IServiceIdentityHierarchy serviceIdentityHierarchy,
@@ -177,6 +188,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     // in rapid succession.
                     this.identitiesLastRefreshTime[refreshTarget] = DateTime.UtcNow;
 
+                    await serviceIdentity.ForEachAsync(this.RefreshLeafParentAsync);
+
                     if (invokeServiceIdentitiesUpdated)
                     {
                         this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
@@ -208,6 +221,109 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.RefreshingAuthChain(authChain);
             string[] ids = AuthChainHelpers.GetAuthChainIds(authChain);
             await this.RefreshServiceIdentities(ids, this.edgeDeviceId);
+        }
+
+        public async Task RefreshMissingAuthChainAsync(string authChain, bool targetIsEdgeDevice = false)
+        {
+            Preconditions.CheckNonWhiteSpace(authChain, nameof(authChain));
+            if (!this.isInitialized.Get())
+            {
+                return;
+            }
+
+            List<string> ids = authChain.Split(';').ToList();
+            if (ids.Count > MaxAuthChainIds || ids.Any(string.IsNullOrWhiteSpace) ||
+                ids.Distinct(StringComparer.Ordinal).Count() != ids.Count ||
+                ids.Skip(1).Any(id => id.Contains('/')) ||
+                (ids.Contains(this.edgeDeviceId) && ids.Last() != this.edgeDeviceId))
+            {
+                return;
+            }
+
+            if (ids.Last() != this.edgeDeviceId)
+            {
+                ids.Add(this.edgeDeviceId);
+            }
+
+            string[] targetParts = ids[0].Split('/');
+            if (ids.Count > MaxAuthChainIds || targetParts.Length > 2 || targetParts.Any(string.IsNullOrWhiteSpace) ||
+                (targetIsEdgeDevice && targetParts.Length != 1))
+            {
+                return;
+            }
+
+            try
+            {
+                // A missing module's response supplies its owner. Do not fetch that owner twice.
+                bool missingTarget = !await this.serviceIdentityHierarchy.Contains(ids[0]);
+                bool bundledOwner = missingTarget && targetParts.Length == 2 && ids.Count > 1 && ids[1] == targetParts[0];
+                if (bundledOwner && targetParts[0] == this.edgeDeviceId && ids.Count == 2)
+                {
+                    await this.RefreshServiceIdentityInternal(ids[0], this.edgeDeviceId, false);
+                    if (await this.serviceIdentityHierarchy.Contains(ids[0]))
+                    {
+                        await this.RecoverGatewayAsync(this.edgeDeviceId, this.edgeDeviceId, _ => true);
+                    }
+
+                    return;
+                }
+
+                Option<ServiceIdentity> parent = Option.None<ServiceIdentity>();
+                int parentIndex = ids.Count - 1;
+                for (int i = 1; i < ids.Count; ++i)
+                {
+                    Option<ServiceIdentity> candidate = (await this.serviceIdentityHierarchy.Get(ids[i])).Filter(g => IsEnabledGateway(g, ids[i]));
+                    if (candidate.HasValue && (await this.serviceIdentityHierarchy.GetAuthChain(ids[i])).HasValue)
+                    {
+                        parent = candidate;
+                        parentIndex = i;
+                        break;
+                    }
+                }
+
+                if (!parent.HasValue)
+                {
+                    parent = await this.RecoverGatewayAsync(this.edgeDeviceId, this.edgeDeviceId, _ => true);
+                }
+
+                for (int i = parentIndex - 1; i > 0 && parent.HasValue; --i)
+                {
+                    if (i == 1 && bundledOwner)
+                    {
+                        continue;
+                    }
+
+                    ServiceIdentity validatedParent = parent.OrDefault();
+                    parent = await this.RecoverGatewayAsync(ids[i], validatedParent.Id, g => g.ParentScopes.Contains(validatedParent.DeviceScope.OrDefault()));
+                }
+
+                if (!parent.HasValue || ids[0] == this.edgeDeviceId)
+                {
+                    return;
+                }
+
+                ServiceIdentity gateway = parent.OrDefault();
+                if (targetIsEdgeDevice)
+                {
+                    await this.RecoverGatewayAsync(ids[0], gateway.Id, g => g.ParentScopes.Contains(gateway.DeviceScope.OrDefault()));
+                }
+                else if (!(await this.serviceIdentityHierarchy.GetAuthChain(ids[0])).HasValue)
+                {
+                    await this.RefreshServiceIdentityInternal(ids[0], gateway.Id, false);
+                    if (bundledOwner && await this.serviceIdentityHierarchy.Contains(ids[0]))
+                    {
+                        await this.RecoverGatewayAsync(targetParts[0], gateway.Id, g => g.ParentScopes.Contains(gateway.DeviceScope.OrDefault()));
+                    }
+                }
+            }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                Events.ErrorRefreshingCache(ex, ids[0], this.edgeDeviceId);
+            }
+            finally
+            {
+                this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
+            }
         }
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
@@ -299,17 +415,145 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.refreshCacheTask?.Dispose();
         }
 
-        internal Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string targetId, string onBehalfOfDevice)
+        internal async Task<Option<ServiceIdentity>> GetServiceIdentityFromService(string targetId, string onBehalfOfDevice)
         {
             // If it is a module id, it will have the format "deviceId/moduleId"
             string[] parts = targetId.Split('/');
             if (parts.Length == 2)
             {
-                return this.serviceProxy.GetServiceIdentity(parts[0], parts[1], onBehalfOfDevice);
+                long? version = await this.BeginRecoveryAsync(parts[0]);
+                try
+                {
+                    (Option<ServiceIdentity> identity, Option<ServiceIdentity> parent) =
+                        await this.serviceProxy.GetServiceIdentity(parts[0], parts[1], onBehalfOfDevice);
+                    if (version.HasValue)
+                    {
+                        await parent.ForEachAsync(p => this.HandleNewServiceIdentity(p, version));
+                    }
+
+                    return identity;
+                }
+                finally
+                {
+                    await this.EndRecoveryAsync(parts[0], version);
+                }
             }
             else
             {
-                return this.serviceProxy.GetServiceIdentity(targetId, onBehalfOfDevice);
+                return await this.serviceProxy.GetServiceIdentity(targetId, onBehalfOfDevice);
+            }
+        }
+
+        async Task RefreshLeafParentAsync(ServiceIdentity identity)
+        {
+            if (identity.IsModule || identity.IsEdgeDevice || identity.Id == this.edgeDeviceId ||
+                identity.Status != ServiceIdentityStatus.Enabled || identity.ParentScopes.Count == 0)
+            {
+                return;
+            }
+
+            if (await this.serviceIdentityHierarchy.Contains(this.edgeDeviceId) ||
+                (await this.serviceIdentityHierarchy.GetAuthChain(identity.Id)).HasValue)
+            {
+                return;
+            }
+
+            await this.RecoverGatewayAsync(this.edgeDeviceId, this.edgeDeviceId, g => identity.ParentScopes.Contains(g.DeviceScope.OrDefault()));
+        }
+
+        async Task<Option<ServiceIdentity>> RecoverGatewayAsync(string gatewayId, string parentId, Func<ServiceIdentity, bool> matchesParent)
+        {
+            using (await this.gatewayRefreshLocks.GetLock(gatewayId).LockAsync())
+            {
+                if (!await this.serviceIdentityHierarchy.Contains(gatewayId) && this.TryStartGatewayRefresh(gatewayId, parentId))
+                {
+                    long? version = null;
+                    try
+                    {
+                        version = await this.BeginRecoveryAsync(gatewayId);
+                        if (version.HasValue)
+                        {
+                            Events.RefreshingServiceIdentity(gatewayId);
+                            Option<ServiceIdentity> identity = await this.serviceProxy.GetServiceIdentity(gatewayId, parentId);
+                            await identity
+                                .Filter(g => IsEnabledGateway(g, gatewayId) && matchesParent(g))
+                                .ForEachAsync(g => this.HandleNewServiceIdentity(g, version));
+                        }
+                    }
+                    catch (Exception ex) when (!ex.IsFatal())
+                    {
+                        Events.ErrorRefreshingCache(ex, gatewayId, parentId);
+                    }
+                    finally
+                    {
+                        await this.EndRecoveryAsync(gatewayId, version);
+                        lock (this.gatewayRefreshTimesLock)
+                        {
+                            this.gatewayRefreshTimes[(gatewayId, parentId)] = DateTime.UtcNow;
+                        }
+                    }
+                }
+
+                Option<ServiceIdentity> result = (await this.serviceIdentityHierarchy.Get(gatewayId))
+                    .Filter(g => IsEnabledGateway(g, gatewayId) && matchesParent(g));
+                return (await this.serviceIdentityHierarchy.GetAuthChain(gatewayId)).HasValue ? result : Option.None<ServiceIdentity>();
+            }
+        }
+
+        static bool IsEnabledGateway(ServiceIdentity identity, string id) =>
+            identity.Id == id && !identity.IsModule && identity.IsEdgeDevice &&
+            identity.Status == ServiceIdentityStatus.Enabled && identity.DeviceScope.HasValue;
+
+        bool TryStartGatewayRefresh(string gatewayId, string parentId)
+        {
+            lock (this.gatewayRefreshTimesLock)
+            {
+                DateTime now = DateTime.UtcNow;
+                foreach (var key in this.gatewayRefreshTimes.Where(entry => now - entry.Value > this.refreshDelay).Select(entry => entry.Key).ToList())
+                {
+                    this.gatewayRefreshTimes.Remove(key);
+                }
+
+                if (this.gatewayRefreshTimes.TryGetValue((gatewayId, parentId), out DateTime lastRefresh))
+                {
+                    Events.SkipRefreshServiceIdentity(gatewayId, lastRefresh, this.refreshDelay);
+                    return false;
+                }
+
+                // Bound state derived from untrusted chain hints without evicting active cooldowns.
+                if (this.gatewayRefreshTimes.Count >= MaxGatewayRefreshEntries)
+                {
+                    return false;
+                }
+
+                this.gatewayRefreshTimes[(gatewayId, parentId)] = DateTime.MaxValue;
+                return true;
+            }
+        }
+
+        async Task<long?> BeginRecoveryAsync(string id)
+        {
+            using (await this.identityUpdateLocks.GetLock(id).LockAsync())
+            {
+                if (await this.serviceIdentityHierarchy.Contains(id))
+                {
+                    return null;
+                }
+
+                long version = Interlocked.Increment(ref this.recoveryVersion);
+                this.recoveryVersions[id] = version;
+                return version;
+            }
+        }
+
+        async Task EndRecoveryAsync(string id, long? version)
+        {
+            using (await this.identityUpdateLocks.GetLock(id).LockAsync())
+            {
+                if (version.HasValue && this.recoveryVersions.TryGetValue(id, out long current) && current == version.Value)
+                {
+                    this.recoveryVersions.TryRemove(id, out _);
+                }
             }
         }
 
@@ -444,12 +688,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task HandleNoServiceIdentity(string id)
         {
-            Option<ServiceIdentity> identity = await this.serviceIdentityHierarchy.Get(id);
-            bool hasValidServiceIdentity = identity.Filter(s => s.Status == ServiceIdentityStatus.Enabled).HasValue;
+            bool hasValidServiceIdentity;
+            using (await this.identityUpdateLocks.GetLock(id).LockAsync())
+            {
+                Option<ServiceIdentity> identity = await this.serviceIdentityHierarchy.Get(id);
+                hasValidServiceIdentity = identity.Filter(s => s.Status == ServiceIdentityStatus.Enabled).HasValue;
+                this.recoveryVersions.TryRemove(id, out _);
 
-            // Remove the target identity
-            await this.serviceIdentityHierarchy.Remove(id);
-            await this.store.Remove(id);
+                // Remove the target identity
+                await this.serviceIdentityHierarchy.Remove(id);
+                await this.store.Remove(id);
+            }
+
             Events.NotInScope(id);
 
             if (hasValidServiceIdentity)
@@ -459,20 +709,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity)
+        async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity, long? expectedRecoveryVersion = null)
         {
-            Option<ServiceIdentity> existing = await this.serviceIdentityHierarchy.Get(serviceIdentity.Id);
-
-            bool hasChanged = await this.serviceIdentityHierarchy.AddOrUpdate(serviceIdentity);
-            if (hasChanged)
+            Option<ServiceIdentity> existing;
+            bool hasChanged;
+            using (await this.identityUpdateLocks.GetLock(serviceIdentity.Id).LockAsync())
             {
-                Events.AddInScope(serviceIdentity.Id);
-                await this.store.Save(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
-
-                if (existing.HasValue)
+                existing = await this.serviceIdentityHierarchy.Get(serviceIdentity.Id);
+                // A delayed recovery must not undo a gateway update or removal.
+                if (expectedRecoveryVersion.HasValue &&
+                    (existing.HasValue || !this.recoveryVersions.TryGetValue(serviceIdentity.Id, out long version) || version != expectedRecoveryVersion.Value))
                 {
-                    this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
+                    return;
                 }
+
+                this.recoveryVersions.TryRemove(serviceIdentity.Id, out _);
+                hasChanged = await this.serviceIdentityHierarchy.AddOrUpdate(serviceIdentity);
+                if (hasChanged)
+                {
+                    Events.AddInScope(serviceIdentity.Id);
+                    await this.store.Save(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
+                }
+            }
+
+            if (hasChanged && existing.HasValue)
+            {
+                this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
             }
         }
 

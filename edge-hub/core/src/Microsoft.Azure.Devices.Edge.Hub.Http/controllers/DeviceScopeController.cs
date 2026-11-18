@@ -154,6 +154,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 originatingEdgeDevice = actorDeviceId;
             }
 
+            if (!(await identitiesCache.GetAuthChain(originatingEdgeDevice)).HasValue)
+            {
+                await identitiesCache.RefreshMissingAuthChainAsync(request.AuthChain, true);
+                if (!(await identitiesCache.GetAuthChain(originatingEdgeDevice)).HasValue)
+                {
+                    return new EdgeHubScopeResultError(HttpStatusCode.Unauthorized, Events.UnauthorizedActor(actorDeviceId, actorModuleId, targetId));
+                }
+            }
+
             // We must always forward the call further upstream first,
             // as this is invoked for refreshing an identity on-demand,
             // and we don't know whether our cache is out-of-date.
