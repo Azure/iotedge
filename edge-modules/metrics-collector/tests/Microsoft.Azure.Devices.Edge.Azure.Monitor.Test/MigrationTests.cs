@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Azure.Core;
 using Azure.Monitor.Ingestion;
 using Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload;
+using Moq;
 using FixedSetTableUploadType = Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload.FixedSetTableUpload;
 using Xunit;
 
@@ -40,6 +42,48 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
         public void TestCloudConfigurationRejectsUnsupportedDomain()
         {
             Assert.Throws<ArgumentException>(() => AadCredentialFactory.GetCloudConfiguration("azure.example"));
+        }
+
+        [Theory]
+        [InlineData("azure.com", "https://my-dce.eastus-1.ingest.monitor.azure.com")]
+        [InlineData("azure.com", "https://my-dcr.eastus-1.ingest.monitor.azure.com")]
+        [InlineData("azure.com", "https://MY-DCE.EASTUS-1.INGEST.MONITOR.AZURE.COM.:443/")]
+        [InlineData("azure.com", "https://prod.la.ingest.monitor.core.windows.net")]
+        [InlineData("azure.com", "https://eastus.prod.la.ingest.monitor.core.windows.net")]
+        [InlineData("azure.com", "https://prod.la.ingestion.msftcloudes.com")]
+        [InlineData("azure.com", "https://eastus.prod.la.ingestion.msftcloudes.com")]
+        [InlineData("azure.us", "https://my-dce.usgovvirginia-1.ingest.monitor.azure.us")]
+        [InlineData("azure.cn", "https://my-dce.chinaeast2-1.ingest.monitor.azure.cn")]
+        [InlineData("azure.com.cn", "https://my-dce.chinaeast2-1.ingest.monitor.azure.cn")]
+        public void TestPublisherAcceptsOfficialIngestionEndpoint(string azureDomain, string endpoint)
+        {
+            var credential = new Mock<TokenCredential>(MockBehavior.Strict);
+            LogsIngestionAudience audience = AadCredentialFactory.GetCloudConfiguration(azureDomain).Audience;
+
+            new FixedSetTableUploadType(endpoint, "dcr-test", "Custom-Test_CL", "resource", credential.Object, audience);
+
+            credential.VerifyNoOtherCalls();
+        }
+
+        [Theory]
+        [InlineData("azure.com", "https://receiver.example")]
+        [InlineData("azure.com", "http://my-dce.eastus-1.ingest.monitor.azure.com")]
+        [InlineData("azure.com", "https://my-dce.ingest.monitor.azure.com.receiver.example")]
+        [InlineData("azure.com", "https://notingest.monitor.azure.com")]
+        [InlineData("azure.com", "https://my-dce.ingest.monitor.azure.com@receiver.example")]
+        [InlineData("azure.com", "https://receiver.example/ingest.monitor.azure.com")]
+        [InlineData("azure.com", "https://127.0.0.1")]
+        [InlineData("azure.com", "https://my-dce.usgovvirginia-1.ingest.monitor.azure.us")]
+        [InlineData("azure.us", "https://prod.la.ingest.monitor.core.windows.net")]
+        public void TestPublisherRejectsUnofficialEndpointBeforeAuthentication(string azureDomain, string endpoint)
+        {
+            var credential = new Mock<TokenCredential>(MockBehavior.Strict);
+            LogsIngestionAudience audience = AadCredentialFactory.GetCloudConfiguration(azureDomain).Audience;
+
+            Assert.Throws<ArgumentException>(() =>
+                new FixedSetTableUploadType(endpoint, "dcr-test", "Custom-Test_CL", "resource", credential.Object, audience));
+
+            credential.VerifyNoOtherCalls();
         }
 
         [Fact]
