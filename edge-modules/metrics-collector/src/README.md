@@ -28,7 +28,10 @@ Required config items:
 
 Optional config items:
 - `DataCollectionEndpoint`
-    - The Data Collection Endpoint (DCE) URL to ingest logs to.
+    - The Data Collection Endpoint (DCE) or direct Data Collection Rule (DCR) ingestion URL.
+    - Must use HTTPS and an official Azure Monitor ingestion host for the cloud selected by `AzureDomain`. Custom gateway URLs and IP address destinations are not accepted.
+    - For Private Link, use the service-provided DCE URL with private DNS, not a private IP address in the URL.
+    - An unsupported destination prevents publisher initialization. Correct `DataCollectionEndpoint` and `AzureDomain` in the deployment and redeploy.
     - Required if `UploadTarget` is set to `AzureMonitor`
     - ex: `https://my-dce-name.eastus-1.ingest.monitor.azure.com`
 - `DataCollectionRuleId`
