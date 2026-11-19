@@ -65,7 +65,7 @@ async fn main() -> Result<()> {
     //If one task closes, clean up everything
     if let Err(e) = nginx_controller_handle.await {
         error!("Tasks encountered an error: {}", e);
-    };
+    }
 
     //Send shutdown signal to all task
     shutdown_sdk
@@ -158,10 +158,10 @@ pub fn nginx_controller_start(
                 // Bug in clippy, not using mut mut here
                 #[allow(clippy::mut_mut)]
                 let proxy_command = select! {
-                    _ = wait_shutdown_ctrl_c => NginxCommands::Stop,
-                    _ = wait_shutdown_signal => NginxCommands::Stop,
-                    _ = cert_reload => NginxCommands::Reload,
-                    _ = config_reload => NginxCommands::Reload,
+                    () = wait_shutdown_ctrl_c => NginxCommands::Stop,
+                    () = wait_shutdown_signal => NginxCommands::Stop,
+                    () = cert_reload => NginxCommands::Reload,
+                    () = config_reload => NginxCommands::Reload,
                     _ = nginx_start => NginxCommands::Restart,
                 };
 
@@ -212,6 +212,6 @@ fn nginx_command(
         .args(proxy_command)
         .stdout(Stdio::inherit())
         .spawn()
-        .with_context(|| format!("Failed to {}  {}", command_name, proxy_name))
+        .with_context(|| format!("Failed to {command_name}  {proxy_name}"))
         .context("Cannot execute command")
 }

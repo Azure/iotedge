@@ -164,7 +164,7 @@ impl tokio_util::codec::Decoder for RemainingLengthDecoder {
 
     fn decode(&mut self, src: &mut bytes::BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         loop {
-            let encoded_byte = match src.try_get_u8() {
+            let encoded_byte = match BufMutExt::try_get_u8(src) {
                 Ok(encoded_byte) => encoded_byte,
                 Err(_) => return Ok(None),
             };

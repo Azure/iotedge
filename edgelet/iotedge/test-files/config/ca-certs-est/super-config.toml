@@ -1,5 +1,6 @@
 trust_bundle_cert = "file:///var/secrets/trusted-ca.pem"
 auto_reprovisioning_mode = "OnErrorOnly"
+allowed_bind_sources = []
 hostname = "my-device"
 
 [provisioning]

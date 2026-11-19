@@ -30,13 +30,6 @@ apt-get install -y \
     llvm-dev make pigz pkg-config python3-distutils python3-pip qemu-utils rpm tar \
     wget zstd
 
-# Install Go 1.24
-GO_VERSION=1.24.0
-[ "$ARCH" == 'aarch64' ] && GO_ARCH='arm64' || GO_ARCH='amd64'
-mkdir -p /usr/local/go
-curl -sSL "https://go.dev/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz" | tar -C /usr/local -xzf -
-rm -f /usr/bin/go
-ln -vs /usr/local/go/bin/go /usr/local/bin/go
 touch /.mariner-toolkit-ignore-dockerenv
 
 # Build Azure Linux toolkit
@@ -46,6 +39,7 @@ if ! [ -f "$AzureLinuxToolkitDir/toolkit.tar.gz" ]; then
     rm -rf "$AzureLinuxToolkitDir"
     git clone 'https://github.com/microsoft/azurelinux.git' --branch "$AZURELINUX_RELEASE" --depth 1 "$AzureLinuxToolkitDir"
     pushd "$AzureLinuxToolkitDir/toolkit/"
+    make install-prereqs
     make package-toolkit REBUILD_TOOLS=y
     popd
     cp "$AzureLinuxToolkitDir"/out/toolkit-*.tar.gz "$AZURELINUX_BUILD_ROOT/toolkit.tar.gz"

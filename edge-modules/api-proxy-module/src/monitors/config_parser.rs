@@ -27,7 +27,7 @@ impl ConfigParser {
         let mut reserved_values = HashMap::new();
 
         //Set default config values
-        for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
+        for (key, value) in PROXY_CONFIG_DEFAULT_VALUES {
             default_values.insert((*key).to_string(), (*value).to_string());
         }
 
@@ -149,7 +149,7 @@ fn replace_env_var_with_boolean(expression: &str) -> String {
                     fifo.push('0');
                 } else if flush_fifo.len() > 1 {
                     fifo.push('1');
-                };
+                }
                 fifo.push(c);
                 flush_fifo.clear();
             }

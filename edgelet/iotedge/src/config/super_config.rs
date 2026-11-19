@@ -15,6 +15,9 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allow_elevated_docker_permissions: Option<bool>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_bind_sources: Option<Vec<std::path::PathBuf>>,
+
     #[serde(default = "edgelet_settings::base::aziot::AutoReprovisioningMode::default")]
     pub auto_reprovisioning_mode: edgelet_settings::base::aziot::AutoReprovisioningMode,
 

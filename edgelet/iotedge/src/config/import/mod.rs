@@ -358,6 +358,7 @@ fn execute_inner(
 
     let config = super_config::Config {
         allow_elevated_docker_permissions: None,
+        allowed_bind_sources: None,
 
         trust_bundle_cert,
 

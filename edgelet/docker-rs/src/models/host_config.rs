@@ -18,6 +18,8 @@ pub struct HostConfig {
     pub extra_hosts: Option<Vec<String>>,
     #[serde(rename = "Privileged", skip_serializing_if = "Option::is_none")]
     pub privileged: Option<bool>,
+    #[serde(rename = "VolumesFrom", skip_serializing_if = "Option::is_none")]
+    pub volumes_from: Option<Vec<String>>,
     #[serde(flatten)]
     pub other_properties: std::collections::BTreeMap<String, serde_json::Value>,
 }

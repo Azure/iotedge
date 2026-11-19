@@ -90,7 +90,7 @@ print_help_and_exit() {
 ###############################################################################
 process_args() {
     save_next_arg=0
-    for arg in $@; do
+    for arg in "$@"; do
         if [[ ${save_next_arg} -eq 1 ]]; then
             APP="$arg"
             save_next_arg=0
@@ -193,15 +193,30 @@ process_args() {
 ###############################################################################
 # Main script execution
 ###############################################################################
-process_args $@
+process_args "$@"
 
 DOCKERFILE="$APP_BINARIESDIRECTORY/docker/linux/Dockerfile"
 IMAGE="$DOCKER_REGISTRY/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION"
 
-echo "Building and pushing image '$IMAGE'"
+# Dump docker version and config information to help with debugging
+echo "--------------------"
+echo "> docker version"
+docker version
+echo "--------------------"
+echo "> docker buildx version"
+docker buildx version
+echo "--------------------"
+echo "> docker buildx inspect default --bootstrap"
+docker buildx inspect default --bootstrap
+echo "--------------------"
+echo "> docker info"
+docker info
+echo "--------------------"
+echo "> BUILDX_* and BUILDKIT_* environment variables"
+env | awk '/^(BUILDX|BUILDKIT)_/' | sort
+echo "--------------------"
 
-docker buildx create --use --bootstrap
-trap "docker buildx rm" EXIT
+echo "Building and pushing image '$IMAGE'"
 
 if [[ "$APP" == 'api-proxy-module' ]]; then
     # First, build each platform-specific image from a separate Dockerfile. This will create
@@ -216,6 +231,9 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
         PLAT_IMAGE="$IMAGE-$CONVERTED_PLATFORM"
 
         docker buildx build \
+            --builder default \
+            --provenance=mode=min,version=v1 \
+            --pull \
             --no-cache \
             --platform "$PLATFORM" \
             --file "$APP_BINARIESDIRECTORY/docker/${CONVERTED_PLATFORM/-/\/}/Dockerfile" \
@@ -227,7 +245,7 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
     done
 
     # Next, create the multi-platform image from the platform-specific images
-    docker buildx imagetools create --tag $IMAGE ${PLAT_IMAGES[@]}
+    docker buildx imagetools create --builder default --tag "$IMAGE" "${PLAT_IMAGES[@]}"
 
     # Finally, tag each platform-specific image. This will untag the intermediate manifest lists,
     # which are no longer needed.
@@ -243,6 +261,9 @@ if [[ "$APP" == 'api-proxy-module' ]]; then
 else
     # First, build the complete multi-platform image
     docker buildx build \
+        --builder default \
+        --provenance=mode=min,version=v1 \
+        --pull \
         --no-cache \
         --platform "$PLATFORMS" \
         --file "$DOCKERFILE" \

@@ -42,6 +42,14 @@
 # line to improve the security of the device.
 #
 # allow_elevated_docker_permissions = false
+#
+# When elevated Docker permissions are disabled, only bind mounts whose host source
+# is this path or one of its descendants are retained. IoT Edge workload sockets and
+# the Edge Agent management socket are allow-listed automatically. Disallowed binds are
+# removed and logged. Set this to [] to disallow all other host bind sources.
+#
+# Paths are normalized before comparison.
+allowed_bind_sources = ["/iotedge/storage"]
 
 # ==============================================================================
 # Module identity cache preference

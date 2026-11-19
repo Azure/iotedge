@@ -198,12 +198,12 @@ impl CertificateMonitor {
     async fn get_new_trust_bundle(&mut self) -> Result<Option<String>, anyhow::Error> {
         let resp = self.work_load_api_client.trust_bundle().await?;
 
-        let trust_bundle = resp.certificate().to_string();
+        let trust_bundle = resp.certificate().clone();
 
         let mut hasher = sha2::Sha256::new();
         hasher.update(&trust_bundle);
         let bundle_of_trust_hash = hasher.finalize();
-        let bundle_of_trust_hash = format!("{:x}", bundle_of_trust_hash);
+        let bundle_of_trust_hash = format!("{bundle_of_trust_hash:x}");
 
         if self.bundle_of_trust_hash.ne(&bundle_of_trust_hash) {
             self.bundle_of_trust_hash = bundle_of_trust_hash;
@@ -217,7 +217,7 @@ impl CertificateMonitor {
 fn unwrap_certificate_response(
     resp: &CertificateResponse,
 ) -> Result<((String, String), DateTime<Utc>), anyhow::Error> {
-    let server_crt = resp.certificate().to_string();
+    let server_crt = resp.certificate().clone();
     let private_key_raw = resp.private_key();
     let private_key = match private_key_raw.bytes() {
         Some(val) => val.to_string(),

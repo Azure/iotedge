@@ -6,6 +6,8 @@
 
 homedir = "/var/lib/aziot/edged"
 
+allowed_bind_sources = ["/iotedge/storage"]
+
 [agent]
 name = "edgeAgent"
 type = "docker"

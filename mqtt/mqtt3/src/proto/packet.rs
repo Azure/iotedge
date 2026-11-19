@@ -167,9 +167,9 @@ impl PacketMeta for Connect {
             return Err(super::DecodeError::UnrecognizedProtocolName(protocol_name));
         }
 
-        let protocol_level = src.try_get_u8()?;
+        let protocol_level = BufMutExt::try_get_u8(&mut src)?;
 
-        let connect_flags = src.try_get_u8()?;
+        let connect_flags = BufMutExt::try_get_u8(&mut src)?;
         if connect_flags & 0x01 != 0 {
             return Err(super::DecodeError::ConnectReservedSet);
         }
@@ -719,7 +719,7 @@ impl PacketMeta for Subscribe {
             let topic_filter = super::Utf8StringDecoder::default()
                 .decode(&mut src)?
                 .ok_or(super::DecodeError::IncompletePacket)?;
-            let qos = match src.try_get_u8()? {
+            let qos = match BufMutExt::try_get_u8(&mut src)? {
                 0x00 => QoS::AtMostOnce,
                 0x01 => QoS::AtLeastOnce,
                 0x02 => QoS::ExactlyOnce,
@@ -961,7 +961,7 @@ impl tokio_util::codec::Decoder for PacketCodec {
         let (first_byte, src) = loop {
             match &mut self.decoder_state {
                 PacketDecoderState::Empty => {
-                    let first_byte = match src.try_get_u8() {
+                    let first_byte = match BufMutExt::try_get_u8(src) {
                         Ok(first_byte) => first_byte,
                         Err(_) => return Ok(None),
                     };

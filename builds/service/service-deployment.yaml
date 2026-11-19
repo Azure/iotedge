@@ -3,11 +3,11 @@
 pr: none
 trigger: none
 schedules:
-- cron: '0 3 * * *'
+- cron: '0 4 * * *'
   displayName: Nightly run 1.6 LTS
   branches:
     include:
-    - main
+    - release/1.6
   always: true
 
 variables:
