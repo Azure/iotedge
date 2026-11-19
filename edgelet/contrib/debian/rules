@@ -15,9 +15,11 @@ export DH_OPTIONS = -v
 
 # Default behavior of dh_installsystemd is to enable and start all installed units, ie both sockets and services.
 # But we don't want to start the service, since it will need to be configured first.
+# --no-start alone would also stop the service on upgrade and never start it again, so --restart-after-upgrade
+# is needed to restart it after an upgrade.
 override_dh_installsystemd:
 	dh_installsystemd aziot-edged.mgmt.socket aziot-edged.workload.socket
-	dh_installsystemd --no-start aziot-edged.service
+	dh_installsystemd --no-start --restart-after-upgrade aziot-edged.service
 
 override_dh_shlibdeps:
 ifeq ($(CARGO), cross)
