@@ -259,6 +259,165 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         }
 
         [Fact]
+        public void TestMergeCreateOptions_remove_unused()
+        {
+            // Arrange
+            var baseline = new
+            {
+                module = new
+                {
+                    level0 = "nochange",
+                    level1 = "value1",
+                    settings = new
+                    {
+                        createOptions = "some-create",
+                        createOptions01 = "-options"
+                    }
+                },
+            };
+
+            var patch = new
+            {
+                module = new
+                {
+                    level0 = "nochange",
+                    level1 = "value2",
+                    settings = new
+                    {
+                        createOptions = "some-create-option-that-is-not-chucked"
+                    }
+                },
+            };
+
+            var merged = new
+            {
+                module = new
+                {
+                    level0 = "nochange",
+                    level1 = "value2",
+                    settings = new
+                    {
+                        createOptions = "some-create-option-that-is-not-chucked"
+                    }
+                },
+            };
+            // Assert
+            JToken resultCollection = JsonEx.Merge(JToken.FromObject(baseline), JToken.FromObject(patch), true, "createOptions");
+
+            // Assert
+            Assert.True(JToken.DeepEquals(JToken.FromObject(resultCollection), JToken.FromObject(merged)), resultCollection.ToString());
+        }
+
+        [Fact]
+        public void TestMergeCreateOptions_remove_02_kepp_01()
+        {
+            // Arrange
+            var baseline = new
+            {
+                module = new
+                {
+                    level0 = "nochange",
+                    level1 = "value1",
+                    settings = new
+                    {
+                        createOptions = "some-create",
+                        createOptions01 = "-options",
+                        createOptions02 = "-that-is-old"
+                    }
+                },
+            };
+
+            var patch = new
+            {
+                module = new
+                {
+                    level0 = "nochange",
+                    level1 = "value2",
+                    settings = new
+                    {
+                        createOptions = "some-create",
+                        createOptions01 = "-options-that-is-new"
+                    }
+                },
+            };
+
+            var merged = new
+            {
+                module = new
+                {
+                    level0 = "nochange",
+                    level1 = "value2",
+                    settings = new
+                    {
+                        createOptions = "some-create",
+                        createOptions01 = "-options-that-is-new"
+                    }
+                },
+            };
+            // Assert
+            JToken resultCollection = JsonEx.Merge(JToken.FromObject(baseline), JToken.FromObject(patch), true, "createOptions");
+
+            // Assert
+            Assert.True(JToken.DeepEquals(JToken.FromObject(resultCollection), JToken.FromObject(merged)), resultCollection.ToString());
+        }
+
+        [Fact]
+        public void TestMergeCreateOptions3_do_not_remove_since_both_have_01_02()
+        {
+            // Arrange
+            var baseline = new
+            {
+                module = new
+                {
+                    level0 = "nochange",
+                    level1 = "value1",
+                    settings = new
+                    {
+                        createOptions = "some-create",
+                        createOptions01 = "-options",
+                        createOptions02 = "-that-is-old"
+                    }
+                },
+            };
+
+            var patch = new
+            {
+                module = new
+                {
+                    level0 = "nochange",
+                    level1 = "value2",
+                    settings = new
+                    {
+                        createOptions = "some-create",
+                        createOptions01 = "-options-that-is-new",
+                        createOptions02 = "-and-even-longer"
+                    }
+                },
+            };
+
+            var merged = new
+            {
+                module = new
+                {
+                    level0 = "nochange",
+                    level1 = "value2",
+                    settings = new
+                    {
+                        createOptions = "some-create",
+                        createOptions01 = "-options-that-is-new",
+                        createOptions02 = "-and-even-longer"
+                    }
+                },
+            };
+            // Assert
+            JToken resultCollection = JsonEx.Merge(JToken.FromObject(baseline), JToken.FromObject(patch), true, "createOptions");
+
+            // Assert
+            Assert.True(JToken.DeepEquals(JToken.FromObject(resultCollection), JToken.FromObject(merged)), resultCollection.ToString());
+        }
+
+
+        [Fact]
         public void TestDiffAllCases()
         {
             // Arrange
