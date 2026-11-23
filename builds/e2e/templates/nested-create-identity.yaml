@@ -30,7 +30,7 @@ steps:
             az iot hub device-identity parent set --auth-type login --device-id $deviceId --hub-name $iotHubName --parent-device-id $(parentDeviceId)
         fi
 
-        connectionString=$(az iot hub device-identity connection-string show --auth-type login --device-id $deviceId --hub-name $iotHubName --query 'connectionString' --output tsv)
+        connectionString=$(az iot hub device-identity connection-string show --auth-type login --device-id $deviceId --hub-name $iotHubName --hostname-type classic --query 'connectionString' --output tsv)
 
         #set output variable to use later in the job
         echo "##vso[task.setvariable variable=connectionString]$connectionString"
