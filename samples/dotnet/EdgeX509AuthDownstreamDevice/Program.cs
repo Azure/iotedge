@@ -391,6 +391,11 @@ namespace Microsoft.Azure.Devices.Client.Samples
             Console.WriteLine("Attempting to install CA certificate: {0}", TrustedCACertPath);
             X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
             store.Open(OpenFlags.ReadWrite);
+            // CodeQL [SM02730] The supplied CA cert must be added to the root store so that it can be used to validate the Edge Hub server cert.
+            // Note that it is added only to current user's root store, not system root store. The CodeQL warning being suppressed here is supposed to be
+            // about adding to the system root store, but it is lax enough that it matches current user too.
+            //
+            // Ref: CWE-327 cs/adding-cert-to-root-store - Do not add certificates to the system root store
             store.Add(trustedCACert);
             Console.WriteLine("Successfully added certificate: {0}", TrustedCACertPath);
             store.Close();
