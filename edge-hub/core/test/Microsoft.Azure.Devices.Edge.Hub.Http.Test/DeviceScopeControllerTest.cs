@@ -96,6 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var authChainMapping = new Dictionary<string, string>();
             string targetId = childEdgeId + "/" + moduleId;
             authChainMapping.Add(targetId, $"{targetId};{childEdgeId};{parentEdgeId};edgeroot");
+            authChainMapping.Add(childEdgeId, $"{childEdgeId};{parentEdgeId};edgeroot");
             var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
 
             // Act
@@ -235,6 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var request = new IdentityOnBehalfOfRequest(targetDeviceId, targetModuleId, authChain);
             var identitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             string targetId = targetDeviceId + (string.IsNullOrWhiteSpace(targetModuleId) ? string.Empty : $"/{targetModuleId}");
+            identitiesCache.Setup(i => i.GetAuthChain(originatorDeviceId)).ReturnsAsync(Option.Some(authChain));
             identitiesCache.Setup(i => i.RefreshServiceIdentityOnBehalfOf(targetId, originatorDeviceId)).Returns(Task.CompletedTask);
             var targetServiceIdentity = new ServiceIdentity(targetId, "dummy", Enumerable.Empty<string>(), new ServiceAuthentication(ServiceAuthenticationType.None), ServiceIdentityStatus.Enabled);
             identitiesCache.Setup(i => i.GetServiceIdentity(targetId)).Returns(Task.FromResult(Option.Some(targetServiceIdentity)));
@@ -245,6 +247,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             // Verity
             Assert.Equal(expectedStatus, edgeHubScopeResult.Status);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task PointLookupRepairsOriginatingGatewayBeforeForwardingAsync(bool recovered)
+        {
+            var request = new IdentityOnBehalfOfRequest("leaf", null, "nested;gateway");
+            var cache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            bool attempted = false;
+            cache.Setup(c => c.GetAuthChain("nested"))
+                .ReturnsAsync(() => attempted && recovered ? Option.Some("nested;gateway;root") : Option.None<string>());
+            cache.Setup(c => c.RefreshMissingAuthChainAsync("nested;gateway", true))
+                .Callback(() => attempted = true).Returns(Task.CompletedTask);
+            cache.Setup(c => c.RefreshServiceIdentityOnBehalfOf("leaf", "nested"))
+                .Callback(() => Assert.True(attempted && recovered)).Returns(Task.CompletedTask);
+            var leaf = new ServiceIdentity("leaf", "1", Enumerable.Empty<string>(), new ServiceAuthentication(ServiceAuthenticationType.None), ServiceIdentityStatus.Enabled);
+            cache.Setup(c => c.GetServiceIdentity("leaf")).ReturnsAsync(Option.Some(leaf));
+            cache.Setup(c => c.GetAuthChain("leaf")).ReturnsAsync(Option.Some("leaf;nested;gateway;root"));
+
+            EdgeHubScopeResult result = await DeviceScopeController.HandleGetDeviceAndModuleOnBehalfOfAsync("gateway", Constants.EdgeHubModuleId, request, cache.Object);
+
+            Assert.Equal(recovered ? HttpStatusCode.OK : HttpStatusCode.Unauthorized, result.Status);
+            cache.Verify(c => c.RefreshMissingAuthChainAsync("nested;gateway", true), Times.Once);
+            cache.Verify(c => c.RefreshServiceIdentityOnBehalfOf("leaf", "nested"), recovered ? Times.Once() : Times.Never());
+            cache.Verify(c => c.InitiateCacheRefresh(), Times.Never);
         }
 
         private static DeviceScopeController MakeController(string targetEdgeId, IList<ServiceIdentity> resultIdentities, IDictionary<string, string> authChains)

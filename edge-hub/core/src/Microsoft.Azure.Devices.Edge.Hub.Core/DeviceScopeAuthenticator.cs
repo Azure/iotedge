@@ -134,11 +134,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(authTarget);
             if (!authChain.HasValue)
             {
-                // The auth-target might be a new device that was recently added, and our
-                // cache might not have it yet. Try refreshing the target identity to see
-                // if we can get it from upstream.
+                // Point lookups require the acting gateway's chain first.
                 Events.NoAuthChainResyncing(authTarget, actorDeviceId);
-                await this.deviceScopeIdentitiesCache.RefreshServiceIdentityOnBehalfOf(authTarget, actorDeviceId);
+                await this.deviceScopeIdentitiesCache.RefreshMissingAuthChainAsync(credentials.AuthChain.OrDefault());
                 authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(authTarget);
 
                 if (!authChain.HasValue)
