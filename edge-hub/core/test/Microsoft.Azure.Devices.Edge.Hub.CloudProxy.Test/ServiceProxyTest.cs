@@ -319,11 +319,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
+            (Option<ServiceIdentity> serviceIdentity, Option<ServiceIdentity> parent) = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
 
             // Assert
             Assert.True(serviceIdentity.HasValue);
             Assert.Equal("d1/m1", serviceIdentity.OrDefault().Id);
+            Assert.False(parent.HasValue);
         }
 
         [Fact]
@@ -344,10 +345,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
+            (Option<ServiceIdentity> serviceIdentity, Option<ServiceIdentity> parent) = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
+            Assert.False(parent.HasValue);
         }
 
         [Fact]
@@ -368,10 +370,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
+            (Option<ServiceIdentity> serviceIdentity, Option<ServiceIdentity> parent) = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
+            Assert.False(parent.HasValue);
         }
 
         [Fact]
@@ -388,10 +391,91 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
+            (Option<ServiceIdentity> serviceIdentity, Option<ServiceIdentity> parent) = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
+            Assert.False(parent.HasValue);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task GetModuleIdentityPreservesParentAsync(bool nestedEdgeEnabled)
+        {
+            Device parent = GetDevice("d1");
+            Module module = GetModule("d1", "m1");
+            var result = new ScopeResult(new[] { GetDevice("other"), parent }, new[] { module }, null);
+            var client = new Mock<IDeviceScopeApiClient>(MockBehavior.Strict);
+            var provider = new Mock<IDeviceScopeApiClientProvider>(MockBehavior.Strict);
+            if (nestedEdgeEnabled)
+            {
+                client.Setup(c => c.GetIdentityOnBehalfOfAsync("d1", Option.Some("m1"), "edgedevice")).ReturnsAsync(result);
+                provider.Setup(p => p.CreateNestedDeviceScopeClient()).Returns(client.Object);
+            }
+            else
+            {
+                client.Setup(c => c.GetIdentityAsync("d1", "m1")).ReturnsAsync(result);
+                provider.Setup(p => p.CreateDeviceScopeClient()).Returns(client.Object);
+            }
+
+            IServiceProxy proxy = new ServiceProxy(provider.Object, nestedEdgeEnabled);
+            (Option<ServiceIdentity> identity, Option<ServiceIdentity> parentIdentity) =
+                await proxy.GetServiceIdentity("d1", "m1", "edgedevice");
+
+            Assert.Equal(module.ToServiceIdentity(), identity.OrDefault());
+            Assert.Equal(parent.ToServiceIdentity(), parentIdentity.OrDefault());
+            Assert.Single(client.Invocations);
+            client.VerifyAll();
+            provider.VerifyAll();
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public async Task GetModuleIdentityDoesNotAcceptInvalidParentAsync(int parentCase)
+        {
+            Device[] parents = parentCase == 0 ? null :
+                parentCase == 1 ? new[] { GetDevice("D1") } :
+                parentCase == 2 ? new[] { GetDevice("d1"), GetDevice("d1") } : Array.Empty<Device>();
+            Module module = GetModule("d1", "m1");
+            var result = new ScopeResult(parents, new[] { module }, null);
+            var client = new Mock<IDeviceScopeApiClient>(MockBehavior.Strict);
+            client.Setup(c => c.GetIdentityOnBehalfOfAsync("d1", Option.Some("m1"), "edgedevice")).ReturnsAsync(result);
+            var provider = new Mock<IDeviceScopeApiClientProvider>(MockBehavior.Strict);
+            provider.Setup(p => p.CreateNestedDeviceScopeClient()).Returns(client.Object);
+            IServiceProxy proxy = new ServiceProxy(provider.Object);
+
+            (Option<ServiceIdentity> identity, Option<ServiceIdentity> parent) =
+                await proxy.GetServiceIdentity("d1", "m1", "edgedevice");
+
+            Assert.Equal(module.ToServiceIdentity(), identity.OrDefault());
+            Assert.False(parent.HasValue);
+            Assert.Single(client.Invocations);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(2)]
+        public async Task GetModuleIdentityDoesNotReturnParentWithoutModuleAsync(int moduleCount)
+        {
+            var result = new ScopeResult(
+                new[] { GetDevice("d1") },
+                Enumerable.Range(0, moduleCount).Select(_ => GetModule("d1", "m1")),
+                null);
+            var client = new Mock<IDeviceScopeApiClient>(MockBehavior.Strict);
+            client.Setup(c => c.GetIdentityOnBehalfOfAsync("d1", Option.Some("m1"), "edgedevice")).ReturnsAsync(result);
+            var provider = new Mock<IDeviceScopeApiClientProvider>(MockBehavior.Strict);
+            provider.Setup(p => p.CreateNestedDeviceScopeClient()).Returns(client.Object);
+            IServiceProxy proxy = new ServiceProxy(provider.Object);
+
+            (Option<ServiceIdentity> identity, Option<ServiceIdentity> parent) =
+                await proxy.GetServiceIdentity("d1", "m1", "edgedevice");
+
+            Assert.False(identity.HasValue);
+            Assert.False(parent.HasValue);
         }
 
         static bool Compare(IEnumerable<ServiceIdentity> serviceIdentities, ScopeResult scopeResult)
